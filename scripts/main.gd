@@ -1,0 +1,206 @@
+extends Control
+## Root controller for Framewrack MVP.
+## Inventory-first roguelike (Backpack Hero–like): body grid is the core loop,
+## with node-map progression and turn-based combat driven by equipped modules.
+
+const RUST_BLADE := preload("res://resources/items/rust_blade.tres")
+const MICRO_REACTOR := preload("res://resources/items/micro_reactor.tres")
+const SCRAP_SHIELD := preload("res://resources/items/scrap_shield.tres")
+const ENEMY_REBEL := preload("res://resources/enemies/desperate_rebel.tres")
+const ENEMY_SYNTHET := preload("res://resources/enemies/corrupted_synthet.tres")
+
+@onready var _map_ui: Control = %MapUI
+@onready var _inventory_ui: Control = %InventoryUI
+@onready var _combat_ui: Control = %CombatUI
+@onready var _status_banner: Label = %StatusBanner
+@onready var _inventory_panel: PanelContainer = %InventoryPanel
+@onready var _btn_toggle_inv: Button = %ToggleInventoryButton
+@onready var _btn_expand: Button = %ExpandGridButton
+@onready var _btn_new_run: Button = %NewRunButton
+
+var inventory: InventoryController
+var flow_state: int = GameFlowState.State.EXPLORING
+
+@onready var _combat: Node = $CombatManager
+@onready var _map: Node = $MapManager
+
+
+func _ready() -> void:
+	inventory = InventoryController.new()
+	_combat.setup(inventory)
+	_seed_starting_loadout()
+	_style_inventory_panel()
+
+	_map_ui.setup(_map)
+	_inventory_ui.setup(inventory)
+	_combat_ui.setup(_combat, inventory)
+
+	_map.node_entered.connect(_on_map_node_entered)
+	_map.map_finished.connect(_on_map_finished)
+	_map_ui.node_chosen.connect(_on_node_chosen)
+	_combat_ui.end_turn_pressed.connect(_on_end_turn)
+	_combat_ui.activate_item_requested.connect(_on_activate_item)
+	_combat_ui.target_selected.connect(_on_target)
+	_combat_ui.continue_pressed.connect(_on_combat_continue)
+	_combat.state_changed.connect(_on_combat_state)
+	EventBus.combat_ended.connect(_on_combat_ended_bus)
+
+	_btn_toggle_inv.pressed.connect(_toggle_inventory)
+	_btn_expand.pressed.connect(_expand_grid_demo)
+	_btn_new_run.pressed.connect(_new_run)
+
+	_show_exploring()
+	_status_banner.text = "FRAMEWRACK — graft modules, then enter the sector."
+
+
+func _style_inventory_panel() -> void:
+	var style := StyleBoxFlat.new()
+	style.bg_color = Color(0.14, 0.14, 0.14, 1)
+	style.set_border_width_all(1)
+	style.border_color = Color(0.35, 0.35, 0.35)
+	style.set_content_margin_all(10)
+	_inventory_panel.add_theme_stylebox_override("panel", style)
+
+
+func _seed_starting_loadout() -> void:
+	inventory.reset_run()
+	inventory.add_to_stash(RUST_BLADE.duplicate(true) as ItemData)
+	inventory.add_to_stash(MICRO_REACTOR.duplicate(true) as ItemData)
+	inventory.add_to_stash(SCRAP_SHIELD.duplicate(true) as ItemData)
+	# Pre-place a workable starter layout if possible.
+	inventory.try_place_from_stash(0, Vector2i(0, 0))  # blade on left edge
+	# stash indices shift after place — place reactor then shield from remaining
+	# After one place, reactor is index 0, shield index 1.
+	inventory.try_place_from_stash(0, Vector2i(1, 1))  # reactor center-ish
+	inventory.try_place_from_stash(0, Vector2i(2, 0))  # shield top edge
+
+
+func _set_flow(state: int) -> void:
+	flow_state = state
+	EventBus.game_state_changed.emit(state)
+
+
+func _show_exploring() -> void:
+	_set_flow(GameFlowState.State.EXPLORING)
+	_map_ui.visible = true
+	_combat_ui.visible = false
+	_inventory_panel.visible = true
+	_map_ui.refresh()
+	_inventory_ui.refresh()
+
+
+func _show_combat() -> void:
+	_map_ui.visible = false
+	_combat_ui.visible = true
+	_inventory_panel.visible = true  # body grid stays visible during fight
+
+
+func _toggle_inventory() -> void:
+	_inventory_panel.visible = not _inventory_panel.visible
+
+
+func _expand_grid_demo() -> void:
+	## Mutation hook: unlock an irregular L-extension of flesh/bone cells.
+	var cells: Array[Vector2i] = [
+		Vector2i(4, 0),
+		Vector2i(4, 1),
+		Vector2i(4, 2),
+		Vector2i(3, 4),
+		Vector2i(4, 4),
+	]
+	inventory.grid.unlock_cells(cells)
+	_status_banner.text = "Body grid mutated — new cells grafted (placeholder flesh/bone)."
+	_inventory_ui.refresh()
+
+
+func _on_node_chosen(node_id: String) -> void:
+	_map.select_node(node_id)
+
+
+func _on_map_node_entered(_node_id: String, node_type: int) -> void:
+	match node_type:
+		MapManager.NodeType.COMBAT, MapManager.NodeType.BOSS:
+			_start_combat_for_current()
+		MapManager.NodeType.REPAIR:
+			inventory.grid.clear_all_corruption()
+			inventory.heal_full()
+			_status_banner.text = "Repair bench: corruption cleared, frame restored."
+			_map.complete_current()
+			_map_ui.refresh()
+			_inventory_ui.refresh()
+		MapManager.NodeType.EVENT:
+			# Grant a duplicate reactor as loot + soft heal.
+			inventory.add_to_stash(MICRO_REACTOR.duplicate(true) as ItemData)
+			inventory.current_hp = mini(inventory.max_hp, inventory.current_hp + 10)
+			EventBus.player_hp_changed.emit(inventory.current_hp, inventory.max_hp)
+			_status_banner.text = "Mutation Cache: scavenged Micro-Reactor (+10 HP)."
+			_map.complete_current()
+			_map_ui.refresh()
+			_inventory_ui.refresh()
+		_:
+			pass
+
+
+func _start_combat_for_current() -> void:
+	var node: Dictionary = _map.get_current()
+	var enemy_ids: Array = node.get("enemy_ids", [])
+	var datas: Array[EnemyData] = []
+	for eid in enemy_ids:
+		match str(eid):
+			"desperate_rebel":
+				datas.append(ENEMY_REBEL.duplicate(true) as EnemyData)
+			"corrupted_synthet":
+				datas.append(ENEMY_SYNTHET.duplicate(true) as EnemyData)
+	_show_combat()
+	_combat_ui.setup(_combat, inventory)
+	_combat.start_combat(datas)
+	_status_banner.text = "ENGAGEMENT — %s" % str(node.get("label", "Unknown"))
+
+
+func _on_end_turn() -> void:
+	_combat.end_player_turn()
+
+
+func _on_activate_item(placed: PlacedItem) -> void:
+	_combat.activate_item(placed)
+	_inventory_ui.refresh()
+
+
+func _on_target(index: int) -> void:
+	_combat.set_target(index)
+
+
+func _on_combat_state(_s: int) -> void:
+	_inventory_ui.refresh()
+
+
+func _on_combat_ended_bus(victory: bool) -> void:
+	if victory:
+		_status_banner.text = "Combat resolved. Continue when ready."
+	else:
+		_status_banner.text = "Frame failed. Start a new run."
+
+
+func _on_combat_continue() -> void:
+	if _combat.state == _combat.CombatState.VICTORY:
+		_map.complete_current()
+		_show_exploring()
+		_status_banner.text = "Sector secured. Select the next node."
+	elif _combat.state == _combat.CombatState.DEFEAT:
+		_show_exploring()
+		_status_banner.text = "You are wreckage. Press New Run."
+
+
+func _on_map_finished() -> void:
+	_status_banner.text = "FRAMEWRACK CORE silenced. Run complete."
+	_set_flow(GameFlowState.State.VICTORY)
+
+
+func _new_run() -> void:
+	_map.reset()
+	_seed_starting_loadout()
+	_inventory_ui.setup(inventory)
+	_combat.setup(inventory)
+	_show_exploring()
+	_status_banner.text = "New frame online. Graft. Advance. Mutate."
+	EventBus.run_started.emit()

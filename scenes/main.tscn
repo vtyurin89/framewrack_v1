@@ -1,0 +1,119 @@
+[gd_scene load_steps=6 format=3 uid="uid://bw_main"]
+
+[ext_resource type="Script" path="res://scripts/main.gd" id="1"]
+[ext_resource type="PackedScene" path="res://scenes/UI/map_ui.tscn" id="2"]
+[ext_resource type="PackedScene" path="res://scenes/UI/inventory_grid.tscn" id="3"]
+[ext_resource type="PackedScene" path="res://scenes/UI/combat_ui.tscn" id="4"]
+[ext_resource type="Script" path="res://scripts/combat/combat_manager.gd" id="5"]
+[ext_resource type="Script" path="res://scripts/map/map_manager.gd" id="6"]
+
+[node name="Main" type="Control"]
+layout_mode = 3
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+script = ExtResource("1")
+
+[node name="CombatManager" type="Node" parent="."]
+script = ExtResource("5")
+
+[node name="MapManager" type="Node" parent="."]
+script = ExtResource("6")
+
+[node name="Background" type="ColorRect" parent="."]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+mouse_filter = 2
+color = Color(0.101961, 0.101961, 0.101961, 1)
+
+[node name="RootLayout" type="VBoxContainer" parent="."]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+offset_left = 10.0
+offset_top = 8.0
+offset_right = -10.0
+offset_bottom = -8.0
+grow_horizontal = 2
+grow_vertical = 2
+theme_override_constants/separation = 8
+
+[node name="TopBar" type="HBoxContainer" parent="RootLayout"]
+layout_mode = 2
+theme_override_constants/separation = 12
+
+[node name="Title" type="Label" parent="RootLayout/TopBar"]
+layout_mode = 2
+size_flags_horizontal = 3
+theme_override_colors/font_color = Color(0.9, 0.9, 0.9, 1)
+theme_override_font_sizes/font_size = 26
+text = "FRAMEWRACK"
+
+[node name="ToggleInventoryButton" type="Button" parent="RootLayout/TopBar"]
+unique_name_in_owner = true
+layout_mode = 2
+text = "Body Grid"
+
+[node name="ExpandGridButton" type="Button" parent="RootLayout/TopBar"]
+unique_name_in_owner = true
+layout_mode = 2
+text = "Mutate (+cells)"
+
+[node name="NewRunButton" type="Button" parent="RootLayout/TopBar"]
+unique_name_in_owner = true
+layout_mode = 2
+text = "New Run"
+
+[node name="StatusBanner" type="Label" parent="RootLayout"]
+unique_name_in_owner = true
+layout_mode = 2
+theme_override_colors/font_color = Color(0.7, 0.7, 0.72, 1)
+theme_override_font_sizes/font_size = 13
+autowrap_mode = 3
+text = "Systems online."
+
+[node name="Content" type="HBoxContainer" parent="RootLayout"]
+layout_mode = 2
+size_flags_vertical = 3
+theme_override_constants/separation = 12
+
+[node name="MainStage" type="Control" parent="RootLayout/Content"]
+layout_mode = 2
+size_flags_horizontal = 3
+size_flags_stretch_ratio = 1.6
+
+[node name="MapUI" parent="RootLayout/Content/MainStage" instance=ExtResource("2")]
+unique_name_in_owner = true
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+
+[node name="CombatUI" parent="RootLayout/Content/MainStage" instance=ExtResource("4")]
+unique_name_in_owner = true
+visible = false
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+
+[node name="InventoryPanel" type="PanelContainer" parent="RootLayout/Content"]
+unique_name_in_owner = true
+layout_mode = 2
+size_flags_horizontal = 3
+custom_minimum_size = Vector2(320, 0)
+
+[node name="InventoryUI" parent="RootLayout/Content/InventoryPanel" instance=ExtResource("3")]
+unique_name_in_owner = true
+layout_mode = 2

@@ -1,0 +1,15 @@
+[gd_resource type="Resource" script_class="EnemyData" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://scripts/resources/enemy_data.gd" id="1"]
+
+[resource]
+script = ExtResource("1")
+id = "desperate_rebel"
+display_name = "Desperate Rebel"
+description = "A starving human with a pipe. Still believes this city has a future."
+max_hp = 18
+basic_damage = 5
+special_damage = 0
+corruption_duration = 0
+special_chance = 0.0
+placeholder_color = Color(0.82, 0.82, 0.85, 1)

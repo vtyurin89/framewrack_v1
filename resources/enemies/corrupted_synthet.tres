@@ -1,0 +1,15 @@
+[gd_resource type="Resource" script_class="EnemyData" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://scripts/resources/enemy_data.gd" id="1"]
+
+[resource]
+script = ExtResource("1")
+id = "corrupted_synthet"
+display_name = "Corrupted Synthet"
+description = "Half-melted chassis leaking signal noise. Its touch rusts your grid."
+max_hp = 22
+basic_damage = 4
+special_damage = 3
+corruption_duration = 2
+special_chance = 0.45
+placeholder_color = Color(0.65, 0.55, 0.7, 1)
