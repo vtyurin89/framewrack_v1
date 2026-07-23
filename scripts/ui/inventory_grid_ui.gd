@@ -1,24 +1,44 @@
+class_name InventoryGridUI
 extends Control
-## Visual body-grid: unlocked cells, placed modules, corruption overlays.
-## Click a free cell to place the currently selected stash item.
+## Body-grid inventory UI with Backpack-Hero style drag & drop.
+## Coordinates InventorySlotUI cells, ItemUI overlays, rotation, and validation.
 
 signal cell_clicked(cell: Vector2i)
 signal stash_item_selected(index: int)
+signal item_drag_started(item: ItemData, source: String)
+signal item_drag_ended(item: ItemData, success: bool)
+signal item_moved(item: ItemData, from_origin: Vector2i, to_origin: Vector2i)
+signal item_equipped(item: ItemData, origin: Vector2i)
+signal item_returned_to_stash(item: ItemData)
 
-const CELL_SIZE := 48
-const CELL_GAP := 4
+const CELL_SIZE := 48.0
+const CELL_GAP := 4.0
+const DRAG_TYPE := "framewrack_item"
 
 var inventory: InventoryController
-var selected_stash_index: int = -1
 
+## Active drag session (shared Dictionary mutated for rotation).
+var _drag: Dictionary = {}
+var _drop_committed: bool = false
+var _suppress_refresh: bool = false
+var _hover_origin: Vector2i = Vector2i(-1, -1)
+
+var _slots: Dictionary = {}  # "x,y" -> InventorySlotUI
+var _item_uis: Array[ItemUI] = []
+
+@onready var _grid_host: Control = %GridHost
 @onready var _grid_root: GridContainer = %GridRoot
 @onready var _stash_list: VBoxContainer = %StashList
 @onready var _hint_label: Label = %HintLabel
 @onready var _mutation_label: Label = %MutationLabel
+@onready var _item_layer: Control = %ItemLayer
+@onready var _stash_drop: StashDropArea = %StashDropArea
 
 
 func setup(p_inventory: InventoryController) -> void:
 	inventory = p_inventory
+	if _stash_drop:
+		_stash_drop.setup(self)
 	if not EventBus.inventory_changed.is_connected(_on_inventory_changed):
 		EventBus.inventory_changed.connect(_on_inventory_changed)
 	if not EventBus.grid_expanded.is_connected(_on_grid_expanded):
@@ -29,11 +49,13 @@ func setup(p_inventory: InventoryController) -> void:
 
 
 func refresh() -> void:
-	if inventory == null:
+	if inventory == null or _suppress_refresh:
 		return
 	_rebuild_grid()
+	_rebuild_items()
 	_rebuild_stash()
-	_hint_label.text = "Select a stash module, then click a grid cell. Edge items need the outer frame."
+	if _drag.is_empty():
+		_hint_label.text = "Drag modules onto the body. Press R while dragging to rotate."
 
 
 func _on_inventory_changed() -> void:
@@ -49,56 +71,63 @@ func _on_placement_failed(reason: String) -> void:
 	_hint_label.text = "Cannot place: %s" % reason
 
 
+# ---------------------------------------------------------------------------
+# Build
+# ---------------------------------------------------------------------------
+
 func _rebuild_grid() -> void:
 	for child in _grid_root.get_children():
 		child.queue_free()
+	_slots.clear()
 
 	var g: BodyGrid = inventory.grid
 	_grid_root.columns = g.width
+	_grid_root.add_theme_constant_override("h_separation", int(CELL_GAP))
+	_grid_root.add_theme_constant_override("v_separation", int(CELL_GAP))
 
 	for y in g.height:
 		for x in g.width:
 			var cell := Vector2i(x, y)
-			var btn := Button.new()
-			btn.custom_minimum_size = Vector2(CELL_SIZE, CELL_SIZE)
-			btn.focus_mode = Control.FOCUS_NONE
-			btn.pressed.connect(_on_cell_pressed.bind(cell))
+			var slot := InventorySlotUI.new()
+			slot.setup(cell, self, CELL_SIZE)
+			slot.apply_cell_state(
+				g.is_unlocked(cell),
+				g.is_corrupted(cell),
+				g.is_edge_cell(cell),
+				g.get_corruption_turns(cell),
+			)
+			slot.gui_input.connect(_on_slot_gui_input.bind(cell))
+			_grid_root.add_child(slot)
+			_slots[BodyGrid.cell_key(cell)] = slot
 
-			if not g.is_unlocked(cell):
-				btn.disabled = true
-				btn.modulate = Color(0.15, 0.15, 0.15)
-				btn.text = ""
-			else:
-				var occ := g.get_occupant(cell)
-				if occ:
-					# Show item name fragment only on origin cell.
-					if occ.origin == cell:
-						btn.text = _short_name(occ.data.display_name)
-						btn.add_theme_color_override("font_color", Color(0.1, 0.1, 0.1))
-						var style := _make_style(occ.data.placeholder_color)
-						btn.add_theme_stylebox_override("normal", style)
-						btn.add_theme_stylebox_override("hover", style)
-						btn.add_theme_stylebox_override("pressed", style)
-					else:
-						btn.text = ""
-						var style2 := _make_style(occ.data.placeholder_color.darkened(0.15))
-						btn.add_theme_stylebox_override("normal", style2)
-						btn.add_theme_stylebox_override("hover", style2)
-						btn.add_theme_stylebox_override("pressed", style2)
-				else:
-					btn.text = ""
-					btn.add_theme_stylebox_override("normal", _make_style(Color(0.22, 0.22, 0.22)))
-					btn.add_theme_stylebox_override("hover", _make_style(Color(0.3, 0.3, 0.3)))
+	call_deferred("_fit_layers")
 
-				if g.is_corrupted(cell):
-					btn.text = "X"
-					btn.add_theme_color_override("font_color", Color(1.0, 0.35, 0.45))
-					btn.modulate = Color(0.85, 0.4, 0.9)
-					btn.tooltip_text = "Corrupted (%d turns)" % g.get_corruption_turns(cell)
-				elif g.is_edge_cell(cell) and occ == null:
-					btn.tooltip_text = "Edge cell"
 
-			_grid_root.add_child(btn)
+func _rebuild_items() -> void:
+	_item_uis.clear()
+	if _item_layer == null:
+		return
+
+	for child in _item_layer.get_children():
+		child.queue_free()
+
+	var g: BodyGrid = inventory.grid
+	for placed: PlacedItem in g.items:
+		var ui := ItemUI.new()
+		ui.setup(
+			placed.data,
+			self,
+			ItemUI.Source.GRID,
+			CELL_SIZE,
+			CELL_GAP,
+			placed.origin,
+			-1,
+		)
+		ui.position = _origin_to_layer_pos(placed.origin)
+		_item_layer.add_child(ui)
+		_item_uis.append(ui)
+
+	call_deferred("_fit_layers")
 
 
 func _rebuild_stash() -> void:
@@ -107,53 +136,303 @@ func _rebuild_stash() -> void:
 
 	for i in inventory.stash.size():
 		var data: ItemData = inventory.stash[i]
-		var row := Button.new()
-		row.text = "%s  [%dx%d]%s" % [
+		var row := ItemUI.new()
+		row.setup(data, self, ItemUI.Source.STASH, CELL_SIZE, CELL_GAP, Vector2i(-1, -1), i)
+		row.tooltip_text = "%s  [%dx%d]%s\n%s" % [
 			data.display_name,
 			data.size.x,
 			data.size.y,
-			"  EDGE" if data.requires_edge else "",
+			"  EDGE" if data.is_edge_only else "",
+			data.description,
 		]
-		row.toggle_mode = true
-		row.button_pressed = (i == selected_stash_index)
-		row.pressed.connect(_on_stash_pressed.bind(i))
-		row.tooltip_text = data.description
 		_stash_list.add_child(row)
 
 
-func _on_stash_pressed(index: int) -> void:
-	selected_stash_index = index
-	stash_item_selected.emit(index)
-	_rebuild_stash()
-	var data: ItemData = inventory.stash[index]
-	_hint_label.text = "Placing: %s — click a free cell." % data.display_name
-
-
-func _on_cell_pressed(cell: Vector2i) -> void:
-	cell_clicked.emit(cell)
-	if selected_stash_index < 0:
-		# Unequip if clicking an occupied cell outside combat placement mode.
-		var occ := inventory.grid.get_occupant(cell)
-		if occ:
-			inventory.unequip_to_stash(cell)
+func _fit_layers() -> void:
+	if inventory == null or _grid_root == null:
 		return
-	if inventory.try_place_from_stash(selected_stash_index, cell):
-		selected_stash_index = -1
-		_hint_label.text = "Module grafted."
-	# else: placement_failed signal updates hint
+	var g: BodyGrid = inventory.grid
+	var w := g.width * CELL_SIZE + maxi(g.width - 1, 0) * CELL_GAP
+	var h := g.height * CELL_SIZE + maxi(g.height - 1, 0) * CELL_GAP
+	if _grid_host:
+		_grid_host.custom_minimum_size = Vector2(w, h)
+		_grid_host.size = Vector2(w, h)
+	_grid_root.position = Vector2.ZERO
+	_grid_root.size = Vector2(w, h)
+	if _item_layer:
+		_item_layer.position = Vector2.ZERO
+		_item_layer.custom_minimum_size = Vector2(w, h)
+		_item_layer.size = Vector2(w, h)
+		_item_layer.mouse_filter = Control.MOUSE_FILTER_IGNORE
 
 
-func _short_name(full: String) -> String:
-	var parts := full.split(" ")
-	if parts.is_empty():
-		return "?"
-	return parts[0].substr(0, 4).to_upper()
+func _origin_to_layer_pos(origin: Vector2i) -> Vector2:
+	return Vector2(
+		origin.x * (CELL_SIZE + CELL_GAP),
+		origin.y * (CELL_SIZE + CELL_GAP),
+	)
 
 
-func _make_style(color: Color) -> StyleBoxFlat:
-	var s := StyleBoxFlat.new()
-	s.bg_color = color
-	s.set_border_width_all(1)
-	s.border_color = Color(0.05, 0.05, 0.05)
-	s.set_corner_radius_all(2)
-	return s
+func _on_slot_gui_input(event: InputEvent, cell: Vector2i) -> void:
+	if event is InputEventMouseButton and event.pressed and event.button_index == MOUSE_BUTTON_LEFT:
+		cell_clicked.emit(cell)
+
+
+# ---------------------------------------------------------------------------
+# Drag session
+# ---------------------------------------------------------------------------
+
+func begin_item_drag(item_ui: ItemUI) -> Dictionary:
+	if inventory == null or item_ui == null or item_ui.item == null:
+		return {}
+	if not _drag.is_empty():
+		return {}
+
+	_suppress_refresh = true
+	_drop_committed = false
+	_hover_origin = Vector2i(-1, -1)
+
+	var source_name := "grid" if item_ui.source == ItemUI.Source.GRID else "stash"
+	var original_size := item_ui.item.size
+	var original_origin := item_ui.grid_origin
+	var original_stash_index := item_ui.stash_index
+
+	var extracted: ItemData = null
+	if item_ui.source == ItemUI.Source.GRID:
+		extracted = inventory.extract_from_grid(item_ui.grid_origin)
+	else:
+		extracted = inventory.extract_from_stash(item_ui.stash_index)
+
+	if extracted == null:
+		_suppress_refresh = false
+		return {}
+
+	_drag = {
+		"type": DRAG_TYPE,
+		"item": extracted,
+		"footprint": extracted.size,
+		"original_size": original_size,
+		"source": source_name,
+		"original_origin": original_origin,
+		"original_stash_index": original_stash_index,
+		"preview": null,
+	}
+
+	_set_item_uis_pass_through(true)
+	_refresh_slots_only()
+	_hint_label.text = "Dragging %s — R to rotate, drop on body or stash." % extracted.display_name
+	item_drag_started.emit(extracted, source_name)
+	return _drag
+
+
+func end_item_drag(_success: bool) -> void:
+	if _drag.is_empty():
+		_suppress_refresh = false
+		_set_item_uis_pass_through(false)
+		return
+
+	var item: ItemData = _drag["item"]
+	var committed := _drop_committed
+	if not committed:
+		_restore_drag_item()
+	item_drag_ended.emit(item, committed)
+
+	_clear_highlights()
+	_drag.clear()
+	_drop_committed = false
+	_hover_origin = Vector2i(-1, -1)
+	_set_item_uis_pass_through(false)
+	_suppress_refresh = false
+	EventBus.inventory_changed.emit()
+	refresh()
+
+
+func _restore_drag_item() -> void:
+	if _drag.is_empty():
+		return
+	var item: ItemData = _drag["item"]
+	item.size = _drag["original_size"]
+	if _drag["source"] == "grid":
+		var origin: Vector2i = _drag["original_origin"]
+		inventory.grid.place_item(item, origin, item.size)
+	else:
+		# Silent insert then one refresh at end.
+		var idx: int = int(_drag["original_stash_index"])
+		if idx < 0 or idx > inventory.stash.size():
+			inventory.stash.append(item)
+		else:
+			inventory.stash.insert(idx, item)
+
+
+func _set_item_uis_pass_through(enabled: bool) -> void:
+	var filter := Control.MOUSE_FILTER_IGNORE if enabled else Control.MOUSE_FILTER_STOP
+	for ui in _item_uis:
+		if is_instance_valid(ui):
+			ui.mouse_filter = filter
+	for child in _stash_list.get_children():
+		if child is ItemUI:
+			(child as ItemUI).mouse_filter = filter
+
+
+# ---------------------------------------------------------------------------
+# Hover validation / highlights
+# ---------------------------------------------------------------------------
+
+func on_slot_drag_hover(cell: Vector2i, data: Variant) -> void:
+	if not _is_drag(data):
+		return
+	if cell == _hover_origin and data.get("footprint") == _drag.get("footprint"):
+		return
+	_hover_origin = cell
+	_update_footprint_highlights(cell, data)
+
+
+func can_drop_on_cell(cell: Vector2i, data: Variant) -> bool:
+	if not _is_drag(data) or inventory == null:
+		return false
+	var item: ItemData = data["item"]
+	var footprint: Vector2i = data["footprint"]
+	return inventory.grid.can_place_item(item, cell, footprint)
+
+
+func drop_on_cell(cell: Vector2i, data: Variant) -> void:
+	if not _is_drag(data) or inventory == null:
+		return
+	var item: ItemData = data["item"]
+	var footprint: Vector2i = data["footprint"]
+	if not inventory.place_dragged(item, cell, footprint):
+		return
+
+	_drop_committed = true
+	var source: String = str(data.get("source", ""))
+	var from_origin: Vector2i = data.get("original_origin", Vector2i(-1, -1))
+	if source == "grid" and from_origin.x >= 0:
+		item_moved.emit(item, from_origin, cell)
+	else:
+		item_equipped.emit(item, cell)
+	_hint_label.text = "Module grafted."
+	_clear_highlights()
+
+
+func _update_footprint_highlights(origin: Vector2i, data: Variant) -> void:
+	_clear_highlights()
+	if not _is_drag(data) or inventory == null:
+		return
+	var item: ItemData = data["item"]
+	var footprint: Vector2i = data["footprint"]
+	var valid := inventory.grid.can_place_item(item, origin, footprint)
+	var cells: Array[Vector2i] = item.footprint_for(footprint, origin)
+	var mode := (
+		InventorySlotUI.Highlight.VALID if valid else InventorySlotUI.Highlight.INVALID
+	)
+	for cell: Vector2i in cells:
+		var slot: InventorySlotUI = _slots.get(BodyGrid.cell_key(cell))
+		if slot:
+			slot.set_highlight(mode)
+
+
+func _clear_highlights() -> void:
+	_refresh_slots_only()
+
+
+func _refresh_slots_only() -> void:
+	if inventory == null:
+		return
+	var g: BodyGrid = inventory.grid
+	for key: String in _slots.keys():
+		var slot: InventorySlotUI = _slots[key]
+		var cell := slot.cell
+		slot.apply_cell_state(
+			g.is_unlocked(cell),
+			g.is_corrupted(cell),
+			g.is_edge_cell(cell),
+			g.get_corruption_turns(cell),
+		)
+
+
+# ---------------------------------------------------------------------------
+# Rotation (R) while dragging
+# ---------------------------------------------------------------------------
+
+func _unhandled_input(event: InputEvent) -> void:
+	if _drag.is_empty():
+		return
+	if event is InputEventKey and event.pressed and not event.echo:
+		if event.keycode == KEY_R:
+			_rotate_drag()
+			get_viewport().set_input_as_handled()
+
+
+func _rotate_drag() -> void:
+	if _drag.is_empty():
+		return
+	var footprint: Vector2i = _drag["footprint"]
+	footprint = Vector2i(footprint.y, footprint.x)
+	_drag["footprint"] = footprint
+
+	var preview: Control = _drag.get("preview")
+	var item: ItemData = _drag["item"]
+	if preview and is_instance_valid(preview):
+		_rebuild_preview_node(preview, item, footprint)
+
+	if _hover_origin.x >= 0:
+		_update_footprint_highlights(_hover_origin, _drag)
+	_hint_label.text = "Rotated to %dx%d — drop to confirm." % [footprint.x, footprint.y]
+
+
+func _rebuild_preview_node(preview: Control, item: ItemData, footprint: Vector2i) -> void:
+	while preview.get_child_count() > 0:
+		var child := preview.get_child(0)
+		preview.remove_child(child)
+		child.free()
+
+	var w := footprint.x * CELL_SIZE + maxi(footprint.x - 1, 0) * CELL_GAP
+	var h := footprint.y * CELL_SIZE + maxi(footprint.y - 1, 0) * CELL_GAP
+	preview.custom_minimum_size = Vector2(w, h)
+	preview.size = Vector2(w, h)
+
+	for y in footprint.y:
+		for x in footprint.x:
+			var cell := Panel.new()
+			cell.position = Vector2(x * (CELL_SIZE + CELL_GAP), y * (CELL_SIZE + CELL_GAP))
+			cell.size = Vector2(CELL_SIZE, CELL_SIZE)
+			var style := StyleBoxFlat.new()
+			var col := item.placeholder_color if item else Color(0.7, 0.7, 0.7)
+			style.bg_color = col
+			style.set_border_width_all(1)
+			style.border_color = Color(1, 1, 1, 0.7)
+			style.set_corner_radius_all(2)
+			cell.add_theme_stylebox_override("panel", style)
+			cell.mouse_filter = Control.MOUSE_FILTER_IGNORE
+			preview.add_child(cell)
+
+	var caption := Label.new()
+	caption.text = item.display_name if item else ""
+	caption.position = Vector2(4, 4)
+	caption.add_theme_color_override("font_color", Color(0.05, 0.05, 0.05))
+	caption.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	preview.add_child(caption)
+
+
+# ---------------------------------------------------------------------------
+# Stash drop target
+# ---------------------------------------------------------------------------
+
+func can_drop_on_stash(data: Variant) -> bool:
+	return _is_drag(data)
+
+
+func drop_on_stash(data: Variant) -> void:
+	if not _is_drag(data):
+		return
+	var item: ItemData = data["item"]
+	item.size = data.get("original_size", item.size)
+	inventory.stash.append(item)
+	_drop_committed = true
+	item_returned_to_stash.emit(item)
+	_hint_label.text = "Returned to stash."
+	_clear_highlights()
+
+
+static func _is_drag(data: Variant) -> bool:
+	return data is Dictionary and data.get("type", "") == DRAG_TYPE

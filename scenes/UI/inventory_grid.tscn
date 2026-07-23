@@ -1,6 +1,7 @@
-[gd_scene load_steps=2 format=3 uid="uid://bw_inv_grid"]
+[gd_scene load_steps=3 format=3 uid="uid://bw_inv_grid"]
 
 [ext_resource type="Script" path="res://scripts/ui/inventory_grid_ui.gd" id="1"]
+[ext_resource type="Script" path="res://scripts/ui/stash_drop_area.gd" id="2"]
 
 [node name="InventoryGridUI" type="Control"]
 layout_mode = 3
@@ -39,30 +40,47 @@ layout_mode = 2
 theme_override_colors/font_color = Color(0.65, 0.65, 0.65, 1)
 theme_override_font_sizes/font_size = 12
 autowrap_mode = 3
-text = "Select stash item, click cell."
+text = "Drag modules onto the body. Press R while dragging to rotate."
 
 [node name="Scroll" type="ScrollContainer" parent="VBox"]
 layout_mode = 2
 size_flags_vertical = 3
 custom_minimum_size = Vector2(0, 220)
 
-[node name="GridRoot" type="GridContainer" parent="VBox/Scroll"]
+[node name="GridHost" type="Control" parent="VBox/Scroll"]
 unique_name_in_owner = true
 layout_mode = 2
+custom_minimum_size = Vector2(220, 220)
+
+[node name="GridRoot" type="GridContainer" parent="VBox/Scroll/GridHost"]
+unique_name_in_owner = true
+layout_mode = 0
 theme_override_constants/h_separation = 4
 theme_override_constants/v_separation = 4
 columns = 4
+
+[node name="ItemLayer" type="Control" parent="VBox/Scroll/GridHost"]
+unique_name_in_owner = true
+layout_mode = 0
+mouse_filter = 2
 
 [node name="StashTitle" type="Label" parent="VBox"]
 layout_mode = 2
 theme_override_colors/font_color = Color(0.8, 0.8, 0.8, 1)
 text = "STASH / UNGRAFTED"
 
-[node name="StashScroll" type="ScrollContainer" parent="VBox"]
+[node name="StashDropArea" type="PanelContainer" parent="VBox"]
+unique_name_in_owner = true
 layout_mode = 2
-custom_minimum_size = Vector2(0, 100)
+custom_minimum_size = Vector2(0, 110)
+script = ExtResource("2")
 
-[node name="StashList" type="VBoxContainer" parent="VBox/StashScroll"]
+[node name="StashScroll" type="ScrollContainer" parent="VBox/StashDropArea"]
+layout_mode = 2
+size_flags_vertical = 3
+
+[node name="StashList" type="VBoxContainer" parent="VBox/StashDropArea/StashScroll"]
 unique_name_in_owner = true
 layout_mode = 2
 size_flags_horizontal = 3
+theme_override_constants/separation = 4

@@ -1,10 +1,20 @@
 class_name BodyGrid
 extends RefCounted
-## Spatial inventory — the player's body.
+## Spatial inventory — the player's body (core Inventory Body Grid logic).
 ## Supports irregular unlocked shapes, edge placement rules,
 ## adjacency queries, and temporary corruption locks.
+##
+## Cell occupancy is tracked as EMPTY / OCCUPIED / CORRUPTED.
+## UI lives in inventory_grid_ui.gd; this class is the authoritative model.
 
 signal changed
+signal item_unequipped(item: ItemData, reason: String)
+
+enum CellState {
+	EMPTY,
+	OCCUPIED,
+	CORRUPTED,
+}
 
 const DEFAULT_SIZE := Vector2i(4, 4)
 
@@ -18,6 +28,9 @@ var _unlocked: Dictionary = {}
 ## Corrupted cells: Key = "x,y" → remaining turns (>0).
 var _corruption: Dictionary = {}
 
+## Derived cell-state cache Key = "x,y" → CellState (rebuilt on mutations).
+var _cell_states: Dictionary = {}
+
 ## Placed modules.
 var items: Array[PlacedItem] = []
 
@@ -26,6 +39,7 @@ func _init(p_width: int = DEFAULT_SIZE.x, p_height: int = DEFAULT_SIZE.y) -> voi
 	width = p_width
 	height = p_height
 	_unlock_rectangle(0, 0, width, height)
+	_rebuild_cell_states()
 
 
 # ---------------------------------------------------------------------------
@@ -52,10 +66,19 @@ func get_corruption_turns(cell: Vector2i) -> int:
 	return int(_corruption.get(cell_key(cell), 0))
 
 
+func get_cell_state(cell: Vector2i) -> CellState:
+	## Public read of EMPTY / OCCUPIED / CORRUPTED for unlocked in-bounds cells.
+	## Unlocked-but-missing keys are treated as EMPTY; locked/out-of-bounds → EMPTY.
+	if is_corrupted(cell):
+		return CellState.CORRUPTED
+	if get_occupant(cell) != null:
+		return CellState.OCCUPIED
+	return CellState.EMPTY
+
+
 func is_edge_cell(cell: Vector2i) -> bool:
-	## Edge relative to the unlocked shape's bounding extremes among unlocked cells.
-	## For MVP: edge of the rectangular bounding box of unlocked cells,
-	## OR any unlocked cell that has a missing orthogonal unlocked neighbour.
+	## Edge relative to the unlocked shape: missing orthogonal unlocked neighbour,
+	## or bounding-box border of the grid.
 	if not is_unlocked(cell):
 		return false
 	var neighbors := [
@@ -67,7 +90,6 @@ func is_edge_cell(cell: Vector2i) -> bool:
 	for n: Vector2i in neighbors:
 		if not is_unlocked(n):
 			return true
-	# Also treat bounding-box border as edge.
 	return cell.x == 0 or cell.y == 0 or cell.x == width - 1 or cell.y == height - 1
 
 
@@ -79,7 +101,16 @@ func get_occupant(cell: Vector2i) -> PlacedItem:
 
 
 func is_cell_free(cell: Vector2i) -> bool:
-	return is_unlocked(cell) and get_occupant(cell) == null
+	return (
+		is_unlocked(cell)
+		and get_cell_state(cell) == CellState.EMPTY
+	)
+
+
+func _rebuild_cell_states() -> void:
+	_cell_states.clear()
+	for cell: Vector2i in get_unlocked_cells():
+		_cell_states[cell_key(cell)] = get_cell_state(cell)
 
 
 # ---------------------------------------------------------------------------
@@ -96,7 +127,6 @@ func unlock_cells(cells: Array[Vector2i]) -> void:
 	## Expand the body — visual mutation should react to EventBus.grid_expanded.
 	var added: Array[Vector2i] = []
 	for cell: Vector2i in cells:
-		# Grow bounding box if needed.
 		if cell.x >= width:
 			width = cell.x + 1
 		if cell.y >= height:
@@ -106,6 +136,7 @@ func unlock_cells(cells: Array[Vector2i]) -> void:
 			_unlocked[key] = true
 			added.append(cell)
 	if not added.is_empty():
+		_rebuild_cell_states()
 		EventBus.grid_expanded.emit(added)
 		changed.emit()
 		EventBus.inventory_changed.emit()
@@ -123,43 +154,63 @@ func get_unlocked_cells() -> Array[Vector2i]:
 # Placement validation & mutation
 # ---------------------------------------------------------------------------
 
-func can_place(data: ItemData, origin: Vector2i) -> String:
+func can_place(data: ItemData, origin: Vector2i, footprint: Vector2i = Vector2i.ZERO) -> String:
 	## Returns empty string on success, otherwise a human-readable failure reason.
+	## Optional footprint overrides data.size (used while rotating during drag).
 	if data == null:
 		return "No item data."
-	var cells := data.footprint_cells(origin)
+	var shape: Vector2i = data.size if footprint == Vector2i.ZERO else footprint
+	if shape.x < 1 or shape.y < 1:
+		return "Invalid footprint."
+	var cells := data.footprint_for(shape, origin)
 	var touches_edge := false
 	for cell: Vector2i in cells:
 		if not is_in_bounds(cell) or not is_unlocked(cell):
 			return "Outside unlocked body grid."
-		if get_occupant(cell) != null:
-			return "Cell occupied."
-		if is_corrupted(cell):
-			return "Cell corrupted — repair required."
+		match get_cell_state(cell):
+			CellState.OCCUPIED:
+				return "Cell occupied."
+			CellState.CORRUPTED:
+				return "Cell corrupted — repair required."
+			_:
+				pass
 		if is_edge_cell(cell):
 			touches_edge = true
-	if data.requires_edge and not touches_edge:
+	if data.is_edge_only and not touches_edge:
 		return "Item requires edge placement."
 	return ""
 
 
-func place_item(data: ItemData, origin: Vector2i) -> PlacedItem:
-	var reason := can_place(data, origin)
+func can_place_item(item: ItemData, top_left_pos: Vector2i, footprint: Vector2i = Vector2i.ZERO) -> bool:
+	## Spec API: boundary + EMPTY cells + optional edge-touch for is_edge_only.
+	return can_place(item, top_left_pos, footprint) == ""
+
+
+func place_item(item: ItemData, top_left_pos: Vector2i, footprint: Vector2i = Vector2i.ZERO) -> Variant:
+	## Places item if valid. Returns PlacedItem on success, null on fail.
+	## If footprint is provided and differs from item.size, item.size is updated (rotation commit).
+	var reason := can_place(item, top_left_pos, footprint)
 	if reason != "":
 		EventBus.placement_failed.emit(reason)
 		return null
-	var placed := PlacedItem.new(data, origin)
+	if footprint != Vector2i.ZERO and footprint != item.size:
+		item.size = footprint
+	var placed := PlacedItem.new(item, top_left_pos)
 	items.append(placed)
+	_rebuild_cell_states()
 	changed.emit()
-	EventBus.item_placed.emit(data.id, origin)
+	EventBus.item_placed.emit(item.id, top_left_pos)
 	EventBus.inventory_changed.emit()
 	return placed
 
 
-func remove_item(placed: PlacedItem) -> void:
+func remove_item(placed: PlacedItem, notify: bool = true) -> void:
 	if placed == null:
 		return
 	items.erase(placed)
+	_rebuild_cell_states()
+	if not notify:
+		return
 	changed.emit()
 	EventBus.item_removed.emit(placed.data.id if placed.data else "")
 	EventBus.inventory_changed.emit()
@@ -180,7 +231,7 @@ func is_item_functional(placed: PlacedItem) -> bool:
 	if placed == null or placed.data == null:
 		return false
 	for cell: Vector2i in placed.occupied_cells():
-		if is_corrupted(cell):
+		if get_cell_state(cell) == CellState.CORRUPTED:
 			return false
 	return true
 
@@ -218,25 +269,48 @@ func get_adjacent_items(placed: PlacedItem) -> Array[PlacedItem]:
 
 
 func get_adjacency_damage_bonus_for(weapon: PlacedItem) -> int:
-	## Sum adjacency_damage_bonus from functional neighbours (e.g. Micro-Reactor).
+	## Sum adjacency_dmg_bonus from functional neighbours (e.g. Micro-Reactor).
 	var bonus := 0
 	for neighbour: PlacedItem in get_adjacent_items(weapon):
 		if not is_item_functional(neighbour):
 			continue
-		bonus += neighbour.data.adjacency_damage_bonus
+		bonus += neighbour.data.adjacency_dmg_bonus
 	return bonus
+
+
+func get_adjacent_bonuses() -> Dictionary:
+	## Aggregate adjacency bonuses across the whole grid.
+	## Returns { "damage_bonus": int, "ap_bonus": int, "per_weapon": Dictionary }.
+	## per_weapon maps weapon instance_id → damage bonus from adjacent reactors/etc.
+	var total_damage := 0
+	var total_ap := 0
+	var per_weapon: Dictionary = {}
+
+	for item: PlacedItem in get_functional_items():
+		if item.data.is_weapon():
+			var dmg_bonus := get_adjacency_damage_bonus_for(item)
+			per_weapon[item.instance_id] = dmg_bonus
+			total_damage += dmg_bonus
+
+		if item.data.adjacency_ap_bonus > 0:
+			for neighbour: PlacedItem in get_adjacent_items(item):
+				if neighbour.data.is_weapon() and is_item_functional(neighbour):
+					total_ap += item.data.adjacency_ap_bonus
+					break
+
+	return {
+		"damage_bonus": total_damage,
+		"ap_bonus": total_ap,
+		"per_weapon": per_weapon,
+	}
 
 
 func get_total_max_ap_bonus() -> int:
 	var bonus := 0
+	var adj := get_adjacent_bonuses()
 	for item: PlacedItem in get_functional_items():
 		bonus += item.data.max_ap_bonus
-		# Adjacency AP: reactors grant adjacency_ap_bonus once if next to any weapon.
-		if item.data.adjacency_ap_bonus > 0:
-			for neighbour: PlacedItem in get_adjacent_items(item):
-				if neighbour.data.is_weapon() and is_item_functional(neighbour):
-					bonus += item.data.adjacency_ap_bonus
-					break
+	bonus += int(adj["ap_bonus"])
 	return bonus
 
 
@@ -244,13 +318,23 @@ func get_total_max_ap_bonus() -> int:
 # Corruption lifecycle
 # ---------------------------------------------------------------------------
 
-func corrupt_cell(cell: Vector2i, duration: int) -> bool:
-	if not is_unlocked(cell):
+func corrupt_cell(cell_pos: Vector2i, duration: int = 1) -> bool:
+	## Locks a cell as CORRUPTED ('X') and force-unequips any item covering it.
+	if not is_unlocked(cell_pos):
 		return false
-	var key := cell_key(cell)
-	# Refresh duration if already corrupted.
+	var key := cell_key(cell_pos)
 	_corruption[key] = maxi(int(_corruption.get(key, 0)), duration)
-	EventBus.cell_corrupted.emit(cell, duration)
+
+	var occ := get_occupant(cell_pos)
+	if occ != null and occ.data != null:
+		var data: ItemData = occ.data
+		# Remove without double inventory_changed; rebuild after.
+		items.erase(occ)
+		EventBus.item_removed.emit(data.id)
+		item_unequipped.emit(data, "corrupted")
+
+	_rebuild_cell_states()
+	EventBus.cell_corrupted.emit(cell_pos, duration)
 	changed.emit()
 	EventBus.inventory_changed.emit()
 	return true
@@ -281,6 +365,7 @@ func tick_corruption() -> void:
 	for cell: Vector2i in cleared:
 		EventBus.cell_corruption_cleared.emit(cell)
 	if not cleared.is_empty():
+		_rebuild_cell_states()
 		changed.emit()
 		EventBus.inventory_changed.emit()
 
@@ -292,6 +377,7 @@ func clear_all_corruption() -> void:
 	for key in keys:
 		var parts: PackedStringArray = str(key).split(",")
 		EventBus.cell_corruption_cleared.emit(Vector2i(int(parts[0]), int(parts[1])))
+	_rebuild_cell_states()
 	changed.emit()
 	EventBus.inventory_changed.emit()
 	EventBus.repair_station_used.emit()
