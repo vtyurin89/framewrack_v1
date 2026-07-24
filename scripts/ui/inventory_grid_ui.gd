@@ -2,7 +2,6 @@ class_name InventoryGridUI
 extends Control
 ## Body-grid inventory UI — no external stash.
 ## Drag modules on the grid; RMB while dragging rotates; invalid drops snap back.
-## Hint text lives to the RIGHT of the grid.
 
 signal cell_clicked(cell: Vector2i)
 signal item_drag_started(item: ItemData, source: String)
@@ -26,8 +25,6 @@ var _item_uis: Array[ItemUI] = []
 
 @onready var _grid_host: Control = %GridHost
 @onready var _grid_root: GridContainer = %GridRoot
-@onready var _hint_label: Label = %HintLabel
-@onready var _hint_panel: PanelContainer = %HintPanel
 @onready var _mutation_label: Label = %MutationLabel
 @onready var _item_layer: Control = %ItemLayer
 @onready var _title: Label = %Title
@@ -43,19 +40,8 @@ func setup(p_inventory: InventoryController) -> void:
 		EventBus.placement_failed.connect(_on_placement_failed)
 	if not LocalizationManager.language_changed.is_connected(_on_language_changed):
 		LocalizationManager.language_changed.connect(_on_language_changed)
-	_style_hint_panel()
 	_apply_static_locale()
 	refresh()
-
-
-func _style_hint_panel() -> void:
-	var style := StyleBoxFlat.new()
-	style.bg_color = Color(0.12, 0.12, 0.14, 1)
-	style.set_border_width_all(1)
-	style.border_color = Color(0.32, 0.32, 0.36)
-	style.set_content_margin_all(10)
-	style.set_corner_radius_all(2)
-	_hint_panel.add_theme_stylebox_override("panel", style)
 
 
 func _on_language_changed(_locale: String) -> void:
@@ -80,8 +66,6 @@ func refresh() -> void:
 		return
 	_rebuild_grid()
 	_rebuild_items()
-	if _drag.is_empty():
-		_hint_label.text = tr("KEY_HINT_DRAG")
 
 
 func _on_inventory_changed() -> void:
@@ -93,8 +77,8 @@ func _on_grid_expanded(new_cells: Array[Vector2i]) -> void:
 	refresh()
 
 
-func _on_placement_failed(reason: String) -> void:
-	_hint_label.text = tr("KEY_HINT_CANNOT_PLACE") % tr(reason)
+func _on_placement_failed(_reason: String) -> void:
+	pass
 
 
 # ---------------------------------------------------------------------------
@@ -213,7 +197,6 @@ func begin_item_drag(item_ui: ItemUI) -> Dictionary:
 
 	_set_item_uis_pass_through(true)
 	_refresh_slots_only()
-	_hint_label.text = tr("KEY_HINT_DRAGGING") % extracted.get_localized_name()
 	item_drag_started.emit(extracted, "grid")
 	return _drag
 
@@ -291,7 +274,6 @@ func drop_on_cell(cell: Vector2i, data: Variant) -> void:
 	var from_origin: Vector2i = data.get("original_origin", Vector2i(-1, -1))
 	if from_origin.x >= 0:
 		item_moved.emit(item, from_origin, cell)
-	_hint_label.text = tr("KEY_HINT_GRAFTED")
 	_clear_highlights()
 
 
@@ -358,7 +340,6 @@ func _rotate_drag() -> void:
 
 	if _hover_origin.x >= 0:
 		_update_footprint_highlights(_hover_origin, _drag)
-	_hint_label.text = tr("KEY_HINT_ROTATED") % [footprint.x, footprint.y]
 
 
 func _rebuild_preview_node(preview: Control, item: ItemData, footprint: Vector2i) -> void:
