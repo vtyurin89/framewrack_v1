@@ -286,10 +286,10 @@ func recalculate_grid_adjacencies() -> void:
 		if placed == null or placed.data == null:
 			continue
 		var neighbours: Array[ItemData] = get_adjacent_item_data(placed)
-		for trait: TraitData in placed.data.traits:
-			if trait == null:
+		for item_trait: TraitData in placed.data.traits:
+			if item_trait == null:
 				continue
-			trait.evaluate_active_status(neighbours)
+			item_trait.evaluate_active_status(neighbours)
 	grid_layout_updated.emit()
 	EventBus.grid_layout_updated.emit()
 

@@ -114,9 +114,9 @@ func _get_system_fallback_icon() -> Texture2D:
 
 func get_active_traits() -> Array[TraitData]:
 	var result: Array[TraitData] = []
-	for trait: TraitData in traits:
-		if trait != null and trait.is_active:
-			result.append(trait)
+	for item_trait: TraitData in traits:
+		if item_trait != null and item_trait.is_active:
+			result.append(item_trait)
 	return result
 
 

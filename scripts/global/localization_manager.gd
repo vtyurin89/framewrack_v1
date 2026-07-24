@@ -3,15 +3,19 @@ extends Node
 
 signal language_changed(new_locale: String)
 
-const CSV_PATH := "res://translations/translations.csv"
+const CSV_PATHS: PackedStringArray = [
+	"res://translations/translations.csv",
+	"res://translations/traits.csv",
+]
 const FALLBACK_LOCALE := "en"
 const SUPPORTED_LOCALES: PackedStringArray = ["en", "ru"]
 
-var _loaded: bool = false
+var _loaded_paths: Dictionary = {}
 
 
 func _ready() -> void:
-	_load_translations_from_csv(CSV_PATH)
+	for path in CSV_PATHS:
+		_load_translations_from_csv(path)
 	_apply_fallback_locale(FALLBACK_LOCALE)
 	# Primary default language.
 	set_language(FALLBACK_LOCALE)
@@ -53,7 +57,7 @@ func cycle_language() -> String:
 
 
 func _load_translations_from_csv(path: String) -> void:
-	if _loaded:
+	if _loaded_paths.has(path):
 		return
 	if not FileAccess.file_exists(path):
 		push_error("LocalizationManager: missing translation CSV at %s" % path)
@@ -66,7 +70,7 @@ func _load_translations_from_csv(path: String) -> void:
 
 	var header: PackedStringArray = file.get_csv_line()
 	if header.is_empty() or header[0] != "keys":
-		push_error("LocalizationManager: CSV must start with 'keys' column.")
+		push_error("LocalizationManager: CSV must start with 'keys' column (%s)." % path)
 		return
 
 	var translations: Dictionary = {}  # locale -> Translation
@@ -97,4 +101,4 @@ func _load_translations_from_csv(path: String) -> void:
 	for locale in translations.keys():
 		TranslationServer.add_translation(translations[locale])
 
-	_loaded = true
+	_loaded_paths[path] = true

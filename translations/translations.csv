@@ -101,3 +101,23 @@ MAP_N3_NAME,Mutation Cache,Кэш мутации
 MAP_N4_NAME,Framewrack Core,Ядро Framewrack
 ITEM_UNKNOWN_NAME,Unknown Module,Неизвестный модуль
 ENEMY_UNKNOWN_NAME,Unknown Host,Неизвестный носитель
+ITEM_SCRAP_PIPE_NAME,Scrap Pipe,Обломок трубы
+ITEM_SCRAP_PIPE_DESC,Bent conduit swung as a club. Edge-mounted. Simple; reliable blunt trauma.,Согнутая труба как дубина. На край. Простой и надёжный дробящий удар.
+ITEM_REBEL_CLEAVER_NAME,Rebel Cleaver,Тесак повстанца
+ITEM_REBEL_CLEAVER_DESC,A scavenged meat cleaver. Bleeds foes; but goes dull beside biomorphic grafts.,Трофейный тесак. Вызывает кровотечение; но тупится рядом с биоморфными имплантами.
+ITEM_JACKHAMMER_NAME,Pneumatic Jackhammer,Пневматический отбойник
+ITEM_JACKHAMMER_DESC,Industrial breaker arm. Costs 2 AP. Stuns the enemy on impact — never harms your own grid.,Промышленный отбойный рычаг. Стоит 2 ОД. Оглушает врага при ударе — свою сетку не трогает.
+ITEM_BIO_CLAW_NAME,Biomorphic Claw,Биоморфный коготь
+ITEM_BIO_CLAW_DESC,Living talon that can graft inside the frame. Resonates with nearby biomorphic modules.,Живой коготь; можно встроить внутрь каркаса. Резонирует с соседними биоморфными модулями.
+ITEM_NAIL_GUN_NAME,Nail Gun,Гвоздомёт
+ITEM_NAIL_GUN_DESC,Compressed nail driver. Edge-mounted ranged weapon with limited ammo bursts.,Пневматический гвоздомёт. Краевое дальнобойное оружие с ограниченным боезапасом.
+ITEM_ARC_DISCHARGER_NAME,Arc Discharger,Дуговой разрядник
+ITEM_ARC_DISCHARGER_DESC,Coiled contacts that arc harder when a reactor shares an edge.,Скрученные контакты. Дуга сильнее; если реактор касается по ребру.
+ITEM_SURGICAL_SAW_NAME,Surgical Saw,Хирургическая пила
+ITEM_SURGICAL_SAW_DESC,Precision bone saw. Compact 1x1 edge tool that pierces Block.,Точная костная пила. Компактный инструмент 1x1 на край; пробивает Блок.
+ITEM_FLAMETHROWER_NAME,Flamethrower,Огнемёт
+ITEM_FLAMETHROWER_DESC,Fuel-fed projector. Spends 2 AP for a fire burst against enemies only — your cells stay intact.,Топливный проектор. 2 ОД за огненный выброс только по врагам — ваши клетки целы.
+ITEM_REBAR_CUDGEL_NAME,Rebar Cudgel,Арматурная дубина
+ITEM_REBAR_CUDGEL_DESC,Heavy rebar length. Stronger when given room — no adjacent weapons.,Тяжёлая арматура. Сильнее; когда есть пространство — без соседнего оружия.
+ITEM_CYBER_SPIKE_NAME,Cyber Spike,Кибершип
+ITEM_CYBER_SPIKE_DESC,Needle implant that siphons vitality from the target into your Frame HP. Never damages your inventory.,Игольчатый имплант; тянет жизненность с цели в ОЗ каркаса. Инвентарь не повреждает.

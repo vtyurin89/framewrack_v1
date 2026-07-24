@@ -1,0 +1,24 @@
+keys,en,ru
+TRAIT_BASIC_BLUDGEON_NAME,Basic Bludgeon,Простой удар
+TRAIT_BASIC_BLUDGEON_DESC,Deals reliable blunt damage to the targeted enemy.,Наносит стабильный дробящий урон выбранному врагу.
+TRAIT_BLEED_NO_BIO_NAME,Serrated Bleed,Зазубренное кровотечение
+TRAIT_BLEED_NO_BIO_DESC,Applies bleed to the enemy. Inactive while adjacent to biomorphic modules.,Накладывает кровотечение на врага. Неактивно рядом с биоморфными модулями.
+TRAIT_STUN_IMPACT_NAME,Stun Impact,Оглушающий удар
+TRAIT_STUN_IMPACT_DESC,Heavy impact stuns the targeted enemy for 1 turn. Purely offensive — never damages; blocks; or corrupts your own inventory cells.,Тяжёлый удар оглушает выбранного врага на 1 ход. Только наступательный эффект — никогда не повреждает; не блокирует и не искажает ваши клетки инвентаря.
+TRAIT_BIO_RESONANCE_NAME,Bio Resonance,Биорезонанс
+TRAIT_BIO_RESONANCE_DESC,Gains bonus damage while adjacent to biomorphic modules.,Получает бонус урона рядом с биоморфными модулями.
+TRAIT_NAIL_BURST_NAME,Nail Burst,Очередь гвоздей
+TRAIT_NAIL_BURST_DESC,Spends ammo to fire a burst of nails at the enemy.,Тратит боезапас; чтобы выпустить очередь гвоздей во врага.
+TRAIT_REACTOR_CHAIN_NAME,Reactor Chain,Цепь реактора
+TRAIT_REACTOR_CHAIN_DESC,When adjacent to a reactor; arcs bonus damage through the strike.,Рядом с реактором дуга добавляет бонусный урон к удару.
+TRAIT_ARMOR_PIERCE_NAME,Armor Pierce,Пробитие брони
+TRAIT_ARMOR_PIERCE_DESC,Ignores a portion of the enemy's Block and armor.,Игнорирует часть Блока и брони врага.
+TRAIT_FUEL_BURST_NAME,Fuel Burst,Топливный выброс
+TRAIT_FUEL_BURST_DESC,Ignites the enemy for bonus fire damage. The burn is directed outward only — it never scorches; blocks; or corrupts your body-grid cells.,Поджигает врага бонусным огненным уроном. Горение только вовне — никогда не опаляет; не блокирует и не искажает клетки вашей сетки тела.
+TRAIT_HEAVY_SOLO_NAME,Heavy Solo,Тяжёлый соло
+TRAIT_HEAVY_SOLO_DESC,Deals bonus damage when no other weapon shares an adjacent edge.,Наносит бонусный урон; если никакое другое оружие не касается по ребру.
+TRAIT_DRAIN_LIFE_NAME,Life Drain,Выкачка жизни
+TRAIT_DRAIN_LIFE_DESC,On hit; restores Frame HP equal to a portion of damage dealt. Beneficial only — never drains; blocks; or corrupts your own inventory cells. Self-corruption remains exclusive to enemy attacks.,При попадании восстанавливает ОЗ каркаса от части нанесённого урона. Только польза — никогда не выкачивает; не блокирует и не искажает ваши клетки. Самоискажение остаётся только у атак врагов.
+TRAIT_STUN_IMPACT,Heavy impact stuns the targeted enemy for 1 turn. Purely offensive — never damages; blocks; or corrupts your own inventory cells.,Тяжёлый удар оглушает выбранного врага на 1 ход. Только наступательный эффект — никогда не повреждает; не блокирует и не искажает ваши клетки инвентаря.
+TRAIT_FUEL_BURST,Ignites the enemy for bonus fire damage. The burn is directed outward only — it never scorches; blocks; or corrupts your body-grid cells.,Поджигает врага бонусным огненным уроном. Горение только вовне — никогда не опаляет; не блокирует и не искажает клетки вашей сетки тела.
+TRAIT_DRAIN_LIFE,On hit; restores Frame HP equal to a portion of damage dealt. Beneficial only — never drains; blocks; or corrupts your own inventory cells. Self-corruption remains exclusive to enemy attacks.,При попадании восстанавливает ОЗ каркаса от части нанесённого урона. Только польза — никогда не выкачивает; не блокирует и не искажает ваши клетки. Самоискажение остаётся только у атак врагов.
