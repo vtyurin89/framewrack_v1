@@ -7,6 +7,7 @@ extends Control
 ## Cell states: EMPTY | OCCUPIED | CORRUPTED (see BodyGrid.CellState).
 
 signal grid_changed
+signal grid_layout_updated
 signal item_placed(item: ItemData, origin: Vector2i)
 signal item_unequipped(item: ItemData, reason: String)
 signal placement_rejected(reason: String)
@@ -28,9 +29,12 @@ func bind_model(grid: BodyGrid) -> void:
 			model.changed.disconnect(_on_model_changed)
 		if model.item_unequipped.is_connected(_on_model_unequipped):
 			model.item_unequipped.disconnect(_on_model_unequipped)
+		if model.grid_layout_updated.is_connected(_on_model_layout_updated):
+			model.grid_layout_updated.disconnect(_on_model_layout_updated)
 	model = grid
 	model.changed.connect(_on_model_changed)
 	model.item_unequipped.connect(_on_model_unequipped)
+	model.grid_layout_updated.connect(_on_model_layout_updated)
 	grid_changed.emit()
 
 
@@ -65,8 +69,20 @@ func get_adjacent_bonuses() -> Dictionary:
 	return model.get_adjacent_bonuses()
 
 
+func recalculate_grid_adjacencies() -> void:
+	## For each placed item: gather orthogonal neighbours, evaluate traits,
+	## then notify UI (gray-out inactive traits / disabled icons).
+	if model == null:
+		return
+	model.recalculate_grid_adjacencies()
+
+
 func _on_model_changed() -> void:
 	grid_changed.emit()
+
+
+func _on_model_layout_updated() -> void:
+	grid_layout_updated.emit()
 
 
 func _on_model_unequipped(item: ItemData, reason: String) -> void:

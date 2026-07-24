@@ -20,6 +20,7 @@ signal cell_corrupted(cell: Vector2i, duration: int)
 signal cell_corruption_cleared(cell: Vector2i)
 signal grid_expanded(new_cells: Array[Vector2i])
 signal placement_failed(reason: String)
+signal grid_layout_updated
 
 # --- Combat ------------------------------------------------------------------
 signal combat_started(enemy_ids: Array[String])

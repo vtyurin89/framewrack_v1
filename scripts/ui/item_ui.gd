@@ -67,9 +67,9 @@ func _build_visual() -> void:
 	style.set_corner_radius_all(3)
 	_panel.add_theme_stylebox_override("panel", style)
 
-	if item and item.texture:
+	if item and item.get_texture():
 		_icon = TextureRect.new()
-		_icon.texture = item.texture
+		_icon.texture = item.get_texture()
 		_icon.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
 		_icon.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
 		_icon.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)

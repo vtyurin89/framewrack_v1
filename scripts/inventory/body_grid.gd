@@ -9,6 +9,7 @@ extends RefCounted
 
 signal changed
 signal item_unequipped(item: ItemData, reason: String)
+signal grid_layout_updated
 
 enum CellState {
 	EMPTY,
@@ -198,6 +199,7 @@ func place_item(item: ItemData, top_left_pos: Vector2i, footprint: Vector2i = Ve
 	var placed := PlacedItem.new(item, top_left_pos)
 	items.append(placed)
 	_rebuild_cell_states()
+	recalculate_grid_adjacencies()
 	changed.emit()
 	EventBus.item_placed.emit(item.id, top_left_pos)
 	EventBus.inventory_changed.emit()
@@ -209,6 +211,7 @@ func remove_item(placed: PlacedItem, notify: bool = true) -> void:
 		return
 	items.erase(placed)
 	_rebuild_cell_states()
+	recalculate_grid_adjacencies()
 	if not notify:
 		return
 	changed.emit()
@@ -266,6 +269,29 @@ func get_adjacent_items(placed: PlacedItem) -> Array[PlacedItem]:
 	for v in found.values():
 		result.append(v)
 	return result
+
+
+func get_adjacent_item_data(placed: PlacedItem) -> Array[ItemData]:
+	## Neighbour ItemData list for trait / adjacency-rule evaluation.
+	var result: Array[ItemData] = []
+	for neighbour: PlacedItem in get_adjacent_items(placed):
+		if neighbour != null and neighbour.data != null:
+			result.append(neighbour.data)
+	return result
+
+
+func recalculate_grid_adjacencies() -> void:
+	## Re-evaluate every placed item's traits against orthogonal neighbours.
+	for placed: PlacedItem in items:
+		if placed == null or placed.data == null:
+			continue
+		var neighbours: Array[ItemData] = get_adjacent_item_data(placed)
+		for trait: TraitData in placed.data.traits:
+			if trait == null:
+				continue
+			trait.evaluate_active_status(neighbours)
+	grid_layout_updated.emit()
+	EventBus.grid_layout_updated.emit()
 
 
 func get_adjacency_damage_bonus_for(weapon: PlacedItem) -> int:
@@ -334,6 +360,7 @@ func corrupt_cell(cell_pos: Vector2i, duration: int = 1) -> bool:
 		item_unequipped.emit(data, "corrupted")
 
 	_rebuild_cell_states()
+	recalculate_grid_adjacencies()
 	EventBus.cell_corrupted.emit(cell_pos, duration)
 	changed.emit()
 	EventBus.inventory_changed.emit()

@@ -2,6 +2,9 @@ class_name ItemData
 extends Resource
 ## Blueprint for an equippable body-module / weapon / utility.
 ## Display text is resolved via translation keys (see translations/translations.csv).
+## Icons resolve through get_texture(): item → type default → system fallback.
+
+const FALLBACK_ICON_PATH := "res://assets/icons/fallback_item.png"
 
 @export var id: String = ""
 
@@ -13,7 +16,15 @@ extends Resource
 @export var display_name: String = "Unknown Module"
 @export_multiline var description: String = ""
 
+## Classification / rarity used by adjacency rules and UI.
+@export var item_type: ItemTypeData
+@export var rarity: ItemRarityData
+
+## Optional per-item icon. If null, falls back to item_type.default_type_icon.
 @export var texture: Texture2D
+
+## Modular traits gated by adjacency rules at runtime.
+@export var traits: Array[TraitData] = []
 
 ## Footprint in grid cells (width x height). Swapped on rotate (R while dragging).
 @export var size: Vector2i = Vector2i(1, 1)
@@ -38,6 +49,8 @@ extends Resource
 
 ## Placeholder tint when no texture is assigned.
 @export var placeholder_color: Color = Color(0.7, 0.7, 0.7)
+
+static var _cached_fallback_icon: Texture2D
 
 
 # --- Spec aliases -----------------------------------------------------------
@@ -80,6 +93,31 @@ func get_localized_description() -> String:
 	if not item_desc_key.is_empty():
 		return tr(item_desc_key)
 	return description
+
+
+func get_texture() -> Texture2D:
+	## item texture → type default icon → system fallback PNG.
+	if texture != null:
+		return texture
+	if item_type != null and item_type.default_type_icon != null:
+		return item_type.default_type_icon
+	return _get_system_fallback_icon()
+
+
+func _get_system_fallback_icon() -> Texture2D:
+	if _cached_fallback_icon != null:
+		return _cached_fallback_icon
+	if ResourceLoader.exists(FALLBACK_ICON_PATH):
+		_cached_fallback_icon = load(FALLBACK_ICON_PATH) as Texture2D
+	return _cached_fallback_icon
+
+
+func get_active_traits() -> Array[TraitData]:
+	var result: Array[TraitData] = []
+	for trait: TraitData in traits:
+		if trait != null and trait.is_active:
+			result.append(trait)
+	return result
 
 
 func is_weapon() -> bool:
