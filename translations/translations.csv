@@ -44,12 +44,19 @@ KEY_CORRUPTED_TURNS_FMT,%s (%d turns),%s (%d ход.)
 KEY_ACTION_ITEM_FMT,[%s] %s  (%d %s),[%s] %s  (%d %s)
 KEY_PASSIVE_FMT,%s: %s,%s: %s
 KEY_MUTATION_OVERLAY_FMT,MUTATION: flesh/bone overlay +%d cells,МУТАЦИЯ: плоть/кость +%d клеток
-KEY_HINT_DRAG,Drag modules onto the body. Press R while dragging to rotate.,Перетащите модули на тело. R во время перетаскивания — поворот.
+KEY_HINT_DRAG,Drag modules on the body. Hold LMB to move; RMB while dragging to rotate. Drop outside the grid cancels.,Перетаскивайте модули по телу. ЛКМ — перемещение; ПКМ во время перетаскивания — поворот. Дроп вне сетки отменяет.
 KEY_HINT_CANNOT_PLACE,Cannot place: %s,Нельзя установить: %s
-KEY_HINT_DRAGGING,Dragging %s — R to rotate; drop on body or stash.,Перетаскивание: %s — R для поворота; бросьте на тело или склад.
+KEY_HINT_DRAGGING,Dragging %s — RMB to rotate; release on a valid cell.,Перетаскивание: %s — ПКМ для поворота; отпустите на валидной клетке.
 KEY_HINT_GRAFTED,Module grafted.,Модуль встроен.
 KEY_HINT_ROTATED,Rotated to %dx%d — drop to confirm.,Повёрнуто до %dx%d — отпустите для подтверждения.
 KEY_HINT_STASH_RETURN,Returned to stash.,Возвращено на склад.
+KEY_ITEM_DETAILS,ITEM DETAILS,ДЕТАЛИ ПРЕДМЕТА
+KEY_TRAITS,TRAITS,ТРЕЙТЫ
+KEY_NO_TRAITS,No traits.,Нет трейтов.
+KEY_TRAIT_ACTIVE,ACTIVE,АКТИВЕН
+KEY_TRAIT_INACTIVE,INACTIVE,НЕАКТИВЕН
+KEY_DIMENSIONS,Size,Размер
+KEY_DETAILS_EMPTY,Hover a grafted module to inspect it.,Наведите на встроенный модуль; чтобы осмотреть.
 KEY_STASH_TOOLTIP_FMT,%s  [%dx%d]%s | %s,%s  [%dx%d]%s | %s
 KEY_STATUS_ONLINE,FRAMEWRACK — graft modules; then enter the sector.,FRAMEWRACK — встройте модули и войдите в сектор.
 KEY_STATUS_MUTATED,Body grid mutated — new cells grafted (placeholder flesh/bone).,Сетка тела мутировала — привиты новые клетки (заглушка плоть/кость).

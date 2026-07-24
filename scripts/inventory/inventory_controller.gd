@@ -1,13 +1,12 @@
 class_name InventoryController
 extends RefCounted
-## Owns the player's BodyGrid, stash of unplaced ItemData, and HP.
-## Bridge between UI placement and combat queries.
+## Owns the player's BodyGrid and HP.
+## No external stash — modules exist only on the active body grid.
 
 const BASE_MAX_AP := 3
 const BASE_MAX_HP := 40
 
 var grid: BodyGrid
-var stash: Array[ItemData] = []
 var max_hp: int = BASE_MAX_HP
 var current_hp: int = BASE_MAX_HP
 
@@ -18,7 +17,6 @@ func _init() -> void:
 
 func reset_run() -> void:
 	_bind_grid(BodyGrid.new(4, 4))
-	stash.clear()
 	max_hp = BASE_MAX_HP
 	current_hp = BASE_MAX_HP
 
@@ -30,37 +28,13 @@ func _bind_grid(new_grid: BodyGrid) -> void:
 	grid.item_unequipped.connect(_on_grid_item_unequipped)
 
 
-func _on_grid_item_unequipped(item: ItemData, _reason: String) -> void:
-	## Corruption (and similar) force-unequip → return blueprint to stash.
-	if item:
-		stash.append(item)
+func _on_grid_item_unequipped(_item: ItemData, _reason: String) -> void:
+	## Corruption destroys the module — there is no off-grid storage.
+	pass
 
 
-func add_to_stash(item: ItemData) -> void:
-	if item:
-		stash.append(item)
-		EventBus.inventory_changed.emit()
-
-
-func try_place_from_stash(stash_index: int, origin: Vector2i) -> bool:
-	if stash_index < 0 or stash_index >= stash.size():
-		EventBus.placement_failed.emit("KEY_PLACE_NO_DATA")
-		return false
-	var data: ItemData = stash[stash_index]
-	var placed = grid.place_item(data, origin)
-	if placed == null:
-		return false
-	stash.remove_at(stash_index)
-	return true
-
-
-func extract_from_stash(stash_index: int) -> ItemData:
-	## Pull item out of stash for a drag session (silent — UI owns refresh).
-	if stash_index < 0 or stash_index >= stash.size():
-		return null
-	var data: ItemData = stash[stash_index]
-	stash.remove_at(stash_index)
-	return data
+func place_item(item: ItemData, origin: Vector2i, footprint: Vector2i = Vector2i.ZERO) -> bool:
+	return grid.place_item(item, origin, footprint) != null
 
 
 func extract_from_grid(origin: Vector2i) -> ItemData:
@@ -73,27 +47,21 @@ func extract_from_grid(origin: Vector2i) -> ItemData:
 	return data
 
 
-func return_to_stash(item: ItemData, index: int = -1) -> void:
-	if item == null:
-		return
-	if index < 0 or index > stash.size():
-		stash.append(item)
-	else:
-		stash.insert(index, item)
-	EventBus.inventory_changed.emit()
-
-
 func place_dragged(item: ItemData, origin: Vector2i, footprint: Vector2i = Vector2i.ZERO) -> bool:
 	return grid.place_item(item, origin, footprint) != null
 
 
-func unequip_to_stash(origin: Vector2i) -> void:
-	var occ := grid.get_occupant(origin)
-	if occ == null:
-		return
-	var data: ItemData = occ.data
-	grid.remove_item(occ)
-	stash.append(data)
+func try_place_anywhere(item: ItemData) -> bool:
+	## Place on the first valid unlocked footprint; returns false if no fit.
+	if item == null:
+		return false
+	for y in grid.height:
+		for x in grid.width:
+			var origin := Vector2i(x, y)
+			if grid.can_place_item(item, origin):
+				return place_item(item, origin)
+	EventBus.placement_failed.emit("KEY_PLACE_OCCUPIED")
+	return false
 
 
 func get_max_ap() -> int:

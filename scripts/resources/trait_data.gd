@@ -24,6 +24,14 @@ func get_localized_name() -> String:
 	return display_name
 
 
+func get_localized_description() -> String:
+	if not trait_name_key.is_empty():
+		var desc_key := trait_name_key.replace("_NAME", "_DESC")
+		if desc_key != trait_name_key:
+			return tr(desc_key)
+	return description
+
+
 func evaluate_active_status(adjacent_items: Array[ItemData]) -> bool:
 	## Iterates adjacency_rules. Any failure deactivates the trait.
 	for rule: AdjacencyRuleData in adjacency_rules:

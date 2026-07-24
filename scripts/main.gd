@@ -85,15 +85,10 @@ func _style_inventory_panel() -> void:
 
 func _seed_starting_loadout() -> void:
 	inventory.reset_run()
-	inventory.add_to_stash(RUST_BLADE.duplicate(true) as ItemData)
-	inventory.add_to_stash(MICRO_REACTOR.duplicate(true) as ItemData)
-	inventory.add_to_stash(SCRAP_SHIELD.duplicate(true) as ItemData)
-	# Pre-place a workable starter layout if possible.
-	inventory.try_place_from_stash(0, Vector2i(0, 0))  # blade on left edge
-	# stash indices shift after place — place reactor then shield from remaining
-	# After one place, reactor is index 0, shield index 1.
-	inventory.try_place_from_stash(0, Vector2i(1, 1))  # reactor center-ish
-	inventory.try_place_from_stash(0, Vector2i(2, 0))  # shield top edge
+	## All modules live on the body grid — no external stash.
+	inventory.place_item(RUST_BLADE.duplicate(true) as ItemData, Vector2i(0, 0))
+	inventory.place_item(MICRO_REACTOR.duplicate(true) as ItemData, Vector2i(1, 1))
+	inventory.place_item(SCRAP_SHIELD.duplicate(true) as ItemData, Vector2i(2, 0))
 
 
 func _set_flow(state: int) -> void:
@@ -150,8 +145,8 @@ func _on_map_node_entered(_node_id: String, node_type: int) -> void:
 			_map_ui.refresh()
 			_inventory_ui.refresh()
 		MapManager.NodeType.EVENT:
-			# Grant a duplicate reactor as loot + soft heal.
-			inventory.add_to_stash(MICRO_REACTOR.duplicate(true) as ItemData)
+			# Graft loot directly onto the body if space remains.
+			inventory.try_place_anywhere(MICRO_REACTOR.duplicate(true) as ItemData)
 			inventory.current_hp = mini(inventory.max_hp, inventory.current_hp + 10)
 			EventBus.player_hp_changed.emit(inventory.current_hp, inventory.max_hp)
 			_status_banner.text = tr("KEY_STATUS_EVENT")

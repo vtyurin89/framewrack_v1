@@ -1,15 +1,13 @@
 class_name InventoryGridUI
 extends Control
-## Body-grid inventory UI with Backpack-Hero style drag & drop.
-## Coordinates InventorySlotUI cells, ItemUI overlays, rotation, and validation.
+## Body-grid inventory UI — no external stash.
+## Drag modules on the grid; RMB while dragging rotates; invalid drops snap back.
+## Hint text lives to the RIGHT of the grid.
 
 signal cell_clicked(cell: Vector2i)
-signal stash_item_selected(index: int)
 signal item_drag_started(item: ItemData, source: String)
 signal item_drag_ended(item: ItemData, success: bool)
 signal item_moved(item: ItemData, from_origin: Vector2i, to_origin: Vector2i)
-signal item_equipped(item: ItemData, origin: Vector2i)
-signal item_returned_to_stash(item: ItemData)
 
 const CELL_SIZE := 48.0
 const CELL_GAP := 4.0
@@ -28,17 +26,15 @@ var _item_uis: Array[ItemUI] = []
 
 @onready var _grid_host: Control = %GridHost
 @onready var _grid_root: GridContainer = %GridRoot
-@onready var _stash_list: VBoxContainer = %StashList
 @onready var _hint_label: Label = %HintLabel
+@onready var _hint_panel: PanelContainer = %HintPanel
 @onready var _mutation_label: Label = %MutationLabel
 @onready var _item_layer: Control = %ItemLayer
-@onready var _stash_drop: StashDropArea = %StashDropArea
+@onready var _title: Label = %Title
 
 
 func setup(p_inventory: InventoryController) -> void:
 	inventory = p_inventory
-	if _stash_drop:
-		_stash_drop.setup(self)
 	if not EventBus.inventory_changed.is_connected(_on_inventory_changed):
 		EventBus.inventory_changed.connect(_on_inventory_changed)
 	if not EventBus.grid_expanded.is_connected(_on_grid_expanded):
@@ -47,8 +43,19 @@ func setup(p_inventory: InventoryController) -> void:
 		EventBus.placement_failed.connect(_on_placement_failed)
 	if not LocalizationManager.language_changed.is_connected(_on_language_changed):
 		LocalizationManager.language_changed.connect(_on_language_changed)
+	_style_hint_panel()
 	_apply_static_locale()
 	refresh()
+
+
+func _style_hint_panel() -> void:
+	var style := StyleBoxFlat.new()
+	style.bg_color = Color(0.12, 0.12, 0.14, 1)
+	style.set_border_width_all(1)
+	style.border_color = Color(0.32, 0.32, 0.36)
+	style.set_content_margin_all(10)
+	style.set_corner_radius_all(2)
+	_hint_panel.add_theme_stylebox_override("panel", style)
 
 
 func _on_language_changed(_locale: String) -> void:
@@ -57,15 +64,14 @@ func _on_language_changed(_locale: String) -> void:
 
 
 func _apply_static_locale() -> void:
-	var title := $VBox/Title as Label
-	if title:
-		title.text = tr("KEY_BODY_GRID_TITLE")
-	var stash_title := $VBox/StashTitle as Label
-	if stash_title:
-		stash_title.text = tr("KEY_STASH_TITLE")
+	if _title:
+		_title.text = tr("KEY_BODY_GRID_TITLE")
 	if _mutation_label and _drag.is_empty():
-		# Keep dynamic mutation text if already set via expansion; default otherwise.
-		if _mutation_label.text.is_empty() or _mutation_label.text.begins_with("MUTATION: mechanical") or _mutation_label.text.begins_with("МУТАЦИЯ: механический"):
+		if (
+			_mutation_label.text.is_empty()
+			or _mutation_label.text.begins_with("MUTATION: mechanical")
+			or _mutation_label.text.begins_with("МУТАЦИЯ: механический")
+		):
 			_mutation_label.text = tr("KEY_MUTATION_DEFAULT")
 
 
@@ -74,7 +80,6 @@ func refresh() -> void:
 		return
 	_rebuild_grid()
 	_rebuild_items()
-	_rebuild_stash()
 	if _drag.is_empty():
 		_hint_label.text = tr("KEY_HINT_DRAG")
 
@@ -135,38 +140,12 @@ func _rebuild_items() -> void:
 	var g: BodyGrid = inventory.grid
 	for placed: PlacedItem in g.items:
 		var ui := ItemUI.new()
-		ui.setup(
-			placed.data,
-			self,
-			ItemUI.Source.GRID,
-			CELL_SIZE,
-			CELL_GAP,
-			placed.origin,
-			-1,
-		)
+		ui.setup(placed.data, self, CELL_SIZE, CELL_GAP, placed.origin)
 		ui.position = _origin_to_layer_pos(placed.origin)
 		_item_layer.add_child(ui)
 		_item_uis.append(ui)
 
 	call_deferred("_fit_layers")
-
-
-func _rebuild_stash() -> void:
-	for child in _stash_list.get_children():
-		child.queue_free()
-
-	for i in inventory.stash.size():
-		var data: ItemData = inventory.stash[i]
-		var row := ItemUI.new()
-		row.setup(data, self, ItemUI.Source.STASH, CELL_SIZE, CELL_GAP, Vector2i(-1, -1), i)
-		row.tooltip_text = tr("KEY_STASH_TOOLTIP_FMT") % [
-			data.get_localized_name(),
-			data.size.x,
-			data.size.y,
-			"  %s" % tr("KEY_REQ_EDGE") if data.is_edge_only else "",
-			data.get_localized_description(),
-		]
-		_stash_list.add_child(row)
 
 
 func _fit_layers() -> void:
@@ -200,7 +179,7 @@ func _on_slot_gui_input(event: InputEvent, cell: Vector2i) -> void:
 
 
 # ---------------------------------------------------------------------------
-# Drag session
+# Drag session — grid only; invalid drop restores previous grid position
 # ---------------------------------------------------------------------------
 
 func begin_item_drag(item_ui: ItemUI) -> Dictionary:
@@ -208,22 +187,16 @@ func begin_item_drag(item_ui: ItemUI) -> Dictionary:
 		return {}
 	if not _drag.is_empty():
 		return {}
+	if item_ui.grid_origin.x < 0:
+		return {}
 
 	_suppress_refresh = true
 	_drop_committed = false
 	_hover_origin = Vector2i(-1, -1)
 
-	var source_name := "grid" if item_ui.source == ItemUI.Source.GRID else "stash"
 	var original_size := item_ui.item.size
 	var original_origin := item_ui.grid_origin
-	var original_stash_index := item_ui.stash_index
-
-	var extracted: ItemData = null
-	if item_ui.source == ItemUI.Source.GRID:
-		extracted = inventory.extract_from_grid(item_ui.grid_origin)
-	else:
-		extracted = inventory.extract_from_stash(item_ui.stash_index)
-
+	var extracted: ItemData = inventory.extract_from_grid(item_ui.grid_origin)
 	if extracted == null:
 		_suppress_refresh = false
 		return {}
@@ -233,16 +206,15 @@ func begin_item_drag(item_ui: ItemUI) -> Dictionary:
 		"item": extracted,
 		"footprint": extracted.size,
 		"original_size": original_size,
-		"source": source_name,
+		"source": "grid",
 		"original_origin": original_origin,
-		"original_stash_index": original_stash_index,
 		"preview": null,
 	}
 
 	_set_item_uis_pass_through(true)
 	_refresh_slots_only()
 	_hint_label.text = tr("KEY_HINT_DRAGGING") % extracted.get_localized_name()
-	item_drag_started.emit(extracted, source_name)
+	item_drag_started.emit(extracted, "grid")
 	return _drag
 
 
@@ -254,6 +226,7 @@ func end_item_drag(_success: bool) -> void:
 
 	var item: ItemData = _drag["item"]
 	var committed := _drop_committed
+	## Any failed / off-grid drop cancels and snaps back to the previous cell.
 	if not committed:
 		_restore_drag_item()
 	item_drag_ended.emit(item, committed)
@@ -273,16 +246,8 @@ func _restore_drag_item() -> void:
 		return
 	var item: ItemData = _drag["item"]
 	item.size = _drag["original_size"]
-	if _drag["source"] == "grid":
-		var origin: Vector2i = _drag["original_origin"]
-		inventory.grid.place_item(item, origin, item.size)
-	else:
-		# Silent insert then one refresh at end.
-		var idx: int = int(_drag["original_stash_index"])
-		if idx < 0 or idx > inventory.stash.size():
-			inventory.stash.append(item)
-		else:
-			inventory.stash.insert(idx, item)
+	var origin: Vector2i = _drag["original_origin"]
+	inventory.grid.place_item(item, origin, item.size)
 
 
 func _set_item_uis_pass_through(enabled: bool) -> void:
@@ -290,9 +255,6 @@ func _set_item_uis_pass_through(enabled: bool) -> void:
 	for ui in _item_uis:
 		if is_instance_valid(ui):
 			ui.mouse_filter = filter
-	for child in _stash_list.get_children():
-		if child is ItemUI:
-			(child as ItemUI).mouse_filter = filter
 
 
 # ---------------------------------------------------------------------------
@@ -322,15 +284,13 @@ func drop_on_cell(cell: Vector2i, data: Variant) -> void:
 	var item: ItemData = data["item"]
 	var footprint: Vector2i = data["footprint"]
 	if not inventory.place_dragged(item, cell, footprint):
+		## Invalid cell — leave uncommitted so end_item_drag snaps back.
 		return
 
 	_drop_committed = true
-	var source: String = str(data.get("source", ""))
 	var from_origin: Vector2i = data.get("original_origin", Vector2i(-1, -1))
-	if source == "grid" and from_origin.x >= 0:
+	if from_origin.x >= 0:
 		item_moved.emit(item, from_origin, cell)
-	else:
-		item_equipped.emit(item, cell)
 	_hint_label.text = tr("KEY_HINT_GRAFTED")
 	_clear_highlights()
 
@@ -372,14 +332,14 @@ func _refresh_slots_only() -> void:
 
 
 # ---------------------------------------------------------------------------
-# Rotation (R) while dragging
+# Rotation — RMB while dragging ONLY (static RMB does nothing)
 # ---------------------------------------------------------------------------
 
-func _unhandled_input(event: InputEvent) -> void:
+func _input(event: InputEvent) -> void:
 	if _drag.is_empty():
 		return
-	if event is InputEventKey and event.pressed and not event.echo:
-		if event.keycode == KEY_R:
+	if event is InputEventMouseButton and event.pressed:
+		if event.button_index == MOUSE_BUTTON_RIGHT:
 			_rotate_drag()
 			get_viewport().set_input_as_handled()
 
@@ -433,26 +393,6 @@ func _rebuild_preview_node(preview: Control, item: ItemData, footprint: Vector2i
 	caption.add_theme_color_override("font_color", Color(0.05, 0.05, 0.05))
 	caption.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	preview.add_child(caption)
-
-
-# ---------------------------------------------------------------------------
-# Stash drop target
-# ---------------------------------------------------------------------------
-
-func can_drop_on_stash(data: Variant) -> bool:
-	return _is_drag(data)
-
-
-func drop_on_stash(data: Variant) -> void:
-	if not _is_drag(data):
-		return
-	var item: ItemData = data["item"]
-	item.size = data.get("original_size", item.size)
-	inventory.stash.append(item)
-	_drop_committed = true
-	item_returned_to_stash.emit(item)
-	_hint_label.text = tr("KEY_HINT_STASH_RETURN")
-	_clear_highlights()
 
 
 static func _is_drag(data: Variant) -> bool:

@@ -1,22 +1,16 @@
 class_name ItemUI
 extends Control
-## Draggable visual for a body-module (grid overlay or stash row).
-## Starts drag via _get_drag_data; rotation (R) is handled by InventoryGridUI.
+## Draggable visual for a body-module on the grid.
+## RMB on a static item does nothing; rotation is handled by InventoryGridUI
+## only while a left-button drag is active.
 
 signal drag_begun(item_ui: ItemUI)
 signal drag_finished(item_ui: ItemUI, success: bool)
 
 const DRAG_TYPE := "framewrack_item"
 
-enum Source {
-	GRID,
-	STASH,
-}
-
 var item: ItemData
-var source: Source = Source.STASH
 var grid_origin: Vector2i = Vector2i(-1, -1)
-var stash_index: int = -1
 var cell_size: float = 48.0
 var cell_gap: float = 4.0
 
@@ -30,22 +24,18 @@ var _dragging: bool = false
 func setup(
 	p_item: ItemData,
 	p_grid_ui: Node,
-	p_source: Source,
 	p_cell_size: float = 48.0,
 	p_cell_gap: float = 4.0,
 	p_grid_origin: Vector2i = Vector2i(-1, -1),
-	p_stash_index: int = -1,
 ) -> void:
 	item = p_item
 	_grid_ui = p_grid_ui
-	source = p_source
 	cell_size = p_cell_size
 	cell_gap = p_cell_gap
 	grid_origin = p_grid_origin
-	stash_index = p_stash_index
 	mouse_filter = Control.MOUSE_FILTER_STOP
 	focus_mode = Control.FOCUS_NONE
-	tooltip_text = item.get_localized_description() if item else ""
+	mouse_default_cursor_shape = Control.CURSOR_POINTING_HAND
 	_build_visual()
 	_apply_footprint_size(item.size if item else Vector2i.ONE)
 
@@ -87,14 +77,10 @@ func _build_visual() -> void:
 
 
 func _apply_footprint_size(footprint: Vector2i) -> void:
-	if source == Source.GRID:
-		var w := footprint.x * cell_size + maxi(footprint.x - 1, 0) * cell_gap
-		var h := footprint.y * cell_size + maxi(footprint.y - 1, 0) * cell_gap
-		custom_minimum_size = Vector2(w, h)
-		size = custom_minimum_size
-	else:
-		custom_minimum_size = Vector2(160, cell_size)
-		size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	var w := footprint.x * cell_size + maxi(footprint.x - 1, 0) * cell_gap
+	var h := footprint.y * cell_size + maxi(footprint.y - 1, 0) * cell_gap
+	custom_minimum_size = Vector2(w, h)
+	size = custom_minimum_size
 
 
 func _short_name(full: String) -> String:
@@ -102,6 +88,21 @@ func _short_name(full: String) -> String:
 	if parts.is_empty():
 		return "?"
 	return parts[0].substr(0, 4).to_upper()
+
+
+func _gui_input(event: InputEvent) -> void:
+	## Static RMB must do nothing (rotation only while dragging, via InventoryGridUI).
+	if event is InputEventMouseButton and event.button_index == MOUSE_BUTTON_RIGHT:
+		accept_event()
+
+
+func _notification(what: int) -> void:
+	if what == NOTIFICATION_DRAG_END and _dragging:
+		_dragging = false
+		var success := get_viewport().gui_is_drag_successful()
+		drag_finished.emit(self, success)
+		if _grid_ui and _grid_ui.has_method("end_item_drag"):
+			_grid_ui.end_item_drag(success)
 
 
 func _get_drag_data(_at_position: Vector2) -> Variant:
@@ -122,15 +123,6 @@ func _get_drag_data(_at_position: Vector2) -> Variant:
 	session["preview"] = preview
 	set_drag_preview(preview)
 	return session
-
-
-func _notification(what: int) -> void:
-	if what == NOTIFICATION_DRAG_END and _dragging:
-		_dragging = false
-		var success := get_viewport().gui_is_drag_successful()
-		drag_finished.emit(self, success)
-		if _grid_ui and _grid_ui.has_method("end_item_drag"):
-			_grid_ui.end_item_drag(success)
 
 
 static func build_drag_preview(
@@ -171,7 +163,5 @@ static func build_drag_preview(
 	caption.add_theme_color_override("font_color", Color(0.05, 0.05, 0.05))
 	caption.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	root.add_child(caption)
-
-	# Pivot preview so the top-left cell sits under the cursor (Backpack Hero feel).
 	root.pivot_offset = Vector2.ZERO
 	return root
