@@ -1,11 +1,18 @@
 class_name ItemData
 extends Resource
 ## Blueprint for an equippable body-module / weapon / utility.
-## Instances are placed onto the player's body grid at runtime.
+## Display text is resolved via translation keys (see translations/translations.csv).
 
 @export var id: String = ""
+
+## Localization keys (preferred). Fall back to display_name / description if empty.
+@export var item_name_key: String = "ITEM_UNKNOWN_NAME"
+@export var item_desc_key: String = ""
+
+## Optional English editor fallbacks when keys are missing.
 @export var display_name: String = "Unknown Module"
 @export_multiline var description: String = ""
+
 @export var texture: Texture2D
 
 ## Footprint in grid cells (width x height). Swapped on rotate (R while dragging).
@@ -33,11 +40,11 @@ extends Resource
 @export var placeholder_color: Color = Color(0.7, 0.7, 0.7)
 
 
-# --- Spec aliases (item_name / cost_ap / is_edge_only / adjacency_dmg_bonus) --
+# --- Spec aliases -----------------------------------------------------------
 
 var item_name: String:
 	get:
-		return display_name
+		return get_localized_name()
 	set(value):
 		display_name = value
 
@@ -61,6 +68,18 @@ var adjacency_dmg_bonus: int:
 		return adjacency_damage_bonus
 	set(value):
 		adjacency_damage_bonus = value
+
+
+func get_localized_name() -> String:
+	if not item_name_key.is_empty():
+		return tr(item_name_key)
+	return display_name
+
+
+func get_localized_description() -> String:
+	if not item_desc_key.is_empty():
+		return tr(item_desc_key)
+	return description
 
 
 func is_weapon() -> bool:

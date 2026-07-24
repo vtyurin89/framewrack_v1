@@ -1,0 +1,103 @@
+keys,en,ru
+KEY_START,Start,Старт
+KEY_SETTINGS,Settings,Настройки
+KEY_AP,AP,ОД
+KEY_HP,HP,ОЗ
+KEY_CORRUPTED,Corrupted,Искажено
+KEY_MUTATION_LEVEL,Mutation Level,Уровень мутации
+KEY_REQ_EDGE,Requires edge,Только край
+KEY_END_TURN,End Turn,Конец хода
+KEY_CONTINUE,Continue,Продолжить
+KEY_RETURN_TO_MAP,Return to Map,На карту
+KEY_NEW_RUN,New Run,Новый забег
+KEY_BODY_GRID,Body Grid,Сетка тела
+KEY_MUTATE_CELLS,Mutate (+cells),Мутация (+клетки)
+KEY_LANGUAGE,Language,Язык
+KEY_TARGET,Target,Цель
+KEY_MODULES,Modules,Модули
+KEY_PASSIVE,PASSIVE,ПАССИВ
+KEY_BLOCK,BLOCK,БЛОК
+KEY_FRAME_HP,FRAME HP,ОЗ КАРКАСА
+KEY_PLAYER_TURN,PLAYER TURN,ХОД ИГРОКА
+KEY_ENEMY_TURN,ENEMY TURN,ХОД ВРАГА
+KEY_VICTORY,VICTORY,ПОБЕДА
+KEY_FRAME_FAILURE,FRAME FAILURE,СБОЙ КАРКАСА
+KEY_DONE,[DONE],[ГОТОВО]
+KEY_LOCKED,Locked,Закрыто
+KEY_EDGE_CELL,Edge cell,Крайняя клетка
+KEY_BODY_CELL,Body cell,Клетка тела
+KEY_SECTOR_MAP,SECTOR MAP — choose the next node,КАРТА СЕКТОРА — выберите следующий узел
+KEY_BODY_GRID_TITLE,BODY GRID,СЕТКА ТЕЛА
+KEY_STASH_TITLE,STASH / UNGRAFTED,СКЛАД / НЕВСТРОЕННОЕ
+KEY_MUTATION_DEFAULT,MUTATION: mechanical frame,МУТАЦИЯ: механический каркас
+KEY_TYPE_COMBAT,COMBAT,БОЙ
+KEY_TYPE_REPAIR,REPAIR,РЕМОНТ
+KEY_TYPE_EVENT,EVENT,СОБЫТИЕ
+KEY_TYPE_BOSS,BOSS,БОСС
+KEY_ATK,ATK,АТК
+KEY_BLK,BLK,БЛК
+KEY_AP_FMT,%s %d / %d,%s %d / %d
+KEY_HP_FMT,%s %d/%d,%s %d/%d
+KEY_FRAME_HP_FMT,%s %d / %d,%s %d / %d
+KEY_BLOCK_FMT,%s %d,%s %d
+KEY_CORRUPTED_TURNS_FMT,%s (%d turns),%s (%d ход.)
+KEY_ACTION_ITEM_FMT,[%s] %s  (%d %s),[%s] %s  (%d %s)
+KEY_PASSIVE_FMT,%s: %s,%s: %s
+KEY_MUTATION_OVERLAY_FMT,MUTATION: flesh/bone overlay +%d cells,МУТАЦИЯ: плоть/кость +%d клеток
+KEY_HINT_DRAG,Drag modules onto the body. Press R while dragging to rotate.,Перетащите модули на тело. R во время перетаскивания — поворот.
+KEY_HINT_CANNOT_PLACE,Cannot place: %s,Нельзя установить: %s
+KEY_HINT_DRAGGING,Dragging %s — R to rotate; drop on body or stash.,Перетаскивание: %s — R для поворота; бросьте на тело или склад.
+KEY_HINT_GRAFTED,Module grafted.,Модуль встроен.
+KEY_HINT_ROTATED,Rotated to %dx%d — drop to confirm.,Повёрнуто до %dx%d — отпустите для подтверждения.
+KEY_HINT_STASH_RETURN,Returned to stash.,Возвращено на склад.
+KEY_STASH_TOOLTIP_FMT,%s  [%dx%d]%s | %s,%s  [%dx%d]%s | %s
+KEY_STATUS_ONLINE,FRAMEWRACK — graft modules; then enter the sector.,FRAMEWRACK — встройте модули и войдите в сектор.
+KEY_STATUS_MUTATED,Body grid mutated — new cells grafted (placeholder flesh/bone).,Сетка тела мутировала — привиты новые клетки (заглушка плоть/кость).
+KEY_STATUS_REPAIR,Repair bench: corruption cleared; frame restored.,Ремверстак: искажение снято; каркас восстановлен.
+KEY_STATUS_EVENT,Mutation Cache: scavenged Micro-Reactor (+10 HP).,Кэш мутации: найден Микро-реактор (+10 ОЗ).
+KEY_STATUS_ENGAGEMENT,ENGAGEMENT — %s,СТОЛКНОВЕНИЕ — %s
+KEY_STATUS_COMBAT_WIN,Combat resolved. Continue when ready.,Бой завершён. Продолжайте; когда будете готовы.
+KEY_STATUS_COMBAT_LOSE,Frame failed. Start a new run.,Каркас разрушен. Начните новый забег.
+KEY_STATUS_SECTOR_SECURED,Sector secured. Select the next node.,Сектор зачищен. Выберите следующий узел.
+KEY_STATUS_WRECKAGE,You are wreckage. Press New Run.,Вы — обломки. Нажмите «Новый забег».
+KEY_STATUS_RUN_COMPLETE,FRAMEWRACK CORE silenced. Run complete.,ЯДРО FRAMEWRACK заглушено. Забег завершён.
+KEY_STATUS_NEW_RUN,New frame online. Graft. Advance. Mutate.,Новый каркас в сети. Встраивай. Продвигай. Мутируй.
+KEY_LOG_YOUR_TURN,— Your turn — (%d AP),— Ваш ход — (%d ОД)
+KEY_LOG_ENEMY_TURN,— Enemy turn —,— Ход врага —
+KEY_LOG_OFFLINE,%s is offline (corrupted cells).,%s не работает (искажённые клетки).
+KEY_LOG_PASSIVE,%s is passive.,%s пассивен.
+KEY_LOG_NOT_ENOUGH_AP,Not enough AP.,Недостаточно ОД.
+KEY_LOG_ACTIVATED,Activated %s.,Активирован: %s.
+KEY_LOG_DAMAGE,%s deals %d damage%s to %s.,%s наносит %d урона%s по %s.
+KEY_LOG_REACTOR_BONUS, (+%d reactor), (+%d реактор)
+KEY_LOG_BLOCK,%s raises %d Block (total %d).,%s поднимает %d Блока (всего %d).
+KEY_LOG_ENEMY_STRIKE,%s strikes for %d (you take %d).,%s бьёт на %d (вы получаете %d).
+KEY_LOG_CELL_CORRUPTED,%s unleashes corruption! %d damage; %s locked %d turns.,%s выпускает искажение! %d урона; %s заблокировано на %d ход.
+KEY_LOG_CELL_NAME,cell (%d,%d),клетка (%d,%d)
+KEY_LOG_NO_CELL,no cell,нет клетки
+KEY_LOG_VICTORY,Hostiles neutralized.,Противники нейтрализованы.
+KEY_LOG_DEFEAT,Frame integrity critical. Shutdown.,Целостность каркаса критична. Отключение.
+KEY_LOG_TARGETING,Targeting enemy #%d.,Цель: враг #%d.
+KEY_PLACE_NO_DATA,No item data.,Нет данных предмета.
+KEY_PLACE_INVALID_FOOTPRINT,Invalid footprint.,Неверная форма.
+KEY_PLACE_OUTSIDE,Outside unlocked body grid.,Вне открытой сетки тела.
+KEY_PLACE_OCCUPIED,Cell occupied.,Клетка занята.
+KEY_PLACE_CORRUPTED,Cell corrupted — repair required.,Клетка искажена — нужен ремонт.
+KEY_PLACE_EDGE,Item requires edge placement.,Предмет требует установки на край.
+ITEM_RUST_BLADE_NAME,Rust-Blade,Ржавый клинок
+ITEM_RUST_BLADE_DESC,Jagged arm-mounted cutter. Must mount on the outer frame edge.,Зубчатый наручный резак. Крепится только на внешний край каркаса.
+ITEM_MICRO_REACTOR_NAME,Micro-Reactor,Микро-реактор
+ITEM_MICRO_REACTOR_DESC,Compact power cell. +1 max AP. Adjacent weapons gain +2 damage.,Компактный энергоэлемент. +1 макс. ОД. Соседнее оружие получает +2 урона.
+ITEM_SCRAP_SHIELD_NAME,Scrap Shield,Щит из хлама
+ITEM_SCRAP_SHIELD_DESC,Bolted plating. Edge-mounted. Spend 1 AP to raise Block.,Приболтованная броня. На край. Потратьте 1 ОД; чтобы поднять Блок.
+ENEMY_DESPERATE_REBEL_NAME,Desperate Rebel,Отчаянный повстанец
+ENEMY_DESPERATE_REBEL_DESC,A starving human with a pipe. Still believes this city has a future.,Голодный человек с трубой. Всё ещё верит; что у города есть будущее.
+ENEMY_CORRUPTED_SYNTHET_NAME,Corrupted Synthet,Искажённый синтет
+ENEMY_CORRUPTED_SYNTHET_DESC,Half-melted chassis leaking signal noise. Its touch rusts your grid.,Полурасплавленный корпус с шумом сигнала. Прикосновение ржавит вашу сетку.
+MAP_N0_NAME,Scrap Corridor,Мусорный коридор
+MAP_N1_NAME,Jury-Rig Bench,Кустарный верстак
+MAP_N2_NAME,Synth Nest,Гнездо синтетов
+MAP_N3_NAME,Mutation Cache,Кэш мутации
+MAP_N4_NAME,Framewrack Core,Ядро Framewrack
+ITEM_UNKNOWN_NAME,Unknown Module,Неизвестный модуль
+ENEMY_UNKNOWN_NAME,Unknown Host,Неизвестный носитель

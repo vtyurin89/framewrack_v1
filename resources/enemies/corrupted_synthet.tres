@@ -5,6 +5,8 @@
 [resource]
 script = ExtResource("1")
 id = "corrupted_synthet"
+enemy_name_key = "ENEMY_CORRUPTED_SYNTHET_NAME"
+enemy_desc_key = "ENEMY_CORRUPTED_SYNTHET_DESC"
 display_name = "Corrupted Synthet"
 description = "Half-melted chassis leaking signal noise. Its touch rusts your grid."
 max_hp = 22

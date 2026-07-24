@@ -5,6 +5,8 @@
 [resource]
 script = ExtResource("1")
 id = "rust_blade"
+item_name_key = "ITEM_RUST_BLADE_NAME"
+item_desc_key = "ITEM_RUST_BLADE_DESC"
 display_name = "Rust-Blade"
 description = "Jagged arm-mounted cutter. Must mount on the outer frame edge."
 size = Vector2i(1, 2)

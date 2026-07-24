@@ -45,7 +45,28 @@ func setup(p_inventory: InventoryController) -> void:
 		EventBus.grid_expanded.connect(_on_grid_expanded)
 	if not EventBus.placement_failed.is_connected(_on_placement_failed):
 		EventBus.placement_failed.connect(_on_placement_failed)
+	if not LocalizationManager.language_changed.is_connected(_on_language_changed):
+		LocalizationManager.language_changed.connect(_on_language_changed)
+	_apply_static_locale()
 	refresh()
+
+
+func _on_language_changed(_locale: String) -> void:
+	_apply_static_locale()
+	refresh()
+
+
+func _apply_static_locale() -> void:
+	var title := $VBox/Title as Label
+	if title:
+		title.text = tr("KEY_BODY_GRID_TITLE")
+	var stash_title := $VBox/StashTitle as Label
+	if stash_title:
+		stash_title.text = tr("KEY_STASH_TITLE")
+	if _mutation_label and _drag.is_empty():
+		# Keep dynamic mutation text if already set via expansion; default otherwise.
+		if _mutation_label.text.is_empty() or _mutation_label.text.begins_with("MUTATION: mechanical") or _mutation_label.text.begins_with("МУТАЦИЯ: механический"):
+			_mutation_label.text = tr("KEY_MUTATION_DEFAULT")
 
 
 func refresh() -> void:
@@ -55,7 +76,7 @@ func refresh() -> void:
 	_rebuild_items()
 	_rebuild_stash()
 	if _drag.is_empty():
-		_hint_label.text = "Drag modules onto the body. Press R while dragging to rotate."
+		_hint_label.text = tr("KEY_HINT_DRAG")
 
 
 func _on_inventory_changed() -> void:
@@ -63,12 +84,12 @@ func _on_inventory_changed() -> void:
 
 
 func _on_grid_expanded(new_cells: Array[Vector2i]) -> void:
-	_mutation_label.text = "MUTATION: flesh/bone overlay +%d cells" % new_cells.size()
+	_mutation_label.text = tr("KEY_MUTATION_OVERLAY_FMT") % new_cells.size()
 	refresh()
 
 
 func _on_placement_failed(reason: String) -> void:
-	_hint_label.text = "Cannot place: %s" % reason
+	_hint_label.text = tr("KEY_HINT_CANNOT_PLACE") % tr(reason)
 
 
 # ---------------------------------------------------------------------------
@@ -138,12 +159,12 @@ func _rebuild_stash() -> void:
 		var data: ItemData = inventory.stash[i]
 		var row := ItemUI.new()
 		row.setup(data, self, ItemUI.Source.STASH, CELL_SIZE, CELL_GAP, Vector2i(-1, -1), i)
-		row.tooltip_text = "%s  [%dx%d]%s\n%s" % [
-			data.display_name,
+		row.tooltip_text = tr("KEY_STASH_TOOLTIP_FMT") % [
+			data.get_localized_name(),
 			data.size.x,
 			data.size.y,
-			"  EDGE" if data.is_edge_only else "",
-			data.description,
+			"  %s" % tr("KEY_REQ_EDGE") if data.is_edge_only else "",
+			data.get_localized_description(),
 		]
 		_stash_list.add_child(row)
 
@@ -220,7 +241,7 @@ func begin_item_drag(item_ui: ItemUI) -> Dictionary:
 
 	_set_item_uis_pass_through(true)
 	_refresh_slots_only()
-	_hint_label.text = "Dragging %s — R to rotate, drop on body or stash." % extracted.display_name
+	_hint_label.text = tr("KEY_HINT_DRAGGING") % extracted.get_localized_name()
 	item_drag_started.emit(extracted, source_name)
 	return _drag
 
@@ -310,7 +331,7 @@ func drop_on_cell(cell: Vector2i, data: Variant) -> void:
 		item_moved.emit(item, from_origin, cell)
 	else:
 		item_equipped.emit(item, cell)
-	_hint_label.text = "Module grafted."
+	_hint_label.text = tr("KEY_HINT_GRAFTED")
 	_clear_highlights()
 
 
@@ -377,7 +398,7 @@ func _rotate_drag() -> void:
 
 	if _hover_origin.x >= 0:
 		_update_footprint_highlights(_hover_origin, _drag)
-	_hint_label.text = "Rotated to %dx%d — drop to confirm." % [footprint.x, footprint.y]
+	_hint_label.text = tr("KEY_HINT_ROTATED") % [footprint.x, footprint.y]
 
 
 func _rebuild_preview_node(preview: Control, item: ItemData, footprint: Vector2i) -> void:
@@ -407,7 +428,7 @@ func _rebuild_preview_node(preview: Control, item: ItemData, footprint: Vector2i
 			preview.add_child(cell)
 
 	var caption := Label.new()
-	caption.text = item.display_name if item else ""
+	caption.text = item.get_localized_name() if item else ""
 	caption.position = Vector2(4, 4)
 	caption.add_theme_color_override("font_color", Color(0.05, 0.05, 0.05))
 	caption.mouse_filter = Control.MOUSE_FILTER_IGNORE
@@ -430,7 +451,7 @@ func drop_on_stash(data: Variant) -> void:
 	inventory.stash.append(item)
 	_drop_committed = true
 	item_returned_to_stash.emit(item)
-	_hint_label.text = "Returned to stash."
+	_hint_label.text = tr("KEY_HINT_STASH_RETURN")
 	_clear_highlights()
 
 

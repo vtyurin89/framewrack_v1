@@ -44,7 +44,7 @@ func add_to_stash(item: ItemData) -> void:
 
 func try_place_from_stash(stash_index: int, origin: Vector2i) -> bool:
 	if stash_index < 0 or stash_index >= stash.size():
-		EventBus.placement_failed.emit("Invalid stash index.")
+		EventBus.placement_failed.emit("KEY_PLACE_NO_DATA")
 		return false
 	var data: ItemData = stash[stash_index]
 	var placed = grid.place_item(data, origin)

@@ -45,7 +45,7 @@ func setup(
 	stash_index = p_stash_index
 	mouse_filter = Control.MOUSE_FILTER_STOP
 	focus_mode = Control.FOCUS_NONE
-	tooltip_text = item.description if item else ""
+	tooltip_text = item.get_localized_description() if item else ""
 	_build_visual()
 	_apply_footprint_size(item.size if item else Vector2i.ONE)
 
@@ -82,7 +82,7 @@ func _build_visual() -> void:
 	_label.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
 	_label.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	_label.add_theme_color_override("font_color", Color(0.08, 0.08, 0.08))
-	_label.text = _short_name(item.display_name if item else "?")
+	_label.text = _short_name(item.get_localized_name() if item else "?")
 	add_child(_label)
 
 
@@ -166,7 +166,7 @@ static func build_drag_preview(
 			root.add_child(cell)
 
 	var caption := Label.new()
-	caption.text = p_item.display_name if p_item else ""
+	caption.text = p_item.get_localized_name() if p_item else ""
 	caption.position = Vector2(4, 4)
 	caption.add_theme_color_override("font_color", Color(0.05, 0.05, 0.05))
 	caption.mouse_filter = Control.MOUSE_FILTER_IGNORE

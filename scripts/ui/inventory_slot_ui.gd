@@ -56,17 +56,17 @@ func apply_cell_state(is_unlocked: bool, is_corrupted: bool, is_edge: bool, corr
 	if not is_unlocked:
 		set_highlight(Highlight.LOCKED)
 		_label.text = ""
-		tooltip_text = "Locked"
+		tooltip_text = tr("KEY_LOCKED")
 		return
 	if is_corrupted:
 		set_highlight(Highlight.CORRUPTED)
 		_label.text = "X"
 		_label.add_theme_color_override("font_color", Color(1.0, 0.35, 0.45))
-		tooltip_text = "Corrupted (%d turns)" % corruption_turns
+		tooltip_text = tr("KEY_CORRUPTED_TURNS_FMT") % [tr("KEY_CORRUPTED"), corruption_turns]
 		return
 	set_highlight(Highlight.BASE)
 	_label.text = ""
-	tooltip_text = "Edge cell" if is_edge else "Body cell"
+	tooltip_text = tr("KEY_EDGE_CELL") if is_edge else tr("KEY_BODY_CELL")
 
 
 func set_highlight(mode: Highlight) -> void:

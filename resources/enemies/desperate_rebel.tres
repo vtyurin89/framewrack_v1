@@ -5,6 +5,8 @@
 [resource]
 script = ExtResource("1")
 id = "desperate_rebel"
+enemy_name_key = "ENEMY_DESPERATE_REBEL_NAME"
+enemy_desc_key = "ENEMY_DESPERATE_REBEL_DESC"
 display_name = "Desperate Rebel"
 description = "A starving human with a pipe. Still believes this city has a future."
 max_hp = 18

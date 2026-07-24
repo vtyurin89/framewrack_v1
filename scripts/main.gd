@@ -17,6 +17,7 @@ const ENEMY_SYNTHET := preload("res://resources/enemies/corrupted_synthet.tres")
 @onready var _btn_toggle_inv: Button = %ToggleInventoryButton
 @onready var _btn_expand: Button = %ExpandGridButton
 @onready var _btn_new_run: Button = %NewRunButton
+@onready var _btn_lang: Button = %LanguageButton
 
 var inventory: InventoryController
 var flow_state: int = GameFlowState.State.EXPLORING
@@ -48,9 +49,29 @@ func _ready() -> void:
 	_btn_toggle_inv.pressed.connect(_toggle_inventory)
 	_btn_expand.pressed.connect(_expand_grid_demo)
 	_btn_new_run.pressed.connect(_new_run)
+	_btn_lang.pressed.connect(_on_language_pressed)
+	LocalizationManager.language_changed.connect(_on_language_changed)
 
+	_apply_static_locale()
 	_show_exploring()
-	_status_banner.text = "FRAMEWRACK — graft modules, then enter the sector."
+	_status_banner.text = tr("KEY_STATUS_ONLINE")
+
+
+func _on_language_pressed() -> void:
+	LocalizationManager.cycle_language()
+
+
+func _on_language_changed(_locale: String) -> void:
+	_apply_static_locale()
+	_map_ui.refresh()
+	_inventory_ui.refresh()
+
+
+func _apply_static_locale() -> void:
+	_btn_toggle_inv.text = tr("KEY_BODY_GRID")
+	_btn_expand.text = tr("KEY_MUTATE_CELLS")
+	_btn_new_run.text = tr("KEY_NEW_RUN")
+	_btn_lang.text = "%s: %s" % [tr("KEY_LANGUAGE"), LocalizationManager.get_locale().to_upper()]
 
 
 func _style_inventory_panel() -> void:
@@ -109,7 +130,7 @@ func _expand_grid_demo() -> void:
 		Vector2i(4, 4),
 	]
 	inventory.grid.unlock_cells(cells)
-	_status_banner.text = "Body grid mutated — new cells grafted (placeholder flesh/bone)."
+	_status_banner.text = tr("KEY_STATUS_MUTATED")
 	_inventory_ui.refresh()
 
 
@@ -124,7 +145,7 @@ func _on_map_node_entered(_node_id: String, node_type: int) -> void:
 		MapManager.NodeType.REPAIR:
 			inventory.grid.clear_all_corruption()
 			inventory.heal_full()
-			_status_banner.text = "Repair bench: corruption cleared, frame restored."
+			_status_banner.text = tr("KEY_STATUS_REPAIR")
 			_map.complete_current()
 			_map_ui.refresh()
 			_inventory_ui.refresh()
@@ -133,7 +154,7 @@ func _on_map_node_entered(_node_id: String, node_type: int) -> void:
 			inventory.add_to_stash(MICRO_REACTOR.duplicate(true) as ItemData)
 			inventory.current_hp = mini(inventory.max_hp, inventory.current_hp + 10)
 			EventBus.player_hp_changed.emit(inventory.current_hp, inventory.max_hp)
-			_status_banner.text = "Mutation Cache: scavenged Micro-Reactor (+10 HP)."
+			_status_banner.text = tr("KEY_STATUS_EVENT")
 			_map.complete_current()
 			_map_ui.refresh()
 			_inventory_ui.refresh()
@@ -154,7 +175,11 @@ func _start_combat_for_current() -> void:
 	_show_combat()
 	_combat_ui.setup(_combat, inventory)
 	_combat.start_combat(datas)
-	_status_banner.text = "ENGAGEMENT — %s" % str(node.get("label", "Unknown"))
+	var node_label := str(node.get("label", "Unknown"))
+	var label_key := str(node.get("label_key", ""))
+	if not label_key.is_empty():
+		node_label = tr(label_key)
+	_status_banner.text = tr("KEY_STATUS_ENGAGEMENT") % node_label
 
 
 func _on_end_turn() -> void:
@@ -176,23 +201,23 @@ func _on_combat_state(_s: int) -> void:
 
 func _on_combat_ended_bus(victory: bool) -> void:
 	if victory:
-		_status_banner.text = "Combat resolved. Continue when ready."
+		_status_banner.text = tr("KEY_STATUS_COMBAT_WIN")
 	else:
-		_status_banner.text = "Frame failed. Start a new run."
+		_status_banner.text = tr("KEY_STATUS_COMBAT_LOSE")
 
 
 func _on_combat_continue() -> void:
 	if _combat.state == _combat.CombatState.VICTORY:
 		_map.complete_current()
 		_show_exploring()
-		_status_banner.text = "Sector secured. Select the next node."
+		_status_banner.text = tr("KEY_STATUS_SECTOR_SECURED")
 	elif _combat.state == _combat.CombatState.DEFEAT:
 		_show_exploring()
-		_status_banner.text = "You are wreckage. Press New Run."
+		_status_banner.text = tr("KEY_STATUS_WRECKAGE")
 
 
 func _on_map_finished() -> void:
-	_status_banner.text = "FRAMEWRACK CORE silenced. Run complete."
+	_status_banner.text = tr("KEY_STATUS_RUN_COMPLETE")
 	_set_flow(GameFlowState.State.VICTORY)
 
 
@@ -202,5 +227,5 @@ func _new_run() -> void:
 	_inventory_ui.setup(inventory)
 	_combat.setup(inventory)
 	_show_exploring()
-	_status_banner.text = "New frame online. Graft. Advance. Mutate."
+	_status_banner.text = tr("KEY_STATUS_NEW_RUN")
 	EventBus.run_started.emit()

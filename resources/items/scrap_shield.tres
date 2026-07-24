@@ -5,6 +5,8 @@
 [resource]
 script = ExtResource("1")
 id = "scrap_shield"
+item_name_key = "ITEM_SCRAP_SHIELD_NAME"
+item_desc_key = "ITEM_SCRAP_SHIELD_DESC"
 display_name = "Scrap Shield"
 description = "Bolted plating. Edge-mounted. Spend 1 AP to raise Block."
 size = Vector2i(2, 1)

@@ -71,6 +71,11 @@ unique_name_in_owner = true
 layout_mode = 2
 text = "New Run"
 
+[node name="LanguageButton" type="Button" parent="RootLayout/TopBar"]
+unique_name_in_owner = true
+layout_mode = 2
+text = "Language: EN"
+
 [node name="StatusBanner" type="Label" parent="RootLayout"]
 unique_name_in_owner = true
 layout_mode = 2

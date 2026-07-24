@@ -5,6 +5,8 @@
 [resource]
 script = ExtResource("1")
 id = "micro_reactor"
+item_name_key = "ITEM_MICRO_REACTOR_NAME"
+item_desc_key = "ITEM_MICRO_REACTOR_DESC"
 display_name = "Micro-Reactor"
 description = "Compact power cell. +1 max AP. Adjacent weapons gain +2 damage."
 size = Vector2i(1, 1)

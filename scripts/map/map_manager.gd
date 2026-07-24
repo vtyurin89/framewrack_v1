@@ -23,13 +23,14 @@ func _ready() -> void:
 
 func _build_default_map() -> void:
 	nodes = [
-		{"id": "n0", "type": NodeType.COMBAT, "label": "Scrap Corridor", "enemy_ids": ["desperate_rebel"]},
-		{"id": "n1", "type": NodeType.REPAIR, "label": "Jury-Rig Bench", "enemy_ids": []},
-		{"id": "n2", "type": NodeType.COMBAT, "label": "Synth Nest", "enemy_ids": ["corrupted_synthet"]},
-		{"id": "n3", "type": NodeType.EVENT, "label": "Mutation Cache", "enemy_ids": []},
+		{"id": "n0", "type": NodeType.COMBAT, "label_key": "MAP_N0_NAME", "label": "Scrap Corridor", "enemy_ids": ["desperate_rebel"]},
+		{"id": "n1", "type": NodeType.REPAIR, "label_key": "MAP_N1_NAME", "label": "Jury-Rig Bench", "enemy_ids": []},
+		{"id": "n2", "type": NodeType.COMBAT, "label_key": "MAP_N2_NAME", "label": "Synth Nest", "enemy_ids": ["corrupted_synthet"]},
+		{"id": "n3", "type": NodeType.EVENT, "label_key": "MAP_N3_NAME", "label": "Mutation Cache", "enemy_ids": []},
 		{
 			"id": "n4",
 			"type": NodeType.BOSS,
+			"label_key": "MAP_N4_NAME",
 			"label": "Framewrack Core",
 			"enemy_ids": ["desperate_rebel", "corrupted_synthet"],
 		},

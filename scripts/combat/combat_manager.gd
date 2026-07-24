@@ -68,7 +68,7 @@ func _begin_player_turn() -> void:
 	current_ap = max_ap
 	EventBus.ap_changed.emit(current_ap, max_ap)
 	_set_state(CombatState.PLAYER_TURN)
-	EventBus.combat_log_message.emit("— Your turn — (%d AP)" % current_ap)
+	EventBus.combat_log_message.emit(tr("KEY_LOG_YOUR_TURN") % current_ap)
 	_emit_enemy_hp()
 
 
@@ -90,14 +90,14 @@ func activate_item(placed: PlacedItem) -> bool:
 	if placed == null or placed.data == null:
 		return false
 	if not inventory.grid.is_item_functional(placed):
-		EventBus.combat_log_message.emit("%s is offline (corrupted cells)." % placed.data.display_name)
+		EventBus.combat_log_message.emit(tr("KEY_LOG_OFFLINE") % placed.data.get_localized_name())
 		return false
 	var cost: int = placed.data.ap_cost
 	if cost <= 0:
-		EventBus.combat_log_message.emit("%s is passive." % placed.data.display_name)
+		EventBus.combat_log_message.emit(tr("KEY_LOG_PASSIVE") % placed.data.get_localized_name())
 		return false
 	if current_ap < cost:
-		EventBus.combat_log_message.emit("Not enough AP.")
+		EventBus.combat_log_message.emit(tr("KEY_LOG_NOT_ENOUGH_AP"))
 		return false
 
 	current_ap -= cost
@@ -108,7 +108,7 @@ func activate_item(placed: PlacedItem) -> bool:
 	if placed.data.is_shield():
 		return _resolve_shield(placed)
 
-	EventBus.combat_log_message.emit("Activated %s." % placed.data.display_name)
+	EventBus.combat_log_message.emit(tr("KEY_LOG_ACTIVATED") % placed.data.get_localized_name())
 	return true
 
 
@@ -125,10 +125,10 @@ func _resolve_weapon(placed: PlacedItem) -> bool:
 	entry["hp"] = maxi(0, int(entry["hp"]) - dmg)
 	enemies[target_index] = entry
 
-	var ename: String = (entry["data"] as EnemyData).display_name
-	var bonus_txt := " (+%d reactor)" % bonus if bonus > 0 else ""
+	var ename: String = (entry["data"] as EnemyData).get_localized_name()
+	var bonus_txt := tr("KEY_LOG_REACTOR_BONUS") % bonus if bonus > 0 else ""
 	EventBus.combat_log_message.emit(
-		"%s deals %d damage%s to %s." % [placed.data.display_name, dmg, bonus_txt, ename]
+		tr("KEY_LOG_DAMAGE") % [placed.data.get_localized_name(), dmg, bonus_txt, ename]
 	)
 	EventBus.enemy_hp_changed.emit(target_index, int(entry["hp"]), (entry["data"] as EnemyData).max_hp)
 
@@ -141,14 +141,14 @@ func _resolve_shield(placed: PlacedItem) -> bool:
 	current_block += placed.data.block_amount
 	EventBus.block_changed.emit(current_block)
 	EventBus.combat_log_message.emit(
-		"%s raises %d Block (total %d)." % [placed.data.display_name, placed.data.block_amount, current_block]
+		tr("KEY_LOG_BLOCK") % [placed.data.get_localized_name(), placed.data.block_amount, current_block]
 	)
 	return true
 
 
 func _begin_enemy_turn() -> void:
 	_set_state(CombatState.ENEMY_TURN)
-	EventBus.combat_log_message.emit("— Enemy turn —")
+	EventBus.combat_log_message.emit(tr("KEY_LOG_ENEMY_TURN"))
 	# Process sequentially with a short delay feel via await if in tree.
 	_run_enemy_actions()
 
@@ -187,7 +187,7 @@ func _enemy_basic(index: int, data: EnemyData) -> void:
 	current_block = maxi(0, current_block - data.basic_damage)
 	EventBus.block_changed.emit(current_block)
 	EventBus.combat_log_message.emit(
-		"%s strikes for %d (you take %d)." % [data.display_name, data.basic_damage, dealt]
+		tr("KEY_LOG_ENEMY_STRIKE") % [data.get_localized_name(), data.basic_damage, dealt]
 	)
 	EventBus.enemy_hp_changed.emit(index, int(enemies[index]["hp"]), data.max_hp)
 
@@ -197,10 +197,12 @@ func _enemy_special(index: int, data: EnemyData) -> void:
 	current_block = maxi(0, current_block - data.special_damage)
 	EventBus.block_changed.emit(current_block)
 	var cell := inventory.grid.corrupt_random_unlocked_cell(data.corruption_duration)
-	var cell_txt := "cell (%d,%d)" % [cell.x, cell.y] if cell.x >= 0 else "no cell"
+	var cell_txt := (
+		tr("KEY_LOG_CELL_NAME") % [cell.x, cell.y] if cell.x >= 0 else tr("KEY_LOG_NO_CELL")
+	)
 	EventBus.combat_log_message.emit(
-		"%s unleashes corruption! %d damage; %s locked %d turns." % [
-			data.display_name, dealt, cell_txt, data.corruption_duration
+		tr("KEY_LOG_CELL_CORRUPTED") % [
+			data.get_localized_name(), dealt, cell_txt, data.corruption_duration
 		]
 	)
 	EventBus.enemy_hp_changed.emit(index, int(enemies[index]["hp"]), data.max_hp)
@@ -227,11 +229,11 @@ func _emit_enemy_hp() -> void:
 
 func _win() -> void:
 	_set_state(CombatState.VICTORY)
-	EventBus.combat_log_message.emit("Hostiles neutralized.")
+	EventBus.combat_log_message.emit(tr("KEY_LOG_VICTORY"))
 	EventBus.combat_ended.emit(true)
 
 
 func _lose() -> void:
 	_set_state(CombatState.DEFEAT)
-	EventBus.combat_log_message.emit("Frame integrity critical. Shutdown.")
+	EventBus.combat_log_message.emit(tr("KEY_LOG_DEFEAT"))
 	EventBus.combat_ended.emit(false)

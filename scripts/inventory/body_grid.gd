@@ -155,29 +155,29 @@ func get_unlocked_cells() -> Array[Vector2i]:
 # ---------------------------------------------------------------------------
 
 func can_place(data: ItemData, origin: Vector2i, footprint: Vector2i = Vector2i.ZERO) -> String:
-	## Returns empty string on success, otherwise a human-readable failure reason.
+	## Returns empty string on success, otherwise a translation key for the failure reason.
 	## Optional footprint overrides data.size (used while rotating during drag).
 	if data == null:
-		return "No item data."
+		return "KEY_PLACE_NO_DATA"
 	var shape: Vector2i = data.size if footprint == Vector2i.ZERO else footprint
 	if shape.x < 1 or shape.y < 1:
-		return "Invalid footprint."
+		return "KEY_PLACE_INVALID_FOOTPRINT"
 	var cells := data.footprint_for(shape, origin)
 	var touches_edge := false
 	for cell: Vector2i in cells:
 		if not is_in_bounds(cell) or not is_unlocked(cell):
-			return "Outside unlocked body grid."
+			return "KEY_PLACE_OUTSIDE"
 		match get_cell_state(cell):
 			CellState.OCCUPIED:
-				return "Cell occupied."
+				return "KEY_PLACE_OCCUPIED"
 			CellState.CORRUPTED:
-				return "Cell corrupted — repair required."
+				return "KEY_PLACE_CORRUPTED"
 			_:
 				pass
 		if is_edge_cell(cell):
 			touches_edge = true
 	if data.is_edge_only and not touches_edge:
-		return "Item requires edge placement."
+		return "KEY_PLACE_EDGE"
 	return ""
 
 
