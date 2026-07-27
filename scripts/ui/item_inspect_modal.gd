@@ -1,0 +1,208 @@
+class_name ItemInspectModal
+extends BaseModalWindow
+## Full inspect dialog for a body-module: large icon preview + detailed stats.
+
+const PREVIEW_SIZE := Vector2(180, 180)
+const DEFAULT_NAME_COLOR := Color(0.92, 0.92, 0.92)
+const PRICE_SUFFIX := " Scrap"
+
+var _item: ItemData
+var _preview: TextureRect
+var _preview_fallback: ColorRect
+var _name_label: Label
+var _ap_label: Label
+var _meta_label: Label
+var _price_label: Label
+var _desc_label: RichTextLabel
+var _traits_box: VBoxContainer
+var _built: bool = false
+
+
+func _ready() -> void:
+	super._ready()
+	_ensure_content()
+	if not LocalizationManager.language_changed.is_connected(_on_language_changed):
+		LocalizationManager.language_changed.connect(_on_language_changed)
+
+
+func open_item(item: ItemData) -> void:
+	if item == null:
+		close()
+		return
+	_ensure_content()
+	_item = item
+	_populate(item)
+	open()
+
+
+func _on_language_changed(_locale: String) -> void:
+	if _is_open and _item != null:
+		_populate(_item)
+
+
+func _ensure_content() -> void:
+	if _built:
+		return
+	if content_container == null:
+		content_container = %ContentContainer
+	clear_content()
+
+	var root := HBoxContainer.new()
+	root.size_flags_vertical = Control.SIZE_EXPAND_FILL
+	root.add_theme_constant_override("separation", 18)
+	content_container.add_child(root)
+
+	## Left: large texture preview
+	var left := VBoxContainer.new()
+	left.custom_minimum_size = PREVIEW_SIZE
+	root.add_child(left)
+
+	var preview_host := Control.new()
+	preview_host.custom_minimum_size = PREVIEW_SIZE
+	preview_host.size_flags_horizontal = Control.SIZE_SHRINK_CENTER
+	left.add_child(preview_host)
+
+	_preview_fallback = ColorRect.new()
+	_preview_fallback.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+	_preview_fallback.color = Color(0.25, 0.25, 0.28)
+	preview_host.add_child(_preview_fallback)
+
+	_preview = TextureRect.new()
+	_preview.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+	_preview.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
+	_preview.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
+	preview_host.add_child(_preview)
+
+	## Right: detailed stats
+	var right := VBoxContainer.new()
+	right.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	right.add_theme_constant_override("separation", 8)
+	root.add_child(right)
+
+	var header := HBoxContainer.new()
+	header.add_theme_constant_override("separation", 12)
+	right.add_child(header)
+
+	_name_label = Label.new()
+	_name_label.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	_name_label.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	_name_label.add_theme_font_size_override("font_size", 22)
+	header.add_child(_name_label)
+
+	_ap_label = Label.new()
+	_ap_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_RIGHT
+	_ap_label.vertical_alignment = VERTICAL_ALIGNMENT_TOP
+	_ap_label.add_theme_font_size_override("font_size", 16)
+	_ap_label.add_theme_color_override("font_color", Color(0.75, 0.82, 0.9))
+	header.add_child(_ap_label)
+
+	_meta_label = Label.new()
+	_meta_label.add_theme_font_size_override("font_size", 13)
+	_meta_label.add_theme_color_override("font_color", Color(0.65, 0.65, 0.7))
+	right.add_child(_meta_label)
+
+	_price_label = Label.new()
+	_price_label.add_theme_font_size_override("font_size", 14)
+	_price_label.add_theme_color_override("font_color", Color(0.85, 0.78, 0.45))
+	_price_label.visible = false
+	right.add_child(_price_label)
+
+	var sep := HSeparator.new()
+	right.add_child(sep)
+
+	_desc_label = RichTextLabel.new()
+	_desc_label.bbcode_enabled = true
+	_desc_label.fit_content = true
+	_desc_label.scroll_active = false
+	_desc_label.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	_desc_label.add_theme_font_size_override("normal_font_size", 14)
+	_desc_label.add_theme_color_override("default_color", Color(0.8, 0.8, 0.82))
+	_desc_label.custom_minimum_size = Vector2(320, 0)
+	right.add_child(_desc_label)
+
+	_traits_box = VBoxContainer.new()
+	_traits_box.add_theme_constant_override("separation", 6)
+	right.add_child(_traits_box)
+
+	_built = true
+
+
+func _populate(item: ItemData) -> void:
+	_name_label.text = item.get_localized_name()
+	if item.rarity != null:
+		_name_label.add_theme_color_override("font_color", item.rarity.tint)
+	else:
+		_name_label.add_theme_color_override("font_color", DEFAULT_NAME_COLOR)
+
+	if item.ap_cost > 0:
+		_ap_label.visible = true
+		_ap_label.text = "%d %s" % [item.ap_cost, tr("KEY_AP")]
+	else:
+		_ap_label.visible = false
+		_ap_label.text = ""
+
+	var meta_parts: PackedStringArray = []
+	if item.rarity != null:
+		meta_parts.append(item.rarity.get_localized_name())
+	if item.item_type != null:
+		meta_parts.append(item.item_type.get_localized_name())
+	_meta_label.text = " • ".join(meta_parts)
+
+	if item.is_sellable():
+		_price_label.visible = true
+		_price_label.text = "%s: %s%s" % [tr("KEY_PRICE"), str(int(item.price)), PRICE_SUFFIX]
+	else:
+		_price_label.visible = false
+		_price_label.text = ""
+
+	var desc := item.get_localized_description()
+	_desc_label.visible = not desc.is_empty()
+	_desc_label.text = desc
+
+	var tex := item.get_texture()
+	if tex != null:
+		_preview.texture = tex
+		_preview.visible = true
+		_preview_fallback.color = Color(0.18, 0.18, 0.2)
+	else:
+		_preview.texture = null
+		_preview.visible = false
+		_preview_fallback.color = item.placeholder_color
+
+	_rebuild_traits(item)
+
+
+func _rebuild_traits(item: ItemData) -> void:
+	for child in _traits_box.get_children():
+		child.queue_free()
+
+	for item_trait: TraitData in item.traits:
+		if item_trait == null:
+			continue
+		_traits_box.add_child(_make_trait_block(item_trait))
+
+
+func _make_trait_block(item_trait: TraitData) -> RichTextLabel:
+	var row := RichTextLabel.new()
+	row.bbcode_enabled = true
+	row.fit_content = true
+	row.scroll_active = false
+	row.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	row.custom_minimum_size = Vector2(320, 0)
+	row.add_theme_font_size_override("normal_font_size", 13)
+
+	var trait_name := item_trait.get_localized_name()
+	var trait_desc := item_trait.get_localized_description()
+	var status := tr("KEY_TRAIT_ACTIVE") if item_trait.is_active else tr("KEY_TRAIT_INACTIVE")
+	var body := "• [b]%s[/b]  ([i]%s[/i])" % [trait_name, status]
+	if not trait_desc.is_empty():
+		body += "\n%s" % trait_desc
+
+	if item_trait.is_active:
+		row.add_theme_color_override("default_color", Color(0.85, 0.88, 0.9))
+		row.text = body
+	else:
+		row.add_theme_color_override("default_color", Color(0.48, 0.48, 0.5))
+		row.text = "[s]%s[/s]" % body
+
+	return row

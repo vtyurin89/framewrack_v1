@@ -12,6 +12,7 @@ signal item_inspected(item: ItemData)
 const CELL_SIZE := 48.0
 const CELL_GAP := 4.0
 const DRAG_TYPE := "framewrack_item"
+const INSPECT_MODAL_SCENE := preload("res://scenes/UI/item_inspect_modal.tscn")
 
 var inventory: InventoryController
 
@@ -25,6 +26,8 @@ var _slots: Dictionary = {}  # "x,y" -> InventorySlotUI
 var _item_uis: Array[ItemUI] = []
 var _hover_tooltip: ItemHoverTooltip
 var _hovered_item_ui: ItemUI
+var _context_menu: ItemContextMenu
+var _inspect_modal: ItemInspectModal
 
 @onready var _grid_host: Control = %GridHost
 @onready var _grid_root: GridContainer = %GridRoot
@@ -36,6 +39,8 @@ var _hovered_item_ui: ItemUI
 func setup(p_inventory: InventoryController) -> void:
 	inventory = p_inventory
 	_ensure_hover_tooltip()
+	_ensure_context_menu()
+	_ensure_inspect_modal()
 	if not EventBus.inventory_changed.is_connected(_on_inventory_changed):
 		EventBus.inventory_changed.connect(_on_inventory_changed)
 	if not EventBus.grid_expanded.is_connected(_on_grid_expanded):
@@ -56,10 +61,41 @@ func _ensure_hover_tooltip() -> void:
 	add_child(_hover_tooltip)
 
 
+func _ensure_context_menu() -> void:
+	if _context_menu != null and is_instance_valid(_context_menu):
+		return
+	_context_menu = ItemContextMenu.new()
+	_context_menu.name = "ItemContextMenu"
+	_context_menu.inspect_pressed.connect(_on_context_inspect_pressed)
+	add_child(_context_menu)
+
+
+func _ensure_inspect_modal() -> void:
+	if _inspect_modal != null and is_instance_valid(_inspect_modal):
+		return
+	_inspect_modal = INSPECT_MODAL_SCENE.instantiate() as ItemInspectModal
+	_inspect_modal.name = "ItemInspectModal"
+	_inspect_modal.set_anchors_preset(Control.PRESET_FULL_RECT)
+	_inspect_modal.offset_left = 0
+	_inspect_modal.offset_top = 0
+	_inspect_modal.offset_right = 0
+	_inspect_modal.offset_bottom = 0
+	## Parent to the current scene root so the overlay covers the whole UI.
+	var host: Node = get_tree().current_scene
+	if host == null:
+		host = self
+	host.add_child(_inspect_modal)
+
+
 func _hide_hover_tooltip() -> void:
 	_hovered_item_ui = null
 	if _hover_tooltip:
 		_hover_tooltip.hide_tooltip()
+
+
+func _close_context_menu() -> void:
+	if _context_menu:
+		_context_menu.close()
 
 
 func _on_language_changed(_locale: String) -> void:
@@ -134,6 +170,7 @@ func _rebuild_grid() -> void:
 
 func _rebuild_items() -> void:
 	_hide_hover_tooltip()
+	_close_context_menu()
 	_item_uis.clear()
 	if _item_layer == null:
 		return
@@ -147,7 +184,7 @@ func _rebuild_items() -> void:
 		var ui := ItemUI.new()
 		ui.setup(placed.data, self, CELL_SIZE, CELL_GAP, placed.origin)
 		ui.position = _origin_to_layer_pos(placed.origin)
-		ui.inspect_requested.connect(_on_item_inspect_requested)
+		ui.context_menu_requested.connect(_on_item_context_menu_requested)
 		ui.pointer_down.connect(_on_item_pointer_down)
 		ui.mouse_entered.connect(_on_item_mouse_entered.bind(ui))
 		ui.mouse_exited.connect(_on_item_mouse_exited.bind(ui))
@@ -187,13 +224,34 @@ func _on_slot_gui_input(event: InputEvent, cell: Vector2i) -> void:
 		cell_clicked.emit(cell)
 
 
-func _on_item_inspect_requested(item: ItemData) -> void:
+func _on_item_context_menu_requested(item: ItemData) -> void:
+	## RMB on a static item (ignored while a drag session is active).
+	if not _drag.is_empty():
+		return
+	if item == null:
+		return
+	_hide_hover_tooltip()
+	_ensure_context_menu()
+	_context_menu.open_for_item(item, get_global_mouse_position())
+
+
+func _on_context_inspect_pressed(item: ItemData) -> void:
+	_close_context_menu()
+	_hide_hover_tooltip()
+	if item == null:
+		return
+	if inventory != null:
+		inventory.grid.recalculate_grid_adjacencies()
+	_ensure_inspect_modal()
+	if _inspect_modal:
+		_inspect_modal.open_item(item)
 	item_inspected.emit(item)
 
 
 func _on_item_pointer_down(_item_ui: ItemUI) -> void:
-	## LMB pressed on an item — hide tooltip before / as drag begins.
+	## LMB pressed on an item — hide tooltip / menu before drag begins.
 	_hide_hover_tooltip()
+	_close_context_menu()
 
 
 func _on_item_mouse_entered(item_ui: ItemUI) -> void:
@@ -205,7 +263,7 @@ func _on_item_mouse_entered(item_ui: ItemUI) -> void:
 	_ensure_hover_tooltip()
 	if inventory != null:
 		inventory.grid.recalculate_grid_adjacencies()
-	_hover_tooltip.show_for_item(item_ui.item)
+	_hover_tooltip.request_show_for_item(item_ui.item)
 
 
 func _on_item_mouse_exited(item_ui: ItemUI) -> void:
@@ -225,8 +283,9 @@ func begin_item_drag(item_ui: ItemUI) -> Dictionary:
 	if item_ui.grid_origin.x < 0:
 		return {}
 
-	## Tooltip must hide immediately on LMB pickup and stay hidden while dragging.
+	## Tooltip / context menu must hide immediately on LMB pickup.
 	_hide_hover_tooltip()
+	_close_context_menu()
 
 	_suppress_refresh = true
 	_drop_committed = false

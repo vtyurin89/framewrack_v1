@@ -51,6 +51,8 @@ KEY_HINT_GRAFTED,Module grafted.,Модуль встроен.
 KEY_HINT_ROTATED,Rotated to %dx%d — drop to confirm.,Повёрнуто до %dx%d — отпустите для подтверждения.
 KEY_HINT_STASH_RETURN,Returned to stash.,Возвращено на склад.
 KEY_ITEM_DETAILS,ITEM DETAILS,ДЕТАЛИ ПРЕДМЕТА
+KEY_INSPECT,Inspect,Осмотреть
+KEY_PRICE,Price,Цена
 KEY_TRAITS,TRAITS,ТРЕЙТЫ
 KEY_NO_TRAITS,No traits.,Нет трейтов.
 KEY_TRAIT_ACTIVE,ACTIVE,АКТИВЕН

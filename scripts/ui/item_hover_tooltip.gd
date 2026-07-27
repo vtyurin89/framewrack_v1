@@ -2,9 +2,11 @@ class_name ItemHoverTooltip
 extends PanelContainer
 ## Floating context tooltip for inventory items.
 ## Follows the cursor with viewport clamping; auto-sizes to content.
+## Appearance is delayed slightly so quick mouse passes don't flash the tip.
 
 const CURSOR_OFFSET := Vector2(14, 18)
 const MAX_WIDTH := 320.0
+const SHOW_DELAY_SEC := 0.35
 const DEFAULT_NAME_COLOR := Color(0.92, 0.92, 0.92)
 const META_COLOR := Color(0.62, 0.62, 0.66)
 const DESC_COLOR := Color(0.78, 0.78, 0.8)
@@ -17,7 +19,9 @@ var _meta_label: Label
 var _desc_label: RichTextLabel
 var _traits_box: VBoxContainer
 var _item: ItemData
+var _pending_item: ItemData
 var _following: bool = false
+var _show_timer: Timer
 
 
 func _ready() -> void:
@@ -28,6 +32,11 @@ func _ready() -> void:
 	custom_minimum_size = Vector2(220, 0)
 	_apply_panel_style()
 	_build_layout()
+	_show_timer = Timer.new()
+	_show_timer.one_shot = true
+	_show_timer.wait_time = SHOW_DELAY_SEC
+	_show_timer.timeout.connect(_on_show_timer_timeout)
+	add_child(_show_timer)
 	set_process(false)
 
 
@@ -37,7 +46,19 @@ func _process(_delta: float) -> void:
 	_reposition_to_mouse()
 
 
+func request_show_for_item(item: ItemData) -> void:
+	## Start (or restart) the hover delay. Call this on mouse enter.
+	if item == null:
+		hide_tooltip()
+		return
+	_pending_item = item
+	if _show_timer:
+		_show_timer.start(SHOW_DELAY_SEC)
+
+
 func show_for_item(item: ItemData) -> void:
+	## Immediate show (skips delay). Prefer request_show_for_item() for hover.
+	_cancel_pending_show()
 	if item == null:
 		hide_tooltip()
 		return
@@ -56,10 +77,25 @@ func show_for_item(item: ItemData) -> void:
 
 
 func hide_tooltip() -> void:
+	_cancel_pending_show()
 	_item = null
 	_following = false
 	set_process(false)
 	visible = false
+
+
+func _cancel_pending_show() -> void:
+	_pending_item = null
+	if _show_timer:
+		_show_timer.stop()
+
+
+func _on_show_timer_timeout() -> void:
+	var item := _pending_item
+	_pending_item = null
+	if item == null:
+		return
+	show_for_item(item)
 
 
 func is_showing_item(item: ItemData) -> bool:

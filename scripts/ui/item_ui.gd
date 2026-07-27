@@ -1,12 +1,12 @@
 class_name ItemUI
 extends Control
 ## Draggable visual for a body-module on the grid.
-## RMB on a static item does nothing; rotation is handled by InventoryGridUI
-## only while a left-button drag is active.
+## RMB opens the inventory context menu when not dragging;
+## rotation is handled by InventoryGridUI only during an active LMB drag.
 
 signal drag_begun(item_ui: ItemUI)
 signal drag_finished(item_ui: ItemUI, success: bool)
-signal inspect_requested(item: ItemData)
+signal context_menu_requested(item: ItemData)
 signal pointer_down(item_ui: ItemUI)
 
 const DRAG_TYPE := "framewrack_item"
@@ -98,9 +98,9 @@ func _gui_input(event: InputEvent) -> void:
 			## Hide hover tooltip immediately on LMB pickup (before drag threshold).
 			pointer_down.emit(self)
 		elif event.button_index == MOUSE_BUTTON_RIGHT:
-			## RMB on a static item opens the details panel (rotation only while dragging).
+			## RMB on a static item opens the inventory context menu.
 			if not _dragging and item != null:
-				inspect_requested.emit(item)
+				context_menu_requested.emit(item)
 			accept_event()
 
 
