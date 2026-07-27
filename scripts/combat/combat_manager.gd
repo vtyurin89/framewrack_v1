@@ -340,6 +340,21 @@ func _win() -> void:
 
 
 func _lose() -> void:
+	## Abort combat and hand control to the global GAME_OVER state.
 	_set_state(CombatState.DEFEAT)
 	EventBus.combat_log_message.emit(tr("KEY_LOG_DEFEAT"))
 	EventBus.combat_ended.emit(false)
+	GameManager.trigger_game_over()
+
+
+func abort_combat() -> void:
+	## Hard stop without emitting a second game-over (used when already dying).
+	if state == CombatState.INACTIVE or state == CombatState.DEFEAT or state == CombatState.VICTORY:
+		state = CombatState.INACTIVE
+		return
+	state = CombatState.INACTIVE
+	enemies.clear()
+	current_ap = 0
+	current_block = 0
+	target_index = -1
+	state_changed.emit(state)

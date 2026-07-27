@@ -33,3 +33,4 @@ signal enemy_selected(enemy_index: int)
 signal combat_log_message(text: String)
 signal block_changed(amount: int)
 signal combat_item_availability_changed
+signal player_died

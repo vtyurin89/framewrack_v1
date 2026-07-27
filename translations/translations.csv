@@ -1,5 +1,12 @@
 keys,en,ru
 KEY_START,Start,Старт
+KEY_START_GAME,Start Game,Начать игру
+KEY_EXIT,Exit,Выход
+KEY_MAIN_MENU,Main Menu,Главное меню
+KEY_RESTART,Restart,Заново
+KEY_GAME_OVER_TITLE,SYSTEM FAILURE,СБОЙ СИСТЕМЫ
+KEY_GAME_OVER_SUBTITLE,Frame integrity critical. YOU DIED.,Целостность каркаса критична. ВЫ ПОГИБЛИ.
+KEY_MAIN_MENU_TAGLINE,Your inventory is your body.,Твой инвентарь — твоё тело.
 KEY_SETTINGS,Settings,Настройки
 KEY_AP,AP,ОД
 KEY_HP,HP,ОЗ

@@ -7,6 +7,8 @@ const ENEMY_REBEL := preload("res://resources/enemies/desperate_rebel.tres")
 const ENEMY_SYNTHET := preload("res://resources/enemies/corrupted_synthet.tres")
 const STARTING_ITEM_ID := "SCRAP_PIPE"
 const EVENT_LOOT_ITEM_ID := "REBEL_CLEAVER"
+const MAIN_MENU_SCENE := preload("res://scenes/UI/main_menu.tscn")
+const GAME_OVER_SCENE := preload("res://scenes/UI/game_over_ui.tscn")
 
 @onready var _map_ui: Control = %MapUI
 @onready var _inventory_ui: Control = %InventoryUI
@@ -17,9 +19,12 @@ const EVENT_LOOT_ITEM_ID := "REBEL_CLEAVER"
 @onready var _btn_expand: Button = %ExpandGridButton
 @onready var _btn_new_run: Button = %NewRunButton
 @onready var _btn_lang: Button = %LanguageButton
+@onready var _root_layout: Control = $RootLayout
 
 var inventory: InventoryController
 var flow_state: int = GameFlowState.State.EXPLORING
+var _main_menu: MainMenuUI
+var _game_over: GameOverUI
 
 @onready var _combat: Node = $CombatManager
 @onready var _map: Node = $MapManager
@@ -28,8 +33,8 @@ var flow_state: int = GameFlowState.State.EXPLORING
 func _ready() -> void:
 	inventory = InventoryController.new()
 	_combat.setup(inventory)
-	_seed_starting_loadout()
 	_style_inventory_panel()
+	_ensure_overlays()
 
 	_map_ui.setup(_map)
 	_inventory_ui.setup(inventory)
@@ -43,18 +48,37 @@ func _ready() -> void:
 	_combat_ui.continue_pressed.connect(_on_combat_continue)
 	_combat.state_changed.connect(_on_combat_state)
 	EventBus.combat_ended.connect(_on_combat_ended_bus)
+	EventBus.player_died.connect(_on_player_died)
 	if _inventory_ui.has_signal("item_activated"):
 		_inventory_ui.item_activated.connect(_on_inventory_item_activated)
 
 	_btn_toggle_inv.pressed.connect(_toggle_inventory)
 	_btn_expand.pressed.connect(_expand_grid_demo)
-	_btn_new_run.pressed.connect(_new_run)
+	_btn_new_run.pressed.connect(_on_new_run_pressed)
 	_btn_lang.pressed.connect(_on_language_pressed)
 	LocalizationManager.language_changed.connect(_on_language_changed)
 
+	GameManager.state_changed.connect(_on_game_manager_state_changed)
+	GameManager.start_game_requested.connect(_on_start_game_requested)
+	GameManager.restart_requested.connect(_on_restart_requested)
+	GameManager.return_to_main_menu_requested.connect(_on_return_to_main_menu)
+
 	_apply_static_locale()
-	_show_exploring()
-	_status_banner.text = tr("KEY_STATUS_ONLINE")
+	_set_gameplay_ui_visible(false)
+	GameManager.change_state(GameManager.GameState.MAIN_MENU)
+
+
+func _ensure_overlays() -> void:
+	if _main_menu == null:
+		_main_menu = MAIN_MENU_SCENE.instantiate() as MainMenuUI
+		add_child(_main_menu)
+		_main_menu.start_pressed.connect(_on_main_menu_start)
+		_main_menu.exit_pressed.connect(_on_main_menu_exit)
+	if _game_over == null:
+		_game_over = GAME_OVER_SCENE.instantiate() as GameOverUI
+		add_child(_game_over)
+		_game_over.restart_pressed.connect(_on_game_over_restart)
+		_game_over.main_menu_pressed.connect(_on_game_over_main_menu)
 
 
 func _on_language_pressed() -> void:
@@ -85,7 +109,6 @@ func _style_inventory_panel() -> void:
 
 func _seed_starting_loadout() -> void:
 	inventory.reset_run()
-	## Starter kit comes only from ItemDatabase / items.csv.
 	var scrap_pipe: ItemData = ItemDatabase.create_instance(STARTING_ITEM_ID)
 	if scrap_pipe != null:
 		inventory.place_item(scrap_pipe, Vector2i(0, 0))
@@ -94,6 +117,108 @@ func _seed_starting_loadout() -> void:
 func _set_flow(state: int) -> void:
 	flow_state = state
 	EventBus.game_state_changed.emit(state)
+
+
+func _set_gameplay_ui_visible(visible_flag: bool) -> void:
+	if _root_layout:
+		_root_layout.visible = visible_flag
+
+
+# --- GameManager / menu / game over -----------------------------------------
+
+func _on_game_manager_state_changed(_previous: GameManager.GameState, new_state: GameManager.GameState) -> void:
+	match new_state:
+		GameManager.GameState.MAIN_MENU:
+			_enter_main_menu()
+		GameManager.GameState.STARTUP_SETUP:
+			pass
+		GameManager.GameState.GAMEPLAY:
+			_enter_gameplay()
+		GameManager.GameState.GAME_OVER:
+			_enter_game_over()
+
+
+func _enter_main_menu() -> void:
+	if _combat.has_method("abort_combat"):
+		_combat.abort_combat()
+	if _inventory_ui.has_method("set_combat_mode"):
+		_inventory_ui.set_combat_mode(false)
+	_set_gameplay_ui_visible(false)
+	_combat_ui.visible = false
+	if _game_over:
+		_game_over.hide_game_over()
+	if _main_menu:
+		_main_menu.show_menu()
+
+
+func _enter_gameplay() -> void:
+	if _main_menu:
+		_main_menu.hide_menu()
+	if _game_over:
+		_game_over.hide_game_over()
+	_set_gameplay_ui_visible(true)
+	_show_exploring()
+	_status_banner.text = tr("KEY_STATUS_ONLINE")
+	EventBus.run_started.emit()
+
+
+func _enter_game_over() -> void:
+	if _inventory_ui.has_method("set_combat_mode"):
+		_inventory_ui.set_combat_mode(false)
+	_combat_ui.visible = true
+	if _main_menu:
+		_main_menu.hide_menu()
+	if _game_over:
+		_game_over.show_game_over()
+
+
+func _on_main_menu_start() -> void:
+	GameManager.request_start_game()
+
+
+func _on_main_menu_exit() -> void:
+	get_tree().quit()
+
+
+func _on_game_over_restart() -> void:
+	GameManager.request_restart()
+
+
+func _on_game_over_main_menu() -> void:
+	GameManager.request_main_menu()
+
+
+func _on_start_game_requested() -> void:
+	_reset_run_to_startup()
+
+
+func _on_restart_requested() -> void:
+	_reset_run_to_startup()
+
+
+func _on_return_to_main_menu() -> void:
+	if _combat.has_method("abort_combat"):
+		_combat.abort_combat()
+
+
+func _reset_run_to_startup() -> void:
+	## STARTUP_SETUP: full HP, clear grid, SCRAP_PIPE, reset map / combat.
+	if _combat.has_method("abort_combat"):
+		_combat.abort_combat()
+	_map.reset()
+	_seed_starting_loadout()
+	_combat.setup(inventory)
+	_inventory_ui.setup(inventory)
+	if _inventory_ui.has_method("set_combat_mode"):
+		_inventory_ui.set_combat_mode(false)
+	_combat_ui.setup(_combat, inventory)
+
+
+func _on_player_died() -> void:
+	## HP hit zero — stop combat interactions and open game over.
+	if _inventory_ui.has_method("set_combat_mode"):
+		_inventory_ui.set_combat_mode(false)
+	GameManager.trigger_game_over()
 
 
 func _show_exploring() -> void:
@@ -110,7 +235,7 @@ func _show_exploring() -> void:
 func _show_combat() -> void:
 	_map_ui.visible = false
 	_combat_ui.visible = true
-	_inventory_panel.visible = true  # body grid stays visible during fight
+	_inventory_panel.visible = true
 	if _inventory_ui.has_method("set_combat_mode"):
 		_inventory_ui.set_combat_mode(true, _combat)
 
@@ -120,7 +245,6 @@ func _toggle_inventory() -> void:
 
 
 func _expand_grid_demo() -> void:
-	## Mutation hook: unlock an irregular L-extension of flesh/bone cells.
 	var cells: Array[Vector2i] = [
 		Vector2i(4, 0),
 		Vector2i(4, 1),
@@ -149,7 +273,6 @@ func _on_map_node_entered(_node_id: String, node_type: int) -> void:
 			_map_ui.refresh()
 			_inventory_ui.refresh()
 		MapManager.NodeType.EVENT:
-			# Graft CSV loot directly onto the body if space remains.
 			var loot: ItemData = ItemDatabase.create_instance(EVENT_LOOT_ITEM_ID)
 			if loot != null:
 				inventory.try_place_anywhere(loot)
@@ -188,6 +311,8 @@ func _on_end_turn() -> void:
 
 
 func _on_inventory_item_activated(placed: PlacedItem) -> void:
+	if GameManager.is_game_over():
+		return
 	if _combat.activate_item(placed):
 		_inventory_ui.refresh()
 
@@ -197,6 +322,10 @@ func _on_target(index: int) -> void:
 
 
 func _on_combat_state(_s: int) -> void:
+	if GameManager.is_game_over():
+		if _inventory_ui.has_method("set_combat_mode"):
+			_inventory_ui.set_combat_mode(false)
+		return
 	if _inventory_ui.has_method("set_combat_mode"):
 		var in_combat: bool = (
 			_combat.state == _combat.CombatState.PLAYER_TURN
@@ -207,6 +336,8 @@ func _on_combat_state(_s: int) -> void:
 
 
 func _on_combat_ended_bus(victory: bool) -> void:
+	if GameManager.is_game_over():
+		return
 	if victory:
 		_status_banner.text = tr("KEY_STATUS_COMBAT_WIN")
 	else:
@@ -214,11 +345,14 @@ func _on_combat_ended_bus(victory: bool) -> void:
 
 
 func _on_combat_continue() -> void:
+	if GameManager.is_game_over():
+		return
 	if _combat.state == _combat.CombatState.VICTORY:
 		_map.complete_current()
 		_show_exploring()
 		_status_banner.text = tr("KEY_STATUS_SECTOR_SECURED")
 	elif _combat.state == _combat.CombatState.DEFEAT:
+		## Defeat is handled by Game Over modal; keep explore fallback if needed.
 		_show_exploring()
 		_status_banner.text = tr("KEY_STATUS_WRECKAGE")
 
@@ -228,11 +362,6 @@ func _on_map_finished() -> void:
 	_set_flow(GameFlowState.State.VICTORY)
 
 
-func _new_run() -> void:
-	_map.reset()
-	_seed_starting_loadout()
-	_inventory_ui.setup(inventory)
-	_combat.setup(inventory)
-	_show_exploring()
-	_status_banner.text = tr("KEY_STATUS_NEW_RUN")
-	EventBus.run_started.emit()
+func _on_new_run_pressed() -> void:
+	## Top-bar New Run acts as a mid-run restart into STARTUP_SETUP.
+	GameManager.request_restart()

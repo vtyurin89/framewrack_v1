@@ -73,6 +73,8 @@ func apply_damage(amount: int, block: int = 0) -> int:
 	var remaining := amount - absorbed
 	current_hp = maxi(0, current_hp - remaining)
 	EventBus.player_hp_changed.emit(current_hp, max_hp)
+	if current_hp <= 0:
+		EventBus.player_died.emit()
 	return remaining
 
 
