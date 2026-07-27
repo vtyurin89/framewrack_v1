@@ -7,6 +7,7 @@ signal cell_clicked(cell: Vector2i)
 signal item_drag_started(item: ItemData, source: String)
 signal item_drag_ended(item: ItemData, success: bool)
 signal item_moved(item: ItemData, from_origin: Vector2i, to_origin: Vector2i)
+signal item_inspected(item: ItemData)
 
 const CELL_SIZE := 48.0
 const CELL_GAP := 4.0
@@ -126,6 +127,7 @@ func _rebuild_items() -> void:
 		var ui := ItemUI.new()
 		ui.setup(placed.data, self, CELL_SIZE, CELL_GAP, placed.origin)
 		ui.position = _origin_to_layer_pos(placed.origin)
+		ui.inspect_requested.connect(_on_item_inspect_requested)
 		_item_layer.add_child(ui)
 		_item_uis.append(ui)
 
@@ -160,6 +162,10 @@ func _origin_to_layer_pos(origin: Vector2i) -> Vector2:
 func _on_slot_gui_input(event: InputEvent, cell: Vector2i) -> void:
 	if event is InputEventMouseButton and event.pressed and event.button_index == MOUSE_BUTTON_LEFT:
 		cell_clicked.emit(cell)
+
+
+func _on_item_inspect_requested(item: ItemData) -> void:
+	item_inspected.emit(item)
 
 
 # ---------------------------------------------------------------------------

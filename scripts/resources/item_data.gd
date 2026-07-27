@@ -35,6 +35,18 @@ const FALLBACK_ICON_PATH := "res://assets/icons/fallback_item.png"
 ## Combat activation cost (0 = passive / always-on).
 @export var ap_cost: int = 0
 
+## If false, the module cannot be manually activated in combat.
+@export var usable: bool = true
+
+## If true, activating spends a charge (see max_charges).
+@export var consumable: bool = false
+
+## Charge pool for consumable / ammo-fed modules (0 = unlimited / N/A).
+@export var max_charges: int = 0
+
+## Merchant value in Scrap. `null` = cannot be bought or sold.
+@export var price: Variant = null
+
 @export var damage: int = 0
 @export var block_amount: int = 0
 
@@ -118,6 +130,11 @@ func get_active_traits() -> Array[TraitData]:
 		if item_trait != null and item_trait.is_active:
 			result.append(item_trait)
 	return result
+
+
+func is_sellable() -> bool:
+	## Merchants only trade items with a positive numeric price.
+	return price != null and price > 0
 
 
 func is_weapon() -> bool:

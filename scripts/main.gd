@@ -12,6 +12,7 @@ const ENEMY_SYNTHET := preload("res://resources/enemies/corrupted_synthet.tres")
 @onready var _map_ui: Control = %MapUI
 @onready var _inventory_ui: Control = %InventoryUI
 @onready var _combat_ui: Control = %CombatUI
+@onready var _item_details: ItemDetailsPanel = %ItemDetailsPanel
 @onready var _status_banner: Label = %StatusBanner
 @onready var _inventory_panel: PanelContainer = %InventoryPanel
 @onready var _btn_toggle_inv: Button = %ToggleInventoryButton
@@ -35,6 +36,8 @@ func _ready() -> void:
 	_map_ui.setup(_map)
 	_inventory_ui.setup(inventory)
 	_combat_ui.setup(_combat, inventory)
+	if _inventory_ui.has_signal("item_inspected"):
+		_inventory_ui.item_inspected.connect(_on_item_inspected)
 
 	_map.node_entered.connect(_on_map_node_entered)
 	_map.map_finished.connect(_on_map_finished)
@@ -113,6 +116,11 @@ func _show_combat() -> void:
 
 func _toggle_inventory() -> void:
 	_inventory_panel.visible = not _inventory_panel.visible
+
+
+func _on_item_inspected(item: ItemData) -> void:
+	if _item_details:
+		_item_details.show_item(item)
 
 
 func _expand_grid_demo() -> void:

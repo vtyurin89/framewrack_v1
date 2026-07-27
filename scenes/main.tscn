@@ -1,4 +1,4 @@
-[gd_scene load_steps=6 format=3 uid="uid://bw_main"]
+[gd_scene load_steps=7 format=3 uid="uid://bw_main"]
 
 [ext_resource type="Script" path="res://scripts/main.gd" id="1"]
 [ext_resource type="PackedScene" path="res://scenes/UI/map_ui.tscn" id="2"]
@@ -6,6 +6,7 @@
 [ext_resource type="PackedScene" path="res://scenes/UI/combat_ui.tscn" id="4"]
 [ext_resource type="Script" path="res://scripts/combat/combat_manager.gd" id="5"]
 [ext_resource type="Script" path="res://scripts/map/map_manager.gd" id="6"]
+[ext_resource type="PackedScene" path="res://scenes/UI/item_details_panel.tscn" id="7"]
 
 [node name="Main" type="Control"]
 layout_mode = 3
@@ -122,3 +123,8 @@ custom_minimum_size = Vector2(420, 0)
 [node name="InventoryUI" parent="RootLayout/Content/InventoryPanel" instance=ExtResource("3")]
 unique_name_in_owner = true
 layout_mode = 2
+
+[node name="ItemDetailsPanel" parent="RootLayout/Content" instance=ExtResource("7")]
+unique_name_in_owner = true
+layout_mode = 2
+size_flags_vertical = 0
