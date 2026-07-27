@@ -53,6 +53,8 @@ KEY_HINT_STASH_RETURN,Returned to stash.,Возвращено на склад.
 KEY_ITEM_DETAILS,ITEM DETAILS,ДЕТАЛИ ПРЕДМЕТА
 KEY_INSPECT,Inspect,Осмотреть
 KEY_PRICE,Price,Цена
+KEY_DAMAGE,Damage,Урон
+KEY_ARMOR,Armor,Броня
 KEY_TRAITS,TRAITS,ТРЕЙТЫ
 KEY_NO_TRAITS,No traits.,Нет трейтов.
 KEY_TRAIT_ACTIVE,ACTIVE,АКТИВЕН

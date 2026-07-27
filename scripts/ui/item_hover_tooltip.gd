@@ -16,6 +16,7 @@ const TRAIT_INACTIVE_COLOR := Color(0.45, 0.45, 0.48)
 var _name_label: Label
 var _ap_label: Label
 var _meta_label: Label
+var _combat_label: RichTextLabel
 var _desc_label: RichTextLabel
 var _traits_box: VBoxContainer
 var _item: ItemData
@@ -150,6 +151,18 @@ func _build_layout() -> void:
 	_meta_label.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	root.add_child(_meta_label)
 
+	_combat_label = RichTextLabel.new()
+	_combat_label.bbcode_enabled = true
+	_combat_label.fit_content = true
+	_combat_label.scroll_active = false
+	_combat_label.autowrap_mode = TextServer.AUTOWRAP_OFF
+	_combat_label.custom_minimum_size = Vector2(MAX_WIDTH - 24, 0)
+	_combat_label.add_theme_font_size_override("normal_font_size", 12)
+	_combat_label.add_theme_color_override("default_color", Color(0.88, 0.88, 0.9))
+	_combat_label.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	_combat_label.visible = false
+	root.add_child(_combat_label)
+
 	var sep := HSeparator.new()
 	sep.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	root.add_child(sep)
@@ -186,6 +199,8 @@ func _populate(item: ItemData) -> void:
 		_ap_label.text = ""
 
 	_meta_label.text = _build_meta_line(item)
+	_combat_label.text = _build_combat_line(item)
+	_combat_label.visible = not _combat_label.text.is_empty()
 
 	var desc := item.get_localized_description()
 	_desc_label.visible = not desc.is_empty()
@@ -202,6 +217,17 @@ func _build_meta_line(item: ItemData) -> String:
 	if item.item_type != null:
 		parts.append(item.item_type.get_localized_name())
 	return " • ".join(parts)
+
+
+func _build_combat_line(item: ItemData) -> String:
+	var parts: PackedStringArray = []
+	var dmg := item.format_damage_display(true)
+	var armor := item.format_armor_display(true)
+	if not dmg.is_empty():
+		parts.append(dmg)
+	if not armor.is_empty():
+		parts.append(armor)
+	return "   ".join(parts)
 
 
 func _rebuild_traits(item: ItemData) -> void:

@@ -47,6 +47,12 @@ const FALLBACK_ICON_PATH := "res://assets/icons/fallback_item.png"
 ## Merchant value in Scrap. `null` = cannot be bought or sold.
 @export var price: Variant = null
 
+## Intrinsic combat values before active trait modifiers.
+@export var base_damage: int = 0
+@export var base_armor: int = 0
+
+## Legacy combat fields (kept for older .tres / combat paths).
+## Prefer base_damage / base_armor + get_effective_*().
 @export var damage: int = 0
 @export var block_amount: int = 0
 
@@ -95,6 +101,13 @@ var adjacency_dmg_bonus: int:
 		adjacency_damage_bonus = value
 
 
+var exhaustable: bool:
+	get:
+		return consumable
+	set(value):
+		consumable = value
+
+
 func get_localized_name() -> String:
 	if not item_name_key.is_empty():
 		return tr(item_name_key)
@@ -132,17 +145,65 @@ func get_active_traits() -> Array[TraitData]:
 	return result
 
 
+func get_active_trait_bonus(effect_target: String) -> int:
+	## Sum effect_value from active traits whose effect_target matches (e.g. DAMAGE / ARMOR).
+	var target := effect_target.strip_edges().to_upper()
+	if target.is_empty():
+		return 0
+	var total := 0
+	for item_trait: TraitData in traits:
+		if item_trait == null or not item_trait.is_active:
+			continue
+		if item_trait.effect_target.strip_edges().to_upper() != target:
+			continue
+		total += item_trait.effect_value
+	return total
+
+
+func get_effective_damage() -> int:
+	return base_damage + get_active_trait_bonus("DAMAGE")
+
+
+func get_effective_armor() -> int:
+	return base_armor + get_active_trait_bonus("ARMOR")
+
+
+func format_damage_display(use_bbcode: bool = true) -> String:
+	## e.g. "⚔️ 8 Damage" or "⚔️ 8 (5 + 3)" with green bonus highlight.
+	var effective := get_effective_damage()
+	if effective <= 0:
+		return ""
+	var bonus := get_active_trait_bonus("DAMAGE")
+	if bonus > 0:
+		if use_bbcode:
+			return "⚔️ %d ([color=#7dcea0]%d + %d[/color])" % [effective, base_damage, bonus]
+		return "⚔️ %d (%d + %d)" % [effective, base_damage, bonus]
+	return "⚔️ %d %s" % [effective, tr("KEY_DAMAGE")]
+
+
+func format_armor_display(use_bbcode: bool = true) -> String:
+	var effective := get_effective_armor()
+	if effective <= 0:
+		return ""
+	var bonus := get_active_trait_bonus("ARMOR")
+	if bonus > 0:
+		if use_bbcode:
+			return "🛡️ %d ([color=#7dcea0]%d + %d[/color])" % [effective, base_armor, bonus]
+		return "🛡️ %d (%d + %d)" % [effective, base_armor, bonus]
+	return "🛡️ %d %s" % [effective, tr("KEY_ARMOR")]
+
+
 func is_sellable() -> bool:
 	## Merchants only trade items with a positive numeric price.
 	return price != null and price > 0
 
 
 func is_weapon() -> bool:
-	return damage > 0 and ap_cost > 0
+	return (base_damage > 0 or damage > 0) and ap_cost > 0
 
 
 func is_shield() -> bool:
-	return block_amount > 0 and ap_cost > 0
+	return (base_armor > 0 or block_amount > 0) and ap_cost > 0
 
 
 func rotate_size() -> void:

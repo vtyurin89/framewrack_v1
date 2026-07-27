@@ -1,11 +1,11 @@
-id,name_key,desc_key,notes
-TRAIT_BASIC_BLUDGEON,TRAIT_BASIC_BLUDGEON_NAME,TRAIT_BASIC_BLUDGEON_DESC,Enemy-only blunt damage. No self grid effects.
-TRAIT_BLEED_NO_BIO,TRAIT_BLEED_NO_BIO_NAME,TRAIT_BLEED_NO_BIO_DESC,Bleed on enemies. Disabled when adjacent to biomorphic modules.
-TRAIT_STUN_IMPACT,TRAIT_STUN_IMPACT_NAME,TRAIT_STUN_IMPACT_DESC,Stuns the targeted enemy. Never damages or corrupts player cells.
-TRAIT_BIO_RESONANCE,TRAIT_BIO_RESONANCE_NAME,TRAIT_BIO_RESONANCE_DESC,Bonus damage when adjacent to biomorphic modules.
-TRAIT_NAIL_BURST,TRAIT_NAIL_BURST_NAME,TRAIT_NAIL_BURST_DESC,Consumes ammo to fire a nail burst at the enemy.
-TRAIT_REACTOR_CHAIN,TRAIT_REACTOR_CHAIN_NAME,TRAIT_REACTOR_CHAIN_DESC,Chains bonus damage when adjacent to a reactor.
-TRAIT_ARMOR_PIERCE,TRAIT_ARMOR_PIERCE_NAME,TRAIT_ARMOR_PIERCE_DESC,Ignores a portion of enemy Block / armor.
-TRAIT_FUEL_BURST,TRAIT_FUEL_BURST_NAME,TRAIT_FUEL_BURST_DESC,Extra fire damage to enemies. No self-burn or cell corruption.
-TRAIT_HEAVY_SOLO,TRAIT_HEAVY_SOLO_NAME,TRAIT_HEAVY_SOLO_DESC,Bonus damage when not adjacent to other weapons.
-TRAIT_DRAIN_LIFE,TRAIT_DRAIN_LIFE_NAME,TRAIT_DRAIN_LIFE_DESC,Heals the frame on hit. Does not drain or damage inventory cells.
+id,name_key,desc_key,effect_target,effect_value,notes
+TRAIT_BASIC_BLUDGEON,TRAIT_BASIC_BLUDGEON_NAME,TRAIT_BASIC_BLUDGEON_DESC,,0,Enemy-only blunt damage. No self grid effects.
+TRAIT_BLEED_NO_BIO,TRAIT_BLEED_NO_BIO_NAME,TRAIT_BLEED_NO_BIO_DESC,,0,Bleed on enemies. Disabled when adjacent to biomorphic modules.
+TRAIT_STUN_IMPACT,TRAIT_STUN_IMPACT_NAME,TRAIT_STUN_IMPACT_DESC,,0,Stuns the targeted enemy. Never damages or corrupts player cells.
+TRAIT_BIO_RESONANCE,TRAIT_BIO_RESONANCE_NAME,TRAIT_BIO_RESONANCE_DESC,DAMAGE,3,Bonus damage when adjacent to biomorphic modules.
+TRAIT_NAIL_BURST,TRAIT_NAIL_BURST_NAME,TRAIT_NAIL_BURST_DESC,,0,Consumes ammo to fire a nail burst at the enemy.
+TRAIT_REACTOR_CHAIN,TRAIT_REACTOR_CHAIN_NAME,TRAIT_REACTOR_CHAIN_DESC,DAMAGE,2,Chains bonus damage when adjacent to a reactor.
+TRAIT_ARMOR_PIERCE,TRAIT_ARMOR_PIERCE_NAME,TRAIT_ARMOR_PIERCE_DESC,,0,Ignores a portion of enemy Block / armor.
+TRAIT_FUEL_BURST,TRAIT_FUEL_BURST_NAME,TRAIT_FUEL_BURST_DESC,DAMAGE,5,Extra fire damage to enemies. No self-burn or cell corruption.
+TRAIT_HEAVY_SOLO,TRAIT_HEAVY_SOLO_NAME,TRAIT_HEAVY_SOLO_DESC,DAMAGE,4,Bonus damage when not adjacent to other weapons.
+TRAIT_DRAIN_LIFE,TRAIT_DRAIN_LIFE_NAME,TRAIT_DRAIN_LIFE_DESC,,0,Heals the frame on hit. Does not drain or damage inventory cells.

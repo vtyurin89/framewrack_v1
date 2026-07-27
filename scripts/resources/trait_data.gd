@@ -11,6 +11,11 @@ extends Resource
 @export var display_name: String = "Trait"
 @export_multiline var description: String = ""
 
+## Combat modifier channel this trait feeds into when active ("DAMAGE", "ARMOR", or empty).
+@export var effect_target: String = ""
+## Flat bonus applied to the matching channel while is_active.
+@export var effect_value: int = 0
+
 ## Spatial rules that must all pass for this trait to stay active.
 @export var adjacency_rules: Array[AdjacencyRuleData] = []
 

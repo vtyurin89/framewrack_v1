@@ -85,10 +85,12 @@ func _build_stats_line(item: ItemData) -> String:
 		parts.append("EDGE")
 	if item.ap_cost > 0:
 		parts.append("%d AP" % item.ap_cost)
-	if item.damage > 0:
-		parts.append("%d DMG" % item.damage)
-	if item.block_amount > 0:
-		parts.append("%d BLK" % item.block_amount)
+	var dmg := item.format_damage_display(false)
+	if not dmg.is_empty():
+		parts.append(dmg)
+	var armor := item.format_armor_display(false)
+	if not armor.is_empty():
+		parts.append(armor)
 	if item.consumable and item.max_charges > 0:
 		parts.append("%d charges" % item.max_charges)
 	return " · ".join(parts)

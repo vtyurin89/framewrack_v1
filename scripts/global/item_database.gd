@@ -95,6 +95,8 @@ func _index_traits_from_catalog() -> void:
 		trait_data.id = trait_id
 		trait_data.trait_name_key = _cell(row, col, "name_key")
 		trait_data.description = _cell(row, col, "desc_key")
+		trait_data.effect_target = _cell(row, col, "effect_target")
+		trait_data.effect_value = _parse_int(_cell(row, col, "effect_value"), 0)
 		_traits_by_id[trait_id] = trait_data
 		_traits_by_id[trait_id.to_upper()] = trait_data
 
@@ -169,7 +171,16 @@ func _parse_item_row(row: PackedStringArray, col: Dictionary) -> ItemData:
 
 	item.usable = _parse_bool(_cell(row, col, "usable"), true)
 	item.ap_cost = _parse_int(_cell(row, col, "ap_cost"), 0)
-	item.consumable = _parse_bool(_cell(row, col, "consumable"), false)
+	item.base_damage = _parse_int(_cell(row, col, "base_damage"), 0)
+	item.base_armor = _parse_int(_cell(row, col, "base_armor"), 0)
+	## Keep legacy combat fields aligned for existing combat code paths.
+	item.damage = item.base_damage
+	item.block_amount = item.base_armor
+
+	var exhaust_raw := _cell(row, col, "exhaustable")
+	if exhaust_raw.is_empty():
+		exhaust_raw = _cell(row, col, "consumable")
+	item.consumable = _parse_bool(exhaust_raw, false)
 	item.max_charges = _parse_int(_cell(row, col, "max_charges"), 0)
 
 	item.price = _parse_price(_cell(row, col, "price"))

@@ -12,6 +12,7 @@ var _preview_fallback: ColorRect
 var _name_label: Label
 var _ap_label: Label
 var _meta_label: Label
+var _combat_label: RichTextLabel
 var _price_label: Label
 var _desc_label: RichTextLabel
 var _traits_box: VBoxContainer
@@ -101,6 +102,17 @@ func _ensure_content() -> void:
 	_meta_label.add_theme_color_override("font_color", Color(0.65, 0.65, 0.7))
 	right.add_child(_meta_label)
 
+	_combat_label = RichTextLabel.new()
+	_combat_label.bbcode_enabled = true
+	_combat_label.fit_content = true
+	_combat_label.scroll_active = false
+	_combat_label.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	_combat_label.add_theme_font_size_override("normal_font_size", 16)
+	_combat_label.add_theme_color_override("default_color", Color(0.9, 0.9, 0.92))
+	_combat_label.custom_minimum_size = Vector2(320, 0)
+	_combat_label.visible = false
+	right.add_child(_combat_label)
+
 	_price_label = Label.new()
 	_price_label.add_theme_font_size_override("font_size", 14)
 	_price_label.add_theme_color_override("font_color", Color(0.85, 0.78, 0.45))
@@ -147,6 +159,16 @@ func _populate(item: ItemData) -> void:
 	if item.item_type != null:
 		meta_parts.append(item.item_type.get_localized_name())
 	_meta_label.text = " • ".join(meta_parts)
+
+	var combat_parts: PackedStringArray = []
+	var dmg_line := item.format_damage_display(true)
+	var armor_line := item.format_armor_display(true)
+	if not dmg_line.is_empty():
+		combat_parts.append(dmg_line)
+	if not armor_line.is_empty():
+		combat_parts.append(armor_line)
+	_combat_label.text = "\n".join(combat_parts)
+	_combat_label.visible = not _combat_label.text.is_empty()
 
 	if item.is_sellable():
 		_price_label.visible = true
