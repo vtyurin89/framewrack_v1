@@ -91,12 +91,12 @@ func _index_traits_from_catalog() -> void:
 		var trait_id := _cell(row, col, "id").strip_edges()
 		if trait_id.is_empty():
 			continue
-		var trait := TraitData.new()
-		trait.id = trait_id
-		trait.trait_name_key = _cell(row, col, "name_key")
-		trait.description = _cell(row, col, "desc_key")
-		_traits_by_id[trait_id] = trait
-		_traits_by_id[trait_id.to_upper()] = trait
+		var trait_data := TraitData.new()
+		trait_data.id = trait_id
+		trait_data.trait_name_key = _cell(row, col, "name_key")
+		trait_data.description = _cell(row, col, "desc_key")
+		_traits_by_id[trait_id] = trait_data
+		_traits_by_id[trait_id.to_upper()] = trait_data
 
 
 func _list_tres(dir_path: String) -> PackedStringArray:
