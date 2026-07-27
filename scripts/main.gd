@@ -9,22 +9,23 @@ const STARTING_ITEM_ID := "SCRAP_PIPE"
 const EVENT_LOOT_ITEM_ID := "REBEL_CLEAVER"
 const MAIN_MENU_SCENE := preload("res://scenes/UI/main_menu.tscn")
 const GAME_OVER_SCENE := preload("res://scenes/UI/game_over_ui.tscn")
+const SETTINGS_SCENE := preload("res://scenes/UI/settings_modal.tscn")
 
 @onready var _map_ui: Control = %MapUI
 @onready var _inventory_ui: Control = %InventoryUI
 @onready var _combat_ui: Control = %CombatUI
 @onready var _status_banner: Label = %StatusBanner
 @onready var _inventory_panel: PanelContainer = %InventoryPanel
-@onready var _btn_toggle_inv: Button = %ToggleInventoryButton
-@onready var _btn_expand: Button = %ExpandGridButton
-@onready var _btn_new_run: Button = %NewRunButton
-@onready var _btn_lang: Button = %LanguageButton
+@onready var _gameplay_hud: GameplayHUD = %TopBar
 @onready var _root_layout: Control = $RootLayout
 
 var inventory: InventoryController
 var flow_state: int = GameFlowState.State.EXPLORING
 var _main_menu: MainMenuUI
 var _game_over: GameOverUI
+var _settings: SettingsModal
+## True after STARTUP_SETUP reset so GAMEPLAY opens explore UI fresh.
+var _fresh_run_pending: bool = false
 
 @onready var _combat: Node = $CombatManager
 @onready var _map: Node = $MapManager
@@ -52,50 +53,62 @@ func _ready() -> void:
 	if _inventory_ui.has_signal("item_activated"):
 		_inventory_ui.item_activated.connect(_on_inventory_item_activated)
 
-	_btn_toggle_inv.pressed.connect(_toggle_inventory)
-	_btn_expand.pressed.connect(_expand_grid_demo)
-	_btn_new_run.pressed.connect(_on_new_run_pressed)
-	_btn_lang.pressed.connect(_on_language_pressed)
+	if _gameplay_hud:
+		_gameplay_hud.body_grid_pressed.connect(_toggle_inventory)
+		_gameplay_hud.mutate_pressed.connect(_expand_grid_demo)
+		_gameplay_hud.new_run_pressed.connect(_on_new_run_pressed)
+		_gameplay_hud.menu_pressed.connect(_on_menu_pressed)
+
 	LocalizationManager.language_changed.connect(_on_language_changed)
 
 	GameManager.state_changed.connect(_on_game_manager_state_changed)
 	GameManager.start_game_requested.connect(_on_start_game_requested)
 	GameManager.restart_requested.connect(_on_restart_requested)
 	GameManager.return_to_main_menu_requested.connect(_on_return_to_main_menu)
+	GameManager.continue_requested.connect(_on_continue_requested)
+	GameManager.settings_requested.connect(_on_settings_requested)
 
-	_apply_static_locale()
 	_set_gameplay_ui_visible(false)
 	GameManager.change_state(GameManager.GameState.MAIN_MENU)
+
+
+func _unhandled_input(event: InputEvent) -> void:
+	if not event.is_action_pressed("ui_cancel"):
+		return
+	## Settings modal consumes ESC while open (PROCESS_MODE_ALWAYS).
+	if _settings != null and _settings.is_open():
+		return
+	match GameManager.get_state():
+		GameManager.GameState.GAMEPLAY:
+			GameManager.request_pause_to_menu()
+			get_viewport().set_input_as_handled()
+		GameManager.GameState.MAIN_MENU:
+			if GameManager.is_session_active:
+				GameManager.request_continue()
+				get_viewport().set_input_as_handled()
 
 
 func _ensure_overlays() -> void:
 	if _main_menu == null:
 		_main_menu = MAIN_MENU_SCENE.instantiate() as MainMenuUI
 		add_child(_main_menu)
-		_main_menu.start_pressed.connect(_on_main_menu_start)
+		_main_menu.continue_pressed.connect(_on_main_menu_continue)
+		_main_menu.new_game_pressed.connect(_on_main_menu_new_game)
+		_main_menu.settings_pressed.connect(_on_main_menu_settings)
 		_main_menu.exit_pressed.connect(_on_main_menu_exit)
 	if _game_over == null:
 		_game_over = GAME_OVER_SCENE.instantiate() as GameOverUI
 		add_child(_game_over)
 		_game_over.restart_pressed.connect(_on_game_over_restart)
 		_game_over.main_menu_pressed.connect(_on_game_over_main_menu)
-
-
-func _on_language_pressed() -> void:
-	LocalizationManager.cycle_language()
+	if _settings == null:
+		_settings = SETTINGS_SCENE.instantiate() as SettingsModal
+		add_child(_settings)
 
 
 func _on_language_changed(_locale: String) -> void:
-	_apply_static_locale()
 	_map_ui.refresh()
 	_inventory_ui.refresh()
-
-
-func _apply_static_locale() -> void:
-	_btn_toggle_inv.text = tr("KEY_BODY_GRID")
-	_btn_expand.text = tr("KEY_MUTATE_CELLS")
-	_btn_new_run.text = tr("KEY_NEW_RUN")
-	_btn_lang.text = "%s: %s" % [tr("KEY_LANGUAGE"), LocalizationManager.get_locale().to_upper()]
 
 
 func _style_inventory_panel() -> void:
@@ -139,14 +152,19 @@ func _on_game_manager_state_changed(_previous: GameManager.GameState, new_state:
 
 
 func _enter_main_menu() -> void:
-	if _combat.has_method("abort_combat"):
-		_combat.abort_combat()
-	if _inventory_ui.has_method("set_combat_mode"):
-		_inventory_ui.set_combat_mode(false)
-	_set_gameplay_ui_visible(false)
-	_combat_ui.visible = false
 	if _game_over:
 		_game_over.hide_game_over()
+	if GameManager.is_session_active:
+		## Soft pause: keep run (and combat) alive under the menu overlay.
+		_set_gameplay_ui_visible(true)
+	else:
+		## Hard menu: tear down any mid-run combat and hide gameplay.
+		if _combat.has_method("abort_combat"):
+			_combat.abort_combat()
+		if _inventory_ui.has_method("set_combat_mode"):
+			_inventory_ui.set_combat_mode(false)
+		_set_gameplay_ui_visible(false)
+		_combat_ui.visible = false
 	if _main_menu:
 		_main_menu.show_menu()
 
@@ -157,9 +175,11 @@ func _enter_gameplay() -> void:
 	if _game_over:
 		_game_over.hide_game_over()
 	_set_gameplay_ui_visible(true)
-	_show_exploring()
-	_status_banner.text = tr("KEY_STATUS_ONLINE")
-	EventBus.run_started.emit()
+	if _fresh_run_pending:
+		_fresh_run_pending = false
+		_show_exploring()
+		_status_banner.text = tr("KEY_STATUS_ONLINE")
+		EventBus.run_started.emit()
 
 
 func _enter_game_over() -> void:
@@ -172,12 +192,34 @@ func _enter_game_over() -> void:
 		_game_over.show_game_over()
 
 
-func _on_main_menu_start() -> void:
-	GameManager.request_start_game()
+func _on_main_menu_continue() -> void:
+	GameManager.request_continue()
+
+
+func _on_main_menu_new_game() -> void:
+	GameManager.request_new_game()
+
+
+func _on_main_menu_settings() -> void:
+	GameManager.request_open_settings()
 
 
 func _on_main_menu_exit() -> void:
 	get_tree().quit()
+
+
+func _on_menu_pressed() -> void:
+	GameManager.request_pause_to_menu()
+
+
+func _on_settings_requested() -> void:
+	if _settings:
+		_settings.open_settings()
+
+
+func _on_continue_requested() -> void:
+	## State change to GAMEPLAY drives UI; nothing else to reset.
+	pass
 
 
 func _on_game_over_restart() -> void:
@@ -212,6 +254,7 @@ func _reset_run_to_startup() -> void:
 	if _inventory_ui.has_method("set_combat_mode"):
 		_inventory_ui.set_combat_mode(false)
 	_combat_ui.setup(_combat, inventory)
+	_fresh_run_pending = true
 
 
 func _on_player_died() -> void:

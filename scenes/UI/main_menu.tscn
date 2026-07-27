@@ -19,7 +19,7 @@ anchor_right = 1.0
 anchor_bottom = 1.0
 grow_horizontal = 2
 grow_vertical = 2
-color = Color(0.08, 0.08, 0.09, 1)
+color = Color(0.08, 0.08, 0.09, 0.94)
 
 [node name="Center" type="CenterContainer" parent="."]
 layout_mode = 1
@@ -32,7 +32,7 @@ mouse_filter = 2
 
 [node name="VBox" type="VBoxContainer" parent="Center"]
 layout_mode = 2
-theme_override_constants/separation = 16
+theme_override_constants/separation = 12
 
 [node name="TitleLabel" type="Label" parent="Center/VBox"]
 unique_name_in_owner = true
@@ -52,13 +52,26 @@ horizontal_alignment = 1
 
 [node name="Spacer" type="Control" parent="Center/VBox"]
 layout_mode = 2
-custom_minimum_size = Vector2(0, 24)
+custom_minimum_size = Vector2(0, 20)
 
-[node name="StartButton" type="Button" parent="Center/VBox"]
+[node name="ContinueButton" type="Button" parent="Center/VBox"]
+unique_name_in_owner = true
+visible = false
+layout_mode = 2
+custom_minimum_size = Vector2(220, 44)
+text = "Continue"
+
+[node name="NewGameButton" type="Button" parent="Center/VBox"]
 unique_name_in_owner = true
 layout_mode = 2
 custom_minimum_size = Vector2(220, 44)
-text = "Start Game"
+text = "New Game"
+
+[node name="SettingsButton" type="Button" parent="Center/VBox"]
+unique_name_in_owner = true
+layout_mode = 2
+custom_minimum_size = Vector2(220, 44)
+text = "Settings"
 
 [node name="ExitButton" type="Button" parent="Center/VBox"]
 unique_name_in_owner = true

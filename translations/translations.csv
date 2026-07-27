@@ -1,8 +1,11 @@
 keys,en,ru
 KEY_START,Start,Старт
 KEY_START_GAME,Start Game,Начать игру
+KEY_NEW_GAME,New Game,Новая игра
 KEY_EXIT,Exit,Выход
 KEY_MAIN_MENU,Main Menu,Главное меню
+KEY_MENU,Menu,Меню
+KEY_CLOSE,Close,Закрыть
 KEY_RESTART,Restart,Заново
 KEY_GAME_OVER_TITLE,SYSTEM FAILURE,СБОЙ СИСТЕМЫ
 KEY_GAME_OVER_SUBTITLE,Frame integrity critical. YOU DIED.,Целостность каркаса критична. ВЫ ПОГИБЛИ.

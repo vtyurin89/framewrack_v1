@@ -1,4 +1,4 @@
-[gd_scene load_steps=7 format=3 uid="uid://bw_main"]
+[gd_scene load_steps=8 format=3 uid="uid://bw_main"]
 
 [ext_resource type="Script" path="res://scripts/main.gd" id="1"]
 [ext_resource type="PackedScene" path="res://scenes/UI/map_ui.tscn" id="2"]
@@ -7,6 +7,7 @@
 [ext_resource type="Script" path="res://scripts/combat/combat_manager.gd" id="5"]
 [ext_resource type="Script" path="res://scripts/map/map_manager.gd" id="6"]
 [ext_resource type="PackedScene" path="res://scenes/UI/item_details_panel.tscn" id="7"]
+[ext_resource type="Script" path="res://scripts/ui/gameplay_hud.gd" id="8"]
 
 [node name="Main" type="Control"]
 layout_mode = 3
@@ -47,8 +48,10 @@ grow_vertical = 2
 theme_override_constants/separation = 8
 
 [node name="TopBar" type="HBoxContainer" parent="RootLayout"]
+unique_name_in_owner = true
 layout_mode = 2
 theme_override_constants/separation = 12
+script = ExtResource("8")
 
 [node name="Title" type="Label" parent="RootLayout/TopBar"]
 layout_mode = 2
@@ -72,10 +75,10 @@ unique_name_in_owner = true
 layout_mode = 2
 text = "New Run"
 
-[node name="LanguageButton" type="Button" parent="RootLayout/TopBar"]
+[node name="MenuButton" type="Button" parent="RootLayout/TopBar"]
 unique_name_in_owner = true
 layout_mode = 2
-text = "Language: EN"
+text = "Menu"
 
 [node name="StatusBanner" type="Label" parent="RootLayout"]
 unique_name_in_owner = true
