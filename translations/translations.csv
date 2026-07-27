@@ -65,7 +65,7 @@ KEY_STASH_TOOLTIP_FMT,%s  [%dx%d]%s | %s,%s  [%dx%d]%s | %s
 KEY_STATUS_ONLINE,FRAMEWRACK — graft modules; then enter the sector.,FRAMEWRACK — встройте модули и войдите в сектор.
 KEY_STATUS_MUTATED,Body grid mutated — new cells grafted (placeholder flesh/bone).,Сетка тела мутировала — привиты новые клетки (заглушка плоть/кость).
 KEY_STATUS_REPAIR,Repair bench: corruption cleared; frame restored.,Ремверстак: искажение снято; каркас восстановлен.
-KEY_STATUS_EVENT,Mutation Cache: scavenged Micro-Reactor (+10 HP).,Кэш мутации: найден Микро-реактор (+10 ОЗ).
+KEY_STATUS_EVENT,Mutation Cache: scavenged Rebel Cleaver (+10 HP).,Кэш мутации: найден Rebel Cleaver (+10 ОЗ).
 KEY_STATUS_ENGAGEMENT,ENGAGEMENT — %s,СТОЛКНОВЕНИЕ — %s
 KEY_STATUS_COMBAT_WIN,Combat resolved. Continue when ready.,Бой завершён. Продолжайте; когда будете готовы.
 KEY_STATUS_COMBAT_LOSE,Frame failed. Start a new run.,Каркас разрушен. Начните новый забег.
@@ -95,12 +95,6 @@ KEY_PLACE_OUTSIDE,Outside unlocked body grid.,Вне открытой сетки
 KEY_PLACE_OCCUPIED,Cell occupied.,Клетка занята.
 KEY_PLACE_CORRUPTED,Cell corrupted — repair required.,Клетка искажена — нужен ремонт.
 KEY_PLACE_EDGE,Item requires edge placement.,Предмет требует установки на край.
-ITEM_RUST_BLADE_NAME,Rust-Blade,Ржавый клинок
-ITEM_RUST_BLADE_DESC,Jagged arm-mounted cutter. Must mount on the outer frame edge.,Зубчатый наручный резак. Крепится только на внешний край каркаса.
-ITEM_MICRO_REACTOR_NAME,Micro-Reactor,Микро-реактор
-ITEM_MICRO_REACTOR_DESC,Compact power cell. +1 max AP. Adjacent weapons gain +2 damage.,Компактный энергоэлемент. +1 макс. ОД. Соседнее оружие получает +2 урона.
-ITEM_SCRAP_SHIELD_NAME,Scrap Shield,Щит из хлама
-ITEM_SCRAP_SHIELD_DESC,Bolted plating. Edge-mounted. Spend 1 AP to raise Block.,Приболтованная броня. На край. Потратьте 1 ОД; чтобы поднять Блок.
 ENEMY_DESPERATE_REBEL_NAME,Desperate Rebel,Отчаянный повстанец
 ENEMY_DESPERATE_REBEL_DESC,A starving human with a pipe. Still believes this city has a future.,Голодный человек с трубой. Всё ещё верит; что у города есть будущее.
 ENEMY_CORRUPTED_SYNTHET_NAME,Corrupted Synthet,Искажённый синтет

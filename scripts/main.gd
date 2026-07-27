@@ -3,11 +3,10 @@ extends Control
 ## Inventory-first roguelike (Backpack Hero–like): body grid is the core loop,
 ## with node-map progression and turn-based combat driven by equipped modules.
 
-const RUST_BLADE := preload("res://resources/items/rust_blade.tres")
-const MICRO_REACTOR := preload("res://resources/items/micro_reactor.tres")
-const SCRAP_SHIELD := preload("res://resources/items/scrap_shield.tres")
 const ENEMY_REBEL := preload("res://resources/enemies/desperate_rebel.tres")
 const ENEMY_SYNTHET := preload("res://resources/enemies/corrupted_synthet.tres")
+const STARTING_ITEM_ID := "SCRAP_PIPE"
+const EVENT_LOOT_ITEM_ID := "REBEL_CLEAVER"
 
 @onready var _map_ui: Control = %MapUI
 @onready var _inventory_ui: Control = %InventoryUI
@@ -85,10 +84,10 @@ func _style_inventory_panel() -> void:
 
 func _seed_starting_loadout() -> void:
 	inventory.reset_run()
-	## All modules live on the body grid — no external stash.
-	inventory.place_item(RUST_BLADE.duplicate(true) as ItemData, Vector2i(0, 0))
-	inventory.place_item(MICRO_REACTOR.duplicate(true) as ItemData, Vector2i(1, 1))
-	inventory.place_item(SCRAP_SHIELD.duplicate(true) as ItemData, Vector2i(2, 0))
+	## Starter kit comes only from ItemDatabase / items.csv.
+	var scrap_pipe: ItemData = ItemDatabase.create_instance(STARTING_ITEM_ID)
+	if scrap_pipe != null:
+		inventory.place_item(scrap_pipe, Vector2i(0, 0))
 
 
 func _set_flow(state: int) -> void:
@@ -145,8 +144,10 @@ func _on_map_node_entered(_node_id: String, node_type: int) -> void:
 			_map_ui.refresh()
 			_inventory_ui.refresh()
 		MapManager.NodeType.EVENT:
-			# Graft loot directly onto the body if space remains.
-			inventory.try_place_anywhere(MICRO_REACTOR.duplicate(true) as ItemData)
+			# Graft CSV loot directly onto the body if space remains.
+			var loot: ItemData = ItemDatabase.create_instance(EVENT_LOOT_ITEM_ID)
+			if loot != null:
+				inventory.try_place_anywhere(loot)
 			inventory.current_hp = mini(inventory.max_hp, inventory.current_hp + 10)
 			EventBus.player_hp_changed.emit(inventory.current_hp, inventory.max_hp)
 			_status_banner.text = tr("KEY_STATUS_EVENT")
