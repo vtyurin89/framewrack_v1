@@ -39,11 +39,12 @@ func _ready() -> void:
 	_map.map_finished.connect(_on_map_finished)
 	_map_ui.node_chosen.connect(_on_node_chosen)
 	_combat_ui.end_turn_pressed.connect(_on_end_turn)
-	_combat_ui.activate_item_requested.connect(_on_activate_item)
 	_combat_ui.target_selected.connect(_on_target)
 	_combat_ui.continue_pressed.connect(_on_combat_continue)
 	_combat.state_changed.connect(_on_combat_state)
 	EventBus.combat_ended.connect(_on_combat_ended_bus)
+	if _inventory_ui.has_signal("item_activated"):
+		_inventory_ui.item_activated.connect(_on_inventory_item_activated)
 
 	_btn_toggle_inv.pressed.connect(_toggle_inventory)
 	_btn_expand.pressed.connect(_expand_grid_demo)
@@ -100,6 +101,8 @@ func _show_exploring() -> void:
 	_map_ui.visible = true
 	_combat_ui.visible = false
 	_inventory_panel.visible = true
+	if _inventory_ui.has_method("set_combat_mode"):
+		_inventory_ui.set_combat_mode(false)
 	_map_ui.refresh()
 	_inventory_ui.refresh()
 
@@ -108,6 +111,8 @@ func _show_combat() -> void:
 	_map_ui.visible = false
 	_combat_ui.visible = true
 	_inventory_panel.visible = true  # body grid stays visible during fight
+	if _inventory_ui.has_method("set_combat_mode"):
+		_inventory_ui.set_combat_mode(true, _combat)
 
 
 func _toggle_inventory() -> void:
@@ -182,9 +187,9 @@ func _on_end_turn() -> void:
 	_combat.end_player_turn()
 
 
-func _on_activate_item(placed: PlacedItem) -> void:
-	_combat.activate_item(placed)
-	_inventory_ui.refresh()
+func _on_inventory_item_activated(placed: PlacedItem) -> void:
+	if _combat.activate_item(placed):
+		_inventory_ui.refresh()
 
 
 func _on_target(index: int) -> void:
@@ -192,6 +197,12 @@ func _on_target(index: int) -> void:
 
 
 func _on_combat_state(_s: int) -> void:
+	if _inventory_ui.has_method("set_combat_mode"):
+		var in_combat: bool = (
+			_combat.state == _combat.CombatState.PLAYER_TURN
+			or _combat.state == _combat.CombatState.ENEMY_TURN
+		)
+		_inventory_ui.set_combat_mode(in_combat, _combat if in_combat else null)
 	_inventory_ui.refresh()
 
 

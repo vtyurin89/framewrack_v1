@@ -61,6 +61,15 @@ layout_mode = 2
 alignment = 1
 theme_override_constants/separation = 16
 
+[node name="CombatHint" type="Label" parent="VBox"]
+unique_name_in_owner = true
+layout_mode = 2
+theme_override_colors/font_color = Color(0.65, 0.65, 0.7, 1)
+theme_override_font_sizes/font_size = 12
+text = "Click a body module to use it. Click an enemy to retarget."
+horizontal_alignment = 1
+autowrap_mode = 3
+
 [node name="Mid" type="HBoxContainer" parent="VBox"]
 layout_mode = 2
 size_flags_vertical = 3
@@ -68,25 +77,19 @@ theme_override_constants/separation = 12
 
 [node name="ActionsPanel" type="VBoxContainer" parent="VBox/Mid"]
 layout_mode = 2
-size_flags_horizontal = 3
-
-[node name="ActionsTitle" type="Label" parent="VBox/Mid/ActionsPanel"]
-layout_mode = 2
-text = "MODULES"
-
-[node name="ActionList" type="VBoxContainer" parent="VBox/Mid/ActionsPanel"]
-unique_name_in_owner = true
-layout_mode = 2
+size_flags_horizontal = 0
 
 [node name="EndTurnButton" type="Button" parent="VBox/Mid/ActionsPanel"]
 unique_name_in_owner = true
 layout_mode = 2
+custom_minimum_size = Vector2(140, 36)
 text = "End Turn"
 
 [node name="ContinueButton" type="Button" parent="VBox/Mid/ActionsPanel"]
 unique_name_in_owner = true
 visible = false
 layout_mode = 2
+custom_minimum_size = Vector2(140, 36)
 text = "Continue"
 
 [node name="LogPanel" type="VBoxContainer" parent="VBox/Mid"]

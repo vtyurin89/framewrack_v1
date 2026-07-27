@@ -8,6 +8,7 @@ signal drag_begun(item_ui: ItemUI)
 signal drag_finished(item_ui: ItemUI, success: bool)
 signal context_menu_requested(item: ItemData)
 signal pointer_down(item_ui: ItemUI)
+signal activate_requested(item_ui: ItemUI)
 
 const DRAG_TYPE := "framewrack_item"
 
@@ -15,6 +16,9 @@ var item: ItemData
 var grid_origin: Vector2i = Vector2i(-1, -1)
 var cell_size: float = 48.0
 var cell_gap: float = 4.0
+## When true, LMB activates the item instead of starting a drag (combat).
+var combat_click_mode: bool = false
+var combat_usable_glow: bool = false
 
 var _grid_ui: Node  # InventoryGridUI
 var _panel: Panel
@@ -92,11 +96,36 @@ func _short_name(full: String) -> String:
 	return parts[0].substr(0, 4).to_upper()
 
 
+func set_combat_visual(usable: bool) -> void:
+	combat_usable_glow = usable
+	if _panel == null:
+		return
+	var style := _panel.get_theme_stylebox("panel") as StyleBoxFlat
+	if style == null:
+		return
+	var col := item.placeholder_color if item else Color(0.7, 0.7, 0.7)
+	if combat_click_mode and usable:
+		style.border_color = Color(0.45, 0.95, 0.55)
+		style.set_border_width_all(3)
+		modulate = Color(1, 1, 1, 1)
+	elif combat_click_mode:
+		style.border_color = col.darkened(0.35)
+		style.set_border_width_all(2)
+		modulate = Color(0.55, 0.55, 0.55, 1)
+	else:
+		style.border_color = col.lightened(0.25)
+		style.set_border_width_all(2)
+		modulate = Color(1, 1, 1, 1)
+	_panel.add_theme_stylebox_override("panel", style)
+
+
 func _gui_input(event: InputEvent) -> void:
 	if event is InputEventMouseButton and event.pressed:
 		if event.button_index == MOUSE_BUTTON_LEFT:
-			## Hide hover tooltip immediately on LMB pickup (before drag threshold).
 			pointer_down.emit(self)
+			if combat_click_mode and not _dragging and item != null:
+				activate_requested.emit(self)
+				accept_event()
 		elif event.button_index == MOUSE_BUTTON_RIGHT:
 			## RMB on a static item opens the inventory context menu.
 			if not _dragging and item != null:
@@ -114,6 +143,8 @@ func _notification(what: int) -> void:
 
 
 func _get_drag_data(_at_position: Vector2) -> Variant:
+	if combat_click_mode:
+		return null
 	if item == null or _grid_ui == null:
 		return null
 	if not _grid_ui.has_method("begin_item_drag"):

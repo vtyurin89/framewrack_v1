@@ -73,6 +73,10 @@ KEY_STATUS_SECTOR_SECURED,Sector secured. Select the next node.,Сектор з�
 KEY_STATUS_WRECKAGE,You are wreckage. Press New Run.,Вы — обломки. Нажмите «Новый забег».
 KEY_STATUS_RUN_COMPLETE,FRAMEWRACK CORE silenced. Run complete.,ЯДРО FRAMEWRACK заглушено. Забег завершён.
 KEY_STATUS_NEW_RUN,New frame online. Graft. Advance. Mutate.,Новый каркас в сети. Встраивай. Продвигай. Мутируй.
+KEY_COMBAT_CLICK_HINT,Click a body module to use it. Click an enemy to retarget.,Клик по модулю на теле — использовать. Клик по врагу — сменить цель.
+KEY_LOG_NO_USES,No uses left this turn.,Нет использований на этот ход.
+KEY_LOG_NO_CHARGES,No charges remaining.,Заряды закончились.
+KEY_LOG_ITEM_DESTROYED,%s is spent and falls apart.,%s израсходован и разваливается.
 KEY_LOG_YOUR_TURN,— Your turn — (%d AP),— Ваш ход — (%d ОД)
 KEY_LOG_ENEMY_TURN,— Enemy turn —,— Ход врага —
 KEY_LOG_OFFLINE,%s is offline (corrupted cells).,%s не работает (искажённые клетки).

@@ -8,6 +8,7 @@ signal item_drag_started(item: ItemData, source: String)
 signal item_drag_ended(item: ItemData, success: bool)
 signal item_moved(item: ItemData, from_origin: Vector2i, to_origin: Vector2i)
 signal item_inspected(item: ItemData)
+signal item_activated(placed: PlacedItem)
 
 const CELL_SIZE := 48.0
 const CELL_GAP := 4.0
@@ -15,6 +16,9 @@ const DRAG_TYPE := "framewrack_item"
 const INSPECT_MODAL_SCENE := preload("res://scenes/UI/item_inspect_modal.tscn")
 
 var inventory: InventoryController
+## When set, LMB on items activates combat modules instead of dragging.
+var combat_manager: Node
+var combat_click_mode: bool = false
 
 ## Active drag session (shared Dictionary mutated for rotation).
 var _drag: Dictionary = {}
@@ -49,8 +53,24 @@ func setup(p_inventory: InventoryController) -> void:
 		EventBus.placement_failed.connect(_on_placement_failed)
 	if not LocalizationManager.language_changed.is_connected(_on_language_changed):
 		LocalizationManager.language_changed.connect(_on_language_changed)
+	if not EventBus.combat_item_availability_changed.is_connected(_refresh_combat_item_visuals):
+		EventBus.combat_item_availability_changed.connect(_refresh_combat_item_visuals)
+	if not EventBus.ap_changed.is_connected(_on_ap_changed_visuals):
+		EventBus.ap_changed.connect(_on_ap_changed_visuals)
 	_apply_static_locale()
 	refresh()
+
+
+func set_combat_mode(enabled: bool, p_combat: Node = null) -> void:
+	combat_click_mode = enabled
+	combat_manager = p_combat if enabled else null
+	_hide_hover_tooltip()
+	_close_context_menu()
+	refresh()
+
+
+func _on_ap_changed_visuals(_current: int, _maximum: int) -> void:
+	_refresh_combat_item_visuals()
 
 
 func _ensure_hover_tooltip() -> void:
@@ -184,12 +204,16 @@ func _rebuild_items() -> void:
 		var ui := ItemUI.new()
 		ui.setup(placed.data, self, CELL_SIZE, CELL_GAP, placed.origin)
 		ui.position = _origin_to_layer_pos(placed.origin)
+		ui.combat_click_mode = combat_click_mode
 		ui.context_menu_requested.connect(_on_item_context_menu_requested)
 		ui.pointer_down.connect(_on_item_pointer_down)
+		ui.activate_requested.connect(_on_item_activate_requested)
 		ui.mouse_entered.connect(_on_item_mouse_entered.bind(ui))
 		ui.mouse_exited.connect(_on_item_mouse_exited.bind(ui))
 		_item_layer.add_child(ui)
 		_item_uis.append(ui)
+		if combat_click_mode and combat_manager != null and combat_manager.has_method("can_activate_item"):
+			ui.set_combat_visual(combat_manager.can_activate_item(placed))
 
 	call_deferred("_fit_layers")
 
@@ -248,8 +272,31 @@ func _on_context_inspect_pressed(item: ItemData) -> void:
 	item_inspected.emit(item)
 
 
+func _on_item_activate_requested(item_ui: ItemUI) -> void:
+	if not combat_click_mode or item_ui == null or inventory == null:
+		return
+	var placed: PlacedItem = inventory.grid.get_occupant(item_ui.grid_origin)
+	if placed == null:
+		return
+	item_activated.emit(placed)
+
+
+func _refresh_combat_item_visuals() -> void:
+	if not combat_click_mode or combat_manager == null or inventory == null:
+		return
+	for ui: ItemUI in _item_uis:
+		if not is_instance_valid(ui):
+			continue
+		ui.combat_click_mode = true
+		var placed: PlacedItem = inventory.grid.get_occupant(ui.grid_origin)
+		if placed != null and combat_manager.has_method("can_activate_item"):
+			ui.set_combat_visual(combat_manager.can_activate_item(placed))
+		else:
+			ui.set_combat_visual(false)
+
+
 func _on_item_pointer_down(_item_ui: ItemUI) -> void:
-	## LMB pressed on an item — hide tooltip / menu before drag begins.
+	## LMB pressed on an item — hide tooltip / menu before drag or activation.
 	_hide_hover_tooltip()
 	_close_context_menu()
 
@@ -276,6 +323,8 @@ func _on_item_mouse_exited(item_ui: ItemUI) -> void:
 # ---------------------------------------------------------------------------
 
 func begin_item_drag(item_ui: ItemUI) -> Dictionary:
+	if combat_click_mode:
+		return {}
 	if inventory == null or item_ui == null or item_ui.item == null:
 		return {}
 	if not _drag.is_empty():

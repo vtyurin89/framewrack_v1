@@ -1,8 +1,8 @@
 extends Control
-## Combat HUD: enemies, AP/HP/Block, activatable modules, log, end turn.
+## Combat HUD: enemies (click to select), AP/HP/Block, log, End Turn.
+## Item activation happens via inventory clicks (Backpack Hero model).
 
 signal end_turn_pressed
-signal activate_item_requested(placed: PlacedItem)
 signal target_selected(index: int)
 signal continue_pressed
 
@@ -14,11 +14,10 @@ var inventory: InventoryController
 @onready var _ap_label: Label = %APLabel
 @onready var _block_label: Label = %BlockLabel
 @onready var _turn_label: Label = %TurnLabel
-@onready var _action_list: VBoxContainer = %ActionList
 @onready var _log: RichTextLabel = %CombatLog
 @onready var _end_turn_btn: Button = %EndTurnButton
 @onready var _continue_btn: Button = %ContinueButton
-@onready var _actions_title: Label = $VBox/Mid/ActionsPanel/ActionsTitle
+@onready var _hint_label: Label = %CombatHint
 
 
 func _ready() -> void:
@@ -30,9 +29,9 @@ func _ready() -> void:
 	EventBus.block_changed.connect(_on_block_changed)
 	EventBus.combat_log_message.connect(_on_log)
 	EventBus.enemy_hp_changed.connect(_on_enemy_hp)
+	EventBus.enemy_selected.connect(_on_enemy_selected)
 	EventBus.turn_started.connect(_on_turn_started)
 	EventBus.combat_ended.connect(_on_combat_ended)
-	EventBus.inventory_changed.connect(_rebuild_actions)
 	LocalizationManager.language_changed.connect(_on_language_changed)
 	_apply_static_locale()
 
@@ -46,7 +45,6 @@ func setup(p_combat: Node, p_inventory: InventoryController) -> void:
 	_apply_static_locale()
 	_on_hp_changed(inventory.current_hp, inventory.max_hp)
 	_rebuild_enemies()
-	_rebuild_actions()
 
 
 func _on_language_changed(_locale: String) -> void:
@@ -57,7 +55,6 @@ func _on_language_changed(_locale: String) -> void:
 		_on_ap_changed(combat.current_ap, combat.max_ap)
 		_on_block_changed(combat.current_block)
 		_rebuild_enemies()
-		_rebuild_actions()
 		if combat.state == combat.CombatState.PLAYER_TURN:
 			_turn_label.text = tr("KEY_PLAYER_TURN")
 		elif combat.state == combat.CombatState.ENEMY_TURN:
@@ -72,8 +69,8 @@ func _on_language_changed(_locale: String) -> void:
 
 func _apply_static_locale() -> void:
 	_end_turn_btn.text = tr("KEY_END_TURN")
-	if _actions_title:
-		_actions_title.text = tr("KEY_MODULES")
+	if _hint_label:
+		_hint_label.text = tr("KEY_COMBAT_CLICK_HINT")
 
 
 func _rebuild_enemies() -> void:
@@ -85,72 +82,71 @@ func _rebuild_enemies() -> void:
 		var entry: Dictionary = combat.enemies[i]
 		var data: EnemyData = entry["data"]
 		var panel := PanelContainer.new()
-		var style := StyleBoxFlat.new()
-		style.bg_color = Color(0.12, 0.12, 0.12)
-		style.set_border_width_all(2)
-		style.border_color = data.placeholder_color
-		style.set_content_margin_all(10)
-		panel.add_theme_stylebox_override("panel", style)
+		panel.mouse_filter = Control.MOUSE_FILTER_STOP
+		panel.mouse_default_cursor_shape = Control.CURSOR_POINTING_HAND
+		panel.gui_input.connect(_on_enemy_panel_input.bind(i))
+		_style_enemy_panel(panel, i, bool(entry.get("is_selected", false)))
 
 		var v := VBoxContainer.new()
+		v.mouse_filter = Control.MOUSE_FILTER_IGNORE
 		var name_l := Label.new()
 		name_l.text = data.get_localized_name()
 		name_l.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+		name_l.mouse_filter = Control.MOUSE_FILTER_IGNORE
 		var sprite := ColorRect.new()
 		sprite.custom_minimum_size = Vector2(80, 100)
 		sprite.color = data.placeholder_color
+		sprite.mouse_filter = Control.MOUSE_FILTER_IGNORE
 		var hp_l := Label.new()
 		hp_l.name = "HP"
 		hp_l.text = tr("KEY_HP_FMT") % [tr("KEY_HP"), int(entry["hp"]), data.max_hp]
 		hp_l.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+		hp_l.mouse_filter = Control.MOUSE_FILTER_IGNORE
+		var marker := Label.new()
+		marker.name = "SelectMarker"
+		marker.text = "▼" if bool(entry.get("is_selected", false)) else ""
+		marker.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+		marker.add_theme_color_override("font_color", Color(0.95, 0.85, 0.35))
+		marker.mouse_filter = Control.MOUSE_FILTER_IGNORE
 
-		var target_btn := Button.new()
-		target_btn.text = tr("KEY_TARGET")
-		target_btn.pressed.connect(_on_target.bind(i))
-
+		v.add_child(marker)
 		v.add_child(name_l)
 		v.add_child(sprite)
 		v.add_child(hp_l)
-		v.add_child(target_btn)
 		panel.add_child(v)
 		_enemy_row.add_child(panel)
+		if int(entry["hp"]) <= 0:
+			panel.modulate = Color(0.3, 0.3, 0.3, 0.6)
+			panel.mouse_filter = Control.MOUSE_FILTER_IGNORE
 
 
-func _rebuild_actions() -> void:
-	for child in _action_list.get_children():
-		child.queue_free()
-	if inventory == null:
+func _style_enemy_panel(panel: PanelContainer, _index: int, selected: bool) -> void:
+	var style := StyleBoxFlat.new()
+	style.bg_color = Color(0.12, 0.12, 0.12)
+	style.set_border_width_all(3 if selected else 2)
+	style.border_color = Color(0.95, 0.8, 0.25) if selected else Color(0.45, 0.45, 0.5)
+	style.set_content_margin_all(10)
+	panel.add_theme_stylebox_override("panel", style)
+
+
+func _on_enemy_panel_input(event: InputEvent, index: int) -> void:
+	if event is InputEventMouseButton and event.pressed and event.button_index == MOUSE_BUTTON_LEFT:
+		target_selected.emit(index)
+		_on_log(tr("KEY_LOG_TARGETING") % (index + 1))
+
+
+func _on_enemy_selected(index: int) -> void:
+	if combat == null:
 		return
-	for placed: PlacedItem in inventory.grid.get_functional_items():
-		if placed.data.ap_cost <= 0:
+	for i in _enemy_row.get_child_count():
+		var panel: PanelContainer = _enemy_row.get_child(i) as PanelContainer
+		if panel == null:
 			continue
-		var btn := Button.new()
-		var tag := tr("KEY_ATK") if placed.data.is_weapon() else tr("KEY_BLK")
-		btn.text = tr("KEY_ACTION_ITEM_FMT") % [
-			tag,
-			placed.data.get_localized_name(),
-			placed.data.ap_cost,
-			tr("KEY_AP"),
-		]
-		btn.pressed.connect(_on_activate.bind(placed))
-		_action_list.add_child(btn)
-
-	for placed: PlacedItem in inventory.grid.get_functional_items():
-		if placed.data.ap_cost > 0:
-			continue
-		var info := Label.new()
-		info.text = tr("KEY_PASSIVE_FMT") % [tr("KEY_PASSIVE"), placed.data.get_localized_name()]
-		info.modulate = Color(0.7, 0.7, 0.7)
-		_action_list.add_child(info)
-
-
-func _on_activate(placed: PlacedItem) -> void:
-	activate_item_requested.emit(placed)
-
-
-func _on_target(index: int) -> void:
-	target_selected.emit(index)
-	_on_log(tr("KEY_LOG_TARGETING") % (index + 1))
+		var selected := i == index
+		_style_enemy_panel(panel, i, selected)
+		var marker: Label = panel.find_child("SelectMarker", true, false) as Label
+		if marker:
+			marker.text = "▼" if selected else ""
 
 
 func _on_ap_changed(current: int, maximum: int) -> void:
@@ -168,7 +164,7 @@ func _on_block_changed(amount: int) -> void:
 func _on_turn_started(is_player: bool) -> void:
 	_turn_label.text = tr("KEY_PLAYER_TURN") if is_player else tr("KEY_ENEMY_TURN")
 	_end_turn_btn.disabled = not is_player
-	_rebuild_actions()
+	_rebuild_enemies()
 
 
 func _on_enemy_hp(index: int, current: int, maximum: int) -> void:
@@ -180,6 +176,7 @@ func _on_enemy_hp(index: int, current: int, maximum: int) -> void:
 		hp_l.text = tr("KEY_HP_FMT") % [tr("KEY_HP"), current, maximum]
 	if current <= 0:
 		panel.modulate = Color(0.3, 0.3, 0.3, 0.6)
+		(panel as Control).mouse_filter = Control.MOUSE_FILTER_IGNORE
 
 
 func _on_log(text: String) -> void:

@@ -1,6 +1,6 @@
 extends Node
-## Turn-based combat state machine.
-## Player spends AP activating equipped modules; enemies attack or corrupt cells.
+## Turn-based combat — Backpack Hero style.
+## Player activates body-grid modules by clicking them; only End Turn remains in the HUD.
 
 enum CombatState {
 	INACTIVE,
@@ -15,14 +15,12 @@ signal state_changed(new_state: CombatState)
 var inventory: InventoryController
 var state: CombatState = CombatState.INACTIVE
 
-## Runtime enemy instances: { data: EnemyData, hp: int }
+## Runtime enemy instances: { data: EnemyData, hp: int, is_selected: bool }
 var enemies: Array[Dictionary] = []
 
 var current_ap: int = 0
 var max_ap: int = 3
 var current_block: int = 0
-
-## Optional: which enemy is targeted (index into enemies).
 var target_index: int = 0
 
 
@@ -30,12 +28,16 @@ func setup(p_inventory: InventoryController) -> void:
 	inventory = p_inventory
 
 
+func is_player_turn_active() -> bool:
+	return state == CombatState.PLAYER_TURN
+
+
 func start_combat(enemy_datas: Array[EnemyData]) -> void:
 	enemies.clear()
 	for data: EnemyData in enemy_datas:
-		enemies.append({"data": data, "hp": data.max_hp})
+		enemies.append({"data": data, "hp": data.max_hp, "is_selected": false})
 	current_block = 0
-	target_index = 0
+	_select_first_living_enemy()
 	var ids: Array[String] = []
 	for data: EnemyData in enemy_datas:
 		ids.append(data.id)
@@ -66,7 +68,10 @@ func _begin_player_turn() -> void:
 	EventBus.block_changed.emit(current_block)
 	max_ap = inventory.get_max_ap()
 	current_ap = max_ap
+	_reset_all_item_turn_uses()
+	_ensure_valid_selection()
 	EventBus.ap_changed.emit(current_ap, max_ap)
+	EventBus.combat_item_availability_changed.emit()
 	_set_state(CombatState.PLAYER_TURN)
 	EventBus.combat_log_message.emit(tr("KEY_LOG_YOUR_TURN") % current_ap)
 	_emit_enemy_hp()
@@ -79,77 +84,177 @@ func end_player_turn() -> void:
 
 
 func set_target(index: int) -> void:
-	if index >= 0 and index < enemies.size():
-		target_index = index
+	if index < 0 or index >= enemies.size():
+		return
+	if int(enemies[index]["hp"]) <= 0:
+		return
+	_apply_selection(index)
 
 
-func activate_item(placed: PlacedItem) -> bool:
-	## Spend AP to fire a weapon or raise a shield.
+func _select_first_living_enemy() -> void:
+	var living := _living_enemy_indices()
+	if living.is_empty():
+		target_index = -1
+		return
+	_apply_selection(living[0])
+
+
+func _ensure_valid_selection() -> void:
+	var living := _living_enemy_indices()
+	if living.is_empty():
+		target_index = -1
+		return
+	if target_index not in living:
+		_apply_selection(living[0])
+
+
+func _apply_selection(index: int) -> void:
+	for i in enemies.size():
+		enemies[i]["is_selected"] = (i == index)
+	target_index = index
+	EventBus.enemy_selected.emit(index)
+
+
+func can_activate_item(placed: PlacedItem) -> bool:
 	if state != CombatState.PLAYER_TURN:
 		return false
 	if placed == null or placed.data == null:
 		return false
+	var data: ItemData = placed.data
+	if not data.usable or data.ap_cost <= 0:
+		return false
 	if not inventory.grid.is_item_functional(placed):
-		EventBus.combat_log_message.emit(tr("KEY_LOG_OFFLINE") % placed.data.get_localized_name())
 		return false
-	var cost: int = placed.data.ap_cost
-	if cost <= 0:
-		EventBus.combat_log_message.emit(tr("KEY_LOG_PASSIVE") % placed.data.get_localized_name())
+	if current_ap < data.ap_cost:
 		return false
-	if current_ap < cost:
-		EventBus.combat_log_message.emit(tr("KEY_LOG_NOT_ENOUGH_AP"))
+	if not data.can_use_this_turn():
 		return false
-
-	current_ap -= cost
-	EventBus.ap_changed.emit(current_ap, max_ap)
-
-	if placed.data.is_weapon():
-		return _resolve_weapon(placed)
-	if placed.data.is_shield():
-		return _resolve_shield(placed)
-
-	EventBus.combat_log_message.emit(tr("KEY_LOG_ACTIVATED") % placed.data.get_localized_name())
+	if not data.has_charges_remaining():
+		return false
 	return true
 
 
-func _resolve_weapon(placed: PlacedItem) -> bool:
-	var living := _living_enemy_indices()
-	if living.is_empty():
+func activate_item(placed: PlacedItem) -> bool:
+	## Direct inventory click activation (Backpack Hero model).
+	if not can_activate_item(placed):
+		_log_activation_failure(placed)
 		return false
-	if target_index not in living:
-		target_index = living[0]
 
-	var bonus: int = inventory.grid.get_adjacency_damage_bonus_for(placed)
-	var dmg: int = placed.data.damage + bonus
-	var entry: Dictionary = enemies[target_index]
-	entry["hp"] = maxi(0, int(entry["hp"]) - dmg)
-	enemies[target_index] = entry
+	var data: ItemData = placed.data
+	current_ap -= data.ap_cost
+	data.current_turn_uses += 1
+	EventBus.ap_changed.emit(current_ap, max_ap)
 
-	var ename: String = (entry["data"] as EnemyData).get_localized_name()
-	var bonus_txt := tr("KEY_LOG_REACTOR_BONUS") % bonus if bonus > 0 else ""
-	EventBus.combat_log_message.emit(
-		tr("KEY_LOG_DAMAGE") % [placed.data.get_localized_name(), dmg, bonus_txt, ename]
-	)
-	EventBus.enemy_hp_changed.emit(target_index, int(entry["hp"]), (entry["data"] as EnemyData).max_hp)
+	match data.target_type:
+		ItemData.TargetType.SELF:
+			_resolve_self(placed)
+		ItemData.TargetType.ALL_ENEMIES:
+			_resolve_all_enemies(placed)
+		_:
+			_resolve_single_enemy(placed)
+
+	_consume_charge_if_needed(placed)
+	EventBus.combat_item_availability_changed.emit()
 
 	if _all_enemies_dead():
 		_win()
 	return true
 
 
-func _resolve_shield(placed: PlacedItem) -> bool:
-	current_block += placed.data.block_amount
-	EventBus.block_changed.emit(current_block)
+func _log_activation_failure(placed: PlacedItem) -> void:
+	if state != CombatState.PLAYER_TURN:
+		return
+	if placed == null or placed.data == null:
+		return
+	var data: ItemData = placed.data
+	if not inventory.grid.is_item_functional(placed):
+		EventBus.combat_log_message.emit(tr("KEY_LOG_OFFLINE") % data.get_localized_name())
+	elif not data.usable or data.ap_cost <= 0:
+		EventBus.combat_log_message.emit(tr("KEY_LOG_PASSIVE") % data.get_localized_name())
+	elif current_ap < data.ap_cost:
+		EventBus.combat_log_message.emit(tr("KEY_LOG_NOT_ENOUGH_AP"))
+	elif not data.can_use_this_turn():
+		EventBus.combat_log_message.emit(tr("KEY_LOG_NO_USES"))
+	elif not data.has_charges_remaining():
+		EventBus.combat_log_message.emit(tr("KEY_LOG_NO_CHARGES"))
+
+
+func _resolve_single_enemy(placed: PlacedItem) -> void:
+	_ensure_valid_selection()
+	if target_index < 0:
+		return
+	var dmg := _calc_damage(placed)
+	_deal_damage_to(target_index, dmg, placed.data.get_localized_name())
+
+
+func _resolve_all_enemies(placed: PlacedItem) -> void:
+	var dmg := _calc_damage(placed)
+	var living := _living_enemy_indices()
+	for idx: int in living:
+		_deal_damage_to(idx, dmg, placed.data.get_localized_name())
+
+
+func _resolve_self(placed: PlacedItem) -> void:
+	var armor := placed.data.get_effective_armor()
+	if armor <= 0 and placed.data.block_amount > 0:
+		armor = placed.data.block_amount
+	if armor > 0:
+		current_block += armor
+		EventBus.block_changed.emit(current_block)
+		EventBus.combat_log_message.emit(
+			tr("KEY_LOG_BLOCK") % [placed.data.get_localized_name(), armor, current_block]
+		)
+	else:
+		EventBus.combat_log_message.emit(tr("KEY_LOG_ACTIVATED") % placed.data.get_localized_name())
+
+
+func _calc_damage(placed: PlacedItem) -> int:
+	var adjacency_bonus: int = inventory.grid.get_adjacency_damage_bonus_for(placed)
+	return placed.data.get_effective_damage() + adjacency_bonus
+
+
+func _deal_damage_to(index: int, dmg: int, source_name: String) -> void:
+	if index < 0 or index >= enemies.size():
+		return
+	var entry: Dictionary = enemies[index]
+	if int(entry["hp"]) <= 0:
+		return
+	var adjacency_note := ""
+	entry["hp"] = maxi(0, int(entry["hp"]) - dmg)
+	enemies[index] = entry
+	var ename: String = (entry["data"] as EnemyData).get_localized_name()
 	EventBus.combat_log_message.emit(
-		tr("KEY_LOG_BLOCK") % [placed.data.get_localized_name(), placed.data.block_amount, current_block]
+		tr("KEY_LOG_DAMAGE") % [source_name, dmg, adjacency_note, ename]
 	)
-	return true
+	EventBus.enemy_hp_changed.emit(index, int(entry["hp"]), (entry["data"] as EnemyData).max_hp)
+	if int(entry["hp"]) <= 0:
+		_ensure_valid_selection()
+
+
+func _consume_charge_if_needed(placed: PlacedItem) -> void:
+	var data: ItemData = placed.data
+	if not data.consumable:
+		return
+	data.current_charges = maxi(0, data.current_charges - 1)
+	EventBus.inventory_changed.emit()
+	if data.current_charges <= 0 and data.destroy_on_empty:
+		inventory.grid.remove_item(placed, false)
+		EventBus.item_removed.emit(data.id)
+		EventBus.inventory_changed.emit()
+		EventBus.combat_log_message.emit(tr("KEY_LOG_ITEM_DESTROYED") % data.get_localized_name())
+
+
+func _reset_all_item_turn_uses() -> void:
+	if inventory == null:
+		return
+	for placed: PlacedItem in inventory.grid.items:
+		if placed != null and placed.data != null:
+			placed.data.reset_turn_uses()
 
 
 func _begin_enemy_turn() -> void:
 	_set_state(CombatState.ENEMY_TURN)
 	EventBus.combat_log_message.emit(tr("KEY_LOG_ENEMY_TURN"))
-	# Process sequentially with a short delay feel via await if in tree.
 	_run_enemy_actions()
 
 
@@ -164,7 +269,6 @@ func _run_enemy_actions() -> void:
 			_lose()
 			return
 
-	# Corruption ticks down once per full enemy phase.
 	inventory.grid.tick_corruption()
 
 	if _all_enemies_dead():
@@ -225,6 +329,8 @@ func _emit_enemy_hp() -> void:
 		var e: Dictionary = enemies[i]
 		var d: EnemyData = e["data"]
 		EventBus.enemy_hp_changed.emit(i, int(e["hp"]), d.max_hp)
+	if target_index >= 0:
+		EventBus.enemy_selected.emit(target_index)
 
 
 func _win() -> void:

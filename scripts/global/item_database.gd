@@ -46,7 +46,23 @@ func create_instance(item_id: String) -> ItemData:
 	if proto == null:
 		push_warning("ItemDatabase: unknown item id '%s'" % item_id)
 		return null
-	return proto.duplicate(true) as ItemData
+	var instance := proto.duplicate(true) as ItemData
+	if instance:
+		instance.initialize_runtime_state()
+	return instance
+
+
+func _parse_target_type(raw: String) -> ItemData.TargetType:
+	match raw.strip_edges().to_upper():
+		"SELF":
+			return ItemData.TargetType.SELF
+		"ALL_ENEMIES":
+			return ItemData.TargetType.ALL_ENEMIES
+		"SINGLE_ENEMY", "":
+			return ItemData.TargetType.SINGLE_ENEMY
+		_:
+			push_warning("ItemDatabase: unknown target_type '%s', defaulting to SINGLE_ENEMY" % raw)
+			return ItemData.TargetType.SINGLE_ENEMY
 
 
 # ---------------------------------------------------------------------------
@@ -177,11 +193,16 @@ func _parse_item_row(row: PackedStringArray, col: Dictionary) -> ItemData:
 	item.damage = item.base_damage
 	item.block_amount = item.base_armor
 
+	item.target_type = _parse_target_type(_cell(row, col, "target_type"))
+	item.uses_per_turn = _parse_int(_cell(row, col, "uses_per_turn"), -1)
+
 	var exhaust_raw := _cell(row, col, "exhaustable")
 	if exhaust_raw.is_empty():
 		exhaust_raw = _cell(row, col, "consumable")
 	item.consumable = _parse_bool(exhaust_raw, false)
 	item.max_charges = _parse_int(_cell(row, col, "max_charges"), 0)
+	item.destroy_on_empty = _parse_bool(_cell(row, col, "destroy_on_empty"), false)
+	item.initialize_runtime_state()
 
 	item.price = _parse_price(_cell(row, col, "price"))
 

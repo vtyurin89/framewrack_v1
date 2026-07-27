@@ -29,5 +29,7 @@ signal turn_started(is_player: bool)
 signal ap_changed(current: int, maximum: int)
 signal player_hp_changed(current: int, maximum: int)
 signal enemy_hp_changed(enemy_index: int, current: int, maximum: int)
+signal enemy_selected(enemy_index: int)
 signal combat_log_message(text: String)
 signal block_changed(amount: int)
+signal combat_item_availability_changed

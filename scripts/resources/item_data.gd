@@ -4,6 +4,12 @@ extends Resource
 ## Display text is resolved via translation keys (see translations/translations.csv).
 ## Icons resolve through get_texture(): item → type default → system fallback.
 
+enum TargetType {
+	SELF,
+	SINGLE_ENEMY,
+	ALL_ENEMIES,
+}
+
 const FALLBACK_ICON_PATH := "res://assets/icons/fallback_item.png"
 
 @export var id: String = ""
@@ -38,11 +44,20 @@ const FALLBACK_ICON_PATH := "res://assets/icons/fallback_item.png"
 ## If false, the module cannot be manually activated in combat.
 @export var usable: bool = true
 
-## If true, activating spends a charge (see max_charges).
+## Who this module affects when activated in combat.
+@export var target_type: TargetType = TargetType.SINGLE_ENEMY
+
+## Max activations per player turn. -1 or 0 = unlimited (AP still required).
+@export var uses_per_turn: int = -1
+
+## If true, activating spends a charge (see max_charges / current_charges).
 @export var consumable: bool = false
 
-## Charge pool for consumable / ammo-fed modules (0 = unlimited / N/A).
+## Charge pool for exhaustable modules.
 @export var max_charges: int = 0
+
+## If true, remove from grid when charges hit 0.
+@export var destroy_on_empty: bool = false
 
 ## Merchant value in Scrap. `null` = cannot be bought or sold.
 @export var price: Variant = null
@@ -51,8 +66,7 @@ const FALLBACK_ICON_PATH := "res://assets/icons/fallback_item.png"
 @export var base_damage: int = 0
 @export var base_armor: int = 0
 
-## Legacy combat fields (kept for older .tres / combat paths).
-## Prefer base_damage / base_armor + get_effective_*().
+## Legacy combat fields (kept for older combat paths).
 @export var damage: int = 0
 @export var block_amount: int = 0
 
@@ -67,6 +81,12 @@ const FALLBACK_ICON_PATH := "res://assets/icons/fallback_item.png"
 
 ## Placeholder tint when no texture is assigned.
 @export var placeholder_color: Color = Color(0.7, 0.7, 0.7)
+
+## Runtime: uses spent this player turn (reset on turn start).
+var current_turn_uses: int = 0
+
+## Runtime: remaining charges for exhaustable items (-1 = unlimited / not tracked).
+var current_charges: int = -1
 
 static var _cached_fallback_icon: Texture2D
 
@@ -106,6 +126,35 @@ var exhaustable: bool:
 		return consumable
 	set(value):
 		consumable = value
+
+
+func initialize_runtime_state() -> void:
+	## Call after duplicating a prototype for a placed / inventory instance.
+	current_turn_uses = 0
+	if consumable:
+		current_charges = maxi(max_charges, 0)
+	else:
+		current_charges = -1
+
+
+func reset_turn_uses() -> void:
+	current_turn_uses = 0
+
+
+func has_unlimited_turn_uses() -> bool:
+	return uses_per_turn <= 0
+
+
+func can_use_this_turn() -> bool:
+	if has_unlimited_turn_uses():
+		return true
+	return current_turn_uses < uses_per_turn
+
+
+func has_charges_remaining() -> bool:
+	if not consumable:
+		return true
+	return current_charges > 0
 
 
 func get_localized_name() -> String:
