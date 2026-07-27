@@ -23,6 +23,8 @@ var _hover_origin: Vector2i = Vector2i(-1, -1)
 
 var _slots: Dictionary = {}  # "x,y" -> InventorySlotUI
 var _item_uis: Array[ItemUI] = []
+var _hover_tooltip: ItemHoverTooltip
+var _hovered_item_ui: ItemUI
 
 @onready var _grid_host: Control = %GridHost
 @onready var _grid_root: GridContainer = %GridRoot
@@ -33,6 +35,7 @@ var _item_uis: Array[ItemUI] = []
 
 func setup(p_inventory: InventoryController) -> void:
 	inventory = p_inventory
+	_ensure_hover_tooltip()
 	if not EventBus.inventory_changed.is_connected(_on_inventory_changed):
 		EventBus.inventory_changed.connect(_on_inventory_changed)
 	if not EventBus.grid_expanded.is_connected(_on_grid_expanded):
@@ -45,8 +48,23 @@ func setup(p_inventory: InventoryController) -> void:
 	refresh()
 
 
+func _ensure_hover_tooltip() -> void:
+	if _hover_tooltip != null and is_instance_valid(_hover_tooltip):
+		return
+	_hover_tooltip = ItemHoverTooltip.new()
+	_hover_tooltip.name = "ItemHoverTooltip"
+	add_child(_hover_tooltip)
+
+
+func _hide_hover_tooltip() -> void:
+	_hovered_item_ui = null
+	if _hover_tooltip:
+		_hover_tooltip.hide_tooltip()
+
+
 func _on_language_changed(_locale: String) -> void:
 	_apply_static_locale()
+	_hide_hover_tooltip()
 	refresh()
 
 
@@ -115,6 +133,7 @@ func _rebuild_grid() -> void:
 
 
 func _rebuild_items() -> void:
+	_hide_hover_tooltip()
 	_item_uis.clear()
 	if _item_layer == null:
 		return
@@ -123,11 +142,15 @@ func _rebuild_items() -> void:
 		child.queue_free()
 
 	var g: BodyGrid = inventory.grid
+	g.recalculate_grid_adjacencies()
 	for placed: PlacedItem in g.items:
 		var ui := ItemUI.new()
 		ui.setup(placed.data, self, CELL_SIZE, CELL_GAP, placed.origin)
 		ui.position = _origin_to_layer_pos(placed.origin)
 		ui.inspect_requested.connect(_on_item_inspect_requested)
+		ui.pointer_down.connect(_on_item_pointer_down)
+		ui.mouse_entered.connect(_on_item_mouse_entered.bind(ui))
+		ui.mouse_exited.connect(_on_item_mouse_exited.bind(ui))
 		_item_layer.add_child(ui)
 		_item_uis.append(ui)
 
@@ -168,6 +191,28 @@ func _on_item_inspect_requested(item: ItemData) -> void:
 	item_inspected.emit(item)
 
 
+func _on_item_pointer_down(_item_ui: ItemUI) -> void:
+	## LMB pressed on an item — hide tooltip before / as drag begins.
+	_hide_hover_tooltip()
+
+
+func _on_item_mouse_entered(item_ui: ItemUI) -> void:
+	if not _drag.is_empty():
+		return
+	if item_ui == null or item_ui.item == null:
+		return
+	_hovered_item_ui = item_ui
+	_ensure_hover_tooltip()
+	if inventory != null:
+		inventory.grid.recalculate_grid_adjacencies()
+	_hover_tooltip.show_for_item(item_ui.item)
+
+
+func _on_item_mouse_exited(item_ui: ItemUI) -> void:
+	if _hovered_item_ui == item_ui:
+		_hide_hover_tooltip()
+
+
 # ---------------------------------------------------------------------------
 # Drag session — grid only; invalid drop restores previous grid position
 # ---------------------------------------------------------------------------
@@ -179,6 +224,9 @@ func begin_item_drag(item_ui: ItemUI) -> Dictionary:
 		return {}
 	if item_ui.grid_origin.x < 0:
 		return {}
+
+	## Tooltip must hide immediately on LMB pickup and stay hidden while dragging.
+	_hide_hover_tooltip()
 
 	_suppress_refresh = true
 	_drop_committed = false
@@ -211,6 +259,7 @@ func end_item_drag(_success: bool) -> void:
 	if _drag.is_empty():
 		_suppress_refresh = false
 		_set_item_uis_pass_through(false)
+		_hide_hover_tooltip()
 		return
 
 	var item: ItemData = _drag["item"]
@@ -226,6 +275,7 @@ func end_item_drag(_success: bool) -> void:
 	_hover_origin = Vector2i(-1, -1)
 	_set_item_uis_pass_through(false)
 	_suppress_refresh = false
+	_hide_hover_tooltip()
 	EventBus.inventory_changed.emit()
 	refresh()
 

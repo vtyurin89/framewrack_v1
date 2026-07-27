@@ -1,0 +1,239 @@
+class_name ItemHoverTooltip
+extends PanelContainer
+## Floating context tooltip for inventory items.
+## Follows the cursor with viewport clamping; auto-sizes to content.
+
+const CURSOR_OFFSET := Vector2(14, 18)
+const MAX_WIDTH := 320.0
+const DEFAULT_NAME_COLOR := Color(0.92, 0.92, 0.92)
+const META_COLOR := Color(0.62, 0.62, 0.66)
+const DESC_COLOR := Color(0.78, 0.78, 0.8)
+const TRAIT_ACTIVE_COLOR := Color(0.82, 0.85, 0.88)
+const TRAIT_INACTIVE_COLOR := Color(0.45, 0.45, 0.48)
+
+var _name_label: Label
+var _ap_label: Label
+var _meta_label: Label
+var _desc_label: RichTextLabel
+var _traits_box: VBoxContainer
+var _item: ItemData
+var _following: bool = false
+
+
+func _ready() -> void:
+	mouse_filter = Control.MOUSE_FILTER_IGNORE
+	top_level = true
+	z_index = 100
+	visible = false
+	custom_minimum_size = Vector2(220, 0)
+	_apply_panel_style()
+	_build_layout()
+	set_process(false)
+
+
+func _process(_delta: float) -> void:
+	if not _following or not visible:
+		return
+	_reposition_to_mouse()
+
+
+func show_for_item(item: ItemData) -> void:
+	if item == null:
+		hide_tooltip()
+		return
+	_item = item
+	_populate(item)
+	visible = true
+	_following = true
+	set_process(true)
+	# Wait one frame so size is computed from content before clamping.
+	await get_tree().process_frame
+	if not is_instance_valid(self):
+		return
+	if not visible or _item != item:
+		return
+	_reposition_to_mouse()
+
+
+func hide_tooltip() -> void:
+	_item = null
+	_following = false
+	set_process(false)
+	visible = false
+
+
+func is_showing_item(item: ItemData) -> bool:
+	return visible and _item == item
+
+
+# ---------------------------------------------------------------------------
+# Layout
+# ---------------------------------------------------------------------------
+
+func _apply_panel_style() -> void:
+	var style := StyleBoxFlat.new()
+	style.bg_color = Color(0.08, 0.08, 0.09, 0.96)
+	style.set_border_width_all(1)
+	style.border_color = Color(0.35, 0.35, 0.38)
+	style.set_corner_radius_all(4)
+	style.set_content_margin_all(10)
+	style.shadow_color = Color(0, 0, 0, 0.45)
+	style.shadow_size = 6
+	add_theme_stylebox_override("panel", style)
+
+
+func _build_layout() -> void:
+	var root := VBoxContainer.new()
+	root.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	root.add_theme_constant_override("separation", 6)
+	add_child(root)
+
+	var header := HBoxContainer.new()
+	header.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	header.add_theme_constant_override("separation", 8)
+	root.add_child(header)
+
+	_name_label = Label.new()
+	_name_label.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	_name_label.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	_name_label.add_theme_font_size_override("font_size", 16)
+	_name_label.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	header.add_child(_name_label)
+
+	_ap_label = Label.new()
+	_ap_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_RIGHT
+	_ap_label.vertical_alignment = VERTICAL_ALIGNMENT_TOP
+	_ap_label.add_theme_font_size_override("font_size", 13)
+	_ap_label.add_theme_color_override("font_color", Color(0.75, 0.82, 0.9))
+	_ap_label.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	header.add_child(_ap_label)
+
+	_meta_label = Label.new()
+	_meta_label.add_theme_font_size_override("font_size", 11)
+	_meta_label.add_theme_color_override("font_color", META_COLOR)
+	_meta_label.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	root.add_child(_meta_label)
+
+	var sep := HSeparator.new()
+	sep.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	root.add_child(sep)
+
+	_desc_label = RichTextLabel.new()
+	_desc_label.bbcode_enabled = true
+	_desc_label.fit_content = true
+	_desc_label.scroll_active = false
+	_desc_label.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	_desc_label.custom_minimum_size = Vector2(MAX_WIDTH - 24, 0)
+	_desc_label.add_theme_color_override("default_color", DESC_COLOR)
+	_desc_label.add_theme_font_size_override("normal_font_size", 12)
+	_desc_label.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	root.add_child(_desc_label)
+
+	_traits_box = VBoxContainer.new()
+	_traits_box.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	_traits_box.add_theme_constant_override("separation", 4)
+	root.add_child(_traits_box)
+
+
+func _populate(item: ItemData) -> void:
+	_name_label.text = item.get_localized_name()
+	if item.rarity != null:
+		_name_label.add_theme_color_override("font_color", item.rarity.tint)
+	else:
+		_name_label.add_theme_color_override("font_color", DEFAULT_NAME_COLOR)
+
+	if item.ap_cost > 0:
+		_ap_label.visible = true
+		_ap_label.text = "%d AP" % item.ap_cost
+	else:
+		_ap_label.visible = false
+		_ap_label.text = ""
+
+	_meta_label.text = _build_meta_line(item)
+
+	var desc := item.get_localized_description()
+	_desc_label.visible = not desc.is_empty()
+	_desc_label.text = desc
+
+	_rebuild_traits(item)
+	_force_autosize()
+
+
+func _build_meta_line(item: ItemData) -> String:
+	var parts: PackedStringArray = []
+	if item.rarity != null:
+		parts.append(item.rarity.get_localized_name())
+	if item.item_type != null:
+		parts.append(item.item_type.get_localized_name())
+	return " • ".join(parts)
+
+
+func _rebuild_traits(item: ItemData) -> void:
+	for child in _traits_box.get_children():
+		child.queue_free()
+
+	if item.traits.is_empty():
+		_traits_box.visible = false
+		return
+
+	_traits_box.visible = true
+	for item_trait: TraitData in item.traits:
+		if item_trait == null:
+			continue
+		_traits_box.add_child(_make_trait_row(item_trait))
+
+
+func _make_trait_row(item_trait: TraitData) -> RichTextLabel:
+	var row := RichTextLabel.new()
+	row.bbcode_enabled = true
+	row.fit_content = true
+	row.scroll_active = false
+	row.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	row.custom_minimum_size = Vector2(MAX_WIDTH - 24, 0)
+	row.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	row.add_theme_font_size_override("normal_font_size", 11)
+
+	var trait_name := item_trait.get_localized_name()
+	var trait_desc := item_trait.get_localized_description()
+	var body := "• [b]%s[/b]" % trait_name
+	if not trait_desc.is_empty():
+		body += ": %s" % trait_desc
+
+	if item_trait.is_active:
+		row.add_theme_color_override("default_color", TRAIT_ACTIVE_COLOR)
+		row.text = body
+	else:
+		row.add_theme_color_override("default_color", TRAIT_INACTIVE_COLOR)
+		row.text = "[s]%s[/s]" % body
+
+	return row
+
+
+func _force_autosize() -> void:
+	reset_size()
+	custom_minimum_size = Vector2(mini(MAX_WIDTH, maxf(220.0, size.x)), 0)
+
+
+# ---------------------------------------------------------------------------
+# Positioning
+# ---------------------------------------------------------------------------
+
+func _reposition_to_mouse() -> void:
+	var mouse := get_viewport().get_mouse_position()
+	var vp := get_viewport().get_visible_rect().size
+	var tip_size := size
+	if tip_size.x < 1.0 or tip_size.y < 1.0:
+		tip_size = get_combined_minimum_size()
+
+	var pos := mouse + CURSOR_OFFSET
+
+	# Flip left if overflowing right edge.
+	if pos.x + tip_size.x > vp.x:
+		pos.x = mouse.x - tip_size.x - CURSOR_OFFSET.x
+	# Flip up if overflowing bottom edge.
+	if pos.y + tip_size.y > vp.y:
+		pos.y = mouse.y - tip_size.y - CURSOR_OFFSET.y
+
+	pos.x = clampf(pos.x, 0.0, maxf(0.0, vp.x - tip_size.x))
+	pos.y = clampf(pos.y, 0.0, maxf(0.0, vp.y - tip_size.y))
+	global_position = pos

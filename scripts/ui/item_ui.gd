@@ -7,6 +7,7 @@ extends Control
 signal drag_begun(item_ui: ItemUI)
 signal drag_finished(item_ui: ItemUI, success: bool)
 signal inspect_requested(item: ItemData)
+signal pointer_down(item_ui: ItemUI)
 
 const DRAG_TYPE := "framewrack_item"
 
@@ -92,11 +93,15 @@ func _short_name(full: String) -> String:
 
 
 func _gui_input(event: InputEvent) -> void:
-	## RMB on a static item opens the details panel (rotation only while dragging).
-	if event is InputEventMouseButton and event.button_index == MOUSE_BUTTON_RIGHT and event.pressed:
-		if not _dragging and item != null:
-			inspect_requested.emit(item)
-		accept_event()
+	if event is InputEventMouseButton and event.pressed:
+		if event.button_index == MOUSE_BUTTON_LEFT:
+			## Hide hover tooltip immediately on LMB pickup (before drag threshold).
+			pointer_down.emit(self)
+		elif event.button_index == MOUSE_BUTTON_RIGHT:
+			## RMB on a static item opens the details panel (rotation only while dragging).
+			if not _dragging and item != null:
+				inspect_requested.emit(item)
+			accept_event()
 
 
 func _notification(what: int) -> void:
