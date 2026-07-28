@@ -12,6 +12,10 @@ KEY_GAME_OVER_TITLE,SYSTEM FAILURE,СБОЙ СИСТЕМЫ
 KEY_GAME_OVER_SUBTITLE,Frame integrity critical. YOU DIED.,Целостность каркаса критична. ВЫ ПОГИБЛИ.
 KEY_MAIN_MENU_TAGLINE,Your inventory is your body.,Твой инвентарь — твоё тело.
 KEY_SETTINGS,Settings,Настройки
+KEY_DIFFICULTY,Difficulty,Сложность
+KEY_DIFFICULTY_EASY,Easy,Лёгкая
+KEY_DIFFICULTY_NORMAL,Normal,Обычная
+KEY_DIFFICULTY_HARD,Hard,Сложная
 KEY_AP,AP,ОД
 KEY_LEVEL_FMT,Level %d / %d,Уровень %d / %d
 KEY_EXPERIENCE_FMT,Experience: %d/%d,Опыт: %d/%d
@@ -71,6 +75,34 @@ KEY_HINT_ROTATED,Rotated to %dx%d — drop to confirm.,Повёрнуто до %
 KEY_HINT_STASH_RETURN,Returned to stash.,Возвращено на склад.
 KEY_ITEM_DETAILS,ITEM DETAILS,ДЕТАЛИ ПРЕДМЕТА
 KEY_INSPECT,Inspect,Осмотреть
+KEY_ABILITIES,Abilities,Способности
+KEY_NO_ABILITIES,No abilities.,Нет способностей.
+KEY_STR,STR,СИЛ
+KEY_AGI,AGI,ЛОВ
+KEY_END,END,ВЫН
+KEY_INT,INT,ИНТ
+KEY_LCK,LCK,УДЧ
+KEY_CRIT_CHANCE_FMT,Crit %.0f%%,Крит %.0f%%
+KEY_ABILITY_DEALS,Deals,Наносит
+KEY_ABILITY_BLOCKS,Blocks,Блокирует
+KEY_ABILITY_HEALS,Heals,Лечит
+KEY_ABILITY_SPECIAL,Special,Особая
+KEY_ABILITY_RANGE_STAT_FMT,"%s %d–%d (%d–%d base + %d %s)","%s %d–%d (%d–%d база + %d %s)"
+KEY_ABILITY_RANGE_FMT,"%s %d–%d (%d–%d base)","%s %d–%d (%d–%d база)"
+KEY_LOG_CRIT_PREFIX,CRIT! %s,КРИТ! %s
+KEY_LOG_ENEMY_BLOCK,%s raises %d block.,%s получает %d блока.
+KEY_LOG_ENEMY_HEAL,%s repairs for %d.,%s восстанавливает %d.
+KEY_LOG_ENEMY_CORRUPT,%s corrupts a body cell.,%s искажает клетку тела.
+ABILITY_PIPE_SWING_NAME,Pipe Swing,Удар трубой
+ABILITY_PIPE_SWING_DESC,A desperate overhead smash.,Отчаянный удар сверху.
+ABILITY_GUARD_NAME,Scrap Guard,Хламовый блок
+ABILITY_GUARD_DESC,Raises a makeshift guard.,Поднимает импровизированную защиту.
+ABILITY_SIGNAL_SPIKE_NAME,Signal Spike,Шип сигнала
+ABILITY_SIGNAL_SPIKE_DESC,A spike of corrupted current.,Всплеск искажённого тока.
+ABILITY_CORRUPT_TOUCH_NAME,Corrupt Touch,Искажающее касание
+ABILITY_CORRUPT_TOUCH_DESC,Burns a hole into your body-grid.,Выжигает дыру в сетке тела.
+ABILITY_REPAIR_PULSE_NAME,Repair Pulse,Импульс ремонта
+ABILITY_REPAIR_PULSE_DESC,Emergency self-suture protocols.,Аварийный саморемонт.
 KEY_PRICE,Price,Цена
 KEY_DAMAGE,Damage,Урон
 KEY_ARMOR,Armor,Броня
@@ -92,7 +124,7 @@ KEY_STATUS_SECTOR_SECURED,Sector secured. Select the next node.,Сектор з�
 KEY_STATUS_WRECKAGE,You are wreckage. Press New Run.,Вы — обломки. Нажмите «Новый забег».
 KEY_STATUS_RUN_COMPLETE,FRAMEWRACK CORE silenced. Run complete.,ЯДРО FRAMEWRACK заглушено. Забег завершён.
 KEY_STATUS_NEW_RUN,New frame online. Graft. Advance. Mutate.,Новый каркас в сети. Встраивай. Продвигай. Мутируй.
-KEY_COMBAT_CLICK_HINT,Click a body module to use it. Click an enemy to retarget.,Клик по модулю на теле — использовать. Клик по врагу — сменить цель.
+KEY_COMBAT_CLICK_HINT,Click a body module to use it. LMB enemy to target; RMB to inspect.,Клик по модулю — использовать. ЛКМ по врагу — цель; ПКМ — осмотр.
 KEY_LOG_NO_USES,No uses left this turn.,Нет использований на этот ход.
 KEY_LOG_NO_CHARGES,No charges remaining.,Заряды закончились.
 KEY_LOG_ITEM_DESTROYED,%s is spent and falls apart.,%s израсходован и разваливается.

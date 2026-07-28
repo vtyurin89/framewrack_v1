@@ -15,8 +15,8 @@ signal state_changed(new_state: CombatState)
 var inventory: InventoryController
 var state: CombatState = CombatState.INACTIVE
 
-## Runtime enemy instances: { data: EnemyData, hp: int, is_selected: bool }
-var enemies: Array[Dictionary] = []
+## Runtime enemy combatants (difficulty-scaled HP + ability AI).
+var enemies: Array[EnemyInstance] = []
 
 var current_ap: int = 0
 var max_ap: int = 3
@@ -37,13 +37,18 @@ func is_player_turn_active() -> bool:
 
 func start_combat(enemy_datas: Array[EnemyData]) -> void:
 	enemies.clear()
-	for data: EnemyData in enemy_datas:
-		enemies.append({"data": data, "hp": data.max_hp, "is_selected": false})
-	current_block = 0
-	_select_first_living_enemy()
 	var ids: Array[String] = []
 	for data: EnemyData in enemy_datas:
+		if data == null:
+			continue
+		var instance := EnemyDatabase.create_instance_from_data(data)
+		if instance == null:
+			instance = EnemyInstance.new()
+			instance.setup(data)
+		enemies.append(instance)
 		ids.append(data.id)
+	current_block = 0
+	_select_first_living_enemy()
 	EventBus.combat_started.emit(ids)
 	_begin_player_turn()
 
@@ -90,7 +95,7 @@ func end_player_turn() -> void:
 func set_target(index: int) -> void:
 	if index < 0 or index >= enemies.size():
 		return
-	if int(enemies[index]["hp"]) <= 0:
+	if not enemies[index].is_alive():
 		return
 	_apply_selection(index)
 
@@ -114,7 +119,7 @@ func _ensure_valid_selection() -> void:
 
 func _apply_selection(index: int) -> void:
 	for i in enemies.size():
-		enemies[i]["is_selected"] = (i == index)
+		enemies[i].is_selected = (i == index)
 	target_index = index
 	EventBus.enemy_selected.emit(index)
 
@@ -235,18 +240,16 @@ func _calc_damage(placed: PlacedItem) -> int:
 func _deal_damage_to(index: int, dmg: int, source_name: String) -> void:
 	if index < 0 or index >= enemies.size():
 		return
-	var entry: Dictionary = enemies[index]
-	if int(entry["hp"]) <= 0:
+	var enemy: EnemyInstance = enemies[index]
+	if not enemy.is_alive():
 		return
 	var adjacency_note := ""
-	entry["hp"] = maxi(0, int(entry["hp"]) - dmg)
-	enemies[index] = entry
-	var ename: String = (entry["data"] as EnemyData).get_localized_name()
+	enemy.apply_incoming_damage(dmg)
 	EventBus.combat_log_message.emit(
-		tr("KEY_LOG_DAMAGE") % [source_name, dmg, adjacency_note, ename]
+		tr("KEY_LOG_DAMAGE") % [source_name, dmg, adjacency_note, enemy.get_localized_name()]
 	)
-	EventBus.enemy_hp_changed.emit(index, int(entry["hp"]), (entry["data"] as EnemyData).max_hp)
-	if int(entry["hp"]) <= 0:
+	EventBus.enemy_hp_changed.emit(index, enemy.current_hp, enemy.max_hp)
+	if not enemy.is_alive():
 		_ensure_valid_selection()
 
 
@@ -306,10 +309,8 @@ func _resolve_consumable_enemy(placed: PlacedItem, enemy_index: int) -> void:
 		var burn_hit := TraitManager.get_trait_value(data, "TRAIT_BURN_DAMAGE", 18)
 		_deal_damage_to(enemy_index, burn_hit, data.get_localized_name())
 		dealt = burn_hit
-		var entry: Dictionary = enemies[enemy_index]
-		var cur_burn := int(entry.get("burn", 0))
-		entry["burn"] = cur_burn + TraitManager.BURN_APPLY_STACKS
-		enemies[enemy_index] = entry
+		if enemy_index >= 0 and enemy_index < enemies.size():
+			enemies[enemy_index].burn += TraitManager.BURN_APPLY_STACKS
 	if dealt == 0:
 		_deal_damage_to(enemy_index, data.base_damage, data.get_localized_name())
 
@@ -331,11 +332,10 @@ func _begin_enemy_turn() -> void:
 func _run_enemy_actions() -> void:
 	_tick_enemy_burn()
 	for i in enemies.size():
-		var entry: Dictionary = enemies[i]
-		if int(entry["hp"]) <= 0:
+		var enemy: EnemyInstance = enemies[i]
+		if not enemy.is_alive():
 			continue
-		var data: EnemyData = entry["data"]
-		_enemy_act(i, data)
+		_enemy_act(i, enemy)
 		if inventory.is_dead():
 			_lose()
 			return
@@ -348,49 +348,79 @@ func _run_enemy_actions() -> void:
 		_begin_player_turn()
 
 
-func _enemy_act(index: int, data: EnemyData) -> void:
-	var attack := data.choose_attack()
-	match attack:
-		EnemyData.AttackType.SPECIAL:
-			_enemy_special(index, data)
+func _enemy_act(index: int, enemy: EnemyInstance) -> void:
+	var ability: EnemyAbility = enemy.choose_ability()
+	if ability == null:
+		## Fallback for legacy blueprints without ability lists.
+		var data := enemy.data
+		if data != null and data.choose_attack() == EnemyData.AttackType.SPECIAL:
+			_apply_enemy_hit(index, enemy, data.special_damage, false, data.corruption_duration)
+		else:
+			var dmg := data.basic_damage if data else 5
+			if GameSettings != null:
+				dmg = int(round(float(dmg) * GameSettings.get_enemy_damage_multiplier()))
+			_apply_enemy_hit(index, enemy, dmg, false, 0)
+		return
+
+	var resolved: Dictionary = enemy.resolve_ability(ability)
+	var amount: int = int(resolved.get("amount", 0))
+	var is_crit: bool = bool(resolved.get("is_crit", false))
+	match ability.type:
+		EnemyAbility.AbilityType.BLOCK:
+			enemy.gain_block(amount)
+			var msg := tr("KEY_LOG_ENEMY_BLOCK") % [enemy.get_localized_name(), amount]
+			if is_crit:
+				msg = tr("KEY_LOG_CRIT_PREFIX") % msg
+			EventBus.combat_log_message.emit(msg)
+			EventBus.enemy_hp_changed.emit(index, enemy.current_hp, enemy.max_hp)
+		EnemyAbility.AbilityType.HEAL:
+			var healed := enemy.heal(amount)
+			var msg := tr("KEY_LOG_ENEMY_HEAL") % [enemy.get_localized_name(), healed]
+			if is_crit:
+				msg = tr("KEY_LOG_CRIT_PREFIX") % msg
+			EventBus.combat_log_message.emit(msg)
+			EventBus.enemy_hp_changed.emit(index, enemy.current_hp, enemy.max_hp)
+		EnemyAbility.AbilityType.SPECIAL:
+			_apply_enemy_hit(index, enemy, amount, is_crit, ability.corruption_duration)
 		_:
-			_enemy_basic(index, data)
+			_apply_enemy_hit(index, enemy, amount, is_crit, 0)
 
 
-func _enemy_basic(index: int, data: EnemyData) -> void:
-	var dealt := inventory.apply_damage(data.basic_damage, current_block)
-	current_block = maxi(0, current_block - data.basic_damage)
+func _apply_enemy_hit(
+	index: int,
+	enemy: EnemyInstance,
+	damage: int,
+	is_crit: bool,
+	corruption_duration: int
+) -> void:
+	var dealt := inventory.apply_damage(damage, current_block)
+	current_block = maxi(0, current_block - damage)
 	EventBus.block_changed.emit(current_block)
-	EventBus.combat_log_message.emit(
-		tr("KEY_LOG_ENEMY_STRIKE") % [data.get_localized_name(), data.basic_damage, dealt]
-	)
-	EventBus.enemy_hp_changed.emit(index, int(enemies[index]["hp"]), data.max_hp)
-
-
-func _enemy_special(index: int, data: EnemyData) -> void:
-	var dealt := inventory.apply_damage(data.special_damage, current_block)
-	current_block = maxi(0, current_block - data.special_damage)
-	EventBus.block_changed.emit(current_block)
-	EventBus.combat_log_message.emit(
-		tr("KEY_LOG_ENEMY_STRIKE") % [data.get_localized_name(), data.special_damage, dealt]
-	)
-	EventBus.enemy_hp_changed.emit(index, int(enemies[index]["hp"]), data.max_hp)
+	var msg := tr("KEY_LOG_ENEMY_STRIKE") % [enemy.get_localized_name(), damage, dealt]
+	if is_crit:
+		msg = tr("KEY_LOG_CRIT_PREFIX") % msg
+	EventBus.combat_log_message.emit(msg)
+	if corruption_duration > 0 and inventory != null and inventory.grid != null:
+		var cell: Vector2i = inventory.grid.corrupt_random_unlocked_cell(corruption_duration)
+		if cell.x >= 0:
+			EventBus.combat_log_message.emit(
+				tr("KEY_LOG_ENEMY_CORRUPT") % enemy.get_localized_name()
+			)
+	EventBus.enemy_hp_changed.emit(index, enemy.current_hp, enemy.max_hp)
 
 
 func _tick_enemy_burn() -> void:
 	for i in enemies.size():
-		var entry: Dictionary = enemies[i]
-		if int(entry["hp"]) <= 0:
+		var enemy: EnemyInstance = enemies[i]
+		if not enemy.is_alive():
 			continue
-		var burn := int(entry.get("burn", 0))
+		var burn := enemy.burn
 		if burn <= 0:
 			continue
-		entry["hp"] = maxi(0, int(entry["hp"]) - burn)
-		entry["burn"] = maxi(0, burn - 1)
-		enemies[i] = entry
-		var enemy_name := (entry["data"] as EnemyData).get_localized_name()
-		EventBus.combat_log_message.emit("%s burns for %d." % [enemy_name, burn])
-		EventBus.enemy_hp_changed.emit(i, int(entry["hp"]), (entry["data"] as EnemyData).max_hp)
+		enemy.current_hp = maxi(0, enemy.current_hp - burn)
+		enemy.burn = maxi(0, burn - 1)
+		EventBus.combat_log_message.emit("%s burns for %d." % [enemy.get_localized_name(), burn])
+		EventBus.enemy_hp_changed.emit(i, enemy.current_hp, enemy.max_hp)
 
 
 func _clear_player_negative_statuses() -> void:
@@ -402,7 +432,7 @@ func _clear_player_negative_statuses() -> void:
 func _living_enemy_indices() -> Array[int]:
 	var result: Array[int] = []
 	for i in enemies.size():
-		if int(enemies[i]["hp"]) > 0:
+		if enemies[i].is_alive():
 			result.append(i)
 	return result
 
@@ -413,9 +443,8 @@ func _all_enemies_dead() -> bool:
 
 func _emit_enemy_hp() -> void:
 	for i in enemies.size():
-		var e: Dictionary = enemies[i]
-		var d: EnemyData = e["data"]
-		EventBus.enemy_hp_changed.emit(i, int(e["hp"]), d.max_hp)
+		var enemy: EnemyInstance = enemies[i]
+		EventBus.enemy_hp_changed.emit(i, enemy.current_hp, enemy.max_hp)
 	if target_index >= 0:
 		EventBus.enemy_selected.emit(target_index)
 

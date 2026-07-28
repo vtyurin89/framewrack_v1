@@ -12,11 +12,14 @@ const COLOR_CHECK_HOVER_ON := Color(0.663, 0.196, 0.149, 1.0) # #A93226
 @onready var _title_label: Label = %TitleLabel
 @onready var _lang_label: Label = %LanguageLabel
 @onready var _lang_option: OptionButton = %LanguageOption
+@onready var _difficulty_label: Label = %DifficultyLabel
+@onready var _difficulty_option: OptionButton = %DifficultyOption
 @onready var _apply_btn: Button = %ApplyButton
 @onready var _hide_debug_check: CheckButton = %HideDebugCheck
 
 var _draft_language: String = "en"
 var _draft_hide_debug: bool = false
+var _draft_difficulty: int = 1
 
 
 func _ready() -> void:
@@ -24,6 +27,8 @@ func _ready() -> void:
 	_rewire_close_to_cancel()
 	if _lang_option:
 		_lang_option.item_selected.connect(_on_language_selected)
+	if _difficulty_option:
+		_difficulty_option.item_selected.connect(_on_difficulty_selected)
 	if _apply_btn:
 		_apply_btn.pressed.connect(_on_save_and_exit_pressed)
 		_apply_btn.mouse_default_cursor_shape = Control.CURSOR_POINTING_HAND
@@ -67,10 +72,12 @@ func _capture_draft_from_live() -> void:
 	if _draft_language.is_empty():
 		_draft_language = "en"
 	_draft_hide_debug = GameSettings.hide_debug_tools
+	_draft_difficulty = int(GameSettings.difficulty)
 
 
 func _populate_ui_from_draft() -> void:
 	_refresh_language_options()
+	_refresh_difficulty_options()
 	_sync_debug_toggle_from_draft()
 
 
@@ -79,6 +86,7 @@ func _on_locale_changed(_locale: String) -> void:
 	## Keep draft selection visible while editing; only rebuild labels.
 	if is_open():
 		_refresh_language_options()
+		_refresh_difficulty_options()
 
 
 func _apply_locale_labels() -> void:
@@ -86,6 +94,8 @@ func _apply_locale_labels() -> void:
 		_title_label.text = tr("KEY_SETTINGS")
 	if _lang_label:
 		_lang_label.text = tr("KEY_LANGUAGE")
+	if _difficulty_label:
+		_difficulty_label.text = tr("KEY_DIFFICULTY")
 	if _apply_btn:
 		_apply_btn.text = tr("KEY_SAVE_AND_EXIT")
 	if _hide_debug_check:
@@ -113,11 +123,42 @@ func _refresh_language_options() -> void:
 		_lang_option.item_selected.connect(_on_language_selected)
 
 
+func _refresh_difficulty_options() -> void:
+	if _difficulty_option == null:
+		return
+	var was_connected := _difficulty_option.item_selected.is_connected(_on_difficulty_selected)
+	if was_connected:
+		_difficulty_option.item_selected.disconnect(_on_difficulty_selected)
+	_difficulty_option.clear()
+	var levels: Array[int] = [
+		GameSettings.Difficulty.EASY,
+		GameSettings.Difficulty.NORMAL,
+		GameSettings.Difficulty.HARD,
+	]
+	var selected_idx := 1
+	for i in levels.size():
+		var level: int = levels[i]
+		_difficulty_option.add_item(tr(GameSettings.difficulty_label_key(level)), i)
+		_difficulty_option.set_item_metadata(i, level)
+		if level == _draft_difficulty:
+			selected_idx = i
+	_difficulty_option.select(selected_idx)
+	if was_connected:
+		_difficulty_option.item_selected.connect(_on_difficulty_selected)
+
+
 func _on_language_selected(index: int) -> void:
 	var code: Variant = _lang_option.get_item_metadata(index)
 	if code == null:
 		return
 	_draft_language = str(code)
+
+
+func _on_difficulty_selected(index: int) -> void:
+	var level: Variant = _difficulty_option.get_item_metadata(index)
+	if level == null:
+		return
+	_draft_difficulty = int(level)
 
 
 func _sync_debug_toggle_from_draft() -> void:
@@ -139,6 +180,7 @@ func _on_save_and_exit_pressed() -> void:
 	if not LocalizationManager.get_locale().begins_with(_draft_language):
 		LocalizationManager.set_language(_draft_language)
 	GameSettings.toggle_debug_tools(_draft_hide_debug)
+	GameSettings.set_difficulty(_draft_difficulty as GameSettings.Difficulty)
 	close()
 
 

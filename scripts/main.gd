@@ -412,14 +412,10 @@ func _start_combat_for_current() -> void:
 	var datas: Array[EnemyData] = []
 	_pending_combat_exp_reward = 0
 	for eid in enemy_ids:
-		match str(eid):
-			"desperate_rebel":
-				datas.append(ENEMY_REBEL.duplicate(true) as EnemyData)
-			"corrupted_synthet":
-				datas.append(ENEMY_SYNTHET.duplicate(true) as EnemyData)
-	for enemy_data: EnemyData in datas:
+		var enemy_data := _resolve_enemy_blueprint(str(eid))
 		if enemy_data == null:
 			continue
+		datas.append(enemy_data)
 		_pending_combat_exp_reward += maxi(enemy_data.exp_reward, 0)
 	_show_combat()
 	_combat_ui.setup(_combat, inventory)
@@ -429,6 +425,20 @@ func _start_combat_for_current() -> void:
 	if not label_key.is_empty():
 		node_label = tr(label_key)
 	_status_banner.text = tr("KEY_STATUS_ENGAGEMENT") % node_label
+
+
+func _resolve_enemy_blueprint(enemy_id: String) -> EnemyData:
+	## Prefer CSV catalog; fall back to legacy .tres resources.
+	if EnemyDatabase != null and EnemyDatabase.has_enemy(enemy_id):
+		return EnemyDatabase.create_blueprint(enemy_id)
+	match enemy_id:
+		"desperate_rebel":
+			return ENEMY_REBEL.duplicate(true) as EnemyData
+		"corrupted_synthet":
+			return ENEMY_SYNTHET.duplicate(true) as EnemyData
+		_:
+			push_warning("Unknown enemy id '%s'" % enemy_id)
+			return null
 
 
 func _on_end_turn() -> void:

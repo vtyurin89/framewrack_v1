@@ -27,6 +27,7 @@ LocalizationManager="*res://scripts/global/localization_manager.gd"
 ItemDatabase="*res://scripts/global/item_database.gd"
 GameManager="*res://scripts/global/game_manager.gd"
 GameSettings="*res://scripts/global/game_settings.gd"
+EnemyDatabase="*res://scripts/global/enemy_database.gd"
 
 [display]
 

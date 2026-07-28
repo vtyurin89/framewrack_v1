@@ -6,8 +6,11 @@ signal end_turn_pressed
 signal target_selected(index: int)
 signal continue_pressed
 
+const ENEMY_INSPECT_SCENE := preload("res://scenes/UI/enemy_inspect_ui.tscn")
+
 var combat: Node  # CombatManager
 var inventory: InventoryController
+var _enemy_inspect: EnemyInspectUI
 
 @onready var _enemy_row: HBoxContainer = %EnemyRow
 @onready var _hp_label: Label = %HPLabel
@@ -73,38 +76,50 @@ func _apply_static_locale() -> void:
 		_hint_label.text = tr("KEY_COMBAT_CLICK_HINT")
 
 
+func _ensure_enemy_inspect() -> void:
+	if _enemy_inspect != null and is_instance_valid(_enemy_inspect):
+		return
+	_enemy_inspect = ENEMY_INSPECT_SCENE.instantiate() as EnemyInspectUI
+	var host: Node = get_tree().current_scene
+	if host == null:
+		host = self
+	host.add_child(_enemy_inspect)
+
+
 func _rebuild_enemies() -> void:
 	for child in _enemy_row.get_children():
 		child.queue_free()
 	if combat == null:
 		return
 	for i in combat.enemies.size():
-		var entry: Dictionary = combat.enemies[i]
-		var data: EnemyData = entry["data"]
+		var enemy: EnemyInstance = combat.enemies[i]
 		var panel := PanelContainer.new()
 		panel.mouse_filter = Control.MOUSE_FILTER_STOP
 		panel.mouse_default_cursor_shape = Control.CURSOR_POINTING_HAND
 		panel.gui_input.connect(_on_enemy_panel_input.bind(i))
-		_style_enemy_panel(panel, i, bool(entry.get("is_selected", false)))
+		_style_enemy_panel(panel, i, enemy.is_selected)
 
 		var v := VBoxContainer.new()
 		v.mouse_filter = Control.MOUSE_FILTER_IGNORE
 		var name_l := Label.new()
-		name_l.text = data.get_localized_name()
+		name_l.text = enemy.get_localized_name()
 		name_l.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 		name_l.mouse_filter = Control.MOUSE_FILTER_IGNORE
 		var sprite := ColorRect.new()
 		sprite.custom_minimum_size = Vector2(80, 100)
-		sprite.color = data.placeholder_color
+		if enemy.data != null:
+			sprite.color = enemy.data.placeholder_color
+		else:
+			sprite.color = Color(0.82, 0.82, 0.85)
 		sprite.mouse_filter = Control.MOUSE_FILTER_IGNORE
 		var hp_l := Label.new()
 		hp_l.name = "HP"
-		hp_l.text = tr("KEY_HP_FMT") % [tr("KEY_HP"), int(entry["hp"]), data.max_hp]
+		hp_l.text = tr("KEY_HP_FMT") % [tr("KEY_HP"), enemy.current_hp, enemy.max_hp]
 		hp_l.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 		hp_l.mouse_filter = Control.MOUSE_FILTER_IGNORE
 		var marker := Label.new()
 		marker.name = "SelectMarker"
-		marker.text = "▼" if bool(entry.get("is_selected", false)) else ""
+		marker.text = "▼" if enemy.is_selected else ""
 		marker.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 		marker.add_theme_color_override("font_color", Color(0.95, 0.85, 0.35))
 		marker.mouse_filter = Control.MOUSE_FILTER_IGNORE
@@ -115,7 +130,7 @@ func _rebuild_enemies() -> void:
 		v.add_child(hp_l)
 		panel.add_child(v)
 		_enemy_row.add_child(panel)
-		if int(entry["hp"]) <= 0:
+		if not enemy.is_alive():
 			panel.modulate = Color(0.3, 0.3, 0.3, 0.6)
 			panel.mouse_filter = Control.MOUSE_FILTER_IGNORE
 
@@ -130,9 +145,23 @@ func _style_enemy_panel(panel: PanelContainer, _index: int, selected: bool) -> v
 
 
 func _on_enemy_panel_input(event: InputEvent, index: int) -> void:
-	if event is InputEventMouseButton and event.pressed and event.button_index == MOUSE_BUTTON_LEFT:
-		target_selected.emit(index)
-		_on_log(tr("KEY_LOG_TARGETING") % (index + 1))
+	if event is InputEventMouseButton and event.pressed:
+		if event.button_index == MOUSE_BUTTON_LEFT:
+			target_selected.emit(index)
+			_on_log(tr("KEY_LOG_TARGETING") % (index + 1))
+		elif event.button_index == MOUSE_BUTTON_RIGHT:
+			_open_enemy_inspect(index)
+
+
+func _open_enemy_inspect(index: int) -> void:
+	if combat == null or index < 0 or index >= combat.enemies.size():
+		return
+	var enemy: EnemyInstance = combat.enemies[index]
+	if enemy == null or not enemy.is_alive():
+		return
+	_ensure_enemy_inspect()
+	if _enemy_inspect:
+		_enemy_inspect.open_enemy(enemy)
 
 
 func _on_enemy_selected(index: int) -> void:
