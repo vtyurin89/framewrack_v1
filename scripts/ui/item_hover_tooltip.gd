@@ -21,6 +21,9 @@ var _desc_label: RichTextLabel
 var _traits_box: VBoxContainer
 var _item: ItemData
 var _pending_item: ItemData
+var _pending_title: String = ""
+var _pending_body: String = ""
+var _text_mode: bool = false
 var _following: bool = false
 var _show_timer: Timer
 ## Optional player stats so tooltips include STR/AGI/INT scaling.
@@ -54,7 +57,21 @@ func request_show_for_item(item: ItemData) -> void:
 	if item == null:
 		hide_tooltip()
 		return
+	_pending_title = ""
+	_pending_body = ""
 	_pending_item = item
+	if _show_timer:
+		_show_timer.start(SHOW_DELAY_SEC)
+
+
+func request_show_text(title: String, body: String) -> void:
+	## Reuse the same hover panel for non-item content (e.g. player stats).
+	if title.strip_edges().is_empty() and body.strip_edges().is_empty():
+		hide_tooltip()
+		return
+	_pending_item = null
+	_pending_title = title
+	_pending_body = body
 	if _show_timer:
 		_show_timer.start(SHOW_DELAY_SEC)
 
@@ -65,6 +82,7 @@ func show_for_item(item: ItemData) -> void:
 	if item == null:
 		hide_tooltip()
 		return
+	_text_mode = false
 	_item = item
 	_populate(item)
 	visible = true
@@ -79,9 +97,26 @@ func show_for_item(item: ItemData) -> void:
 	_reposition_to_mouse()
 
 
+func show_for_text(title: String, body: String) -> void:
+	_cancel_pending_show()
+	_item = null
+	_text_mode = true
+	_populate_text(title, body)
+	visible = true
+	_following = true
+	set_process(true)
+	await get_tree().process_frame
+	if not is_instance_valid(self):
+		return
+	if not visible or not _text_mode:
+		return
+	_reposition_to_mouse()
+
+
 func hide_tooltip() -> void:
 	_cancel_pending_show()
 	_item = null
+	_text_mode = false
 	_following = false
 	set_process(false)
 	visible = false
@@ -89,11 +124,21 @@ func hide_tooltip() -> void:
 
 func _cancel_pending_show() -> void:
 	_pending_item = null
+	_pending_title = ""
+	_pending_body = ""
 	if _show_timer:
 		_show_timer.stop()
 
 
 func _on_show_timer_timeout() -> void:
+	if not _pending_title.is_empty() or not _pending_body.is_empty():
+		var title := _pending_title
+		var body := _pending_body
+		_pending_title = ""
+		_pending_body = ""
+		_pending_item = null
+		show_for_text(title, body)
+		return
 	var item := _pending_item
 	_pending_item = null
 	if item == null:
@@ -102,7 +147,7 @@ func _on_show_timer_timeout() -> void:
 
 
 func is_showing_item(item: ItemData) -> bool:
-	return visible and _item == item
+	return visible and not _text_mode and _item == item
 
 
 # ---------------------------------------------------------------------------
@@ -203,6 +248,7 @@ func _populate(item: ItemData) -> void:
 		_ap_label.visible = false
 		_ap_label.text = ""
 
+	_meta_label.visible = true
 	_meta_label.text = _build_meta_line(item)
 	_combat_label.text = _build_combat_line(item)
 	_combat_label.visible = not _combat_label.text.is_empty()
@@ -212,6 +258,23 @@ func _populate(item: ItemData) -> void:
 	_desc_label.text = desc
 
 	_rebuild_traits(item)
+	_force_autosize()
+
+
+func _populate_text(title: String, body: String) -> void:
+	_name_label.text = title if not title.is_empty() else tr("KEY_PLAYER_STATS")
+	_name_label.add_theme_color_override("font_color", DEFAULT_NAME_COLOR)
+	_ap_label.visible = false
+	_ap_label.text = ""
+	_meta_label.visible = false
+	_meta_label.text = ""
+	_combat_label.visible = false
+	_combat_label.text = ""
+	_desc_label.visible = not body.is_empty()
+	_desc_label.text = body
+	for child in _traits_box.get_children():
+		child.queue_free()
+	_traits_box.visible = false
 	_force_autosize()
 
 

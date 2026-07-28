@@ -55,13 +55,44 @@ var _inspect_modal: ItemInspectModal
 
 @onready var _grid_host: Control = %GridHost
 @onready var _grid_root: GridContainer = %GridRoot
-@onready var _mutation_label: Label = %MutationLabel
+@onready var _stats_label: Label = %StatsHeaderLabel
 @onready var _item_layer: Control = %ItemLayer
 @onready var _title: Label = %Title
 @onready var _close_button: Button = %CloseButton
 @onready var _padding: MarginContainer = %Padding
 @onready var _level_up_overlay: ColorRect = %LevelUpOverlay
 @onready var _level_up_button: Button = %LevelUpButton
+
+
+func _ready() -> void:
+	_wire_stats_label_hover()
+	_on_stats_changed()
+
+
+func _wire_stats_label_hover() -> void:
+	if _stats_label == null:
+		return
+	_stats_label.mouse_filter = Control.MOUSE_FILTER_STOP
+	_stats_label.mouse_default_cursor_shape = Control.CURSOR_POINTING_HAND
+	if not _stats_label.mouse_entered.is_connected(_on_stats_label_mouse_entered):
+		_stats_label.mouse_entered.connect(_on_stats_label_mouse_entered)
+	if not _stats_label.mouse_exited.is_connected(_on_stats_label_mouse_exited):
+		_stats_label.mouse_exited.connect(_on_stats_label_mouse_exited)
+
+
+func _on_stats_label_mouse_entered() -> void:
+	if player_stats == null:
+		return
+	_ensure_hover_tooltip()
+	_hovered_item_ui = null
+	_hover_tooltip.request_show_text(
+		tr("KEY_PLAYER_STATS"),
+		player_stats.format_stats_tooltip_body()
+	)
+
+
+func _on_stats_label_mouse_exited() -> void:
+	_hide_hover_tooltip()
 
 
 func setup(p_inventory: InventoryController) -> void:
@@ -94,16 +125,40 @@ func setup(p_inventory: InventoryController) -> void:
 
 
 func bind_player_stats(stats: PlayerStats) -> void:
+	if player_stats != null and player_stats.stats_changed.is_connected(_on_stats_changed):
+		player_stats.stats_changed.disconnect(_on_stats_changed)
 	player_stats = stats
 	if _hover_tooltip != null:
 		_hover_tooltip.actor_stats = stats
 	if _inspect_modal != null:
 		_inspect_modal.actor_stats = stats
+	if player_stats != null:
+		if not player_stats.stats_changed.is_connected(_on_stats_changed):
+			player_stats.stats_changed.connect(_on_stats_changed)
+		_recalculate_player_equipment_stats()
+		_on_stats_changed()
 	if player_stats != null and player_stats.has_pending_level_ups():
 		set_level_up_mode(true)
 	else:
 		_sync_level_up_overlay()
 
+
+func _on_stats_changed() -> void:
+	if _stats_label == null:
+		return
+	if player_stats == null:
+		_stats_label.text = "STR: — | AGI: — | END: — | INT: — | LCK: — | HUM: —"
+		return
+	_stats_label.text = player_stats.format_stats_header()
+	if inventory != null:
+		inventory.apply_actor_stats(player_stats)
+
+
+func _recalculate_player_equipment_stats() -> void:
+	if player_stats == null:
+		return
+	var grid: BodyGrid = inventory.grid if inventory != null else null
+	player_stats.recalculate_from_equipment(grid)
 
 func set_combat_mode(enabled: bool, p_combat: Node = null) -> void:
 	combat_click_mode = enabled
@@ -229,13 +284,7 @@ func _apply_static_locale() -> void:
 		_close_button.text = "✕"
 	if _level_up_button:
 		_level_up_button.text = tr("KEY_LEVEL_UP")
-	if _mutation_label and _drag.is_empty():
-		if (
-			_mutation_label.text.is_empty()
-			or _mutation_label.text.begins_with("MUTATION: mechanical")
-			or _mutation_label.text.begins_with("МУТАЦИЯ: механический")
-		):
-			_mutation_label.text = tr("KEY_MUTATION_DEFAULT")
+	_on_stats_changed()
 
 
 func refresh() -> void:
@@ -247,12 +296,13 @@ func refresh() -> void:
 
 
 func _on_inventory_changed() -> void:
+	_recalculate_player_equipment_stats()
 	refresh()
 
 
 func _on_grid_expanded(new_cells: Array[Vector2i]) -> void:
-	_mutation_label.text = tr("KEY_MUTATION_OVERLAY_FMT") % new_cells.size()
 	refresh()
+	_on_stats_changed()
 	if not _suppress_unlock_reveal:
 		_play_unlock_reveal(new_cells)
 

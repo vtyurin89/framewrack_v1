@@ -46,12 +46,14 @@ unique_name_in_owner = true
 layout_mode = 2
 text = "✕"
 
-[node name="MutationLabel" type="Label" parent="Padding/GridColumn"]
+[node name="StatsHeaderLabel" type="Label" parent="Padding/GridColumn"]
 unique_name_in_owner = true
 layout_mode = 2
-theme_override_colors/font_color = Color(0.7, 0.55, 0.65, 1)
+mouse_filter = 0
+mouse_default_cursor_shape = 2
+theme_override_colors/font_color = Color(0.72, 0.78, 0.84, 1)
 theme_override_font_sizes/font_size = 12
-text = "MUTATION: mechanical frame"
+text = "STR: 1 | AGI: 1 | END: 2 | INT: 1 | LCK: 1 | HUM: 5"
 
 [node name="GridFrame" type="MarginContainer" parent="Padding/GridColumn"]
 layout_mode = 2

@@ -307,6 +307,8 @@ func _consume_charge_if_needed(placed: PlacedItem) -> void:
 		EventBus.item_removed.emit(data.id)
 		EventBus.inventory_changed.emit()
 		EventBus.combat_log_message.emit(tr("KEY_LOG_ITEM_DESTROYED") % data.get_localized_name())
+	if player_stats != null and inventory != null:
+		player_stats.recalculate_from_equipment(inventory.grid)
 
 
 func _gain_block(amount: int, source_name: String) -> void:

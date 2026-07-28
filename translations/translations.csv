@@ -51,6 +51,7 @@ KEY_EDGE_CELL,Edge cell,Крайняя клетка
 KEY_BODY_CELL,Body cell,Клетка тела
 KEY_SECTOR_MAP,SECTOR MAP — choose the next node,КАРТА СЕКТОРА — выберите следующий узел
 KEY_BODY_GRID_TITLE,BODY GRID,СЕТКА ТЕЛА
+KEY_PLAYER_STATS,Player Stats,Характеристики
 KEY_STASH_TITLE,STASH / UNGRAFTED,СКЛАД / НЕВСТРОЕННОЕ
 KEY_MUTATION_DEFAULT,MUTATION: mechanical frame,МУТАЦИЯ: механический каркас
 KEY_TYPE_COMBAT,COMBAT,БОЙ

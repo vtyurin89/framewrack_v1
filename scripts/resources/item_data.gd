@@ -345,6 +345,40 @@ func is_shield() -> bool:
 	return (base_armor > 0 or block_amount > 0) and ap_cost > 0
 
 
+func get_equipment_stat_modifiers() -> Dictionary:
+	## Flat ActorStats granted while this module is functional on the body grid.
+	## Traits with effect_target STR/AGI/END/INT/LCK/HUM contribute when active.
+	var result: Dictionary = {}
+	for item_trait: TraitData in traits:
+		if item_trait == null or not item_trait.is_active:
+			continue
+		if item_trait.effect_value == 0:
+			continue
+		var key := _equipment_stat_key(item_trait.effect_target)
+		if key.is_empty():
+			continue
+		result[key] = int(result.get(key, 0)) + item_trait.effect_value
+	return result
+
+
+func _equipment_stat_key(raw: String) -> String:
+	match raw.strip_edges().to_upper():
+		"STR", "STRENGTH":
+			return "strength"
+		"AGI", "AGILITY":
+			return "agility"
+		"END", "ENDURANCE":
+			return "endurance"
+		"INT", "INTELLIGENCE":
+			return "intelligence"
+		"LCK", "LUCK":
+			return "luck"
+		"HUM", "HUMANITY":
+			return "humanity"
+		_:
+			return ""
+
+
 func rotate_size() -> void:
 	size = Vector2i(size.y, size.x)
 
