@@ -1,16 +1,11 @@
 class_name EnemyInstance
-extends RefCounted
+extends ActorStats
 ## Runtime enemy: difficulty-scaled HP, stats, ability rolls, and turn-phase state.
 
 const CRIT_DAMAGE_MULT := 1.4
 const MIN_STAT := 1
 
 var data: EnemyData
-var strength: int = 1
-var agility: int = 1
-var endurance: int = 1
-var intelligence: int = 1
-var luck: int = 1
 var max_hp: int = 1
 var current_hp: int = 1
 var current_block: int = 0
@@ -28,11 +23,7 @@ func setup(blueprint: EnemyData) -> void:
 	turns_taken = 0
 	_ability_cooldowns.clear()
 	if data == null:
-		strength = MIN_STAT
-		agility = MIN_STAT
-		endurance = MIN_STAT
-		intelligence = MIN_STAT
-		luck = MIN_STAT
+		reset_combat_stats(MIN_STAT, MIN_STAT, MIN_STAT, MIN_STAT, MIN_STAT)
 		max_hp = 1
 		current_hp = 1
 		abilities.clear()
@@ -47,7 +38,8 @@ func setup(blueprint: EnemyData) -> void:
 	var hp_mult := 1.0
 	if GameSettings != null:
 		hp_mult = GameSettings.get_enemy_hp_multiplier()
-	var raw_hp := float(data.get_effective_base_hp()) + float(endurance) * 10.0
+	## ActorStats formula: base_hp + (endurance * 5), then difficulty mult.
+	var raw_hp := float(get_max_hp(data.get_effective_base_hp()))
 	max_hp = maxi(1, int(round(raw_hp * hp_mult)))
 	current_hp = max_hp
 	current_block = 0
@@ -127,11 +119,6 @@ func get_localized_description() -> String:
 	return ""
 
 
-func get_crit_chance() -> float:
-	## Crit chance = max(0, (luck - 1) * 0.05).
-	return maxf(0.0, float(luck - 1) * 0.05)
-
-
 func roll_crit() -> bool:
 	var chance := get_crit_chance()
 	if chance <= 0.0:
@@ -162,6 +149,12 @@ func get_ability_value_range(ability: EnemyAbility) -> Vector2i:
 	if ability.type == EnemyAbility.AbilityType.MULTI_HIT:
 		var half_str := EnemyAbilityExecutor.resolve_damage_stat_bonus(self, ability)
 		return Vector2i(r.x + half_str, r.y + half_str)
+	## Shield: base_block + agility (always).
+	if (
+		ability.type == EnemyAbility.AbilityType.BLOCK
+		or ability.main_effect.strip_edges().to_lower() == "shield"
+	):
+		return Vector2i(r.x + agility, r.y + agility)
 	if ability.stat_scaling == EnemyAbility.StatScaling.NONE:
 		return r
 	var stat := get_stat(ability.stat_scaling)
@@ -178,12 +171,16 @@ func format_ability_tooltip(ability: EnemyAbility) -> String:
 	if ability.type == EnemyAbility.AbilityType.MULTI_HIT:
 		var hits := ability.hit_count if ability.hit_count > 0 else 3
 		var threshold_pct := int(round((ability.hp_threshold if ability.hp_threshold > 0.0 else 0.4) * 100.0))
-		var scaled := get_ability_value_range(ability)
+		var scaled_mh := get_ability_value_range(ability)
 		var half_str := EnemyAbilityExecutor.resolve_damage_stat_bonus(self, ability)
-		return tr("KEY_ABILITY_MULTI_HIT_FMT") % [hits, scaled.x, scaled.y, half_str, threshold_pct]
+		return tr("KEY_ABILITY_MULTI_HIT_FMT") % [hits, scaled_mh.x, scaled_mh.y, half_str, threshold_pct]
 	var scaled := get_ability_value_range(ability)
-	var stat := get_stat(ability.stat_scaling)
-	var stat_key := ability.stat_label_key()
+	var is_shield := (
+		ability.type == EnemyAbility.AbilityType.BLOCK
+		or ability.main_effect.strip_edges().to_lower() == "shield"
+	)
+	var stat := agility if is_shield else get_stat(ability.stat_scaling)
+	var stat_key := "KEY_AGI" if is_shield else ability.stat_label_key()
 	var action_verb := tr("KEY_ABILITY_DEALS")
 	match ability.type:
 		EnemyAbility.AbilityType.BLOCK:
@@ -194,6 +191,8 @@ func format_ability_tooltip(ability: EnemyAbility) -> String:
 			action_verb = tr("KEY_ABILITY_SPECIAL")
 		_:
 			action_verb = tr("KEY_ABILITY_DEALS")
+	if is_shield:
+		action_verb = tr("KEY_ABILITY_BLOCKS")
 	if stat > 0 and not stat_key.is_empty():
 		return tr("KEY_ABILITY_RANGE_STAT_FMT") % [
 			action_verb,

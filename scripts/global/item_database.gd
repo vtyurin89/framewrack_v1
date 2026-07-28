@@ -66,6 +66,32 @@ func _parse_target_type(raw: String) -> ItemData.TargetType:
 			return ItemData.TargetType.SINGLE_ENEMY
 
 
+func _parse_stat_scaling(raw: String, item: ItemData) -> ItemData.StatScaling:
+	match raw.strip_edges().to_upper():
+		"STR", "STRENGTH":
+			return ItemData.StatScaling.STRENGTH
+		"AGI", "AGILITY":
+			return ItemData.StatScaling.AGILITY
+		"INT", "INTELLIGENCE":
+			return ItemData.StatScaling.INTELLIGENCE
+		"END", "ENDURANCE":
+			return ItemData.StatScaling.ENDURANCE
+		"LCK", "LUCK":
+			return ItemData.StatScaling.LUCK
+		"NONE":
+			return ItemData.StatScaling.NONE
+		"":
+			## Infer defaults when CSV omits the column.
+			if item != null and item.base_damage > 0 and item.is_weapon():
+				return ItemData.StatScaling.STRENGTH
+			if item != null and item.base_armor > 0 and item.is_armor():
+				return ItemData.StatScaling.AGILITY
+			return ItemData.StatScaling.NONE
+		_:
+			push_warning("ItemDatabase: unknown scaling_stat '%s'" % raw)
+			return ItemData.StatScaling.NONE
+
+
 # ---------------------------------------------------------------------------
 # Catalog indexing
 # ---------------------------------------------------------------------------
@@ -194,6 +220,7 @@ func _parse_item_row(row: PackedStringArray, col: Dictionary) -> ItemData:
 	item.ap_cost = _parse_int(_cell(row, col, "ap_cost"), 0)
 	item.base_damage = _parse_int(_cell(row, col, "base_damage"), 0)
 	item.base_armor = _parse_int(_cell(row, col, "base_armor"), 0)
+	item.scaling_stat = _parse_stat_scaling(_cell(row, col, "scaling_stat"), item)
 	## Keep legacy combat fields aligned for existing combat code paths.
 	item.damage = item.base_damage
 	item.block_amount = item.base_armor

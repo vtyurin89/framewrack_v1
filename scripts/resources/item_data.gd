@@ -72,6 +72,17 @@ const FALLBACK_ICON_PATH := "res://assets/icons/fallback_item.png"
 @export var base_damage: int = 0
 @export var base_armor: int = 0
 
+## Which player ActorStats field scales this module when activated.
+enum StatScaling {
+	NONE,
+	STRENGTH,
+	AGILITY,
+	INTELLIGENCE,
+	ENDURANCE,
+	LUCK,
+}
+@export var scaling_stat: StatScaling = StatScaling.NONE
+
 ## Legacy combat fields (kept for older combat paths).
 @export var damage: int = 0
 @export var block_amount: int = 0
@@ -224,28 +235,88 @@ func get_effective_armor() -> int:
 	return base_armor + get_active_trait_bonus("ARMOR")
 
 
-func format_damage_display(use_bbcode: bool = true) -> String:
-	## e.g. "⚔️ 8 Damage" or "⚔️ 8 (5 + 3)" with green bonus highlight.
-	var effective := get_effective_damage()
-	if effective <= 0:
+func get_stat_scaling_bonus(stats: ActorStats) -> int:
+	## Flat ActorStats bonus applied on activation (STR / AGI / INT / …).
+	if stats == null:
+		return 0
+	match scaling_stat:
+		StatScaling.STRENGTH:
+			return stats.strength
+		StatScaling.AGILITY:
+			return stats.agility
+		StatScaling.INTELLIGENCE:
+			return stats.intelligence
+		StatScaling.ENDURANCE:
+			return stats.endurance
+		StatScaling.LUCK:
+			return stats.luck
+		_:
+			return 0
+
+
+func get_damage_stat_bonus(stats: ActorStats = null) -> int:
+	## Only STR / INT feed weapon (or spell) damage — never AGI.
+	match scaling_stat:
+		StatScaling.STRENGTH, StatScaling.INTELLIGENCE:
+			return get_stat_scaling_bonus(stats)
+		_:
+			return 0
+
+
+func get_armor_stat_bonus(stats: ActorStats = null) -> int:
+	## Only AGI feeds block / armor modules — never STR/INT.
+	match scaling_stat:
+		StatScaling.AGILITY:
+			return get_stat_scaling_bonus(stats)
+		_:
+			return 0
+
+
+func get_scaled_damage(stats: ActorStats = null) -> int:
+	return get_effective_damage() + get_damage_stat_bonus(stats)
+
+
+func get_scaled_armor(stats: ActorStats = null) -> int:
+	return get_effective_armor() + get_armor_stat_bonus(stats)
+
+
+func format_damage_display(use_bbcode: bool = true, stats: ActorStats = null) -> String:
+	## Weapons / damaging modules only — never show on pure armor.
+	if base_damage <= 0:
 		return ""
-	var bonus := get_active_trait_bonus("DAMAGE")
-	if bonus > 0:
+	var trait_bonus := get_active_trait_bonus("DAMAGE")
+	var stat_bonus := get_damage_stat_bonus(stats)
+	var effective := base_damage + trait_bonus + stat_bonus
+	var parts: PackedStringArray = []
+	parts.append(str(base_damage))
+	if trait_bonus != 0:
+		parts.append("%+d" % trait_bonus)
+	if stat_bonus != 0:
+		parts.append("%+d" % stat_bonus)
+	if parts.size() > 1:
 		if use_bbcode:
-			return "⚔️ %d ([color=#7dcea0]%d + %d[/color])" % [effective, base_damage, bonus]
-		return "⚔️ %d (%d + %d)" % [effective, base_damage, bonus]
+			return "⚔️ %d ([color=#7dcea0]%s[/color])" % [effective, " ".join(parts)]
+		return "⚔️ %d (%s)" % [effective, " ".join(parts)]
 	return "⚔️ %d %s" % [effective, tr("KEY_DAMAGE")]
 
 
-func format_armor_display(use_bbcode: bool = true) -> String:
-	var effective := get_effective_armor()
-	if effective <= 0:
+func format_armor_display(use_bbcode: bool = true, stats: ActorStats = null) -> String:
+	## Armor / shield modules only — never show on pure weapons.
+	if base_armor <= 0:
 		return ""
-	var bonus := get_active_trait_bonus("ARMOR")
-	if bonus > 0:
+	var trait_bonus := get_active_trait_bonus("ARMOR")
+	var stat_bonus := get_armor_stat_bonus(stats)
+	var effective := base_armor + trait_bonus + stat_bonus
+	var parts: PackedStringArray = []
+	parts.append(str(base_armor))
+	if trait_bonus != 0:
+		parts.append("%+d" % trait_bonus)
+	if stat_bonus != 0:
+		parts.append("%+d" % stat_bonus)
+	if parts.size() > 1:
 		if use_bbcode:
-			return "🛡️ %d ([color=#7dcea0]%d + %d[/color])" % [effective, base_armor, bonus]
-		return "🛡️ %d (%d + %d)" % [effective, base_armor, bonus]
+			return "🛡️ %d ([color=#7dcea0]%s[/color])" % [effective, " ".join(parts)]
+		return "🛡️ %d (%s)" % [effective, " ".join(parts)]
 	return "🛡️ %d %s" % [effective, tr("KEY_ARMOR")]
 
 

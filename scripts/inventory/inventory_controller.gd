@@ -4,7 +4,8 @@ extends RefCounted
 ## No external stash — modules exist only on the active body grid.
 
 const BASE_MAX_AP := 3
-const BASE_MAX_HP := 40
+const BASE_HP_POOL := 30
+const BASE_MAX_HP := 40  ## END 2 + base 30 via ActorStats.get_max_hp
 
 var grid: BodyGrid
 var max_hp: int = BASE_MAX_HP
@@ -19,6 +20,15 @@ func reset_run() -> void:
 	_bind_grid(BodyGrid.new())
 	max_hp = BASE_MAX_HP
 	current_hp = BASE_MAX_HP
+
+
+func apply_actor_stats(stats: ActorStats) -> void:
+	## Sync Max HP from ActorStats formula (base 30 + END * 5).
+	if stats == null:
+		return
+	max_hp = maxi(1, stats.get_max_hp(BASE_HP_POOL))
+	current_hp = mini(current_hp, max_hp)
+	EventBus.player_hp_changed.emit(current_hp, max_hp)
 
 
 func _bind_grid(new_grid: BodyGrid) -> void:

@@ -42,7 +42,9 @@ func _ready() -> void:
 	inventory = InventoryController.new()
 	player_stats = PlayerStats.new()
 	player_stats.pending_level_ups_changed.connect(_on_pending_level_ups_changed)
-	_combat.setup(inventory)
+	inventory.apply_actor_stats(player_stats)
+	inventory.heal_full()
+	_combat.setup(inventory, player_stats)
 	_style_inventory_panel()
 	_ensure_overlays()
 
@@ -156,6 +158,8 @@ func _seed_starting_loadout() -> void:
 	inventory.reset_run()
 	if player_stats != null:
 		player_stats.reset_run()
+		inventory.apply_actor_stats(player_stats)
+		inventory.heal_full()
 	_first_combat_xp_granted = false
 	var scrap_pipe: ItemData = ItemDatabase.create_instance(STARTING_ITEM_ID)
 	if scrap_pipe != null:
@@ -293,7 +297,7 @@ func _reset_run_to_startup() -> void:
 		_combat.abort_combat()
 	_map.reset()
 	_seed_starting_loadout()
-	_combat.setup(inventory)
+	_combat.setup(inventory, player_stats)
 	_inventory_ui.setup(inventory)
 	if _inventory_ui.has_method("bind_player_stats"):
 		_inventory_ui.bind_player_stats(player_stats)

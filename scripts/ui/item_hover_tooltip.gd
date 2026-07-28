@@ -23,6 +23,8 @@ var _item: ItemData
 var _pending_item: ItemData
 var _following: bool = false
 var _show_timer: Timer
+## Optional player stats so tooltips include STR/AGI/INT scaling.
+var actor_stats: ActorStats
 
 
 func _ready() -> void:
@@ -224,8 +226,8 @@ func _build_meta_line(item: ItemData) -> String:
 
 func _build_combat_line(item: ItemData) -> String:
 	var parts: PackedStringArray = []
-	var dmg := item.format_damage_display(true)
-	var armor := item.format_armor_display(true)
+	var dmg := item.format_damage_display(true, actor_stats)
+	var armor := item.format_armor_display(true, actor_stats)
 	if not dmg.is_empty():
 		parts.append(dmg)
 	if not armor.is_empty():

@@ -13,6 +13,7 @@ func _init(combat: Node = null) -> void:
 		"heal": EffectHeal.new(),
 		"modify_stat": EffectModifyStat.new(),
 		"status": EffectStatus.new(),
+		"shield": EffectShield.new(),
 		"summon": EffectSummon.new(),
 	}
 
@@ -22,14 +23,33 @@ func set_combat(combat: Node) -> void:
 
 
 static func resolve_damage_stat_bonus(caster: EnemyInstance, ability: EnemyAbility) -> int:
-	## Full scaling_stat when set; multi-hit / Desperate Attack uses floor(STR / 2).
+	## Physical → Strength; spell → Intelligence; multi-hit / Desperate Attack → floor(STR / 2).
 	if caster == null or ability == null:
 		return 0
-	if ability.stat_scaling != EnemyAbility.StatScaling.NONE:
-		return caster.get_stat(ability.stat_scaling)
-	if ability.type == EnemyAbility.AbilityType.MULTI_HIT or ability.hit_count > 1:
-		return int(caster.strength / 2.0)
-	return 0
+	match ability.stat_scaling:
+		EnemyAbility.StatScaling.STRENGTH:
+			return caster.strength
+		EnemyAbility.StatScaling.INTELLIGENCE:
+			return caster.intelligence
+		EnemyAbility.StatScaling.AGILITY:
+			return caster.agility
+		EnemyAbility.StatScaling.ENDURANCE:
+			return caster.endurance
+		EnemyAbility.StatScaling.LUCK:
+			return caster.luck
+		EnemyAbility.StatScaling.NONE:
+			if ability.type == EnemyAbility.AbilityType.MULTI_HIT or ability.hit_count > 1:
+				return int(caster.strength / 2.0)
+			return 0
+		_:
+			return 0
+
+
+static func resolve_shield_block(caster: EnemyInstance, ability: EnemyAbility) -> int:
+	## Shield skills: base_block + caster agility.
+	if caster == null or ability == null:
+		return caster.agility if caster != null else 0
+	return ability.roll_base() + caster.agility
 
 
 func execute(caster: EnemyInstance, enemy_index: int, ability: EnemyAbility) -> void:
@@ -47,6 +67,11 @@ func execute(caster: EnemyInstance, enemy_index: int, ability: EnemyAbility) -> 
 	var effect_key := ability.main_effect.strip_edges().to_lower()
 	if effect_key.is_empty():
 		effect_key = ability.infer_main_effect()
+	## Legacy BLOCK / status+block rows route through EffectShield.
+	if effect_key == "status" and _is_shield_ability(ability):
+		effect_key = "shield"
+	elif ability.type == EnemyAbility.AbilityType.BLOCK:
+		effect_key = "shield"
 
 	if ability.hit_count > 1 and effect_key == "damage":
 		EventBus.combat_log_message.emit(
@@ -72,3 +97,14 @@ func execute(caster: EnemyInstance, enemy_index: int, ability: EnemyAbility) -> 
 		caster.start_ability_cooldown(ability, cd)
 	elif ability.cooldown_turns > 0:
 		caster.start_ability_cooldown(ability, ability.cooldown_turns)
+
+
+static func _is_shield_ability(ability: EnemyAbility) -> bool:
+	if ability == null:
+		return false
+	var params := ability.effect_params.strip_edges().to_lower()
+	return (
+		params.begins_with("block")
+		or params.begins_with("guard")
+		or params.begins_with("shield")
+	)

@@ -13,6 +13,7 @@ enum CombatState {
 signal state_changed(new_state: CombatState)
 
 var inventory: InventoryController
+var player_stats: PlayerStats
 var state: CombatState = CombatState.INACTIVE
 
 ## Runtime enemy combatants (difficulty-scaled HP + ability AI).
@@ -28,8 +29,10 @@ var _player_rust_stacks: int = 0
 var _player_burn_stacks: int = 0
 
 
-func setup(p_inventory: InventoryController) -> void:
+func setup(p_inventory: InventoryController, p_stats: PlayerStats = null) -> void:
 	inventory = p_inventory
+	if p_stats != null:
+		player_stats = p_stats
 	_ensure_ability_executor()
 
 
@@ -223,7 +226,12 @@ func _resolve_all_enemies(placed: PlacedItem) -> void:
 
 func _resolve_self(placed: PlacedItem) -> void:
 	if TraitManager.has_trait(placed.data, "TRAIT_ARMOR_CORE_TRIGGER"):
-		TraitManager.activate_armor_core(placed, inventory.grid, Callable(self, "_gain_block"))
+		TraitManager.activate_armor_core(
+			placed,
+			inventory.grid,
+			Callable(self, "_gain_block"),
+			_armor_stat_bonus(placed.data)
+		)
 		return
 
 	var data := placed.data
@@ -231,33 +239,58 @@ func _resolve_self(placed: PlacedItem) -> void:
 		_apply_self_use_traits(placed)
 		return
 
-	var armor := placed.data.get_effective_armor()
-	if armor <= 0 and placed.data.block_amount > 0:
-		armor = placed.data.block_amount
+	var armor := data.get_scaled_armor(player_stats)
+	if armor <= 0 and data.block_amount > 0:
+		armor = data.block_amount + _armor_stat_bonus(data)
 	if armor > 0:
-		_gain_block(armor, placed.data.get_localized_name())
+		_gain_block(armor, data.get_localized_name())
 	else:
-		EventBus.combat_log_message.emit(tr("KEY_LOG_ACTIVATED") % placed.data.get_localized_name())
+		EventBus.combat_log_message.emit(tr("KEY_LOG_ACTIVATED") % data.get_localized_name())
 
 	_apply_self_use_traits(placed)
 
 
 func _calc_damage(placed: PlacedItem) -> int:
 	var adjacency_bonus: int = inventory.grid.get_adjacency_damage_bonus_for(placed)
-	return placed.data.get_effective_damage() + adjacency_bonus
+	return placed.data.get_scaled_damage(player_stats) + adjacency_bonus
 
 
-func _deal_damage_to(index: int, dmg: int, source_name: String) -> void:
+func _armor_stat_bonus(data: ItemData) -> int:
+	if data == null:
+		return 0
+	return data.get_armor_stat_bonus(player_stats)
+
+
+func _roll_player_crit() -> bool:
+	if player_stats == null:
+		return false
+	var chance := player_stats.get_crit_chance()
+	if chance <= 0.0:
+		return false
+	return randf() < chance
+
+
+func _deal_damage_to(index: int, dmg: int, source_name: String, allow_crit: bool = true) -> void:
 	if index < 0 or index >= enemies.size():
 		return
 	var enemy: EnemyInstance = enemies[index]
 	if not enemy.is_alive():
 		return
+	var final_dmg := dmg
+	var is_crit := false
+	if allow_crit and _roll_player_crit():
+		is_crit = true
+		final_dmg = roundi(float(dmg) * EnemyInstance.CRIT_DAMAGE_MULT)
 	var adjacency_note := ""
-	enemy.apply_incoming_damage(dmg)
-	EventBus.combat_log_message.emit(
-		tr("KEY_LOG_DAMAGE") % [source_name, dmg, adjacency_note, enemy.get_localized_name()]
-	)
+	enemy.apply_incoming_damage(final_dmg)
+	if is_crit:
+		EventBus.combat_log_message.emit(
+			tr("KEY_LOG_ENEMY_CRIT_HIT") % [source_name, final_dmg]
+		)
+	else:
+		EventBus.combat_log_message.emit(
+			tr("KEY_LOG_DAMAGE") % [source_name, final_dmg, adjacency_note, enemy.get_localized_name()]
+		)
 	EventBus.enemy_hp_changed.emit(index, enemy.current_hp, enemy.max_hp)
 	if not enemy.is_alive():
 		_ensure_valid_selection()

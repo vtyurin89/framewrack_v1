@@ -15,6 +15,8 @@ var _combat_label: RichTextLabel
 var _desc_label: RichTextLabel
 var _traits_box: VBoxContainer
 var _built: bool = false
+## Optional player stats so inspect shows scaled damage/block.
+var actor_stats: ActorStats
 
 
 func _ready() -> void:
@@ -156,8 +158,8 @@ func _populate(item: ItemData) -> void:
 	_meta_label.text = " • ".join(meta_parts)
 
 	var combat_parts: PackedStringArray = []
-	var dmg_line := item.format_damage_display(true)
-	var armor_line := item.format_armor_display(true)
+	var dmg_line := item.format_damage_display(true, actor_stats)
+	var armor_line := item.format_armor_display(true, actor_stats)
 	if not dmg_line.is_empty():
 		combat_parts.append(dmg_line)
 	if not armor_line.is_empty():

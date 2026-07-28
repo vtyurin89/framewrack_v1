@@ -32,13 +32,14 @@ static func get_trait_value(item: ItemData, trait_id: String, fallback: int = 0)
 static func activate_armor_core(
 	core: PlacedItem,
 	grid: BodyGrid,
-	gain_block: Callable
+	gain_block: Callable,
+	agi_bonus: int = 0
 ) -> void:
 	## Armor Core: grant own armor, then auto-trigger adjacent usable ARMOR modules.
 	if core == null or core.data == null or grid == null or not gain_block.is_valid():
 		return
-	var core_armor := maxi(2, _effective_armor(core.data))
-	gain_block.call(core_armor, core.data.get_localized_name())
+	var core_armor := _effective_armor(core.data) + maxi(0, agi_bonus)
+	gain_block.call(maxi(0, core_armor), core.data.get_localized_name())
 	for neighbour: PlacedItem in grid.get_adjacent_items(core):
 		if neighbour == null or neighbour.data == null:
 			continue
@@ -48,8 +49,12 @@ static func activate_armor_core(
 			continue
 		if neighbour.data == core.data:
 			continue
-		var armor := _effective_armor(neighbour.data)
-		gain_block.call(armor, "%s*" % neighbour.data.get_localized_name())
+		## Neighbours may scale with AGI independently; use their own scaling when bonus is shared.
+		var neighbor_bonus := agi_bonus
+		if neighbour.data.scaling_stat == ItemData.StatScaling.NONE:
+			neighbor_bonus = 0
+		var armor := _effective_armor(neighbour.data) + maxi(0, neighbor_bonus)
+		gain_block.call(maxi(0, armor), "%s*" % neighbour.data.get_localized_name())
 
 
 static func apply_passive_armor_from_spatial_traits(

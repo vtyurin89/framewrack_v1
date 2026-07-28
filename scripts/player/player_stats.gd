@@ -1,6 +1,6 @@
 class_name PlayerStats
-extends RefCounted
-## Player progression state: level and cumulative experience.
+extends ActorStats
+## Player progression + combat attributes. Humanity is unique to the protagonist.
 
 signal leveled_up(new_level: int)
 signal pending_level_ups_changed(count: int)
@@ -14,6 +14,10 @@ signal exp_changed(
 
 const MAX_LEVEL: int = 10
 const XP_LEVEL_REQUIREMENTS: Array[int] = [0, 30, 70, 120, 180, 260, 360, 480, 620, 800]
+const DEFAULT_BASE_HP: int = 30
+
+## UNIQUE to PlayerStats — not present on EnemyData / ActorStats.
+@export var humanity: int = 5
 
 var level: int = 1
 var current_exp: int = 0
@@ -25,7 +29,26 @@ var max_exp: int:
 		return get_next_level_exp()
 
 
+func _init() -> void:
+	_apply_protagonist_defaults()
+
+
+func _apply_protagonist_defaults() -> void:
+	## Starting frame: END 2 → Max HP 40 with base 30.
+	strength = 1
+	agility = 1
+	endurance = 2
+	intelligence = 1
+	luck = 1
+	humanity = 5
+
+
+func get_player_max_hp() -> int:
+	return get_max_hp(DEFAULT_BASE_HP)
+
+
 func reset_run() -> void:
+	_apply_protagonist_defaults()
 	level = 1
 	current_exp = 0
 	pending_level_ups = 0

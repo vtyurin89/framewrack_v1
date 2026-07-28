@@ -1,6 +1,6 @@
 class_name EffectDamage
 extends AbilityEffect
-## Deals one or more damage rolls. Supports hit_count and scaling_stat; luck may crit.
+## Deals one or more damage rolls. STR for physical, INT for spells; luck may crit.
 
 
 func apply(caster: EnemyInstance, target: Node, params: Array) -> void:
@@ -12,10 +12,11 @@ func apply(caster: EnemyInstance, target: Node, params: Array) -> void:
 		return
 
 	var hits := maxi(1, ability.hit_count)
-	var str_bonus := EnemyAbilityExecutor.resolve_damage_stat_bonus(caster, ability)
+	## Physical → Strength; spell → Intelligence (via scaling_stat / half-STR multi-hit).
+	var stat_bonus := EnemyAbilityExecutor.resolve_damage_stat_bonus(caster, ability)
 	for _i in hits:
 		var base_roll := ability.roll_base()
-		var amount := base_roll + str_bonus
+		var amount := base_roll + stat_bonus
 		var is_crit := caster.roll_crit()
 		if is_crit:
 			amount = roundi(float(amount) * EnemyInstance.CRIT_DAMAGE_MULT)

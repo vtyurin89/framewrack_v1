@@ -74,10 +74,10 @@ func _build_stats_line(item: ItemData) -> String:
 			parts.append(tr("KEY_USE_COST_FMT") % [item.ap_cost, tr("KEY_AP")])
 		else:
 			parts.append(tr("KEY_AP_COST_FMT") % [item.ap_cost, tr("KEY_AP")])
-	var dmg := item.format_damage_display(false)
+	var dmg := item.format_damage_display(false, null)
 	if not dmg.is_empty():
 		parts.append(dmg)
-	var armor := item.format_armor_display(false)
+	var armor := item.format_armor_display(false, null)
 	if not armor.is_empty():
 		parts.append(armor)
 	if item.consumable and item.max_charges > 0:

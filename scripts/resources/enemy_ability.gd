@@ -31,7 +31,7 @@ enum WeightClass {
 @export var description_key: String = ""
 ## self | player | ally | all_allies
 @export var target_type: String = "player"
-## damage | heal | modify_stat | status | summon
+## damage | heal | modify_stat | status | shield | summon
 @export var main_effect: String = "damage"
 ## Raw CSV effect_params (pipe-separated).
 @export var effect_params: String = ""
@@ -99,7 +99,7 @@ func requires_defensive_cooldown() -> bool:
 	if type in [AbilityType.HEAL, AbilityType.BLOCK]:
 		return true
 	var effect := main_effect.strip_edges().to_lower()
-	if effect == "heal":
+	if effect in ["heal", "shield"]:
 		return true
 	## Defensive status shields / guards.
 	var params := effect_params.strip_edges().to_lower()
@@ -115,7 +115,7 @@ func infer_main_effect() -> String:
 		AbilityType.HEAL:
 			return "heal"
 		AbilityType.BLOCK:
-			return "status"
+			return "shield"
 		AbilityType.PRE_ACTION:
 			return "modify_stat"
 		_:
@@ -170,7 +170,9 @@ static func parse_main_effect(raw: String) -> String:
 			return "heal"
 		"modify_stat", "buff", "stat":
 			return "modify_stat"
-		"status", "block", "shield", "debuff":
+		"shield", "block", "guard":
+			return "shield"
+		"status", "debuff":
 			return "status"
 		"summon":
 			return "summon"
