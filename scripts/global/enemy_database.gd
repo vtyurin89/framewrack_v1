@@ -109,11 +109,10 @@ func _parse_ability_row(row: PackedStringArray, col: Dictionary) -> EnemyAbility
 
 	var weight_raw := _cell(row, col, "weight_class")
 	if weight_raw.is_empty():
-		## Infer: SPECIAL = heavy, BLOCK/HEAL = light, else standard.
 		match ability.type:
-			EnemyAbility.AbilityType.SPECIAL:
+			EnemyAbility.AbilityType.MULTI_HIT:
 				ability.weight_class = EnemyAbility.WeightClass.HEAVY
-			EnemyAbility.AbilityType.BLOCK, EnemyAbility.AbilityType.HEAL:
+			EnemyAbility.AbilityType.BLOCK, EnemyAbility.AbilityType.HEAL, EnemyAbility.AbilityType.PRE_ACTION:
 				ability.weight_class = EnemyAbility.WeightClass.LIGHT
 			_:
 				ability.weight_class = EnemyAbility.WeightClass.STANDARD
@@ -121,9 +120,24 @@ func _parse_ability_row(row: PackedStringArray, col: Dictionary) -> EnemyAbility
 		ability.weight_class = EnemyAbility.parse_weight_class(weight_raw)
 
 	ability.base_ai_weight = _parse_float(_cell(row, col, "ai_weight"), 1.0)
-	ability.corruption_duration = _parse_int(_cell(row, col, "corruption_duration"), 0)
-	if ability.type == EnemyAbility.AbilityType.SPECIAL and ability.corruption_duration <= 0:
-		ability.corruption_duration = 2
+	ability.hit_count = maxi(0, _parse_int(_cell(row, col, "hit_count"), 1))
+	ability.hp_threshold = _parse_float(_cell(row, col, "hp_threshold"), 0.0)
+	ability.cooldown_turns = maxi(0, _parse_int(_cell(row, col, "cooldown_turns"), 0))
+	ability.trigger_interval = maxi(0, _parse_int(_cell(row, col, "trigger_interval"), 0))
+	if ability.type == EnemyAbility.AbilityType.PRE_ACTION:
+		ability.base_ai_weight = 0.0
+		if ability.trigger_interval <= 0:
+			ability.trigger_interval = 2
+	elif ability.type == EnemyAbility.AbilityType.MULTI_HIT:
+		ability.base_ai_weight = 0.0
+		if ability.hit_count <= 0:
+			ability.hit_count = 3
+		if ability.hp_threshold <= 0.0:
+			ability.hp_threshold = 0.4
+		if ability.cooldown_turns <= 0:
+			ability.cooldown_turns = 1
+
+	ability.combat_text = _cell(row, col, "combat_text").strip_edges()
 	return ability
 
 
@@ -190,13 +204,10 @@ func _parse_enemy_row(row: PackedStringArray, col: Dictionary) -> EnemyData:
 			continue
 		if ability.type == EnemyAbility.AbilityType.DAMAGE:
 			enemy.basic_damage = ability.min_val + enemy.strength
-		elif ability.type == EnemyAbility.AbilityType.SPECIAL:
-			var special_stat := enemy.strength
-			if ability.stat_scaling == EnemyAbility.StatScaling.INTELLIGENCE:
-				special_stat = enemy.intelligence
-			enemy.special_damage = ability.min_val + special_stat
-			enemy.corruption_duration = ability.corruption_duration
-			enemy.special_chance = 0.4
+		elif ability.type == EnemyAbility.AbilityType.MULTI_HIT:
+			enemy.special_damage = ability.max_val
+			enemy.special_chance = 0.0
+			enemy.corruption_duration = 0
 	return enemy
 
 

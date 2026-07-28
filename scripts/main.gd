@@ -131,6 +131,13 @@ func _on_language_changed(_locale: String) -> void:
 
 
 func _style_inventory_panel() -> void:
+	## Full-screen overlay must not steal combat / top-bar clicks — only the panel does.
+	if _body_grid_overlay:
+		_body_grid_overlay.mouse_filter = Control.MOUSE_FILTER_IGNORE
+		var dim := _body_grid_overlay.get_node_or_null("OverlayDim") as Control
+		if dim:
+			dim.visible = false
+			dim.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	var style := StyleBoxFlat.new()
 	style.bg_color = Color(0.145, 0.145, 0.176, 1.0)  # ~#25252D opaque
 	style.set_border_width_all(1)
@@ -140,6 +147,9 @@ func _style_inventory_panel() -> void:
 	style.shadow_color = Color(0.0, 0.0, 0.0, 0.35)
 	style.shadow_size = 6
 	_inventory_panel.add_theme_stylebox_override("panel", style)
+	_inventory_panel.mouse_filter = Control.MOUSE_FILTER_STOP
+	if _inventory_ui:
+		_inventory_ui.mouse_filter = Control.MOUSE_FILTER_STOP
 
 
 func _seed_starting_loadout() -> void:

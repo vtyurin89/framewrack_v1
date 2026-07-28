@@ -65,6 +65,8 @@ var _inspect_modal: ItemInspectModal
 
 
 func setup(p_inventory: InventoryController) -> void:
+	## Only the panel/content should capture input; parent overlay is pass-through.
+	mouse_filter = Control.MOUSE_FILTER_STOP
 	inventory = p_inventory
 	_ensure_hover_tooltip()
 	_ensure_context_menu()

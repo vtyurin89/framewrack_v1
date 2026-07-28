@@ -11,6 +11,7 @@ const ENEMY_INSPECT_SCENE := preload("res://scenes/UI/enemy_inspect_ui.tscn")
 var combat: Node  # CombatManager
 var inventory: InventoryController
 var _enemy_inspect: EnemyInspectUI
+var _enemy_context_menu: EnemyContextMenuUI
 
 @onready var _enemy_row: HBoxContainer = %EnemyRow
 @onready var _hp_label: Label = %HPLabel
@@ -35,6 +36,7 @@ func _ready() -> void:
 	EventBus.enemy_selected.connect(_on_enemy_selected)
 	EventBus.turn_started.connect(_on_turn_started)
 	EventBus.combat_ended.connect(_on_combat_ended)
+	EventBus.enemy_combat_text.connect(_on_enemy_combat_text)
 	LocalizationManager.language_changed.connect(_on_language_changed)
 	_apply_static_locale()
 
@@ -101,6 +103,11 @@ func _rebuild_enemies() -> void:
 
 		var v := VBoxContainer.new()
 		v.mouse_filter = Control.MOUSE_FILTER_IGNORE
+		var float_host := Control.new()
+		float_host.name = "CombatTextHost"
+		float_host.custom_minimum_size = Vector2(0, 22)
+		float_host.mouse_filter = Control.MOUSE_FILTER_IGNORE
+		float_host.clip_contents = false
 		var name_l := Label.new()
 		name_l.text = enemy.get_localized_name()
 		name_l.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
@@ -125,9 +132,11 @@ func _rebuild_enemies() -> void:
 		marker.mouse_filter = Control.MOUSE_FILTER_IGNORE
 
 		v.add_child(marker)
+		v.add_child(float_host)
 		v.add_child(name_l)
 		v.add_child(sprite)
 		v.add_child(hp_l)
+		panel.clip_contents = false
 		panel.add_child(v)
 		_enemy_row.add_child(panel)
 		if not enemy.is_alive():
@@ -147,21 +156,50 @@ func _style_enemy_panel(panel: PanelContainer, _index: int, selected: bool) -> v
 func _on_enemy_panel_input(event: InputEvent, index: int) -> void:
 	if event is InputEventMouseButton and event.pressed:
 		if event.button_index == MOUSE_BUTTON_LEFT:
+			if _enemy_context_menu and _enemy_context_menu.is_open():
+				_enemy_context_menu.close()
 			target_selected.emit(index)
 			_on_log(tr("KEY_LOG_TARGETING") % (index + 1))
 		elif event.button_index == MOUSE_BUTTON_RIGHT:
-			_open_enemy_inspect(index)
+			_open_enemy_context_menu(index, event.global_position)
 
 
-func _open_enemy_inspect(index: int) -> void:
+func _open_enemy_context_menu(index: int, global_pos: Vector2) -> void:
 	if combat == null or index < 0 or index >= combat.enemies.size():
 		return
 	var enemy: EnemyInstance = combat.enemies[index]
 	if enemy == null or not enemy.is_alive():
 		return
+	_ensure_enemy_context_menu()
+	if _enemy_context_menu:
+		_enemy_context_menu.open_for_enemy(enemy, global_pos)
+
+
+func _ensure_enemy_context_menu() -> void:
+	if _enemy_context_menu != null and is_instance_valid(_enemy_context_menu):
+		return
+	_enemy_context_menu = EnemyContextMenuUI.new()
+	_enemy_context_menu.name = "EnemyContextMenuUI"
+	_enemy_context_menu.inspect_pressed.connect(_on_enemy_context_inspect_pressed)
+	var host: Node = get_tree().current_scene
+	if host == null:
+		host = self
+	host.add_child(_enemy_context_menu)
+
+
+func _on_enemy_context_inspect_pressed(enemy: EnemyInstance) -> void:
+	if enemy == null:
+		return
 	_ensure_enemy_inspect()
 	if _enemy_inspect:
 		_enemy_inspect.open_enemy(enemy)
+
+
+func _open_enemy_inspect(index: int) -> void:
+	## Kept for callers that already have an enemy index.
+	if combat == null or index < 0 or index >= combat.enemies.size():
+		return
+	_on_enemy_context_inspect_pressed(combat.enemies[index])
 
 
 func _on_enemy_selected(index: int) -> void:
@@ -213,7 +251,54 @@ func _on_log(text: String) -> void:
 
 
 func _on_combat_ended(victory: bool) -> void:
+	if _enemy_context_menu and _enemy_context_menu.is_open():
+		_enemy_context_menu.close()
 	_end_turn_btn.disabled = true
 	_continue_btn.visible = true
 	_continue_btn.text = tr("KEY_CONTINUE") if victory else tr("KEY_RETURN_TO_MAP")
 	_turn_label.text = tr("KEY_VICTORY") if victory else tr("KEY_FRAME_FAILURE")
+
+
+func _on_enemy_combat_text(enemy_index: int, text: String, kind: String) -> void:
+	if text.is_empty() or enemy_index < 0 or enemy_index >= _enemy_row.get_child_count():
+		return
+	var panel: Control = _enemy_row.get_child(enemy_index) as Control
+	if panel == null:
+		return
+	var host: Control = panel.find_child("CombatTextHost", true, false) as Control
+	if host == null:
+		host = panel
+	_spawn_floating_combat_text(host, text, kind)
+
+
+func _spawn_floating_combat_text(host: Control, text: String, kind: String) -> void:
+	var label := Label.new()
+	label.text = text
+	label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	label.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	label.z_index = 80
+	label.add_theme_font_size_override("font_size", 15 if kind == "crit" else 14)
+	match kind:
+		"crit":
+			label.add_theme_color_override("font_color", Color(1.0, 0.35, 0.35))
+		"pre_action":
+			label.add_theme_color_override("font_color", Color(0.95, 0.82, 0.35))
+		"multi_hit":
+			label.add_theme_color_override("font_color", Color(1.0, 0.55, 0.35))
+		_:
+			label.add_theme_color_override("font_color", Color(0.92, 0.94, 1.0))
+	host.add_child(label)
+	await get_tree().process_frame
+	if not is_instance_valid(label):
+		return
+	var host_w := maxf(host.size.x, 80.0)
+	var label_w := label.get_minimum_size().x
+	label.position = Vector2((host_w - label_w) * 0.5, -4.0)
+	var start_y := label.position.y
+	var tween := host.create_tween()
+	tween.set_parallel(true)
+	tween.tween_property(label, "position:y", start_y - 36.0, 0.85).set_trans(Tween.TRANS_SINE).set_ease(
+		Tween.EASE_OUT
+	)
+	tween.tween_property(label, "modulate:a", 0.0, 0.85).set_delay(0.25)
+	tween.chain().tween_callback(label.queue_free)

@@ -31,6 +31,8 @@ signal player_hp_changed(current: int, maximum: int)
 signal enemy_hp_changed(enemy_index: int, current: int, maximum: int)
 signal enemy_selected(enemy_index: int)
 signal combat_log_message(text: String)
+## Floating notice over an enemy panel (ability name / crit / etc.).
+signal enemy_combat_text(enemy_index: int, text: String, kind: String)
 signal block_changed(amount: int)
 signal combat_item_availability_changed
 signal player_died

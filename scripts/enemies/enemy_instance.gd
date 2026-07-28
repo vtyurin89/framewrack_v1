@@ -1,6 +1,6 @@
 class_name EnemyInstance
 extends RefCounted
-## Runtime enemy: difficulty-scaled HP, stats, ability rolls, and AI selection.
+## Runtime enemy: difficulty-scaled HP, stats, ability rolls, and turn-phase state.
 
 const CRIT_DAMAGE_MULT := 1.3
 const MIN_STAT := 1
@@ -17,10 +17,16 @@ var current_block: int = 0
 var burn: int = 0
 var is_selected: bool = false
 var abilities: Array[EnemyAbility] = []
+## Number of combat turns this enemy has started (for PRE_ACTION intervals).
+var turns_taken: int = 0
+## Remaining cooldown turns keyed by ability id.
+var _ability_cooldowns: Dictionary = {}
 
 
 func setup(blueprint: EnemyData) -> void:
 	data = blueprint
+	turns_taken = 0
+	_ability_cooldowns.clear()
 	if data == null:
 		strength = MIN_STAT
 		agility = MIN_STAT
@@ -52,6 +58,50 @@ func setup(blueprint: EnemyData) -> void:
 	for ability: EnemyAbility in data.abilities:
 		if ability != null:
 			abilities.append(ability)
+
+
+func begin_enemy_turn() -> void:
+	## Called once at the start of this enemy's act (pre-action phase).
+	turns_taken += 1
+
+
+func end_enemy_turn() -> void:
+	## Tick cooldowns after the main action so a 1-turn CD skips the next act.
+	_tick_ability_cooldowns()
+
+
+func _tick_ability_cooldowns() -> void:
+	var keys: Array = _ability_cooldowns.keys()
+	for key in keys:
+		var remaining: int = int(_ability_cooldowns[key]) - 1
+		if remaining <= 0:
+			_ability_cooldowns.erase(key)
+		else:
+			_ability_cooldowns[key] = remaining
+
+
+func start_ability_cooldown(ability: EnemyAbility, turns: int) -> void:
+	if ability == null or turns <= 0:
+		return
+	## +1 because end_enemy_turn() ticks on the cast turn; net wait = `turns` full acts.
+	_ability_cooldowns[ability.id] = turns + 1
+
+
+func is_ability_on_cooldown(ability: EnemyAbility) -> bool:
+	if ability == null:
+		return false
+	return int(_ability_cooldowns.get(ability.id, 0)) > 0
+
+
+func find_ability(ability_id: String) -> EnemyAbility:
+	for ability: EnemyAbility in abilities:
+		if ability != null and ability.id == ability_id:
+			return ability
+	return null
+
+
+func get_hp_ratio() -> float:
+	return float(current_hp) / float(maxi(max_hp, 1))
 
 
 func get_localized_name() -> String:
@@ -98,6 +148,8 @@ func get_ability_value_range(ability: EnemyAbility) -> Vector2i:
 	if ability == null:
 		return Vector2i.ZERO
 	var r := ability.get_clamped_range()
+	if ability.type == EnemyAbility.AbilityType.MULTI_HIT or ability.stat_scaling == EnemyAbility.StatScaling.NONE:
+		return r
 	var stat := get_stat(ability.stat_scaling)
 	return Vector2i(r.x + stat, r.y + stat)
 
@@ -106,6 +158,13 @@ func format_ability_tooltip(ability: EnemyAbility) -> String:
 	if ability == null:
 		return ""
 	var r := ability.get_clamped_range()
+	if ability.type == EnemyAbility.AbilityType.PRE_ACTION:
+		var interval := ability.trigger_interval if ability.trigger_interval > 0 else 2
+		return tr("KEY_ABILITY_PRE_ACTION_FMT") % [interval]
+	if ability.type == EnemyAbility.AbilityType.MULTI_HIT:
+		var hits := ability.hit_count if ability.hit_count > 0 else 3
+		var threshold_pct := int(round((ability.hp_threshold if ability.hp_threshold > 0.0 else 0.4) * 100.0))
+		return tr("KEY_ABILITY_MULTI_HIT_FMT") % [hits, r.x, r.y, threshold_pct]
 	var scaled := get_ability_value_range(ability)
 	var stat := get_stat(ability.stat_scaling)
 	var stat_key := ability.stat_label_key()
@@ -133,11 +192,16 @@ func format_ability_tooltip(ability: EnemyAbility) -> String:
 
 
 func choose_ability() -> EnemyAbility:
-	if abilities.is_empty():
+	## Weighted pick from the main action deck only (excludes PRE_ACTION / MULTI_HIT).
+	var deck: Array[EnemyAbility] = []
+	for ability: EnemyAbility in abilities:
+		if ability != null and ability.is_main_deck_ability():
+			deck.append(ability)
+	if deck.is_empty():
 		return null
 	var total := 0.0
 	var weights: Array[float] = []
-	for ability: EnemyAbility in abilities:
+	for ability: EnemyAbility in deck:
 		var w := ability.base_ai_weight
 		if GameSettings != null:
 			w *= GameSettings.get_ability_weight_multiplier(int(ability.weight_class))
@@ -146,11 +210,11 @@ func choose_ability() -> EnemyAbility:
 		total += w
 	var roll := randf() * total
 	var cursor := 0.0
-	for i in abilities.size():
+	for i in deck.size():
 		cursor += weights[i]
 		if roll <= cursor:
-			return abilities[i]
-	return abilities[abilities.size() - 1]
+			return deck[i]
+	return deck[deck.size() - 1]
 
 
 func resolve_ability(ability: EnemyAbility) -> Dictionary:
@@ -189,6 +253,19 @@ func resolve_ability(ability: EnemyAbility) -> Dictionary:
 	return result
 
 
+func resolve_multi_hit_base_rolls(ability: EnemyAbility, hit_count: int) -> Array[int]:
+	## MULTI_HIT: consecutive base rolls only — no Strength / stat bonus.
+	var hits: Array[int] = []
+	if ability == null or hit_count <= 0:
+		return hits
+	for _i in hit_count:
+		var amount := ability.roll_base()
+		if GameSettings != null:
+			amount = int(round(float(amount) * GameSettings.get_enemy_damage_multiplier()))
+		hits.append(maxi(0, amount))
+	return hits
+
+
 func apply_incoming_damage(amount: int) -> int:
 	## Absorb with enemy block first; returns HP lost.
 	var remaining := maxi(0, amount)
@@ -214,5 +291,37 @@ func heal(amount: int) -> int:
 	return current_hp - before
 
 
+func get_trait_ids() -> Array[String]:
+	## Runtime trait id list from the blueprint (may be empty).
+	var result: Array[String] = []
+	if data == null:
+		return result
+	for trait_id: String in data.trait_ids:
+		if not trait_id.is_empty():
+			result.append(trait_id)
+	return result
+
+
+func has_traits() -> bool:
+	return not get_trait_ids().is_empty()
+
+
 func is_alive() -> bool:
 	return current_hp > 0
+
+
+func emit_combat_notice(enemy_index: int, text: String, kind: String = "ability") -> void:
+	## Broadcast floating combat text for this fighter (UI listens on EventBus).
+	if text.is_empty() or enemy_index < 0:
+		return
+	EventBus.enemy_combat_text.emit(enemy_index, text, kind)
+
+
+func emit_ability_notice(enemy_index: int, ability: EnemyAbility, kind: String = "ability") -> void:
+	if ability == null:
+		return
+	emit_combat_notice(enemy_index, ability.get_combat_notice_text(), kind)
+
+
+func emit_crit_notice(enemy_index: int) -> void:
+	emit_combat_notice(enemy_index, tr("KEY_COMBAT_TEXT_ENEMY_CRIT"), "crit")

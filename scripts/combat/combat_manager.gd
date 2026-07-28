@@ -349,24 +349,61 @@ func _run_enemy_actions() -> void:
 
 
 func _enemy_act(index: int, enemy: EnemyInstance) -> void:
-	var ability: EnemyAbility = enemy.choose_ability()
-	if ability == null:
-		## Fallback for legacy blueprints without ability lists.
-		var data := enemy.data
-		if data != null and data.choose_attack() == EnemyData.AttackType.SPECIAL:
-			_apply_enemy_hit(index, enemy, data.special_damage, false, data.corruption_duration)
-		else:
-			var dmg := data.basic_damage if data else 5
-			if GameSettings != null:
-				dmg = int(round(float(dmg) * GameSettings.get_enemy_damage_multiplier()))
-			_apply_enemy_hit(index, enemy, dmg, false, 0)
-		return
+	## 1) Pre-action phase (e.g. Rebel Enemy Study luck buff).
+	var pre: Dictionary = EnemyAI.trigger_pre_action_phase(enemy)
+	for line: String in pre.get("logs", []):
+		EventBus.combat_log_message.emit(line)
+	if bool(pre.get("triggered", false)):
+		var pre_ability: EnemyAbility = pre.get("ability") as EnemyAbility
+		enemy.emit_ability_notice(index, pre_ability, "pre_action")
 
-	var resolved: Dictionary = enemy.resolve_ability(ability)
+	## 2) Main action: priority multi-hit, else weighted deck, else legacy fallback.
+	var action: Dictionary = EnemyAI.resolve_main_action(enemy)
+	var mode: String = str(action.get("mode", "fallback"))
+	match mode:
+		"multi_hit":
+			var ability: EnemyAbility = action.get("ability") as EnemyAbility
+			var hits: Array = action.get("hits", [])
+			enemy.emit_ability_notice(index, ability, "multi_hit")
+			if ability != null:
+				EventBus.combat_log_message.emit(
+					tr("KEY_LOG_ENEMY_MULTI_HIT") % [
+						enemy.get_localized_name(),
+						ability.get_localized_name(),
+						hits.size(),
+					]
+				)
+			for hit_amount in hits:
+				_apply_enemy_hit(index, enemy, int(hit_amount), false)
+				if inventory.is_dead():
+					enemy.end_enemy_turn()
+					return
+		"ability":
+			var ability: EnemyAbility = action.get("ability") as EnemyAbility
+			var resolved: Dictionary = action.get("resolved", {})
+			enemy.emit_ability_notice(index, ability, "ability")
+			_execute_resolved_ability(index, enemy, ability, resolved)
+		_:
+			_enemy_act_legacy_fallback(index, enemy)
+
+	enemy.end_enemy_turn()
+
+
+func _execute_resolved_ability(
+	index: int,
+	enemy: EnemyInstance,
+	ability: EnemyAbility,
+	resolved: Dictionary
+) -> void:
+	if ability == null:
+		_enemy_act_legacy_fallback(index, enemy)
+		return
 	var amount: int = int(resolved.get("amount", 0))
 	var is_crit: bool = bool(resolved.get("is_crit", false))
 	match ability.type:
 		EnemyAbility.AbilityType.BLOCK:
+			if is_crit:
+				enemy.emit_crit_notice(index)
 			enemy.gain_block(amount)
 			var msg := tr("KEY_LOG_ENEMY_BLOCK") % [enemy.get_localized_name(), amount]
 			if is_crit:
@@ -374,24 +411,31 @@ func _enemy_act(index: int, enemy: EnemyInstance) -> void:
 			EventBus.combat_log_message.emit(msg)
 			EventBus.enemy_hp_changed.emit(index, enemy.current_hp, enemy.max_hp)
 		EnemyAbility.AbilityType.HEAL:
+			if is_crit:
+				enemy.emit_crit_notice(index)
 			var healed := enemy.heal(amount)
 			var msg := tr("KEY_LOG_ENEMY_HEAL") % [enemy.get_localized_name(), healed]
 			if is_crit:
 				msg = tr("KEY_LOG_CRIT_PREFIX") % msg
 			EventBus.combat_log_message.emit(msg)
 			EventBus.enemy_hp_changed.emit(index, enemy.current_hp, enemy.max_hp)
-		EnemyAbility.AbilityType.SPECIAL:
-			_apply_enemy_hit(index, enemy, amount, is_crit, ability.corruption_duration)
 		_:
-			_apply_enemy_hit(index, enemy, amount, is_crit, 0)
+			_apply_enemy_hit(index, enemy, amount, is_crit)
+
+
+func _enemy_act_legacy_fallback(index: int, enemy: EnemyInstance) -> void:
+	var data := enemy.data
+	var dmg := data.basic_damage if data else 5
+	if GameSettings != null:
+		dmg = int(round(float(dmg) * GameSettings.get_enemy_damage_multiplier()))
+	_apply_enemy_hit(index, enemy, dmg, false)
 
 
 func _apply_enemy_hit(
 	index: int,
 	enemy: EnemyInstance,
 	damage: int,
-	is_crit: bool,
-	corruption_duration: int
+	is_crit: bool
 ) -> void:
 	var dealt := inventory.apply_damage(damage, current_block)
 	current_block = maxi(0, current_block - damage)
@@ -399,13 +443,8 @@ func _apply_enemy_hit(
 	var msg := tr("KEY_LOG_ENEMY_STRIKE") % [enemy.get_localized_name(), damage, dealt]
 	if is_crit:
 		msg = tr("KEY_LOG_CRIT_PREFIX") % msg
+		enemy.emit_crit_notice(index)
 	EventBus.combat_log_message.emit(msg)
-	if corruption_duration > 0 and inventory != null and inventory.grid != null:
-		var cell: Vector2i = inventory.grid.corrupt_random_unlocked_cell(corruption_duration)
-		if cell.x >= 0:
-			EventBus.combat_log_message.emit(
-				tr("KEY_LOG_ENEMY_CORRUPT") % enemy.get_localized_name()
-			)
 	EventBus.enemy_hp_changed.emit(index, enemy.current_hp, enemy.max_hp)
 
 

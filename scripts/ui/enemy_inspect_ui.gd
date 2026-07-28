@@ -1,6 +1,7 @@
 class_name EnemyInspectUI
 extends BaseModalWindow
-## Right-click inspect for runtime enemies: lore, stats, scaled ability ranges.
+## Full inspect modal for runtime enemies (opened from EnemyContextMenuUI).
+## Shows lore, stats, scaled ability ranges, and traits.
 
 const PREVIEW_SIZE := Vector2(140, 160)
 
@@ -11,6 +12,7 @@ var _name_label: Label
 var _stats_label: RichTextLabel
 var _desc_label: RichTextLabel
 var _abilities_box: VBoxContainer
+var _traits_box: VBoxContainer
 var _built: bool = false
 
 
@@ -113,6 +115,17 @@ func _ensure_content() -> void:
 	_abilities_box.add_theme_constant_override("separation", 6)
 	right.add_child(_abilities_box)
 
+	var traits_title := Label.new()
+	traits_title.name = "TraitsTitle"
+	traits_title.text = tr("KEY_TRAITS")
+	traits_title.add_theme_font_size_override("font_size", 15)
+	traits_title.add_theme_color_override("font_color", Color(0.95, 0.82, 0.4))
+	right.add_child(traits_title)
+
+	_traits_box = VBoxContainer.new()
+	_traits_box.add_theme_constant_override("separation", 4)
+	right.add_child(_traits_box)
+
 	_built = true
 
 
@@ -166,30 +179,55 @@ func _populate(enemy: EnemyInstance) -> void:
 		empty.text = tr("KEY_NO_ABILITIES")
 		empty.add_theme_color_override("font_color", Color(0.55, 0.55, 0.6))
 		_abilities_box.add_child(empty)
-		return
+	else:
+		for ability: EnemyAbility in enemy.abilities:
+			if ability == null:
+				continue
+			var block := VBoxContainer.new()
+			block.add_theme_constant_override("separation", 2)
+			var name_l := Label.new()
+			name_l.text = ability.get_localized_name()
+			name_l.add_theme_font_size_override("font_size", 14)
+			name_l.add_theme_color_override("font_color", Color(0.92, 0.92, 0.94))
+			block.add_child(name_l)
+			var range_l := Label.new()
+			range_l.text = enemy.format_ability_tooltip(ability)
+			range_l.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+			range_l.add_theme_font_size_override("font_size", 13)
+			range_l.add_theme_color_override("font_color", Color(0.78, 0.85, 0.7))
+			block.add_child(range_l)
+			var lore := ability.get_localized_description()
+			if not lore.is_empty():
+				var lore_l := Label.new()
+				lore_l.text = lore
+				lore_l.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+				lore_l.add_theme_font_size_override("font_size", 12)
+				lore_l.add_theme_color_override("font_color", Color(0.6, 0.6, 0.65))
+				block.add_child(lore_l)
+			_abilities_box.add_child(block)
 
-	for ability: EnemyAbility in enemy.abilities:
-		if ability == null:
-			continue
-		var block := VBoxContainer.new()
-		block.add_theme_constant_override("separation", 2)
-		var name_l := Label.new()
-		name_l.text = ability.get_localized_name()
-		name_l.add_theme_font_size_override("font_size", 14)
-		name_l.add_theme_color_override("font_color", Color(0.92, 0.92, 0.94))
-		block.add_child(name_l)
-		var range_l := Label.new()
-		range_l.text = enemy.format_ability_tooltip(ability)
-		range_l.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
-		range_l.add_theme_font_size_override("font_size", 13)
-		range_l.add_theme_color_override("font_color", Color(0.78, 0.85, 0.7))
-		block.add_child(range_l)
-		var lore := ability.get_localized_description()
-		if not lore.is_empty():
-			var lore_l := Label.new()
-			lore_l.text = lore
-			lore_l.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
-			lore_l.add_theme_font_size_override("font_size", 12)
-			lore_l.add_theme_color_override("font_color", Color(0.6, 0.6, 0.65))
-			block.add_child(lore_l)
-		_abilities_box.add_child(block)
+	_populate_traits(enemy)
+
+
+func _populate_traits(enemy: EnemyInstance) -> void:
+	if _traits_box == null:
+		return
+	for child in _traits_box.get_children():
+		child.queue_free()
+	var traits_title: Label = find_child("TraitsTitle", true, false) as Label
+	if traits_title:
+		traits_title.text = tr("KEY_TRAITS")
+	var trait_ids: Array[String] = enemy.get_trait_ids()
+	if trait_ids.is_empty():
+		var empty := Label.new()
+		empty.text = tr("KEY_NO_TRAITS")
+		empty.add_theme_color_override("font_color", Color(0.55, 0.55, 0.6))
+		_traits_box.add_child(empty)
+		return
+	for trait_id: String in trait_ids:
+		var row := Label.new()
+		row.text = "• %s" % trait_id
+		row.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+		row.add_theme_font_size_override("font_size", 13)
+		row.add_theme_color_override("font_color", Color(0.8, 0.8, 0.85))
+		_traits_box.add_child(row)

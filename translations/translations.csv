@@ -92,17 +92,29 @@ KEY_ABILITY_RANGE_FMT,"%s %d–%d (%d–%d base)","%s %d–%d (%d–%d база)
 KEY_LOG_CRIT_PREFIX,CRIT! %s,КРИТ! %s
 KEY_LOG_ENEMY_BLOCK,%s raises %d block.,%s получает %d блока.
 KEY_LOG_ENEMY_HEAL,%s repairs for %d.,%s восстанавливает %d.
-KEY_LOG_ENEMY_CORRUPT,%s corrupts a body cell.,%s искажает клетку тела.
+KEY_LOG_ENEMY_STUDY,%s: %s — Luck is now %d.,%s: %s — Удача теперь %d.
+KEY_LOG_ENEMY_MULTI_HIT,%s uses %s (%d hits)!,%s использует %s (%d ударов)!
+KEY_ABILITY_PRE_ACTION_FMT,Pre-action every %d turns (permanent +1 Luck).,Преддействие каждые %d хода (постоянно +1 Удача).
+KEY_ABILITY_MULTI_HIT_FMT,"%d× %d–%d base (no STR); unlocks at ≤%d%% HP","%d× %d–%d база (без СИЛ); открывается при ≤%d%% ОЗ"
 ABILITY_PIPE_SWING_NAME,Pipe Swing,Удар трубой
 ABILITY_PIPE_SWING_DESC,A desperate overhead smash.,Отчаянный удар сверху.
 ABILITY_GUARD_NAME,Scrap Guard,Хламовый блок
 ABILITY_GUARD_DESC,Raises a makeshift guard.,Поднимает импровизированную защиту.
 ABILITY_SIGNAL_SPIKE_NAME,Signal Spike,Шип сигнала
 ABILITY_SIGNAL_SPIKE_DESC,A spike of corrupted current.,Всплеск искажённого тока.
-ABILITY_CORRUPT_TOUCH_NAME,Corrupt Touch,Искажающее касание
-ABILITY_CORRUPT_TOUCH_DESC,Burns a hole into your body-grid.,Выжигает дыру в сетке тела.
 ABILITY_REPAIR_PULSE_NAME,Repair Pulse,Импульс ремонта
 ABILITY_REPAIR_PULSE_DESC,Emergency self-suture protocols.,Аварийный саморемонт.
+ABILITY_ENEMY_STUDY_NAME,Enemy Study,Изучение врага
+ABILITY_ENEMY_STUDY_DESC,Studies your frame every other turn and permanently gains Luck.,Каждый второй ход изучает ваш каркас и навсегда повышает Удачу.
+ABILITY_ENEMY_STUDY_TEXT,Enemy Study,Изучение врага
+ABILITY_DESPERATE_ATTACK_NAME,Desperate Attack,Отчаянная атака
+ABILITY_DESPERATE_ATTACK_DESC,Below 40% HP: three raw physical strikes with no Strength bonus (1-turn cooldown).,Ниже 40% ОЗ: три сырых физических удара без бонуса Силы (перезарядка 1 ход).
+ABILITY_DESPERATE_ATTACK_TEXT,Desperate Attack,Отчаянная атака
+ABILITY_PIPE_SWING_TEXT,Pipe Swing,Удар трубой
+ABILITY_GUARD_TEXT,Scrap Guard,Хламовый блок
+ABILITY_SIGNAL_SPIKE_TEXT,Signal Spike,Шип сигнала
+ABILITY_REPAIR_PULSE_TEXT,Repair Pulse,Импульс ремонта
+KEY_COMBAT_TEXT_ENEMY_CRIT,Critical hit!,Критический удар!
 KEY_PRICE,Price,Цена
 KEY_DAMAGE,Damage,Урон
 KEY_ARMOR,Armor,Броня
@@ -154,7 +166,7 @@ KEY_PLACE_EDGE,Item requires edge placement.,Предмет требует ус�
 ENEMY_DESPERATE_REBEL_NAME,Desperate Rebel,Отчаянный повстанец
 ENEMY_DESPERATE_REBEL_DESC,A starving human with a pipe. Still believes this city has a future.,Голодный человек с трубой. Всё ещё верит; что у города есть будущее.
 ENEMY_CORRUPTED_SYNTHET_NAME,Corrupted Synthet,Искажённый синтет
-ENEMY_CORRUPTED_SYNTHET_DESC,Half-melted chassis leaking signal noise. Its touch rusts your grid.,Полурасплавленный корпус с шумом сигнала. Прикосновение ржавит вашу сетку.
+ENEMY_CORRUPTED_SYNTHET_DESC,Half-melted chassis leaking signal noise. Dangerous when cornered.,Полурасплавленный корпус с шумом сигнала. Опасен; когда загнан в угол.
 MAP_N0_NAME,Scrap Corridor,Мусорный коридор
 MAP_N1_NAME,Jury-Rig Bench,Кустарный верстак
 MAP_N2_NAME,Synth Nest,Гнездо синтетов
