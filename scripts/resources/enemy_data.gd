@@ -8,6 +8,19 @@ enum AttackType {
 	SPECIAL,
 }
 
+const FACTION_HUMAN := "human"
+const FACTION_SYNTHET := "synthet"
+const FACTION_CHIMERA := "chimera"
+
+const TIER_NORMAL := "normal"
+const TIER_ELITE := "elite"
+const TIER_BOSS := "boss"
+
+const ROLE_MINION := "minion"
+const ROLE_DAMAGE := "damage"
+const ROLE_SUPPORT := "support"
+const ROLE_BOSS := "boss"
+
 @export var id: String = ""
 
 ## Localization keys (preferred). Fallbacks: display_name / description.
@@ -15,6 +28,15 @@ enum AttackType {
 @export var enemy_desc_key: String = ""
 @export var display_name: String = "Unknown Host"
 @export_multiline var description: String = ""
+
+## Lore faction — encounters must never mix factions.
+@export var faction: String = FACTION_HUMAN
+## Encounter pool category: normal | elite | boss.
+@export var combat_tier: String = TIER_NORMAL
+## Combat role: minion | damage | support | boss.
+@export var role: String = ROLE_DAMAGE
+## Difficulty cost for dynamic threat budgets.
+@export var threat_level: int = 10
 
 ## Base HP before endurance / difficulty scaling. 0 = fall back to legacy max_hp.
 @export var base_hp: int = 0
@@ -36,8 +58,8 @@ enum AttackType {
 ## Legacy attack fields kept for older content / fallback AI.
 @export var basic_damage: int = 5
 @export var special_damage: int = 3
-@export var corruption_duration: int = 2
-@export var special_chance: float = 0.35
+@export var corruption_duration: int = 0
+@export var special_chance: float = 0.0
 
 
 func get_localized_name() -> String:
@@ -57,6 +79,22 @@ func get_effective_base_hp() -> int:
 	if base_hp > 0:
 		return base_hp
 	return maxi(max_hp, 1)
+
+
+func get_faction() -> String:
+	return faction.strip_edges().to_lower()
+
+
+func get_combat_tier() -> String:
+	return combat_tier.strip_edges().to_lower()
+
+
+func get_role() -> String:
+	return role.strip_edges().to_lower()
+
+
+func is_boss_tier() -> bool:
+	return get_combat_tier() == TIER_BOSS or get_role() == ROLE_BOSS
 
 
 func choose_attack() -> AttackType:

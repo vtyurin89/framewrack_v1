@@ -23,16 +23,17 @@ func _ready() -> void:
 
 func _build_default_map() -> void:
 	nodes = [
-		{"id": "n0", "type": NodeType.COMBAT, "label_key": "MAP_N0_NAME", "label": "Scrap Corridor", "enemy_ids": ["desperate_rebel"]},
+		{"id": "n0", "type": NodeType.COMBAT, "label_key": "MAP_N0_NAME", "label": "Scrap Corridor", "faction": "human", "threat_budget": 18, "enemy_ids": ["desperate_rebel"]},
 		{"id": "n1", "type": NodeType.REPAIR, "label_key": "MAP_N1_NAME", "label": "Jury-Rig Bench", "enemy_ids": []},
-		{"id": "n2", "type": NodeType.COMBAT, "label_key": "MAP_N2_NAME", "label": "Synth Nest", "enemy_ids": ["corrupted_synthet"]},
+		{"id": "n2", "type": NodeType.COMBAT, "label_key": "MAP_N2_NAME", "label": "Synth Nest", "faction": "synthet", "threat_budget": 20, "enemy_ids": ["corrupted_synthet"]},
 		{"id": "n3", "type": NodeType.EVENT, "label_key": "MAP_N3_NAME", "label": "Mutation Cache", "enemy_ids": []},
 		{
 			"id": "n4",
 			"type": NodeType.BOSS,
 			"label_key": "MAP_N4_NAME",
 			"label": "Framewrack Core",
-			"enemy_ids": ["desperate_rebel", "corrupted_synthet"],
+			"faction": "synthet",
+			"enemy_ids": ["synthet_overseer"],
 		},
 	]
 	current_index = -1

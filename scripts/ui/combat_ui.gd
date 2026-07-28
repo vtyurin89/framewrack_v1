@@ -34,6 +34,7 @@ func _ready() -> void:
 	EventBus.combat_log_message.connect(_on_log)
 	EventBus.enemy_hp_changed.connect(_on_enemy_hp)
 	EventBus.enemy_selected.connect(_on_enemy_selected)
+	EventBus.enemy_roster_changed.connect(_rebuild_enemies)
 	EventBus.turn_started.connect(_on_turn_started)
 	EventBus.combat_ended.connect(_on_combat_ended)
 	EventBus.enemy_combat_text.connect(_on_enemy_combat_text)

@@ -1,14 +1,14 @@
 class_name EnemyAbility
 extends Resource
-## Scalable enemy combat action: min–max roll + stat bonus + weighted / phased AI.
+## Scalable enemy combat action driven by main_effect + AbilityEffect handlers.
 
 enum AbilityType {
 	DAMAGE,
 	BLOCK,
 	HEAL,
 	SPECIAL,
-	PRE_ACTION, ## Passive-start buff / study phase (not a main-deck pick).
-	MULTI_HIT, ## Priority frenzy: multiple base rolls without stat bonus.
+	PRE_ACTION,
+	MULTI_HIT,
 }
 
 enum StatScaling {
@@ -29,21 +29,23 @@ enum WeightClass {
 @export var id: String = ""
 @export var ability_name_key: String = ""
 @export var description_key: String = ""
+## self | player | ally | all_allies
+@export var target_type: String = "player"
+## damage | heal | modify_stat | status | summon
+@export var main_effect: String = "damage"
+## Raw CSV effect_params (pipe-separated).
+@export var effect_params: String = ""
 @export var type: AbilityType = AbilityType.DAMAGE
 @export var min_val: int = 1
 @export var max_val: int = 3
 @export var stat_scaling: StatScaling = StatScaling.STRENGTH
 @export var weight_class: WeightClass = WeightClass.STANDARD
 @export var base_ai_weight: float = 1.0
-## MULTI_HIT: number of consecutive base rolls.
 @export var hit_count: int = 1
-## MULTI_HIT: unlock when current_hp / max_hp <= this ratio (0 = always).
 @export var hp_threshold: float = 0.0
-## Turns that must pass after use before this ability can fire again.
 @export var cooldown_turns: int = 0
-## PRE_ACTION: fire on turn numbers divisible by this interval (e.g. 2 → turns 2,4,6…).
+@export var max_charges: int = -1
 @export var trigger_interval: int = 0
-## Localization key (or plain text) shown as floating combat notice over the enemy.
 @export var combat_text: String = ""
 
 
@@ -77,9 +79,47 @@ func roll_base() -> int:
 	return randi_range(r.x, r.y)
 
 
+func get_effect_param_list() -> Array:
+	var result: Array = []
+	var cleaned := effect_params.strip_edges().trim_prefix("\"").trim_suffix("\"")
+	if cleaned.is_empty():
+		return result
+	for part in cleaned.split("|", false):
+		var token := str(part).strip_edges()
+		if not token.is_empty():
+			result.append(token)
+	return result
+
+
 func is_main_deck_ability() -> bool:
-	## Pre-action / multi-hit priority skills are resolved outside weighted picks.
 	return type != AbilityType.PRE_ACTION and type != AbilityType.MULTI_HIT
+
+
+func requires_defensive_cooldown() -> bool:
+	if type in [AbilityType.HEAL, AbilityType.BLOCK]:
+		return true
+	var effect := main_effect.strip_edges().to_lower()
+	if effect == "heal":
+		return true
+	## Defensive status shields / guards.
+	var params := effect_params.strip_edges().to_lower()
+	if params.begins_with("block") or params.begins_with("guard") or params.begins_with("shield"):
+		return true
+	return false
+
+
+func infer_main_effect() -> String:
+	if not main_effect.strip_edges().is_empty():
+		return main_effect.strip_edges().to_lower()
+	match type:
+		AbilityType.HEAL:
+			return "heal"
+		AbilityType.BLOCK:
+			return "status"
+		AbilityType.PRE_ACTION:
+			return "modify_stat"
+		_:
+			return "damage"
 
 
 static func parse_type(raw: String) -> AbilityType:
@@ -122,6 +162,22 @@ static func parse_weight_class(raw: String) -> WeightClass:
 			return WeightClass.LIGHT
 		_:
 			return WeightClass.STANDARD
+
+
+static func parse_main_effect(raw: String) -> String:
+	match raw.strip_edges().to_lower():
+		"heal", "repair":
+			return "heal"
+		"modify_stat", "buff", "stat":
+			return "modify_stat"
+		"status", "block", "shield", "debuff":
+			return "status"
+		"summon":
+			return "summon"
+		"damage", "attack", "multi_hit", "":
+			return "damage"
+		_:
+			return raw.strip_edges().to_lower()
 
 
 func stat_label_key() -> String:

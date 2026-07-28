@@ -65,6 +65,102 @@ func create_instance_from_data(blueprint: EnemyData) -> EnemyInstance:
 
 
 # ---------------------------------------------------------------------------
+# Encounter generation
+# ---------------------------------------------------------------------------
+
+func get_enemies_by_faction_and_tier(faction: String, tier: String) -> Array[EnemyData]:
+	var result: Array[EnemyData] = []
+	var faction_key := faction.strip_edges().to_lower()
+	var tier_key := tier.strip_edges().to_lower()
+	if faction_key.is_empty() or tier_key.is_empty():
+		return result
+	for enemy: EnemyData in _enemies_by_id.values():
+		if enemy == null:
+			continue
+		if enemy.get_faction() == faction_key and enemy.get_combat_tier() == tier_key:
+			result.append(enemy)
+	return result
+
+
+func get_random_boss() -> EnemyData:
+	## Picks a random boss-tier enemy (any faction). Caller may filter further.
+	var bosses: Array[EnemyData] = []
+	for enemy: EnemyData in _enemies_by_id.values():
+		if enemy != null and enemy.is_boss_tier():
+			bosses.append(enemy)
+	if bosses.is_empty():
+		push_warning("EnemyDatabase: no boss-tier enemies in catalog")
+		return null
+	bosses.shuffle()
+	return create_blueprint(bosses[0].id)
+
+
+func get_random_boss_for_faction(faction: String) -> EnemyData:
+	var bosses: Array[EnemyData] = get_enemies_by_faction_and_tier(faction, EnemyData.TIER_BOSS)
+	if bosses.is_empty():
+		## Fallback: role=boss in case tier was mis-tagged.
+		for enemy: EnemyData in _enemies_by_id.values():
+			if enemy != null and enemy.get_faction() == faction.strip_edges().to_lower() and enemy.get_role() == EnemyData.ROLE_BOSS:
+				bosses.append(enemy)
+	if bosses.is_empty():
+		return null
+	bosses.shuffle()
+	return create_blueprint(bosses[0].id)
+
+
+func generate_encounter(faction: String, budget: int) -> Array[EnemyData]:
+	## Builds a same-faction NORMAL-tier pack that fits within `budget` threat.
+	var result: Array[EnemyData] = []
+	var pool: Array[EnemyData] = get_enemies_by_faction_and_tier(faction, EnemyData.TIER_NORMAL)
+	if pool.is_empty():
+		push_warning("EnemyDatabase: no normal enemies for faction '%s'" % faction)
+		return result
+
+	var remaining := maxi(budget, 0)
+	if remaining <= 0:
+		## Still return one cheapest fighter so combat can start.
+		pool.sort_custom(func(a: EnemyData, b: EnemyData) -> bool: return a.threat_level < b.threat_level)
+		result.append(create_blueprint(pool[0].id))
+		return result
+
+	var working: Array[EnemyData] = pool.duplicate()
+	working.shuffle()
+	var guard := 0
+	while remaining > 0 and guard < 64:
+		guard += 1
+		var candidates: Array[EnemyData] = []
+		for enemy: EnemyData in working:
+			var cost := maxi(enemy.threat_level, 1)
+			if cost <= remaining:
+				candidates.append(enemy)
+		if candidates.is_empty():
+			break
+		var pick: EnemyData = candidates[randi() % candidates.size()]
+		result.append(create_blueprint(pick.id))
+		remaining -= maxi(pick.threat_level, 1)
+
+	if result.is_empty():
+		working.sort_custom(func(a: EnemyData, b: EnemyData) -> bool: return a.threat_level < b.threat_level)
+		result.append(create_blueprint(working[0].id))
+	return result
+
+
+func validate_same_faction(enemies: Array[EnemyData]) -> bool:
+	if enemies.is_empty():
+		return true
+	var faction := ""
+	for enemy: EnemyData in enemies:
+		if enemy == null:
+			continue
+		if faction.is_empty():
+			faction = enemy.get_faction()
+			continue
+		if enemy.get_faction() != faction:
+			return false
+	return true
+
+
+# ---------------------------------------------------------------------------
 # Abilities CSV
 # ---------------------------------------------------------------------------
 
@@ -102,10 +198,24 @@ func _parse_ability_row(row: PackedStringArray, col: Dictionary) -> EnemyAbility
 		desc_cell = _cell(row, col, "desc")
 	ability.description_key = desc_cell if not desc_cell.is_empty() else ability.id + "_DESC"
 
+	ability.target_type = _cell(row, col, "target_type").strip_edges().to_lower()
+	if ability.target_type.is_empty():
+		ability.target_type = "player"
+
+	ability.main_effect = EnemyAbility.parse_main_effect(_cell(row, col, "main_effect"))
+	ability.effect_params = _cell(row, col, "effect_params").strip_edges()
+
 	ability.type = EnemyAbility.parse_type(_cell(row, col, "type"))
+	if ability.main_effect.is_empty():
+		ability.main_effect = ability.infer_main_effect()
+
 	ability.min_val = _parse_int(_cell(row, col, "min_val"), 1)
 	ability.max_val = _parse_int(_cell(row, col, "max_val"), ability.min_val)
-	ability.stat_scaling = EnemyAbility.parse_stat_scaling(_cell(row, col, "stat_scaling"))
+
+	var scaling_raw := _cell(row, col, "scaling_stat")
+	if scaling_raw.is_empty():
+		scaling_raw = _cell(row, col, "stat_scaling")
+	ability.stat_scaling = EnemyAbility.parse_stat_scaling(scaling_raw)
 
 	var weight_raw := _cell(row, col, "weight_class")
 	if weight_raw.is_empty():
@@ -123,6 +233,7 @@ func _parse_ability_row(row: PackedStringArray, col: Dictionary) -> EnemyAbility
 	ability.hit_count = maxi(0, _parse_int(_cell(row, col, "hit_count"), 1))
 	ability.hp_threshold = _parse_float(_cell(row, col, "hp_threshold"), 0.0)
 	ability.cooldown_turns = maxi(0, _parse_int(_cell(row, col, "cooldown_turns"), 0))
+	ability.max_charges = _parse_int(_cell(row, col, "max_charges"), -1)
 	ability.trigger_interval = maxi(0, _parse_int(_cell(row, col, "trigger_interval"), 0))
 	if ability.type == EnemyAbility.AbilityType.PRE_ACTION:
 		ability.base_ai_weight = 0.0
@@ -136,6 +247,10 @@ func _parse_ability_row(row: PackedStringArray, col: Dictionary) -> EnemyAbility
 			ability.hp_threshold = 0.4
 		if ability.cooldown_turns <= 0:
 			ability.cooldown_turns = 1
+
+	## Healing / defensive / shielding skills always share a 1-turn cooldown floor.
+	if ability.requires_defensive_cooldown() and ability.cooldown_turns < 1:
+		ability.cooldown_turns = 1
 
 	ability.combat_text = _cell(row, col, "combat_text").strip_edges()
 	return ability
@@ -185,6 +300,11 @@ func _parse_enemy_row(row: PackedStringArray, col: Dictionary) -> EnemyData:
 	enemy.intelligence = maxi(1, _parse_int(_cell(row, col, "int"), 1))
 	enemy.luck = maxi(1, _parse_int(_cell(row, col, "lck"), 1))
 	enemy.exp_reward = _parse_int(_cell(row, col, "exp_reward"), 15)
+
+	enemy.faction = _normalize_faction(_cell(row, col, "faction"), enemy.id)
+	enemy.combat_tier = _normalize_tier(_cell(row, col, "combat_tier"))
+	enemy.role = _normalize_role(_cell(row, col, "role"), enemy.combat_tier)
+	enemy.threat_level = maxi(1, _parse_int(_cell(row, col, "threat_level"), 10))
 
 	enemy.abilities = _parse_ability_list(_cell(row, col, "abilities"))
 	enemy.trait_ids = _parse_id_list(_cell(row, col, "traits"))
@@ -268,3 +388,40 @@ func _parse_float(raw: String, default_value: float = 0.0) -> float:
 	if cell.is_empty() or not cell.is_valid_float():
 		return default_value
 	return float(cell)
+
+
+func _normalize_faction(raw: String, enemy_id: String) -> String:
+	var key := raw.strip_edges().to_lower()
+	match key:
+		EnemyData.FACTION_HUMAN, EnemyData.FACTION_SYNTHET, EnemyData.FACTION_CHIMERA:
+			return key
+		_:
+			pass
+	## Infer from legacy ids when CSV omits faction.
+	if enemy_id.find("synthet") >= 0 or enemy_id.find("drone") >= 0:
+		return EnemyData.FACTION_SYNTHET
+	if enemy_id.find("chimera") >= 0:
+		return EnemyData.FACTION_CHIMERA
+	return EnemyData.FACTION_HUMAN
+
+
+func _normalize_tier(raw: String) -> String:
+	match raw.strip_edges().to_lower():
+		EnemyData.TIER_ELITE:
+			return EnemyData.TIER_ELITE
+		EnemyData.TIER_BOSS:
+			return EnemyData.TIER_BOSS
+		_:
+			return EnemyData.TIER_NORMAL
+
+
+func _normalize_role(raw: String, tier: String) -> String:
+	var key := raw.strip_edges().to_lower()
+	match key:
+		EnemyData.ROLE_MINION, EnemyData.ROLE_DAMAGE, EnemyData.ROLE_SUPPORT, EnemyData.ROLE_BOSS:
+			return key
+		_:
+			pass
+	if tier == EnemyData.TIER_BOSS:
+		return EnemyData.ROLE_BOSS
+	return EnemyData.ROLE_DAMAGE

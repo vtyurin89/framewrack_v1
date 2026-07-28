@@ -17,6 +17,7 @@ var state: CombatState = CombatState.INACTIVE
 
 ## Runtime enemy combatants (difficulty-scaled HP + ability AI).
 var enemies: Array[EnemyInstance] = []
+var _ability_executor: EnemyAbilityExecutor
 
 var current_ap: int = 0
 var max_ap: int = 3
@@ -29,6 +30,14 @@ var _player_burn_stacks: int = 0
 
 func setup(p_inventory: InventoryController) -> void:
 	inventory = p_inventory
+	_ensure_ability_executor()
+
+
+func _ensure_ability_executor() -> void:
+	if _ability_executor == null:
+		_ability_executor = EnemyAbilityExecutor.new(self)
+	else:
+		_ability_executor.set_combat(self)
 
 
 func is_player_turn_active() -> bool:
@@ -36,6 +45,7 @@ func is_player_turn_active() -> bool:
 
 
 func start_combat(enemy_datas: Array[EnemyData]) -> void:
+	_ensure_ability_executor()
 	enemies.clear()
 	var ids: Array[String] = []
 	for data: EnemyData in enemy_datas:
@@ -349,78 +359,22 @@ func _run_enemy_actions() -> void:
 
 
 func _enemy_act(index: int, enemy: EnemyInstance) -> void:
-	## 1) Pre-action phase (e.g. Rebel Enemy Study luck buff).
+	## 1) Pre-action phase (e.g. Rebel Enemy Study luck buff via modify_stat).
 	var pre: Dictionary = EnemyAI.trigger_pre_action_phase(enemy)
-	for line: String in pre.get("logs", []):
-		EventBus.combat_log_message.emit(line)
 	if bool(pre.get("triggered", false)):
 		var pre_ability: EnemyAbility = pre.get("ability") as EnemyAbility
-		enemy.emit_ability_notice(index, pre_ability, "pre_action")
+		if pre_ability != null:
+			_ability_executor.execute(enemy, index, pre_ability)
 
-	## 2) Main action: priority multi-hit, else weighted deck, else legacy fallback.
+	## 2) Main action through AbilityEffect handlers.
 	var action: Dictionary = EnemyAI.resolve_main_action(enemy)
-	var mode: String = str(action.get("mode", "fallback"))
-	match mode:
-		"multi_hit":
-			var ability: EnemyAbility = action.get("ability") as EnemyAbility
-			var hits: Array = action.get("hits", [])
-			enemy.emit_ability_notice(index, ability, "multi_hit")
-			if ability != null:
-				EventBus.combat_log_message.emit(
-					tr("KEY_LOG_ENEMY_MULTI_HIT") % [
-						enemy.get_localized_name(),
-						ability.get_localized_name(),
-						hits.size(),
-					]
-				)
-			for hit_amount in hits:
-				_apply_enemy_hit(index, enemy, int(hit_amount), false)
-				if inventory.is_dead():
-					enemy.end_enemy_turn()
-					return
-		"ability":
-			var ability: EnemyAbility = action.get("ability") as EnemyAbility
-			var resolved: Dictionary = action.get("resolved", {})
-			enemy.emit_ability_notice(index, ability, "ability")
-			_execute_resolved_ability(index, enemy, ability, resolved)
-		_:
-			_enemy_act_legacy_fallback(index, enemy)
+	var ability: EnemyAbility = action.get("ability") as EnemyAbility
+	if ability != null:
+		_ability_executor.execute(enemy, index, ability)
+	else:
+		_enemy_act_legacy_fallback(index, enemy)
 
 	enemy.end_enemy_turn()
-
-
-func _execute_resolved_ability(
-	index: int,
-	enemy: EnemyInstance,
-	ability: EnemyAbility,
-	resolved: Dictionary
-) -> void:
-	if ability == null:
-		_enemy_act_legacy_fallback(index, enemy)
-		return
-	var amount: int = int(resolved.get("amount", 0))
-	var is_crit: bool = bool(resolved.get("is_crit", false))
-	match ability.type:
-		EnemyAbility.AbilityType.BLOCK:
-			if is_crit:
-				enemy.emit_crit_notice(index)
-			enemy.gain_block(amount)
-			var msg := tr("KEY_LOG_ENEMY_BLOCK") % [enemy.get_localized_name(), amount]
-			if is_crit:
-				msg = tr("KEY_LOG_CRIT_PREFIX") % msg
-			EventBus.combat_log_message.emit(msg)
-			EventBus.enemy_hp_changed.emit(index, enemy.current_hp, enemy.max_hp)
-		EnemyAbility.AbilityType.HEAL:
-			if is_crit:
-				enemy.emit_crit_notice(index)
-			var healed := enemy.heal(amount)
-			var msg := tr("KEY_LOG_ENEMY_HEAL") % [enemy.get_localized_name(), healed]
-			if is_crit:
-				msg = tr("KEY_LOG_CRIT_PREFIX") % msg
-			EventBus.combat_log_message.emit(msg)
-			EventBus.enemy_hp_changed.emit(index, enemy.current_hp, enemy.max_hp)
-		_:
-			_apply_enemy_hit(index, enemy, amount, is_crit)
 
 
 func _enemy_act_legacy_fallback(index: int, enemy: EnemyInstance) -> void:
@@ -428,24 +382,62 @@ func _enemy_act_legacy_fallback(index: int, enemy: EnemyInstance) -> void:
 	var dmg := data.basic_damage if data else 5
 	if GameSettings != null:
 		dmg = int(round(float(dmg) * GameSettings.get_enemy_damage_multiplier()))
-	_apply_enemy_hit(index, enemy, dmg, false)
+	var dealt := apply_enemy_damage_to_player(dmg)
+	EventBus.combat_log_message.emit(
+		tr("KEY_LOG_ENEMY_STRIKE") % [enemy.get_localized_name(), dmg, dealt]
+	)
+	EventBus.enemy_hp_changed.emit(index, enemy.current_hp, enemy.max_hp)
 
 
-func _apply_enemy_hit(
-	index: int,
-	enemy: EnemyInstance,
-	damage: int,
-	is_crit: bool
-) -> void:
+## --- AbilityEffect combat hooks ---------------------------------------------
+
+func apply_enemy_damage_to_player(damage: int) -> int:
 	var dealt := inventory.apply_damage(damage, current_block)
 	current_block = maxi(0, current_block - damage)
 	EventBus.block_changed.emit(current_block)
-	var msg := tr("KEY_LOG_ENEMY_STRIKE") % [enemy.get_localized_name(), damage, dealt]
-	if is_crit:
-		msg = tr("KEY_LOG_CRIT_PREFIX") % msg
-		enemy.emit_crit_notice(index)
-	EventBus.combat_log_message.emit(msg)
-	EventBus.enemy_hp_changed.emit(index, enemy.current_hp, enemy.max_hp)
+	return dealt
+
+
+func is_player_defeated() -> bool:
+	return inventory != null and inventory.is_dead()
+
+
+func get_random_living_ally(exclude: EnemyInstance) -> EnemyInstance:
+	var living: Array[EnemyInstance] = []
+	for enemy: EnemyInstance in enemies:
+		if enemy != null and enemy.is_alive() and enemy != exclude:
+			living.append(enemy)
+	if living.is_empty():
+		return null
+	return living[randi() % living.size()]
+
+
+func emit_enemy_hp_for(enemy: EnemyInstance) -> void:
+	var idx := enemies.find(enemy)
+	if idx < 0:
+		return
+	EventBus.enemy_hp_changed.emit(idx, enemy.current_hp, enemy.max_hp)
+
+
+func add_summoned_enemy(instance: EnemyInstance) -> void:
+	if instance == null:
+		return
+	enemies.append(instance)
+	EventBus.enemy_roster_changed.emit()
+	_emit_enemy_hp()
+
+
+func apply_player_status(status_id: String, potency: int) -> void:
+	var amount := maxi(1, potency)
+	match status_id.strip_edges().to_lower():
+		"poison":
+			_player_poison_stacks += amount
+		"burn":
+			_player_burn_stacks += amount
+		"rust":
+			_player_rust_stacks += amount
+		_:
+			pass
 
 
 func _tick_enemy_burn() -> void:

@@ -30,6 +30,8 @@ signal ap_changed(current: int, maximum: int)
 signal player_hp_changed(current: int, maximum: int)
 signal enemy_hp_changed(enemy_index: int, current: int, maximum: int)
 signal enemy_selected(enemy_index: int)
+## Fired when enemies are added/removed mid-fight (e.g. summon).
+signal enemy_roster_changed
 signal combat_log_message(text: String)
 ## Floating notice over an enemy panel (ability name / crit / etc.).
 signal enemy_combat_text(enemy_index: int, text: String, kind: String)

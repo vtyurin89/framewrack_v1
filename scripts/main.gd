@@ -418,14 +418,11 @@ func _on_map_node_entered(_node_id: String, node_type: int) -> void:
 
 func _start_combat_for_current() -> void:
 	var node: Dictionary = _map.get_current()
-	var enemy_ids: Array = node.get("enemy_ids", [])
-	var datas: Array[EnemyData] = []
+	var datas: Array[EnemyData] = _build_encounter_for_node(node)
 	_pending_combat_exp_reward = 0
-	for eid in enemy_ids:
-		var enemy_data := _resolve_enemy_blueprint(str(eid))
+	for enemy_data: EnemyData in datas:
 		if enemy_data == null:
 			continue
-		datas.append(enemy_data)
 		_pending_combat_exp_reward += maxi(enemy_data.exp_reward, 0)
 	_show_combat()
 	_combat_ui.setup(_combat, inventory)
@@ -435,6 +432,48 @@ func _start_combat_for_current() -> void:
 	if not label_key.is_empty():
 		node_label = tr(label_key)
 	_status_banner.text = tr("KEY_STATUS_ENGAGEMENT") % node_label
+
+
+func _build_encounter_for_node(node: Dictionary) -> Array[EnemyData]:
+	## Prefer explicit enemy_ids; otherwise budget/faction generation or boss pool.
+	var datas: Array[EnemyData] = []
+	var enemy_ids: Array = node.get("enemy_ids", [])
+	for eid in enemy_ids:
+		var enemy_data := _resolve_enemy_blueprint(str(eid))
+		if enemy_data != null:
+			datas.append(enemy_data)
+
+	var node_type: int = int(node.get("type", MapManager.NodeType.COMBAT))
+	var faction := str(node.get("faction", "")).strip_edges().to_lower()
+	if datas.is_empty() and node_type == MapManager.NodeType.BOSS:
+		var boss: EnemyData = null
+		if not faction.is_empty():
+			boss = EnemyDatabase.get_random_boss_for_faction(faction)
+		if boss == null:
+			boss = EnemyDatabase.get_random_boss()
+		if boss != null:
+			datas.append(boss)
+	elif datas.is_empty() and not faction.is_empty():
+		var budget := int(node.get("threat_budget", 20))
+		datas = EnemyDatabase.generate_encounter(faction, budget)
+
+	if not EnemyDatabase.validate_same_faction(datas):
+		push_warning("Encounter mixes factions — keeping first faction only")
+		datas = _filter_to_first_faction(datas)
+	return datas
+
+
+func _filter_to_first_faction(datas: Array[EnemyData]) -> Array[EnemyData]:
+	var filtered: Array[EnemyData] = []
+	var faction := ""
+	for enemy: EnemyData in datas:
+		if enemy == null:
+			continue
+		if faction.is_empty():
+			faction = enemy.get_faction()
+		if enemy.get_faction() == faction:
+			filtered.append(enemy)
+	return filtered
 
 
 func _resolve_enemy_blueprint(enemy_id: String) -> EnemyData:

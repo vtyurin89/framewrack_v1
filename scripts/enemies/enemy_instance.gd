@@ -2,7 +2,7 @@ class_name EnemyInstance
 extends RefCounted
 ## Runtime enemy: difficulty-scaled HP, stats, ability rolls, and turn-phase state.
 
-const CRIT_DAMAGE_MULT := 1.3
+const CRIT_DAMAGE_MULT := 1.4
 const MIN_STAT := 1
 
 var data: EnemyData
@@ -94,9 +94,20 @@ func is_ability_on_cooldown(ability: EnemyAbility) -> bool:
 
 
 func find_ability(ability_id: String) -> EnemyAbility:
+	var needle := ability_id.strip_edges()
+	if needle.is_empty():
+		return null
 	for ability: EnemyAbility in abilities:
-		if ability != null and ability.id == ability_id:
+		if ability != null and ability.id == needle:
 			return ability
+	return null
+
+
+func find_ability_any(ability_ids: Array[String]) -> EnemyAbility:
+	for ability_id: String in ability_ids:
+		var found := find_ability(ability_id)
+		if found != null:
+			return found
 	return null
 
 
@@ -148,7 +159,10 @@ func get_ability_value_range(ability: EnemyAbility) -> Vector2i:
 	if ability == null:
 		return Vector2i.ZERO
 	var r := ability.get_clamped_range()
-	if ability.type == EnemyAbility.AbilityType.MULTI_HIT or ability.stat_scaling == EnemyAbility.StatScaling.NONE:
+	if ability.type == EnemyAbility.AbilityType.MULTI_HIT:
+		var half_str := EnemyAbilityExecutor.resolve_damage_stat_bonus(self, ability)
+		return Vector2i(r.x + half_str, r.y + half_str)
+	if ability.stat_scaling == EnemyAbility.StatScaling.NONE:
 		return r
 	var stat := get_stat(ability.stat_scaling)
 	return Vector2i(r.x + stat, r.y + stat)
@@ -164,7 +178,9 @@ func format_ability_tooltip(ability: EnemyAbility) -> String:
 	if ability.type == EnemyAbility.AbilityType.MULTI_HIT:
 		var hits := ability.hit_count if ability.hit_count > 0 else 3
 		var threshold_pct := int(round((ability.hp_threshold if ability.hp_threshold > 0.0 else 0.4) * 100.0))
-		return tr("KEY_ABILITY_MULTI_HIT_FMT") % [hits, r.x, r.y, threshold_pct]
+		var scaled := get_ability_value_range(ability)
+		var half_str := EnemyAbilityExecutor.resolve_damage_stat_bonus(self, ability)
+		return tr("KEY_ABILITY_MULTI_HIT_FMT") % [hits, scaled.x, scaled.y, half_str, threshold_pct]
 	var scaled := get_ability_value_range(ability)
 	var stat := get_stat(ability.stat_scaling)
 	var stat_key := ability.stat_label_key()
@@ -192,11 +208,14 @@ func format_ability_tooltip(ability: EnemyAbility) -> String:
 
 
 func choose_ability() -> EnemyAbility:
-	## Weighted pick from the main action deck only (excludes PRE_ACTION / MULTI_HIT).
+	## Weighted pick from the main action deck only (excludes PRE_ACTION / MULTI_HIT / on-cooldown).
 	var deck: Array[EnemyAbility] = []
 	for ability: EnemyAbility in abilities:
-		if ability != null and ability.is_main_deck_ability():
-			deck.append(ability)
+		if ability == null or not ability.is_main_deck_ability():
+			continue
+		if is_ability_on_cooldown(ability):
+			continue
+		deck.append(ability)
 	if deck.is_empty():
 		return null
 	var total := 0.0

@@ -3,19 +3,17 @@ extends RefCounted
 ## Phased enemy decisioning: pre-action buffs, then priority multi-hit, then weighted deck.
 
 const ID_ENEMY_STUDY := "ABILITY_ENEMY_STUDY"
+const ID_ENEMY_STUDY_SHORT := "enemy_study"
 const ID_DESPERATE_ATTACK := "ABILITY_DESPERATE_ATTACK"
+const ID_DESPERATE_ATTACK_SHORT := "desperate_attack"
 const DEFAULT_STUDY_INTERVAL := 2
 const DEFAULT_DESPERATE_HP_RATIO := 0.40
-const DEFAULT_DESPERATE_HITS := 3
-const DEFAULT_DESPERATE_COOLDOWN := 1
 
 
 static func trigger_pre_action_phase(enemy: EnemyInstance) -> Dictionary:
 	## Runs at the start of an enemy's turn, before main ability selection.
-	## Returns { logs: Array[String], ability: EnemyAbility|null, triggered: bool }.
-	var logs: Array[String] = []
+	## Returns { ability: EnemyAbility|null, triggered: bool } — CombatManager applies via executor.
 	var result := {
-		"logs": logs,
 		"ability": null,
 		"triggered": false,
 	}
@@ -24,7 +22,8 @@ static func trigger_pre_action_phase(enemy: EnemyInstance) -> Dictionary:
 
 	enemy.begin_enemy_turn()
 
-	var study: EnemyAbility = enemy.find_ability(ID_ENEMY_STUDY)
+	var study_ids: Array[String] = [ID_ENEMY_STUDY, ID_ENEMY_STUDY_SHORT]
+	var study: EnemyAbility = enemy.find_ability_any(study_ids)
 	if study == null:
 		return result
 
@@ -34,53 +33,26 @@ static func trigger_pre_action_phase(enemy: EnemyInstance) -> Dictionary:
 	if enemy.turns_taken % interval != 0:
 		return result
 
-	enemy.luck += 1
-	logs.append(
-		TranslationServer.translate("KEY_LOG_ENEMY_STUDY") % [
-			enemy.get_localized_name(),
-			study.get_localized_name(),
-			enemy.luck,
-		]
-	)
-	result["logs"] = logs
 	result["ability"] = study
 	result["triggered"] = true
 	return result
 
 
 static func resolve_main_action(enemy: EnemyInstance) -> Dictionary:
-	## Returns:
-	## { mode: "multi_hit"|"ability"|"fallback", ability: EnemyAbility|null, hits: Array[int], resolved: Dictionary }
+	## Returns { ability: EnemyAbility|null } for EnemyAbilityExecutor.
 	var result := {
-		"mode": "fallback",
 		"ability": null,
-		"hits": [],
-		"resolved": {},
 	}
 	if enemy == null or not enemy.is_alive():
 		return result
 
-	var desperate: EnemyAbility = enemy.find_ability(ID_DESPERATE_ATTACK)
+	var desperate_ids: Array[String] = [ID_DESPERATE_ATTACK, ID_DESPERATE_ATTACK_SHORT]
+	var desperate: EnemyAbility = enemy.find_ability_any(desperate_ids)
 	if desperate != null and _can_use_desperate_attack(enemy, desperate):
-		var hit_count := desperate.hit_count if desperate.hit_count > 0 else DEFAULT_DESPERATE_HITS
-		var hits: Array[int] = enemy.resolve_multi_hit_base_rolls(desperate, hit_count)
-		enemy.start_ability_cooldown(
-			desperate,
-			desperate.cooldown_turns if desperate.cooldown_turns > 0 else DEFAULT_DESPERATE_COOLDOWN
-		)
-		result["mode"] = "multi_hit"
 		result["ability"] = desperate
-		result["hits"] = hits
 		return result
 
-	var ability: EnemyAbility = enemy.choose_ability()
-	if ability != null:
-		result["mode"] = "ability"
-		result["ability"] = ability
-		result["resolved"] = enemy.resolve_ability(ability)
-		return result
-
-	result["mode"] = "fallback"
+	result["ability"] = enemy.choose_ability()
 	return result
 
 
