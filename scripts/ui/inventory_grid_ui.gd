@@ -9,9 +9,13 @@ signal item_drag_ended(item: ItemData, success: bool)
 signal item_moved(item: ItemData, from_origin: Vector2i, to_origin: Vector2i)
 signal item_inspected(item: ItemData)
 signal item_activated(placed: PlacedItem)
+signal close_requested
+signal layout_fitted(min_size: Vector2)
 
 const CELL_SIZE := 48.0
 const CELL_GAP := 4.0
+const RESERVED_ROWS_TOP := 2
+const RESERVED_ROWS_BOTTOM := 2
 const DRAG_TYPE := "framewrack_item"
 const INSPECT_MODAL_SCENE := preload("res://scenes/UI/item_inspect_modal.tscn")
 
@@ -38,6 +42,8 @@ var _inspect_modal: ItemInspectModal
 @onready var _mutation_label: Label = %MutationLabel
 @onready var _item_layer: Control = %ItemLayer
 @onready var _title: Label = %Title
+@onready var _close_button: Button = %CloseButton
+@onready var _padding: MarginContainer = %Padding
 
 
 func setup(p_inventory: InventoryController) -> void:
@@ -57,6 +63,8 @@ func setup(p_inventory: InventoryController) -> void:
 		EventBus.combat_item_availability_changed.connect(_refresh_combat_item_visuals)
 	if not EventBus.ap_changed.is_connected(_on_ap_changed_visuals):
 		EventBus.ap_changed.connect(_on_ap_changed_visuals)
+	if _close_button and not _close_button.pressed.is_connected(_on_close_pressed):
+		_close_button.pressed.connect(_on_close_pressed)
 	_apply_static_locale()
 	refresh()
 
@@ -127,6 +135,8 @@ func _on_language_changed(_locale: String) -> void:
 func _apply_static_locale() -> void:
 	if _title:
 		_title.text = tr("KEY_BODY_GRID_TITLE")
+	if _close_button:
+		_close_button.text = "✕"
 	if _mutation_label and _drag.is_empty():
 		if (
 			_mutation_label.text.is_empty()
@@ -224,16 +234,28 @@ func _fit_layers() -> void:
 	var g: BodyGrid = inventory.grid
 	var w := g.width * CELL_SIZE + maxi(g.width - 1, 0) * CELL_GAP
 	var h := g.height * CELL_SIZE + maxi(g.height - 1, 0) * CELL_GAP
+	var row_stride := CELL_SIZE + CELL_GAP
+	var top_pad := RESERVED_ROWS_TOP * row_stride
+	var bottom_pad := RESERVED_ROWS_BOTTOM * row_stride
+	var host_h := h + top_pad + bottom_pad
 	if _grid_host:
-		_grid_host.custom_minimum_size = Vector2(w, h)
-		_grid_host.size = Vector2(w, h)
-	_grid_root.position = Vector2.ZERO
+		_grid_host.custom_minimum_size = Vector2(w, host_h)
+		_grid_host.size = Vector2(w, host_h)
+	_grid_root.position = Vector2(0, top_pad)
 	_grid_root.size = Vector2(w, h)
 	if _item_layer:
-		_item_layer.position = Vector2.ZERO
+		_item_layer.position = Vector2(0, top_pad)
 		_item_layer.custom_minimum_size = Vector2(w, h)
 		_item_layer.size = Vector2(w, h)
 		_item_layer.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	update_minimum_size()
+	var content_min := _padding.get_combined_minimum_size() if _padding else get_combined_minimum_size()
+	custom_minimum_size = content_min
+	layout_fitted.emit(content_min)
+
+
+func _on_close_pressed() -> void:
+	close_requested.emit()
 
 
 func _origin_to_layer_pos(origin: Vector2i) -> Vector2:

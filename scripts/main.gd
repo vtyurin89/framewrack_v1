@@ -18,6 +18,7 @@ const SETTINGS_SCENE := preload("res://scenes/UI/settings_modal.tscn")
 @onready var _combat_ui: Control = %CombatUI
 @onready var _status_banner: Label = %StatusBanner
 @onready var _inventory_panel: PanelContainer = %InventoryPanel
+@onready var _body_grid_overlay: Control = %BodyGridOverlay
 @onready var _gameplay_hud: GameplayHUD = %TopBar
 @onready var _root_layout: Control = $RootLayout
 
@@ -31,6 +32,7 @@ var _settings: SettingsModal
 var _fresh_run_pending: bool = false
 var _pending_combat_exp_reward: int = 0
 var _first_combat_xp_granted: bool = false
+var _inventory_overlay_content_min: Vector2 = Vector2(460, 320)
 
 @onready var _combat: Node = $CombatManager
 @onready var _map: Node = $MapManager
@@ -59,6 +61,14 @@ func _ready() -> void:
 	EventBus.player_died.connect(_on_player_died)
 	if _inventory_ui.has_signal("item_activated"):
 		_inventory_ui.item_activated.connect(_on_inventory_item_activated)
+	if _inventory_ui.has_signal("close_requested"):
+		_inventory_ui.close_requested.connect(_hide_inventory_overlay)
+	if _inventory_ui.has_signal("layout_fitted"):
+		_inventory_ui.layout_fitted.connect(_on_inventory_layout_fitted)
+	if _inventory_ui and not _inventory_ui.resized.is_connected(_position_inventory_overlay_panel):
+		_inventory_ui.resized.connect(_position_inventory_overlay_panel)
+	if _inventory_panel and not _inventory_panel.resized.is_connected(_position_inventory_overlay_panel):
+		_inventory_panel.resized.connect(_position_inventory_overlay_panel)
 
 	if _gameplay_hud:
 		_gameplay_hud.body_grid_pressed.connect(_toggle_inventory)
@@ -76,6 +86,7 @@ func _ready() -> void:
 
 	_set_gameplay_ui_visible(false)
 	GameManager.change_state(GameManager.GameState.MAIN_MENU)
+	call_deferred("_position_inventory_overlay_panel")
 
 
 func _unhandled_input(event: InputEvent) -> void:
@@ -119,10 +130,13 @@ func _on_language_changed(_locale: String) -> void:
 
 func _style_inventory_panel() -> void:
 	var style := StyleBoxFlat.new()
-	style.bg_color = Color(0.14, 0.14, 0.14, 1)
+	style.bg_color = Color(0.145, 0.145, 0.176, 1.0)  # ~#25252D opaque
 	style.set_border_width_all(1)
-	style.border_color = Color(0.35, 0.35, 0.35)
-	style.set_content_margin_all(10)
+	style.border_color = Color(0.46, 0.46, 0.52, 1.0)
+	style.set_corner_radius_all(6)
+	style.set_content_margin_all(12)
+	style.shadow_color = Color(0.0, 0.0, 0.0, 0.35)
+	style.shadow_size = 6
 	_inventory_panel.add_theme_stylebox_override("panel", style)
 
 
@@ -150,6 +164,8 @@ func _set_flow(state: int) -> void:
 func _set_gameplay_ui_visible(visible_flag: bool) -> void:
 	if _root_layout:
 		_root_layout.visible = visible_flag
+	if not visible_flag:
+		_hide_inventory_overlay()
 
 
 # --- GameManager / menu / game over -----------------------------------------
@@ -182,6 +198,7 @@ func _enter_main_menu() -> void:
 		_combat_ui.visible = false
 	if _main_menu:
 		_main_menu.show_menu()
+	_hide_inventory_overlay()
 
 
 func _enter_gameplay() -> void:
@@ -283,7 +300,7 @@ func _show_exploring() -> void:
 	_set_flow(GameFlowState.State.EXPLORING)
 	_map_ui.visible = true
 	_combat_ui.visible = false
-	_inventory_panel.visible = true
+	_hide_inventory_overlay()
 	if _inventory_ui.has_method("set_combat_mode"):
 		_inventory_ui.set_combat_mode(false)
 	_map_ui.refresh()
@@ -293,13 +310,55 @@ func _show_exploring() -> void:
 func _show_combat() -> void:
 	_map_ui.visible = false
 	_combat_ui.visible = true
-	_inventory_panel.visible = true
+	_hide_inventory_overlay()
 	if _inventory_ui.has_method("set_combat_mode"):
 		_inventory_ui.set_combat_mode(true, _combat)
 
 
 func _toggle_inventory() -> void:
-	_inventory_panel.visible = not _inventory_panel.visible
+	if _body_grid_overlay == null:
+		return
+	var next_visible := not _body_grid_overlay.visible
+	_body_grid_overlay.visible = next_visible
+	if next_visible:
+		_inventory_ui.refresh()
+		_request_inventory_overlay_relayout()
+
+
+func _hide_inventory_overlay() -> void:
+	if _body_grid_overlay:
+		_body_grid_overlay.visible = false
+
+
+func _position_inventory_overlay_panel() -> void:
+	## Keep BODY GRID as a compact center-right floating panel.
+	if _inventory_panel == null or _body_grid_overlay == null:
+		return
+	var panel_size := _inventory_overlay_content_min
+	if _inventory_ui != null:
+		panel_size = panel_size.max(_inventory_ui.custom_minimum_size)
+	panel_size = panel_size.max(_inventory_panel.get_combined_minimum_size())
+	panel_size.x = maxf(460.0, panel_size.x)
+	panel_size.y = maxf(220.0, panel_size.y)
+	_inventory_panel.offset_left = -16.0 - panel_size.x
+	_inventory_panel.offset_right = -16.0
+	_inventory_panel.offset_top = -panel_size.y * 0.5
+	_inventory_panel.offset_bottom = panel_size.y * 0.5
+
+
+func _request_inventory_overlay_relayout() -> void:
+	call_deferred("_position_inventory_overlay_panel_deferred")
+
+
+func _position_inventory_overlay_panel_deferred() -> void:
+	await get_tree().process_frame
+	_position_inventory_overlay_panel()
+
+
+func _on_inventory_layout_fitted(_min_size: Vector2) -> void:
+	_inventory_overlay_content_min = _min_size
+	if _body_grid_overlay != null and _body_grid_overlay.visible:
+		_request_inventory_overlay_relayout()
 
 
 func _expand_grid_demo() -> void:
