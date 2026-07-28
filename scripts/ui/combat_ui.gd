@@ -7,6 +7,7 @@ signal target_selected(index: int)
 signal continue_pressed
 
 const ENEMY_INSPECT_SCENE := preload("res://scenes/UI/enemy_inspect_ui.tscn")
+const ENEMY_CARD_SCENE := preload("res://scenes/UI/enemy_card_ui.tscn")
 
 var combat: Node  # CombatManager
 var inventory: InventoryController
@@ -96,62 +97,10 @@ func _rebuild_enemies() -> void:
 		return
 	for i in combat.enemies.size():
 		var enemy: EnemyInstance = combat.enemies[i]
-		var panel := PanelContainer.new()
-		panel.mouse_filter = Control.MOUSE_FILTER_STOP
-		panel.mouse_default_cursor_shape = Control.CURSOR_POINTING_HAND
-		panel.gui_input.connect(_on_enemy_panel_input.bind(i))
-		_style_enemy_panel(panel, i, enemy.is_selected)
-
-		var v := VBoxContainer.new()
-		v.mouse_filter = Control.MOUSE_FILTER_IGNORE
-		var float_host := Control.new()
-		float_host.name = "CombatTextHost"
-		float_host.custom_minimum_size = Vector2(0, 22)
-		float_host.mouse_filter = Control.MOUSE_FILTER_IGNORE
-		float_host.clip_contents = false
-		var name_l := Label.new()
-		name_l.text = enemy.get_localized_name()
-		name_l.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-		name_l.mouse_filter = Control.MOUSE_FILTER_IGNORE
-		var sprite := ColorRect.new()
-		sprite.custom_minimum_size = Vector2(80, 100)
-		if enemy.data != null:
-			sprite.color = enemy.data.placeholder_color
-		else:
-			sprite.color = Color(0.82, 0.82, 0.85)
-		sprite.mouse_filter = Control.MOUSE_FILTER_IGNORE
-		var hp_l := Label.new()
-		hp_l.name = "HP"
-		hp_l.text = tr("KEY_HP_FMT") % [tr("KEY_HP"), enemy.current_hp, enemy.max_hp]
-		hp_l.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-		hp_l.mouse_filter = Control.MOUSE_FILTER_IGNORE
-		var marker := Label.new()
-		marker.name = "SelectMarker"
-		marker.text = "▼" if enemy.is_selected else ""
-		marker.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-		marker.add_theme_color_override("font_color", Color(0.95, 0.85, 0.35))
-		marker.mouse_filter = Control.MOUSE_FILTER_IGNORE
-
-		v.add_child(marker)
-		v.add_child(float_host)
-		v.add_child(name_l)
-		v.add_child(sprite)
-		v.add_child(hp_l)
-		panel.clip_contents = false
-		panel.add_child(v)
-		_enemy_row.add_child(panel)
-		if not enemy.is_alive():
-			panel.modulate = Color(0.3, 0.3, 0.3, 0.6)
-			panel.mouse_filter = Control.MOUSE_FILTER_IGNORE
-
-
-func _style_enemy_panel(panel: PanelContainer, _index: int, selected: bool) -> void:
-	var style := StyleBoxFlat.new()
-	style.bg_color = Color(0.12, 0.12, 0.12)
-	style.set_border_width_all(3 if selected else 2)
-	style.border_color = Color(0.95, 0.8, 0.25) if selected else Color(0.45, 0.45, 0.5)
-	style.set_content_margin_all(10)
-	panel.add_theme_stylebox_override("panel", style)
+		var card: EnemyCardUI = ENEMY_CARD_SCENE.instantiate() as EnemyCardUI
+		_enemy_row.add_child(card)
+		card.setup(enemy, i, enemy.is_selected)
+		card.card_gui_input.connect(_on_enemy_panel_input)
 
 
 func _on_enemy_panel_input(event: InputEvent, index: int) -> void:
@@ -207,14 +156,10 @@ func _on_enemy_selected(index: int) -> void:
 	if combat == null:
 		return
 	for i in _enemy_row.get_child_count():
-		var panel: PanelContainer = _enemy_row.get_child(i) as PanelContainer
-		if panel == null:
+		var card: EnemyCardUI = _enemy_row.get_child(i) as EnemyCardUI
+		if card == null:
 			continue
-		var selected := i == index
-		_style_enemy_panel(panel, i, selected)
-		var marker: Label = panel.find_child("SelectMarker", true, false) as Label
-		if marker:
-			marker.text = "▼" if selected else ""
+		card.set_selected(i == index)
 
 
 func _on_ap_changed(current: int, maximum: int) -> void:
@@ -238,13 +183,10 @@ func _on_turn_started(is_player: bool) -> void:
 func _on_enemy_hp(index: int, current: int, maximum: int) -> void:
 	if index < 0 or index >= _enemy_row.get_child_count():
 		return
-	var panel: Node = _enemy_row.get_child(index)
-	var hp_l: Label = panel.find_child("HP", true, false) as Label
-	if hp_l:
-		hp_l.text = tr("KEY_HP_FMT") % [tr("KEY_HP"), current, maximum]
-	if current <= 0:
-		panel.modulate = Color(0.3, 0.3, 0.3, 0.6)
-		(panel as Control).mouse_filter = Control.MOUSE_FILTER_IGNORE
+	var card: EnemyCardUI = _enemy_row.get_child(index) as EnemyCardUI
+	if card == null:
+		return
+	card.set_hp(current, maximum)
 
 
 func _on_log(text: String) -> void:
@@ -263,12 +205,12 @@ func _on_combat_ended(victory: bool) -> void:
 func _on_enemy_combat_text(enemy_index: int, text: String, kind: String) -> void:
 	if text.is_empty() or enemy_index < 0 or enemy_index >= _enemy_row.get_child_count():
 		return
-	var panel: Control = _enemy_row.get_child(enemy_index) as Control
-	if panel == null:
+	var card: EnemyCardUI = _enemy_row.get_child(enemy_index) as EnemyCardUI
+	if card == null:
 		return
-	var host: Control = panel.find_child("CombatTextHost", true, false) as Control
+	var host: Control = card.get_combat_text_host()
 	if host == null:
-		host = panel
+		host = card
 	_spawn_floating_combat_text(host, text, kind)
 
 
