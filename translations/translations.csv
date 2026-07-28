@@ -6,6 +6,7 @@ KEY_EXIT,Exit,Выход
 KEY_MAIN_MENU,Main Menu,Главное меню
 KEY_MENU,Menu,Меню
 KEY_CLOSE,Close,Закрыть
+KEY_SAVE_AND_EXIT,Save and exit,Сохранить и выйти
 KEY_RESTART,Restart,Заново
 KEY_GAME_OVER_TITLE,SYSTEM FAILURE,СБОЙ СИСТЕМЫ
 KEY_GAME_OVER_SUBTITLE,Frame integrity critical. YOU DIED.,Целостность каркаса критична. ВЫ ПОГИБЛИ.
