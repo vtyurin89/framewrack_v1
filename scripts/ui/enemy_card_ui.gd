@@ -9,6 +9,7 @@ const BG_COLOR := Color("#121212")
 const TEXT_COLOR := Color("#ffffff")
 const BAR_HEIGHT := 18.0
 const BAR_MIN_WIDTH := 80.0
+const SPRITE_DIR := "res://assets/sprites/enemies/"
 
 var enemy_index: int = -1
 var _enemy: EnemyInstance
@@ -16,7 +17,8 @@ var _enemy: EnemyInstance
 @onready var _select_marker: Label = %SelectMarker
 @onready var _combat_text_host: Control = %CombatTextHost
 @onready var _name_label: Label = %NameLabel
-@onready var _sprite: ColorRect = %Sprite
+@onready var _placeholder: ColorRect = %Placeholder
+@onready var _sprite: TextureRect = %Sprite
 @onready var _hp_bar: ProgressBar = %HPBar
 @onready var _hp_label: Label = %HPLabel
 
@@ -31,6 +33,12 @@ func _ready() -> void:
 		_hp_label.add_theme_color_override("font_color", TEXT_COLOR)
 		_hp_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 		_hp_label.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
+	if _sprite:
+		_sprite.mouse_filter = Control.MOUSE_FILTER_IGNORE
+		_sprite.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
+		_sprite.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
+	if _placeholder:
+		_placeholder.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	gui_input.connect(_on_gui_input)
 
 
@@ -80,11 +88,42 @@ func _refresh_presentation(selected: bool) -> void:
 		_select_marker.text = "▼" if selected else ""
 	if _name_label and _enemy != null:
 		_name_label.text = _enemy.get_localized_name()
+	_apply_enemy_sprite()
+
+
+func _apply_enemy_sprite() -> void:
+	var tex := _resolve_enemy_texture()
 	if _sprite:
-		if _enemy != null and _enemy.data != null:
-			_sprite.color = _enemy.data.placeholder_color
+		_sprite.texture = tex
+		_sprite.visible = tex != null
+	if _placeholder:
+		if tex != null:
+			_placeholder.visible = false
 		else:
-			_sprite.color = Color(0.82, 0.82, 0.85)
+			_placeholder.visible = true
+			if _enemy != null and _enemy.data != null:
+				_placeholder.color = _enemy.data.placeholder_color
+			else:
+				_placeholder.color = Color(0.82, 0.82, 0.85)
+
+
+func _resolve_enemy_texture() -> Texture2D:
+	## Prefer CSV sprite_path, then default assets/sprites/enemies/{id}.png.
+	if _enemy == null or _enemy.data == null:
+		return null
+	var candidates: Array[String] = []
+	var csv_path := _enemy.data.sprite_path.strip_edges()
+	if not csv_path.is_empty():
+		candidates.append(csv_path)
+	var enemy_id := _enemy.data.id.strip_edges()
+	if not enemy_id.is_empty():
+		candidates.append("%s%s.png" % [SPRITE_DIR, enemy_id])
+	for path in candidates:
+		if ResourceLoader.exists(path):
+			var loaded: Resource = load(path)
+			if loaded is Texture2D:
+				return loaded as Texture2D
+	return null
 
 
 func _style_panel(selected: bool) -> void:

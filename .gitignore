@@ -6,3 +6,10 @@ export_presets.cfg
 *.import
 .mono/
 data_*/
+
+# Local Python venv (do not commit)
+Lib/
+Include/
+pyvenv.cfg
+__pycache__/
+*.pyc
