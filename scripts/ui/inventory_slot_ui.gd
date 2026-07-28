@@ -15,6 +15,9 @@ enum Highlight {
 }
 
 const DRAG_TYPE := "framewrack_item"
+const UNLOCK_FLASH_COLOR := Color(0.945, 0.765, 0.059, 1.0) ## #F1C40F
+const UNLOCK_SCALE_DURATION := 0.35
+const UNLOCK_FLASH_DURATION := 0.4
 
 var cell: Vector2i = Vector2i.ZERO
 var unlocked: bool = true
@@ -22,16 +25,24 @@ var _highlight: Highlight = Highlight.NONE
 var _base_panel: Panel
 var _label: Label
 var _grid_ui: Node  # InventoryGridUI
+var _unlock_tween: Tween
 
 
 func setup(p_cell: Vector2i, p_grid_ui: Node, cell_size: float) -> void:
 	cell = p_cell
 	_grid_ui = p_grid_ui
 	custom_minimum_size = Vector2(cell_size, cell_size)
+	size = custom_minimum_size
+	_ensure_center_pivot()
 	mouse_filter = Control.MOUSE_FILTER_STOP
 	focus_mode = Control.FOCUS_NONE
 	_ensure_visuals()
 	set_highlight(Highlight.BASE)
+
+
+func _ensure_center_pivot() -> void:
+	## Scale unlock pop from the cell center.
+	pivot_offset = custom_minimum_size * 0.5
 
 
 func _ensure_visuals() -> void:
@@ -53,8 +64,11 @@ func _ensure_visuals() -> void:
 func apply_cell_state(is_unlocked: bool, is_corrupted: bool, is_edge: bool, corruption_turns: int = 0) -> void:
 	unlocked = is_unlocked
 	_ensure_visuals()
+	_ensure_center_pivot()
 	if not is_unlocked:
 		## Locked / inactive cells stay in the matrix for layout, but are hidden by default.
+		_kill_unlock_tween()
+		scale = Vector2.ONE
 		set_highlight(Highlight.LOCKED)
 		_label.text = ""
 		tooltip_text = ""
@@ -62,7 +76,10 @@ func apply_cell_state(is_unlocked: bool, is_corrupted: bool, is_edge: bool, corr
 		modulate = Color(1, 1, 1, 0)
 		return
 	mouse_filter = Control.MOUSE_FILTER_STOP
-	modulate = Color(1, 1, 1, 1)
+	## Don't clobber an in-flight unlock pop.
+	if _unlock_tween == null or not is_instance_valid(_unlock_tween) or not _unlock_tween.is_running():
+		modulate = Color(1, 1, 1, 1)
+		scale = Vector2.ONE
 	if is_corrupted:
 		set_highlight(Highlight.CORRUPTED)
 		_label.text = "X"
@@ -72,6 +89,53 @@ func apply_cell_state(is_unlocked: bool, is_corrupted: bool, is_edge: bool, corr
 	set_highlight(Highlight.BASE)
 	_label.text = ""
 	tooltip_text = tr("KEY_EDGE_CELL") if is_edge else tr("KEY_BODY_CELL")
+
+
+func play_unlock_pop(stagger_delay: float = 0.0) -> void:
+	## Punchy scale pop + gold flash used when a locked cell becomes active.
+	_kill_unlock_tween()
+	_ensure_visuals()
+	_ensure_center_pivot()
+	mouse_filter = Control.MOUSE_FILTER_STOP
+	scale = Vector2.ZERO
+	modulate = UNLOCK_FLASH_COLOR
+	## Bright gold panel flash, then restored by the modulate fade + final highlight.
+	_apply_unlock_flash_style()
+
+	_unlock_tween = create_tween()
+	_unlock_tween.set_parallel(false)
+	if stagger_delay > 0.0:
+		_unlock_tween.tween_interval(stagger_delay)
+	_unlock_tween.set_parallel(true)
+	_unlock_tween.tween_property(self, "scale", Vector2.ONE, UNLOCK_SCALE_DURATION) \
+		.set_trans(Tween.TRANS_BACK).set_ease(Tween.EASE_OUT)
+	_unlock_tween.tween_property(self, "modulate", Color.WHITE, UNLOCK_FLASH_DURATION) \
+		.set_trans(Tween.TRANS_SINE).set_ease(Tween.EASE_OUT)
+	await _unlock_tween.finished
+	if not is_instance_valid(self):
+		return
+	scale = Vector2.ONE
+	modulate = Color.WHITE
+	if unlocked and _highlight == Highlight.BASE:
+		set_highlight(Highlight.BASE)
+	_unlock_tween = null
+
+
+func _apply_unlock_flash_style() -> void:
+	if _base_panel == null:
+		return
+	var style := StyleBoxFlat.new()
+	style.set_corner_radius_all(2)
+	style.set_border_width_all(2)
+	style.bg_color = Color(0.945, 0.765, 0.059, 0.95)
+	style.border_color = Color(1.0, 1.0, 1.0, 1.0)
+	_base_panel.add_theme_stylebox_override("panel", style)
+
+
+func _kill_unlock_tween() -> void:
+	if _unlock_tween != null and is_instance_valid(_unlock_tween):
+		_unlock_tween.kill()
+	_unlock_tween = null
 
 
 func set_highlight(mode: Highlight) -> void:

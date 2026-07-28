@@ -327,22 +327,24 @@ func _fade_level_up_overlay_out() -> void:
 func _play_unlock_reveal(new_cells: Array[Vector2i]) -> void:
 	if new_cells.is_empty():
 		return
-	## Stagger fade-in so the player sees each new cell unlock live.
-	for cell: Vector2i in new_cells:
-		var slot: InventorySlotUI = _slots.get(BodyGrid.cell_key(cell))
+	## Cascade pop: each cell scales up from center with a gold flash, staggered slightly.
+	var running: Array[InventorySlotUI] = []
+	for i in new_cells.size():
+		var slot: InventorySlotUI = _slots.get(BodyGrid.cell_key(new_cells[i]))
 		if slot == null or not is_instance_valid(slot):
 			continue
-		slot.modulate = Color(1, 1, 1, 0)
-	for cell: Vector2i in new_cells:
-		var slot: InventorySlotUI = _slots.get(BodyGrid.cell_key(cell))
-		if slot == null or not is_instance_valid(slot):
-			continue
-		var tween := create_tween()
-		tween.tween_property(slot, "modulate", Color.WHITE, 0.28).set_trans(Tween.TRANS_SINE).set_ease(
-			Tween.EASE_OUT
-		)
-		await get_tree().create_timer(0.1).timeout
-	await get_tree().create_timer(0.12).timeout
+		running.append(slot)
+		## Fire without awaiting so the cascade overlaps; await the last pop below.
+		slot.play_unlock_pop(0.08 * float(i))
+
+	if running.is_empty():
+		return
+	var last_index := running.size() - 1
+	var wait_s := 0.08 * float(last_index) + maxf(
+		InventorySlotUI.UNLOCK_SCALE_DURATION,
+		InventorySlotUI.UNLOCK_FLASH_DURATION
+	) + 0.05
+	await get_tree().create_timer(wait_s).timeout
 
 
 func _on_placement_failed(_reason: String) -> void:
