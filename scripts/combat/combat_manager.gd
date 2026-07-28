@@ -371,14 +371,8 @@ func _enemy_special(index: int, data: EnemyData) -> void:
 	var dealt := inventory.apply_damage(data.special_damage, current_block)
 	current_block = maxi(0, current_block - data.special_damage)
 	EventBus.block_changed.emit(current_block)
-	var cell := inventory.grid.corrupt_random_unlocked_cell(data.corruption_duration)
-	var cell_txt := (
-		tr("KEY_LOG_CELL_NAME") % [cell.x, cell.y] if cell.x >= 0 else tr("KEY_LOG_NO_CELL")
-	)
 	EventBus.combat_log_message.emit(
-		tr("KEY_LOG_CELL_CORRUPTED") % [
-			data.get_localized_name(), dealt, cell_txt, data.corruption_duration
-		]
+		tr("KEY_LOG_ENEMY_STRIKE") % [data.get_localized_name(), data.special_damage, dealt]
 	)
 	EventBus.enemy_hp_changed.emit(index, int(enemies[index]["hp"]), data.max_hp)
 
