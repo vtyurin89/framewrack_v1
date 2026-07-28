@@ -26,6 +26,7 @@ EventBus="*res://scripts/global/event_bus.gd"
 LocalizationManager="*res://scripts/global/localization_manager.gd"
 ItemDatabase="*res://scripts/global/item_database.gd"
 GameManager="*res://scripts/global/game_manager.gd"
+GameSettings="*res://scripts/global/game_settings.gd"
 
 [display]
 

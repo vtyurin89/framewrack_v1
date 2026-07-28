@@ -7,6 +7,7 @@ signal menu_pressed
 signal body_grid_pressed
 
 @onready var _btn_body: Button = %ToggleInventoryButton
+@onready var _btn_debug_level_up: Button = %DebugLevelUpButton
 @onready var _btn_menu: Button = %MenuButton
 @onready var _level_label: Label = %LevelLabel
 @onready var _xp_bar: ProgressBar = %XPBar
@@ -17,6 +18,11 @@ var _player_stats: PlayerStats
 func _ready() -> void:
 	if _btn_body:
 		_btn_body.pressed.connect(func() -> void: body_grid_pressed.emit())
+	# TODO: удалить на продакшене
+	if _btn_debug_level_up:
+		_btn_debug_level_up.add_to_group("debug_ui")
+		_btn_debug_level_up.pressed.connect(_on_debug_level_up_pressed)
+		_btn_debug_level_up.visible = not GameSettings.hide_debug_tools
 	if _btn_menu:
 		_btn_menu.pressed.connect(func() -> void: menu_pressed.emit())
 		_btn_menu.mouse_default_cursor_shape = Control.CURSOR_POINTING_HAND
@@ -48,6 +54,8 @@ func _apply_locale(_locale: String = "") -> void:
 		_btn_body.text = tr("KEY_BODY_GRID")
 	if _btn_menu:
 		_btn_menu.text = tr("KEY_MENU")
+	if _btn_debug_level_up:
+		_btn_debug_level_up.text = tr("KEY_DEBUG_LEVEL_UP")
 	_refresh_level_xp()
 
 
@@ -89,3 +97,10 @@ func _refresh_level_xp() -> void:
 		_player_stats.get_next_level_exp(),
 		PlayerStats.MAX_LEVEL
 	)
+
+
+func _on_debug_level_up_pressed() -> void:
+	if _player_stats == null:
+		return
+	var needed_xp := _player_stats.max_exp - _player_stats.current_exp
+	_player_stats.add_exp(maxi(needed_xp, 1))

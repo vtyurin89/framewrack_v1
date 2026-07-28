@@ -17,6 +17,10 @@ const XP_LEVEL_REQUIREMENTS: Array[int] = [0, 30, 70, 120, 180, 260, 360, 480, 6
 var level: int = 1
 var current_exp: int = 0
 
+var max_exp: int:
+	get:
+		return get_next_level_exp()
+
 
 func reset_run() -> void:
 	level = 1
