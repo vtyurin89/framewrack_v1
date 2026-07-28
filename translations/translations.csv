@@ -12,6 +12,7 @@ KEY_GAME_OVER_SUBTITLE,Frame integrity critical. YOU DIED.,Целостност�
 KEY_MAIN_MENU_TAGLINE,Your inventory is your body.,Твой инвентарь — твоё тело.
 KEY_SETTINGS,Settings,Настройки
 KEY_AP,AP,ОД
+KEY_LEVEL_FMT,Level %d / %d,Уровень %d / %d
 KEY_AP_COST_FMT,%d %s,%d %s
 KEY_USE_COST_FMT,Use: %d %s,Использование: %d %s
 KEY_HP,HP,ОЗ

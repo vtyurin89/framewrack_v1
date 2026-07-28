@@ -22,12 +22,14 @@ const SETTINGS_SCENE := preload("res://scenes/UI/settings_modal.tscn")
 @onready var _root_layout: Control = $RootLayout
 
 var inventory: InventoryController
+var player_stats: PlayerStats
 var flow_state: int = GameFlowState.State.EXPLORING
 var _main_menu: MainMenuUI
 var _game_over: GameOverUI
 var _settings: SettingsModal
 ## True after STARTUP_SETUP reset so GAMEPLAY opens explore UI fresh.
 var _fresh_run_pending: bool = false
+var _pending_combat_exp_reward: int = 0
 
 @onready var _combat: Node = $CombatManager
 @onready var _map: Node = $MapManager
@@ -35,6 +37,8 @@ var _fresh_run_pending: bool = false
 
 func _ready() -> void:
 	inventory = InventoryController.new()
+	player_stats = PlayerStats.new()
+	player_stats.leveled_up.connect(_on_player_leveled_up)
 	_combat.setup(inventory)
 	_style_inventory_panel()
 	_ensure_overlays()
@@ -58,6 +62,7 @@ func _ready() -> void:
 	if _gameplay_hud:
 		_gameplay_hud.body_grid_pressed.connect(_toggle_inventory)
 		_gameplay_hud.menu_pressed.connect(_on_menu_pressed)
+		_gameplay_hud.bind_player_stats(player_stats)
 
 	LocalizationManager.language_changed.connect(_on_language_changed)
 
@@ -122,6 +127,8 @@ func _style_inventory_panel() -> void:
 
 func _seed_starting_loadout() -> void:
 	inventory.reset_run()
+	if player_stats != null:
+		player_stats.reset_run()
 	var scrap_pipe: ItemData = ItemDatabase.create_instance(STARTING_ITEM_ID)
 	if scrap_pipe != null:
 		inventory.place_item(scrap_pipe, Vector2i(0, 0))
@@ -339,12 +346,17 @@ func _start_combat_for_current() -> void:
 	var node: Dictionary = _map.get_current()
 	var enemy_ids: Array = node.get("enemy_ids", [])
 	var datas: Array[EnemyData] = []
+	_pending_combat_exp_reward = 0
 	for eid in enemy_ids:
 		match str(eid):
 			"desperate_rebel":
 				datas.append(ENEMY_REBEL.duplicate(true) as EnemyData)
 			"corrupted_synthet":
 				datas.append(ENEMY_SYNTHET.duplicate(true) as EnemyData)
+	for enemy_data: EnemyData in datas:
+		if enemy_data == null:
+			continue
+		_pending_combat_exp_reward += maxi(enemy_data.exp_reward, 0)
 	_show_combat()
 	_combat_ui.setup(_combat, inventory)
 	_combat.start_combat(datas)
@@ -388,9 +400,25 @@ func _on_combat_ended_bus(victory: bool) -> void:
 	if GameManager.is_game_over():
 		return
 	if victory:
+		if player_stats != null:
+			player_stats.add_exp(_pending_combat_exp_reward)
 		_status_banner.text = tr("KEY_STATUS_COMBAT_WIN")
 	else:
 		_status_banner.text = tr("KEY_STATUS_COMBAT_LOSE")
+	_pending_combat_exp_reward = 0
+
+
+func _on_player_leveled_up(_new_level: int) -> void:
+	## +3 cells per level up: expand right-side column, top-to-bottom.
+	var g := inventory.grid
+	if g == null:
+		return
+	var new_cells: Array[Vector2i] = []
+	var column_x := g.width
+	for i in 3:
+		new_cells.append(Vector2i(column_x, i))
+	g.unlock_cells(new_cells)
+	_inventory_ui.refresh()
 
 
 func _on_combat_continue() -> void:

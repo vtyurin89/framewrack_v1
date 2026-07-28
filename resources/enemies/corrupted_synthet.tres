@@ -11,6 +11,7 @@ display_name = "Corrupted Synthet"
 description = "Half-melted chassis leaking signal noise. Its touch rusts your grid."
 max_hp = 22
 basic_damage = 4
+exp_reward = 40
 special_damage = 3
 corruption_duration = 2
 special_chance = 0.45

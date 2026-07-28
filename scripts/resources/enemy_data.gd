@@ -20,6 +20,7 @@ enum AttackType {
 
 @export var max_hp: int = 20
 @export var basic_damage: int = 5
+@export var exp_reward: int = 30
 
 ## Special attack payload.
 @export var special_damage: int = 3
