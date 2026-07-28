@@ -12,11 +12,11 @@ var current_hp: int = BASE_MAX_HP
 
 
 func _init() -> void:
-	_bind_grid(BodyGrid.new(4, 4))
+	_bind_grid(BodyGrid.new())
 
 
 func reset_run() -> void:
-	_bind_grid(BodyGrid.new(4, 4))
+	_bind_grid(BodyGrid.new())
 	max_hp = BASE_MAX_HP
 	current_hp = BASE_MAX_HP
 

@@ -12,8 +12,10 @@ signal item_placed(item: ItemData, origin: Vector2i)
 signal item_unequipped(item: ItemData, reason: String)
 signal placement_rejected(reason: String)
 
-@export var grid_width: int = 4
-@export var grid_height: int = 4
+@export var grid_width: int = BodyGrid.STARTER_SIZE.x
+@export var grid_height: int = BodyGrid.STARTER_SIZE.y
+@export var max_grid_width: int = BodyGrid.MAX_SIZE.x
+@export var max_grid_height: int = BodyGrid.MAX_SIZE.y
 
 var model: BodyGrid
 
@@ -32,6 +34,11 @@ func bind_model(grid: BodyGrid) -> void:
 		if model.grid_layout_updated.is_connected(_on_model_layout_updated):
 			model.grid_layout_updated.disconnect(_on_model_layout_updated)
 	model = grid
+	## Keep facade exports aligned with BodyGrid limits.
+	grid_width = BodyGrid.STARTER_SIZE.x
+	grid_height = BodyGrid.STARTER_SIZE.y
+	max_grid_width = BodyGrid.MAX_SIZE.x
+	max_grid_height = BodyGrid.MAX_SIZE.y
 	model.changed.connect(_on_model_changed)
 	model.item_unequipped.connect(_on_model_unequipped)
 	model.grid_layout_updated.connect(_on_model_layout_updated)

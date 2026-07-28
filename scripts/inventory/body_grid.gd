@@ -17,11 +17,20 @@ enum CellState {
 	CORRUPTED,
 }
 
-const DEFAULT_SIZE := Vector2i(4, 4)
+## Active starter hull at Level 1 (3x4 = 12 cells).
+const STARTER_SIZE := Vector2i(3, 4)
+## Full expandable matrix (7x8 = 56 slots). Room for +2 cells in each direction.
+const MAX_SIZE := Vector2i(7, 8)
+## Starter origin centered inside MAX_SIZE: (7-3)/2=2, (8-4)/2=2.
+const STARTER_ORIGIN := Vector2i(2, 2)
+## Back-compat alias for older callers.
+const DEFAULT_SIZE := STARTER_SIZE
+## Cells unlocked per level-up expansion.
+const LEVEL_UP_CELL_GAIN := 3
 
-## Bounding box of the grid (may contain locked/unavailable cells).
-var width: int = DEFAULT_SIZE.x
-var height: int = DEFAULT_SIZE.y
+## Bounding box of the grid (locked + unlocked cells inside MAX_SIZE).
+var width: int = MAX_SIZE.x
+var height: int = MAX_SIZE.y
 
 ## Cells the player may use. Key = "x,y"
 var _unlocked: Dictionary = {}
@@ -36,10 +45,11 @@ var _cell_states: Dictionary = {}
 var items: Array[PlacedItem] = []
 
 
-func _init(p_width: int = DEFAULT_SIZE.x, p_height: int = DEFAULT_SIZE.y) -> void:
-	width = p_width
-	height = p_height
-	_unlock_rectangle(0, 0, width, height)
+func _init(_p_width: int = STARTER_SIZE.x, _p_height: int = STARTER_SIZE.y) -> void:
+	## Always allocate the full MAX_SIZE matrix; only the starter hull starts unlocked.
+	width = MAX_SIZE.x
+	height = MAX_SIZE.y
+	_unlock_rectangle(STARTER_ORIGIN.x, STARTER_ORIGIN.y, STARTER_SIZE.x, STARTER_SIZE.y)
 	_rebuild_cell_states()
 
 
@@ -125,13 +135,11 @@ func _unlock_rectangle(ox: int, oy: int, w: int, h: int) -> void:
 
 
 func unlock_cells(cells: Array[Vector2i]) -> void:
-	## Expand the body — visual mutation should react to EventBus.grid_expanded.
+	## Expand the body within MAX_SIZE — visual mutation reacts to EventBus.grid_expanded.
 	var added: Array[Vector2i] = []
 	for cell: Vector2i in cells:
-		if cell.x >= width:
-			width = cell.x + 1
-		if cell.y >= height:
-			height = cell.y + 1
+		if not _is_within_max_bounds(cell):
+			continue
 		var key := cell_key(cell)
 		if not _unlocked.has(key):
 			_unlocked[key] = true
@@ -143,12 +151,55 @@ func unlock_cells(cells: Array[Vector2i]) -> void:
 		EventBus.inventory_changed.emit()
 
 
+func expand_by_adjacent_cells(count: int = LEVEL_UP_CELL_GAIN) -> Array[Vector2i]:
+	## Unlock up to `count` random locked cells that share an edge with the active hull.
+	## Stays inside the 7x8 max matrix so shapes remain organic / non-rectangular.
+	if count <= 0:
+		return []
+	var candidates: Array[Vector2i] = _collect_adjacent_locked_candidates()
+	if candidates.is_empty():
+		return []
+	candidates.shuffle()
+	var to_add: Array[Vector2i] = []
+	for i in mini(count, candidates.size()):
+		to_add.append(candidates[i])
+	unlock_cells(to_add)
+	return to_add
+
+
+func get_unlocked_cell_count() -> int:
+	return _unlocked.size()
+
+
 func get_unlocked_cells() -> Array[Vector2i]:
 	var result: Array[Vector2i] = []
 	for key: String in _unlocked.keys():
 		var parts := key.split(",")
 		result.append(Vector2i(int(parts[0]), int(parts[1])))
 	return result
+
+
+func _is_within_max_bounds(cell: Vector2i) -> bool:
+	return cell.x >= 0 and cell.y >= 0 and cell.x < MAX_SIZE.x and cell.y < MAX_SIZE.y
+
+
+func _collect_adjacent_locked_candidates() -> Array[Vector2i]:
+	var candidates: Array[Vector2i] = []
+	var seen: Dictionary = {}
+	var dirs := [Vector2i.LEFT, Vector2i.RIGHT, Vector2i.UP, Vector2i.DOWN]
+	for cell: Vector2i in get_unlocked_cells():
+		for d: Vector2i in dirs:
+			var n := cell + d
+			if not _is_within_max_bounds(n):
+				continue
+			if is_unlocked(n):
+				continue
+			var key := cell_key(n)
+			if seen.has(key):
+				continue
+			seen[key] = true
+			candidates.append(n)
+	return candidates
 
 
 # ---------------------------------------------------------------------------

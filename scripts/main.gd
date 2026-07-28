@@ -147,7 +147,7 @@ func _seed_starting_loadout() -> void:
 	_first_combat_xp_granted = false
 	var scrap_pipe: ItemData = ItemDatabase.create_instance(STARTING_ITEM_ID)
 	if scrap_pipe != null:
-		inventory.place_item(scrap_pipe, Vector2i(0, 0))
+		inventory.place_item(scrap_pipe, BodyGrid.STARTER_ORIGIN)
 	var heavy_armor: ItemData = ItemDatabase.create_instance(STARTING_ARMOR_ID)
 	if heavy_armor != null:
 		inventory.try_place_anywhere(heavy_armor)
@@ -362,14 +362,7 @@ func _on_inventory_layout_fitted(_min_size: Vector2) -> void:
 
 
 func _expand_grid_demo() -> void:
-	var cells: Array[Vector2i] = [
-		Vector2i(4, 0),
-		Vector2i(4, 1),
-		Vector2i(4, 2),
-		Vector2i(3, 4),
-		Vector2i(4, 4),
-	]
-	inventory.grid.unlock_cells(cells)
+	inventory.grid.expand_by_adjacent_cells(BodyGrid.LEVEL_UP_CELL_GAIN)
 	_status_banner.text = tr("KEY_STATUS_MUTATED")
 	_inventory_ui.refresh()
 
@@ -483,15 +476,11 @@ func _resolve_victory_xp_reward() -> int:
 
 
 func _on_player_leveled_up(_new_level: int) -> void:
-	## +3 cells per level up: expand right-side column, top-to-bottom.
+	## +3 random adjacent locked cells inside the 7x8 max matrix.
 	var g := inventory.grid
 	if g == null:
 		return
-	var new_cells: Array[Vector2i] = []
-	var column_x := g.width
-	for i in 3:
-		new_cells.append(Vector2i(column_x, i))
-	g.unlock_cells(new_cells)
+	g.expand_by_adjacent_cells(BodyGrid.LEVEL_UP_CELL_GAIN)
 	_inventory_ui.refresh()
 
 

@@ -14,8 +14,9 @@ signal layout_fitted(min_size: Vector2)
 
 const CELL_SIZE := 48.0
 const CELL_GAP := 4.0
-const RESERVED_ROWS_TOP := 2
-const RESERVED_ROWS_BOTTOM := 2
+## Full 7x8 matrix already reserves locked perimeter cells for expansion.
+const RESERVED_ROWS_TOP := 0
+const RESERVED_ROWS_BOTTOM := 0
 const DRAG_TYPE := "framewrack_item"
 const INSPECT_MODAL_SCENE := preload("res://scenes/UI/item_inspect_modal.tscn")
 

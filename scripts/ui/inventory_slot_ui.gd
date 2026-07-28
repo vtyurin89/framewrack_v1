@@ -54,10 +54,15 @@ func apply_cell_state(is_unlocked: bool, is_corrupted: bool, is_edge: bool, corr
 	unlocked = is_unlocked
 	_ensure_visuals()
 	if not is_unlocked:
+		## Locked / inactive cells stay in the matrix for layout, but are hidden by default.
 		set_highlight(Highlight.LOCKED)
 		_label.text = ""
-		tooltip_text = tr("KEY_LOCKED")
+		tooltip_text = ""
+		mouse_filter = Control.MOUSE_FILTER_IGNORE
+		modulate = Color(1, 1, 1, 0)
 		return
+	mouse_filter = Control.MOUSE_FILTER_STOP
+	modulate = Color(1, 1, 1, 1)
 	if is_corrupted:
 		set_highlight(Highlight.CORRUPTED)
 		_label.text = "X"
@@ -86,8 +91,10 @@ func set_highlight(mode: Highlight) -> void:
 			style.bg_color = Color(0.45, 0.2, 0.5, 0.9)
 			style.border_color = Color(0.85, 0.4, 0.9)
 		Highlight.LOCKED:
-			style.bg_color = Color(0.1, 0.1, 0.1, 1)
-			style.border_color = Color(0.05, 0.05, 0.05)
+			## Fully transparent — inactive cells must not be visible by default.
+			style.bg_color = Color(0, 0, 0, 0)
+			style.border_color = Color(0, 0, 0, 0)
+			style.set_border_width_all(0)
 		_:
 			style.bg_color = Color(0.22, 0.22, 0.22, 1)
 			style.border_color = Color(0.08, 0.08, 0.08)
