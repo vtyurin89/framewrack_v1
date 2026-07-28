@@ -1,6 +1,6 @@
 class_name EffectSummon
 extends AbilityEffect
-## Spawns an additional enemy minion by enemy_id via EncounterManager.
+## Spawns an additional enemy minion by enemy_id via CombatSummonHelper.
 ## CSV effect_params: "scrap_drone" (enemy catalog id).
 
 
@@ -12,7 +12,7 @@ func apply(caster: EnemyInstance, target: Node, params: Array) -> void:
 	if csv.size() >= 1 and str(csv[0]).strip_edges() != "":
 		enemy_id = str(csv[0]).strip_edges()
 
-	var spawned: EnemyInstance = EncounterManager.spawn_enemy(target, enemy_id)
+	var spawned: EnemyInstance = CombatSummonHelper.spawn_enemy(target, enemy_id)
 	if spawned == null:
 		EventBus.combat_log_message.emit(
 			tr("KEY_LOG_ENEMY_SUMMON_FAIL") % [caster.get_localized_name(), enemy_id]

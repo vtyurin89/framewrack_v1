@@ -36,6 +36,10 @@ var _inventory_overlay_content_min: Vector2 = Vector2(460, 320)
 
 @onready var _combat: Node = $CombatManager
 @onready var _map: Node = $MapManager
+@onready var _encounters: EncounterManager = $EncounterManager
+
+var _dialog_event_ui: DialogEventUI
+var _encounter_combat_active: bool = false
 
 
 func _ready() -> void:
@@ -45,6 +49,12 @@ func _ready() -> void:
 	inventory.apply_actor_stats(player_stats)
 	inventory.heal_full()
 	_combat.setup(inventory, player_stats)
+	_encounters.setup(inventory, player_stats, _combat)
+	_encounters.encounter_started.connect(_on_encounter_started)
+	_encounters.encounter_completed.connect(_on_encounter_completed)
+	_encounters.request_combat.connect(_on_encounter_request_combat)
+	_encounters.request_show_dialog.connect(_on_encounter_request_dialog)
+	_encounters.request_show_placeholder.connect(_on_encounter_placeholder)
 	_style_inventory_panel()
 	_ensure_overlays()
 
@@ -225,9 +235,11 @@ func _enter_gameplay() -> void:
 	_set_gameplay_ui_visible(true)
 	if _fresh_run_pending:
 		_fresh_run_pending = false
-		_show_exploring()
-		_status_banner.text = tr("KEY_STATUS_ONLINE")
-		EventBus.run_started.emit()
+		## Prologue dialog before Act 1 map.
+		_map_ui.visible = false
+		_combat_ui.visible = false
+		_status_banner.text = tr("EVENT_OLD_MACHINE_GOD_TITLE")
+		_encounters.start_prologue()
 
 
 func _enter_game_over() -> void:
@@ -298,6 +310,10 @@ func _reset_run_to_startup() -> void:
 	_map.reset()
 	_seed_starting_loadout()
 	_combat.setup(inventory, player_stats)
+	_encounters.setup(inventory, player_stats, _combat)
+	_encounter_combat_active = false
+	if _dialog_event_ui != null and is_instance_valid(_dialog_event_ui):
+		_dialog_event_ui.close_dialog()
 	_inventory_ui.setup(inventory)
 	if _inventory_ui.has_method("bind_player_stats"):
 		_inventory_ui.bind_player_stats(player_stats)
@@ -395,29 +411,75 @@ func _on_node_chosen(node_id: String) -> void:
 	_map.select_node(node_id)
 
 
-func _on_map_node_entered(_node_id: String, node_type: int) -> void:
-	match node_type:
-		MapManager.NodeType.COMBAT, MapManager.NodeType.BOSS:
-			_start_combat_for_current()
-		MapManager.NodeType.REPAIR:
-			inventory.grid.clear_all_corruption()
-			inventory.heal_full()
-			_status_banner.text = tr("KEY_STATUS_REPAIR")
-			_map.complete_current()
-			_map_ui.refresh()
-			_inventory_ui.refresh()
-		MapManager.NodeType.EVENT:
-			var loot: ItemData = ItemDatabase.create_instance(EVENT_LOOT_ITEM_ID)
-			if loot != null:
-				inventory.try_place_anywhere(loot)
-			inventory.current_hp = mini(inventory.max_hp, inventory.current_hp + 10)
-			EventBus.player_hp_changed.emit(inventory.current_hp, inventory.max_hp)
-			_status_banner.text = tr("KEY_STATUS_EVENT")
-			_map.complete_current()
-			_map_ui.refresh()
-			_inventory_ui.refresh()
-		_:
-			pass
+func _on_map_node_entered(_node_id: String, _node_type: int) -> void:
+	## All map nodes route through EncounterManager for scalable content.
+	var node: Dictionary = _map.get_current()
+	if node.is_empty():
+		return
+	_encounters.start_from_map_node(node)
+
+
+func _on_encounter_started(data: EncounterData) -> void:
+	if data == null:
+		return
+	_status_banner.text = data.get_display_title()
+
+
+func _on_encounter_completed(rewards: Dictionary) -> void:
+	var message_key := str(rewards.get("message_key", ""))
+	var is_prologue := bool(rewards.get("prologue", false))
+	if is_prologue:
+		_show_exploring()
+		_status_banner.text = (
+			tr(message_key) if not message_key.is_empty() else tr("KEY_STATUS_ONLINE")
+		)
+		EventBus.run_started.emit()
+		_inventory_ui.refresh()
+		return
+	## Map-node encounter finished (dialog / rest / chest / combat resolution).
+	_map.complete_current()
+	_show_exploring()
+	if not message_key.is_empty():
+		_status_banner.text = tr(message_key)
+	elif bool(rewards.get("combat_victory", false)):
+		_status_banner.text = tr("KEY_STATUS_SECTOR_SECURED")
+	_map_ui.refresh()
+	_inventory_ui.refresh()
+
+
+func _on_encounter_request_combat(enemy_datas: Array, encounter: EncounterData) -> void:
+	_encounter_combat_active = true
+	_pending_combat_exp_reward = 0
+	var datas: Array[EnemyData] = []
+	for entry in enemy_datas:
+		if entry is EnemyData:
+			datas.append(entry as EnemyData)
+			_pending_combat_exp_reward += maxi((entry as EnemyData).exp_reward, 0)
+	_show_combat()
+	_combat_ui.setup(_combat, inventory)
+	_combat.start_combat(datas)
+	var label := encounter.get_display_title() if encounter != null else tr("KEY_STATUS_ENGAGEMENT")
+	_status_banner.text = tr("KEY_STATUS_ENGAGEMENT") % label
+
+
+func _on_encounter_request_dialog(dialog: DialogEventData, _encounter: EncounterData) -> void:
+	_ensure_dialog_event_ui()
+	if _dialog_event_ui:
+		_dialog_event_ui.bind_encounter_manager(_encounters)
+		_dialog_event_ui.open_dialog(dialog)
+
+
+func _on_encounter_placeholder(_encounter: EncounterData, message_key: String) -> void:
+	if not message_key.is_empty():
+		_status_banner.text = tr(message_key)
+
+
+func _ensure_dialog_event_ui() -> void:
+	if _dialog_event_ui != null and is_instance_valid(_dialog_event_ui):
+		return
+	_dialog_event_ui = DialogEventUI.new()
+	_dialog_event_ui.name = "DialogEventUI"
+	add_child(_dialog_event_ui)
 
 
 func _start_combat_for_current() -> void:
@@ -571,10 +633,18 @@ func _on_combat_continue() -> void:
 	if GameManager.is_game_over():
 		return
 	if _combat.state == _combat.CombatState.VICTORY:
-		_map.complete_current()
-		_show_exploring()
-		_status_banner.text = tr("KEY_STATUS_SECTOR_SECURED")
+		if _encounter_combat_active:
+			_encounter_combat_active = false
+			## EncounterManager emits encounter_completed → map advance / prologue exit.
+			_encounters.notify_combat_finished(true)
+		else:
+			_map.complete_current()
+			_show_exploring()
+			_status_banner.text = tr("KEY_STATUS_SECTOR_SECURED")
 	elif _combat.state == _combat.CombatState.DEFEAT:
+		if _encounter_combat_active:
+			_encounter_combat_active = false
+			_encounters.notify_combat_finished(false)
 		## Defeat is handled by Game Over modal; keep explore fallback if needed.
 		_show_exploring()
 		_status_banner.text = tr("KEY_STATUS_WRECKAGE")

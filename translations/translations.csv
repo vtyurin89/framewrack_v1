@@ -278,3 +278,19 @@ ITEM_REBAR_CUDGEL_NAME,Rebar Cudgel,Арматурная дубина
 ITEM_REBAR_CUDGEL_DESC,Heavy rebar length. Stronger when given room — no adjacent weapons.,Тяжёлая арматура. Сильнее; когда есть пространство — без соседнего оружия.
 ITEM_CYBER_SPIKE_NAME,Cyber Spike,Кибершип
 ITEM_CYBER_SPIKE_DESC,Needle implant that siphons vitality from the target into your Frame HP. Never damages your inventory.,Игольчатый имплант; тянет жизненность с цели в ОЗ каркаса. Инвентарь не повреждает.
+KEY_STATUS_CHEST,Salvage chest cracked open.,Контейнер взломан.
+KEY_STATUS_SHOP,Shop stub — nothing for sale yet.,Магазин-заглушка — пока нечего купить.
+KEY_STATUS_STAIRS,Stairs to the next sector.,Лестница в следующий сектор.
+KEY_STAT_CHECK_SUCCESS,Check passed.,Проверка пройдена.
+KEY_STAT_CHECK_FAILURE,Check failed.,Проверка провалена.
+EVENT_OLD_MACHINE_GOD_TITLE,The Old Machine God,Старый Бог-Машина
+EVENT_OLD_MACHINE_GOD_BODY,"In the scrap dark, a half-buried frame still hums. Its optic flickers — not dead, not awake. Something waits for a command.","В мусорной тьме всё ещё гудит полузасыпанный каркас. Оптика мигает — не мёртв, не пробуждён. Кто-то ждёт команды."
+EVENT_OLD_MACHINE_GOD_CHOICE_COMMUNE,Commune with the machine (INT),Установить связь с машиной (ИНТ)
+EVENT_OLD_MACHINE_GOD_CHOICE_SALVAGE,Salvage what still works,"Снять всё, что ещё работает"
+EVENT_OLD_MACHINE_GOD_CHOICE_FORCE,Force the core online,Принудительно запустить ядро
+EVENT_OLD_MACHINE_GOD_CHOICE_LEAVE,Leave it buried,Оставить погребённым
+EVENT_OLD_MACHINE_GOD_COMMUNE_OK,The optic steadies. Warmth bleeds into your frame (+8 HP).,Оптика стабилизируется. Тепло втекает в каркас (+8 ОЗ).
+EVENT_OLD_MACHINE_GOD_COMMUNE_FAIL,Feedback spikes through your grafts (-4 HP).,Обратная связь бьёт по прививкам (-4 ОЗ).
+EVENT_OLD_MACHINE_GOD_SALVAGE_OK,You pry free a sealed Bio Gel.,Ты выдираешь целый Bio Gel.
+EVENT_OLD_MACHINE_GOD_FORCE_COMBAT,The core shrieks awake — a corrupted synthet unfolds.,Ядро взвизгивает — раскрывается искажённый синтет.
+EVENT_OLD_MACHINE_GOD_LEAVE,You mark the wreck and move on.,Ты помечаешь обломок и идёшь дальше.
