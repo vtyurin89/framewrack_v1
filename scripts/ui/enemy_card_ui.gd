@@ -8,8 +8,8 @@ const FILL_COLOR := Color("#8b263e")
 const BG_COLOR := Color("#121212")
 const TEXT_COLOR := Color("#ffffff")
 const SELECT_COLOR := Color(0.95, 0.8, 0.25)
-const BAR_HEIGHT := 18.0
-const BAR_MIN_WIDTH := 80.0
+const BAR_HEIGHT := 20.0
+const BAR_MIN_WIDTH := 170.0
 const SPRITE_DIR := "res://assets/sprites/enemies/"
 const BRACKET_THICKNESS := 2.5
 ## Both arms share the same length (~half card width).

@@ -3,7 +3,8 @@
 [ext_resource type="Script" path="res://scripts/ui/enemy_card_ui.gd" id="1"]
 
 [node name="EnemyCardUI" type="PanelContainer"]
-custom_minimum_size = Vector2(120, 180)
+custom_minimum_size = Vector2(185, 250)
+size_flags_vertical = 0
 clip_contents = false
 mouse_default_cursor_shape = 2
 script = ExtResource("1")
@@ -15,15 +16,15 @@ theme_override_constants/separation = 4
 
 [node name="CombatTextHost" type="Control" parent="VBox"]
 unique_name_in_owner = true
-custom_minimum_size = Vector2(0, 22)
+custom_minimum_size = Vector2(0, 18)
 layout_mode = 2
 mouse_filter = 2
 
 [node name="SpriteHost" type="Control" parent="VBox"]
 unique_name_in_owner = true
-custom_minimum_size = Vector2(112, 140)
+custom_minimum_size = Vector2(170, 200)
 layout_mode = 2
-size_flags_vertical = 3
+size_flags_vertical = 0
 mouse_filter = 2
 
 [node name="Placeholder" type="ColorRect" parent="VBox/SpriteHost"]
@@ -50,8 +51,9 @@ expand_mode = 1
 stretch_mode = 5
 
 [node name="HPBarHost" type="Control" parent="VBox"]
-custom_minimum_size = Vector2(112, 18)
+custom_minimum_size = Vector2(170, 20)
 layout_mode = 2
+size_flags_horizontal = 3
 mouse_filter = 2
 
 [node name="HPBar" type="ProgressBar" parent="VBox/HPBarHost"]
@@ -77,7 +79,7 @@ grow_horizontal = 2
 grow_vertical = 2
 mouse_filter = 2
 theme_override_colors/font_color = Color(1, 1, 1, 1)
-theme_override_font_sizes/font_size = 12
+theme_override_font_sizes/font_size = 13
 text = "0/0"
 horizontal_alignment = 1
 vertical_alignment = 1

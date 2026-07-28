@@ -22,10 +22,11 @@ offset_right = -8.0
 offset_bottom = -8.0
 grow_horizontal = 2
 grow_vertical = 2
-theme_override_constants/separation = 10
+theme_override_constants/separation = 8
 
 [node name="TurnLabel" type="Label" parent="VBox"]
 unique_name_in_owner = true
+visible = false
 layout_mode = 2
 theme_override_colors/font_color = Color(0.9, 0.9, 0.9, 1)
 theme_override_font_sizes/font_size = 22
@@ -55,14 +56,21 @@ layout_mode = 2
 theme_override_colors/font_color = Color(0.75, 0.75, 0.8, 1)
 text = "BLOCK 0"
 
+[node name="StatsEnemyGap" type="Control" parent="VBox"]
+custom_minimum_size = Vector2(0, 16)
+layout_mode = 2
+mouse_filter = 2
+
 [node name="EnemyRow" type="HBoxContainer" parent="VBox"]
 unique_name_in_owner = true
 layout_mode = 2
+size_flags_vertical = 0
 alignment = 1
-theme_override_constants/separation = 16
+theme_override_constants/separation = 24
 
 [node name="CombatHint" type="Label" parent="VBox"]
 unique_name_in_owner = true
+visible = false
 layout_mode = 2
 theme_override_colors/font_color = Color(0.65, 0.65, 0.7, 1)
 theme_override_font_sizes/font_size = 12
@@ -72,12 +80,13 @@ autowrap_mode = 3
 
 [node name="Mid" type="HBoxContainer" parent="VBox"]
 layout_mode = 2
-size_flags_vertical = 3
+size_flags_vertical = 0
 theme_override_constants/separation = 12
 
 [node name="ActionsPanel" type="VBoxContainer" parent="VBox/Mid"]
 layout_mode = 2
 size_flags_horizontal = 0
+size_flags_vertical = 0
 
 [node name="EndTurnButton" type="Button" parent="VBox/Mid/ActionsPanel"]
 unique_name_in_owner = true
@@ -95,6 +104,7 @@ text = "Continue"
 [node name="LogPanel" type="VBoxContainer" parent="VBox/Mid"]
 layout_mode = 2
 size_flags_horizontal = 3
+size_flags_vertical = 0
 
 [node name="LogTitle" type="Label" parent="VBox/Mid/LogPanel"]
 layout_mode = 2
@@ -102,9 +112,11 @@ text = "COMBAT LOG"
 
 [node name="CombatLog" type="RichTextLabel" parent="VBox/Mid/LogPanel"]
 unique_name_in_owner = true
+custom_minimum_size = Vector2(0, 150)
 layout_mode = 2
-size_flags_vertical = 3
-custom_minimum_size = Vector2(0, 180)
+size_flags_vertical = 0
 bbcode_enabled = true
 scroll_following = true
+fit_content = false
+scroll_active = true
 theme_override_colors/default_color = Color(0.75, 0.75, 0.75, 1)

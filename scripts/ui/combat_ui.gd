@@ -76,6 +76,7 @@ func _on_language_changed(_locale: String) -> void:
 
 func _apply_static_locale() -> void:
 	_end_turn_btn.text = tr("KEY_END_TURN")
+	## Hint label is hidden in the battle layout; keep text synced if re-enabled.
 	if _hint_label:
 		_hint_label.text = tr("KEY_COMBAT_CLICK_HINT")
 
@@ -191,6 +192,10 @@ func _on_enemy_hp(index: int, current: int, maximum: int) -> void:
 
 func _on_log(text: String) -> void:
 	_log.append_text(text + "\n")
+	## Keep newest entry visible even if scroll_following misses a frame.
+	await get_tree().process_frame
+	if is_instance_valid(_log):
+		_log.scroll_to_line(_log.get_line_count())
 
 
 func _on_combat_ended(victory: bool) -> void:
