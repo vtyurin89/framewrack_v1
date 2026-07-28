@@ -58,12 +58,17 @@ func _on_exp_changed(
 	next_level_exp: int,
 	max_level: int
 ) -> void:
+	var exp_in_level := maxi(0, current_exp - level_start_exp)
+	var needed_exp := maxi(1, next_level_exp - level_start_exp)
 	if _level_label:
-		_level_label.text = tr("KEY_LEVEL_FMT") % [level, max_level]
+		if level >= max_level:
+			_level_label.text = tr("KEY_EXPERIENCE_MAX")
+		else:
+			_level_label.text = tr("KEY_EXPERIENCE_FMT") % [exp_in_level, needed_exp]
 	if _xp_bar:
-		_xp_bar.min_value = float(level_start_exp)
-		_xp_bar.max_value = float(maxi(next_level_exp, level_start_exp + 1))
-		_xp_bar.value = float(current_exp)
+		_xp_bar.min_value = 0.0
+		_xp_bar.max_value = float(needed_exp)
+		_xp_bar.value = float(exp_in_level)
 		if level >= max_level:
 			_xp_bar.value = _xp_bar.max_value
 
@@ -71,7 +76,7 @@ func _on_exp_changed(
 func _refresh_level_xp() -> void:
 	if _player_stats == null:
 		if _level_label:
-			_level_label.text = tr("KEY_LEVEL_FMT") % [1, PlayerStats.MAX_LEVEL]
+			_level_label.text = tr("KEY_EXPERIENCE_FMT") % [0, 30]
 		if _xp_bar:
 			_xp_bar.min_value = 0.0
 			_xp_bar.max_value = 30.0

@@ -13,6 +13,8 @@ KEY_MAIN_MENU_TAGLINE,Your inventory is your body.,Твой инвентарь �
 KEY_SETTINGS,Settings,Настройки
 KEY_AP,AP,ОД
 KEY_LEVEL_FMT,Level %d / %d,Уровень %d / %d
+KEY_EXPERIENCE_FMT,Experience: %d/%d,Опыт: %d/%d
+KEY_EXPERIENCE_MAX,Experience: MAX,Опыт: МАКС
 KEY_AP_COST_FMT,%d %s,%d %s
 KEY_USE_COST_FMT,Use: %d %s,Использование: %d %s
 KEY_HP,HP,ОЗ
@@ -105,6 +107,7 @@ KEY_LOG_CELL_NAME,cell (%d,%d),клетка (%d,%d)
 KEY_LOG_NO_CELL,no cell,нет клетки
 KEY_LOG_VICTORY,Hostiles neutralized.,Противники нейтрализованы.
 KEY_LOG_DEFEAT,Frame integrity critical. Shutdown.,Целостность каркаса критична. Отключение.
+KEY_LOG_XP_GAINED,You gained %d XP.,Вы получили %d опыта.
 KEY_LOG_TARGETING,Targeting enemy #%d.,Цель: враг #%d.
 KEY_PLACE_NO_DATA,No item data.,Нет данных предмета.
 KEY_PLACE_INVALID_FOOTPRINT,Invalid footprint.,Неверная форма.

@@ -28,30 +28,30 @@ func add_exp(amount: int) -> void:
 	if amount <= 0:
 		return
 	if level >= MAX_LEVEL:
-		current_exp = XP_LEVEL_REQUIREMENTS[MAX_LEVEL - 1]
+		current_exp = _total_exp_required_for_level(MAX_LEVEL)
 		_emit_exp_changed()
 		return
 
 	current_exp += amount
-	while level < MAX_LEVEL and current_exp >= XP_LEVEL_REQUIREMENTS[level]:
+	while level < MAX_LEVEL and current_exp >= _total_exp_required_for_level(level + 1):
 		level += 1
 		leveled_up.emit(level)
 
 	if level >= MAX_LEVEL:
 		level = MAX_LEVEL
-		current_exp = XP_LEVEL_REQUIREMENTS[MAX_LEVEL - 1]
+		current_exp = _total_exp_required_for_level(MAX_LEVEL)
 
 	_emit_exp_changed()
 
 
 func get_current_level_start_exp() -> int:
-	return XP_LEVEL_REQUIREMENTS[maxi(level - 1, 0)]
+	return _total_exp_required_for_level(level)
 
 
 func get_next_level_exp() -> int:
 	if level >= MAX_LEVEL:
-		return XP_LEVEL_REQUIREMENTS[MAX_LEVEL - 1]
-	return XP_LEVEL_REQUIREMENTS[level]
+		return _total_exp_required_for_level(MAX_LEVEL)
+	return _total_exp_required_for_level(level + 1)
 
 
 func get_progress_ratio() -> float:
@@ -71,3 +71,13 @@ func _emit_exp_changed() -> void:
 		get_next_level_exp(),
 		MAX_LEVEL
 	)
+
+
+func _total_exp_required_for_level(target_level: int) -> int:
+	## Level 1 starts at 0 total XP.
+	## Level N requires sum of all previous per-level requirements.
+	var clamped_level := clampi(target_level, 1, MAX_LEVEL)
+	var total := 0
+	for i in range(1, clamped_level):
+		total += int(XP_LEVEL_REQUIREMENTS[i])
+	return total

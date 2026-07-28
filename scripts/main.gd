@@ -30,6 +30,7 @@ var _settings: SettingsModal
 ## True after STARTUP_SETUP reset so GAMEPLAY opens explore UI fresh.
 var _fresh_run_pending: bool = false
 var _pending_combat_exp_reward: int = 0
+var _first_combat_xp_granted: bool = false
 
 @onready var _combat: Node = $CombatManager
 @onready var _map: Node = $MapManager
@@ -129,6 +130,7 @@ func _seed_starting_loadout() -> void:
 	inventory.reset_run()
 	if player_stats != null:
 		player_stats.reset_run()
+	_first_combat_xp_granted = false
 	var scrap_pipe: ItemData = ItemDatabase.create_instance(STARTING_ITEM_ID)
 	if scrap_pipe != null:
 		inventory.place_item(scrap_pipe, Vector2i(0, 0))
@@ -400,12 +402,25 @@ func _on_combat_ended_bus(victory: bool) -> void:
 	if GameManager.is_game_over():
 		return
 	if victory:
+		var gained_xp := _resolve_victory_xp_reward()
+		if gained_xp > 0:
+			EventBus.combat_log_message.emit(
+				tr("KEY_LOG_XP_GAINED") % gained_xp
+			)
 		if player_stats != null:
-			player_stats.add_exp(_pending_combat_exp_reward)
+			player_stats.add_exp(gained_xp)
 		_status_banner.text = tr("KEY_STATUS_COMBAT_WIN")
 	else:
 		_status_banner.text = tr("KEY_STATUS_COMBAT_LOSE")
 	_pending_combat_exp_reward = 0
+
+
+func _resolve_victory_xp_reward() -> int:
+	## First victory is always 30 XP; after that, use enemy data rewards as-is.
+	if not _first_combat_xp_granted:
+		_first_combat_xp_granted = true
+		return 30
+	return maxi(_pending_combat_exp_reward, 0)
 
 
 func _on_player_leveled_up(_new_level: int) -> void:
