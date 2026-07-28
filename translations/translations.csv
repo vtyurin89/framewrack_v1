@@ -83,6 +83,14 @@ KEY_AGI,AGI,ЛОВ
 KEY_END,END,ВЫН
 KEY_INT,INT,ИНТ
 KEY_LCK,LCK,УДЧ
+KEY_HUM,HUM,ЧЕЛ
+KEY_STATS_HEADER_FMT,"%s: %d | %s: %d | %s: %d | %s: %d | %s: %d | %s: %d","%s: %d | %s: %d | %s: %d | %s: %d | %s: %d | %s: %d"
+KEY_STAT_TIP_STR,"STR (%d): Physical Damage +%d","СИЛ (%d): физ. урон +%d"
+KEY_STAT_TIP_AGI,"AGI (%d): Shield Block +%d","ЛОВ (%d): блок щита +%d"
+KEY_STAT_TIP_END,"END (%d): Max HP %d (30 Base + %d)","ВЫН (%d): макс. ОЗ %d (база 30 + %d)"
+KEY_STAT_TIP_INT,"INT (%d): Skill Power +%d","ИНТ (%d): сила умений +%d"
+KEY_STAT_TIP_LCK,"LCK (%d): Crit Chance %.0f%%","УДЧ (%d): шанс крита %.0f%%"
+KEY_STAT_TIP_HUM,"HUM (%d): Humanity (Protagonist Stat)","ЧЕЛ (%d): Человечность (стат героя)"
 KEY_CRIT_CHANCE_FMT,Crit %.0f%%,Крит %.0f%%
 KEY_ABILITY_DEALS,Deals,Наносит
 KEY_ABILITY_BLOCKS,Blocks,Блокирует

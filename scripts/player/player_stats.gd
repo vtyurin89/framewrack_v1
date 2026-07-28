@@ -138,12 +138,18 @@ func recalculate_stats() -> void:
 
 
 func format_stats_header() -> String:
-	return "STR: %d | AGI: %d | END: %d | INT: %d | LCK: %d | HUM: %d" % [
+	return TranslationServer.translate("KEY_STATS_HEADER_FMT") % [
+		TranslationServer.translate("KEY_STR"),
 		strength,
+		TranslationServer.translate("KEY_AGI"),
 		agility,
+		TranslationServer.translate("KEY_END"),
 		endurance,
+		TranslationServer.translate("KEY_INT"),
 		intelligence,
+		TranslationServer.translate("KEY_LCK"),
 		luck,
+		TranslationServer.translate("KEY_HUM"),
 		humanity,
 	]
 
@@ -154,12 +160,12 @@ func format_stats_tooltip_body() -> String:
 	var end_bonus := endurance * 5
 	var crit_pct := get_crit_chance() * 100.0
 	return "\n".join([
-		"STR (%d): Physical Damage +%d" % [strength, strength],
-		"AGI (%d): Shield Block +%d" % [agility, agility],
-		"END (%d): Max HP %d (30 Base + %d)" % [endurance, max_hp, end_bonus],
-		"INT (%d): Skill Power +%d" % [intelligence, intelligence],
-		"LCK (%d): Crit Chance %.0f%%" % [luck, crit_pct],
-		"HUM (%d): Humanity (Protagonist Stat)" % humanity,
+		TranslationServer.translate("KEY_STAT_TIP_STR") % [strength, strength],
+		TranslationServer.translate("KEY_STAT_TIP_AGI") % [agility, agility],
+		TranslationServer.translate("KEY_STAT_TIP_END") % [endurance, max_hp, end_bonus],
+		TranslationServer.translate("KEY_STAT_TIP_INT") % [intelligence, intelligence],
+		TranslationServer.translate("KEY_STAT_TIP_LCK") % [luck, crit_pct],
+		TranslationServer.translate("KEY_STAT_TIP_HUM") % humanity,
 	])
 
 
