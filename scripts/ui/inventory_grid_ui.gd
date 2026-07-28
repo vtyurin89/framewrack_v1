@@ -21,15 +21,20 @@ const DRAG_TYPE := "framewrack_item"
 const INSPECT_MODAL_SCENE := preload("res://scenes/UI/item_inspect_modal.tscn")
 
 var inventory: InventoryController
+var player_stats: PlayerStats
 ## When set, LMB on items activates combat modules instead of dragging.
 var combat_manager: Node
 var combat_click_mode: bool = false
+## Blocks inventory interaction until the player confirms each pending level-up.
+var level_up_mode: bool = false
 
 ## Active drag session (shared Dictionary mutated for rotation).
 var _drag: Dictionary = {}
 var _drop_committed: bool = false
 var _suppress_refresh: bool = false
 var _hover_origin: Vector2i = Vector2i(-1, -1)
+var _level_up_busy: bool = false
+var _suppress_unlock_reveal: bool = false
 
 var _slots: Dictionary = {}  # "x,y" -> InventorySlotUI
 var _item_uis: Array[ItemUI] = []
@@ -45,6 +50,8 @@ var _inspect_modal: ItemInspectModal
 @onready var _title: Label = %Title
 @onready var _close_button: Button = %CloseButton
 @onready var _padding: MarginContainer = %Padding
+@onready var _level_up_overlay: ColorRect = %LevelUpOverlay
+@onready var _level_up_button: Button = %LevelUpButton
 
 
 func setup(p_inventory: InventoryController) -> void:
@@ -66,8 +73,19 @@ func setup(p_inventory: InventoryController) -> void:
 		EventBus.ap_changed.connect(_on_ap_changed_visuals)
 	if _close_button and not _close_button.pressed.is_connected(_on_close_pressed):
 		_close_button.pressed.connect(_on_close_pressed)
+	if _level_up_button and not _level_up_button.pressed.is_connected(_on_level_up_pressed):
+		_level_up_button.pressed.connect(_on_level_up_pressed)
 	_apply_static_locale()
+	_sync_level_up_overlay()
 	refresh()
+
+
+func bind_player_stats(stats: PlayerStats) -> void:
+	player_stats = stats
+	if player_stats != null and player_stats.has_pending_level_ups():
+		set_level_up_mode(true)
+	else:
+		_sync_level_up_overlay()
 
 
 func set_combat_mode(enabled: bool, p_combat: Node = null) -> void:
@@ -76,6 +94,17 @@ func set_combat_mode(enabled: bool, p_combat: Node = null) -> void:
 	_hide_hover_tooltip()
 	_close_context_menu()
 	refresh()
+
+
+func set_level_up_mode(enabled: bool) -> void:
+	level_up_mode = enabled
+	if not enabled:
+		_level_up_busy = false
+	_hide_hover_tooltip()
+	_close_context_menu()
+	if not _drag.is_empty():
+		end_item_drag(false)
+	_sync_level_up_overlay()
 
 
 func _on_ap_changed_visuals(_current: int, _maximum: int) -> void:
@@ -138,6 +167,8 @@ func _apply_static_locale() -> void:
 		_title.text = tr("KEY_BODY_GRID_TITLE")
 	if _close_button:
 		_close_button.text = "✕"
+	if _level_up_button:
+		_level_up_button.text = tr("KEY_LEVEL_UP")
 	if _mutation_label and _drag.is_empty():
 		if (
 			_mutation_label.text.is_empty()
@@ -152,6 +183,7 @@ func refresh() -> void:
 		return
 	_rebuild_grid()
 	_rebuild_items()
+	_sync_level_up_overlay()
 
 
 func _on_inventory_changed() -> void:
@@ -161,6 +193,104 @@ func _on_inventory_changed() -> void:
 func _on_grid_expanded(new_cells: Array[Vector2i]) -> void:
 	_mutation_label.text = tr("KEY_MUTATION_OVERLAY_FMT") % new_cells.size()
 	refresh()
+	if not _suppress_unlock_reveal:
+		_play_unlock_reveal(new_cells)
+
+
+func _sync_level_up_overlay() -> void:
+	if _level_up_overlay == null:
+		return
+	if _level_up_busy:
+		## Keep an invisible mouse-blocker up while cells reveal.
+		_level_up_overlay.visible = true
+		_level_up_overlay.modulate = Color(1, 1, 1, 0)
+		_level_up_overlay.mouse_filter = Control.MOUSE_FILTER_STOP
+		if _level_up_button:
+			_level_up_button.disabled = true
+			_level_up_button.mouse_filter = Control.MOUSE_FILTER_IGNORE
+		return
+	var show_overlay := level_up_mode
+	_level_up_overlay.visible = show_overlay
+	_level_up_overlay.modulate = Color.WHITE
+	_level_up_overlay.mouse_filter = (
+		Control.MOUSE_FILTER_STOP if show_overlay else Control.MOUSE_FILTER_IGNORE
+	)
+	if _level_up_button:
+		_level_up_button.disabled = not show_overlay
+		_level_up_button.mouse_filter = (
+			Control.MOUSE_FILTER_STOP if show_overlay else Control.MOUSE_FILTER_IGNORE
+		)
+
+
+func _on_level_up_pressed() -> void:
+	if _level_up_busy or not level_up_mode:
+		return
+	if player_stats == null or not player_stats.has_pending_level_ups():
+		set_level_up_mode(false)
+		return
+	if inventory == null or inventory.grid == null:
+		return
+	await _confirm_level_up()
+
+
+func _confirm_level_up() -> void:
+	_level_up_busy = true
+	if _level_up_button:
+		_level_up_button.disabled = true
+	_hide_hover_tooltip()
+	_close_context_menu()
+
+	await _fade_level_up_overlay_out()
+
+	_suppress_unlock_reveal = true
+	var new_cells: Array[Vector2i] = inventory.grid.unlock_random_adjacent_cells(
+		BodyGrid.LEVEL_UP_CELL_GAIN
+	)
+	_suppress_unlock_reveal = false
+	await _play_unlock_reveal(new_cells)
+
+	if player_stats != null:
+		player_stats.consume_pending_level_up()
+
+	_level_up_busy = false
+	if player_stats != null and player_stats.has_pending_level_ups():
+		level_up_mode = true
+		_sync_level_up_overlay()
+	else:
+		set_level_up_mode(false)
+
+
+func _fade_level_up_overlay_out() -> void:
+	if _level_up_overlay == null:
+		return
+	## Keep overlay present (and mouse-blocking) at alpha 0 during the unlock reveal.
+	_level_up_overlay.visible = true
+	_level_up_overlay.mouse_filter = Control.MOUSE_FILTER_STOP
+	_level_up_overlay.modulate = Color.WHITE
+	var tween := create_tween()
+	tween.tween_property(_level_up_overlay, "modulate:a", 0.0, 0.22)
+	await tween.finished
+
+
+func _play_unlock_reveal(new_cells: Array[Vector2i]) -> void:
+	if new_cells.is_empty():
+		return
+	## Stagger fade-in so the player sees each new cell unlock live.
+	for cell: Vector2i in new_cells:
+		var slot: InventorySlotUI = _slots.get(BodyGrid.cell_key(cell))
+		if slot == null or not is_instance_valid(slot):
+			continue
+		slot.modulate = Color(1, 1, 1, 0)
+	for cell: Vector2i in new_cells:
+		var slot: InventorySlotUI = _slots.get(BodyGrid.cell_key(cell))
+		if slot == null or not is_instance_valid(slot):
+			continue
+		var tween := create_tween()
+		tween.tween_property(slot, "modulate", Color.WHITE, 0.28).set_trans(Tween.TRANS_SINE).set_ease(
+			Tween.EASE_OUT
+		)
+		await get_tree().create_timer(0.1).timeout
+	await get_tree().create_timer(0.12).timeout
 
 
 func _on_placement_failed(_reason: String) -> void:
@@ -273,6 +403,8 @@ func _on_slot_gui_input(event: InputEvent, cell: Vector2i) -> void:
 
 func _on_item_context_menu_requested(item: ItemData) -> void:
 	## RMB on a static item (ignored while a drag session is active).
+	if level_up_mode or _level_up_busy:
+		return
 	if not _drag.is_empty():
 		return
 	if item == null:
@@ -325,6 +457,8 @@ func _on_item_pointer_down(_item_ui: ItemUI) -> void:
 
 
 func _on_item_mouse_entered(item_ui: ItemUI) -> void:
+	if level_up_mode or _level_up_busy:
+		return
 	if not _drag.is_empty():
 		return
 	if item_ui == null or item_ui.item == null:
@@ -346,7 +480,7 @@ func _on_item_mouse_exited(item_ui: ItemUI) -> void:
 # ---------------------------------------------------------------------------
 
 func begin_item_drag(item_ui: ItemUI) -> Dictionary:
-	if combat_click_mode:
+	if combat_click_mode or level_up_mode or _level_up_busy:
 		return {}
 	if inventory == null or item_ui == null or item_ui.item == null:
 		return {}
@@ -432,6 +566,8 @@ func _set_item_uis_pass_through(enabled: bool) -> void:
 # ---------------------------------------------------------------------------
 
 func on_slot_drag_hover(cell: Vector2i, data: Variant) -> void:
+	if level_up_mode or _level_up_busy:
+		return
 	if not _is_drag(data):
 		return
 	if cell == _hover_origin and data.get("footprint") == _drag.get("footprint"):
@@ -441,6 +577,8 @@ func on_slot_drag_hover(cell: Vector2i, data: Variant) -> void:
 
 
 func can_drop_on_cell(cell: Vector2i, data: Variant) -> bool:
+	if level_up_mode or _level_up_busy:
+		return false
 	if not _is_drag(data) or inventory == null:
 		return false
 	var item: ItemData = data["item"]

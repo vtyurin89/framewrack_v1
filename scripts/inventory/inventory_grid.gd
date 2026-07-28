@@ -84,6 +84,13 @@ func recalculate_grid_adjacencies() -> void:
 	model.recalculate_grid_adjacencies()
 
 
+func unlock_random_adjacent_cells(count: int = BodyGrid.LEVEL_UP_CELL_GAIN) -> Array[Vector2i]:
+	## LEVEL_UP reveal: unlock N random adjacent locked cells inside max bounds.
+	if model == null:
+		return []
+	return model.unlock_random_adjacent_cells(count)
+
+
 func _on_model_changed() -> void:
 	grid_changed.emit()
 

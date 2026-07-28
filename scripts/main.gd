@@ -41,13 +41,15 @@ var _inventory_overlay_content_min: Vector2 = Vector2(460, 320)
 func _ready() -> void:
 	inventory = InventoryController.new()
 	player_stats = PlayerStats.new()
-	player_stats.leveled_up.connect(_on_player_leveled_up)
+	player_stats.pending_level_ups_changed.connect(_on_pending_level_ups_changed)
 	_combat.setup(inventory)
 	_style_inventory_panel()
 	_ensure_overlays()
 
 	_map_ui.setup(_map)
 	_inventory_ui.setup(inventory)
+	if _inventory_ui.has_method("bind_player_stats"):
+		_inventory_ui.bind_player_stats(player_stats)
 	_combat_ui.setup(_combat, inventory)
 
 	_map.node_entered.connect(_on_map_node_entered)
@@ -283,6 +285,8 @@ func _reset_run_to_startup() -> void:
 	_seed_starting_loadout()
 	_combat.setup(inventory)
 	_inventory_ui.setup(inventory)
+	if _inventory_ui.has_method("bind_player_stats"):
+		_inventory_ui.bind_player_stats(player_stats)
 	if _inventory_ui.has_method("set_combat_mode"):
 		_inventory_ui.set_combat_mode(false)
 	_combat_ui.setup(_combat, inventory)
@@ -300,7 +304,10 @@ func _show_exploring() -> void:
 	_set_flow(GameFlowState.State.EXPLORING)
 	_map_ui.visible = true
 	_combat_ui.visible = false
-	_hide_inventory_overlay()
+	if player_stats != null and player_stats.has_pending_level_ups():
+		_show_inventory_for_level_up()
+	else:
+		_hide_inventory_overlay()
 	if _inventory_ui.has_method("set_combat_mode"):
 		_inventory_ui.set_combat_mode(false)
 	_map_ui.refresh()
@@ -321,6 +328,9 @@ func _toggle_inventory() -> void:
 	var next_visible := not _body_grid_overlay.visible
 	_body_grid_overlay.visible = next_visible
 	if next_visible:
+		if player_stats != null and player_stats.has_pending_level_ups():
+			if _inventory_ui.has_method("set_level_up_mode"):
+				_inventory_ui.set_level_up_mode(true)
 		_inventory_ui.refresh()
 		_request_inventory_overlay_relayout()
 
@@ -475,13 +485,23 @@ func _resolve_victory_xp_reward() -> int:
 	return maxi(_pending_combat_exp_reward, 0)
 
 
-func _on_player_leveled_up(_new_level: int) -> void:
-	## +3 random adjacent locked cells inside the 7x8 max matrix.
-	var g := inventory.grid
-	if g == null:
+func _on_pending_level_ups_changed(count: int) -> void:
+	## Auto-open Body Grid and enter LEVEL_UP mode when XP grants a pending reveal.
+	if count <= 0:
+		if _inventory_ui != null and _inventory_ui.has_method("set_level_up_mode"):
+			_inventory_ui.set_level_up_mode(false)
 		return
-	g.expand_by_adjacent_cells(BodyGrid.LEVEL_UP_CELL_GAIN)
-	_inventory_ui.refresh()
+	_show_inventory_for_level_up()
+
+
+func _show_inventory_for_level_up() -> void:
+	if _body_grid_overlay != null:
+		_body_grid_overlay.visible = true
+	if _inventory_ui != null:
+		if _inventory_ui.has_method("set_level_up_mode"):
+			_inventory_ui.set_level_up_mode(true)
+		_inventory_ui.refresh()
+	_request_inventory_overlay_relayout()
 
 
 func _on_combat_continue() -> void:

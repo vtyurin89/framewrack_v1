@@ -85,3 +85,10 @@ func heal_full() -> void:
 
 func is_dead() -> bool:
 	return current_hp <= 0
+
+
+func unlock_random_adjacent_cells(count: int = BodyGrid.LEVEL_UP_CELL_GAIN) -> Array[Vector2i]:
+	## LEVEL_UP reveal helper used by Body Grid UI.
+	if grid == null:
+		return []
+	return grid.unlock_random_adjacent_cells(count)

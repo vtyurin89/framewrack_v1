@@ -3,6 +3,7 @@ extends RefCounted
 ## Player progression state: level and cumulative experience.
 
 signal leveled_up(new_level: int)
+signal pending_level_ups_changed(count: int)
 signal exp_changed(
 	level: int,
 	current_exp: int,
@@ -16,6 +17,8 @@ const XP_LEVEL_REQUIREMENTS: Array[int] = [0, 30, 70, 120, 180, 260, 360, 480, 6
 
 var level: int = 1
 var current_exp: int = 0
+## Queued level-up reveals waiting for the player to confirm in Body Grid UI.
+var pending_level_ups: int = 0
 
 var max_exp: int:
 	get:
@@ -25,7 +28,9 @@ var max_exp: int:
 func reset_run() -> void:
 	level = 1
 	current_exp = 0
+	pending_level_ups = 0
 	_emit_exp_changed()
+	pending_level_ups_changed.emit(pending_level_ups)
 
 
 func add_exp(amount: int) -> void:
@@ -37,15 +42,34 @@ func add_exp(amount: int) -> void:
 		return
 
 	current_exp += amount
+	var gained_levels := 0
 	while level < MAX_LEVEL and current_exp >= _total_exp_required_for_level(level + 1):
 		level += 1
+		gained_levels += 1
 		leveled_up.emit(level)
+
+	if gained_levels > 0:
+		pending_level_ups += gained_levels
+		pending_level_ups_changed.emit(pending_level_ups)
 
 	if level >= MAX_LEVEL:
 		level = MAX_LEVEL
 		current_exp = _total_exp_required_for_level(MAX_LEVEL)
 
 	_emit_exp_changed()
+
+
+func consume_pending_level_up() -> bool:
+	## Spend one pending level-up after the player confirms the unlock reveal.
+	if pending_level_ups <= 0:
+		return false
+	pending_level_ups -= 1
+	pending_level_ups_changed.emit(pending_level_ups)
+	return true
+
+
+func has_pending_level_ups() -> bool:
+	return pending_level_ups > 0
 
 
 func get_current_level_start_exp() -> int:

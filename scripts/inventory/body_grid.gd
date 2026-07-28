@@ -167,6 +167,11 @@ func expand_by_adjacent_cells(count: int = LEVEL_UP_CELL_GAIN) -> Array[Vector2i
 	return to_add
 
 
+func unlock_random_adjacent_cells(count: int = LEVEL_UP_CELL_GAIN) -> Array[Vector2i]:
+	## Spec alias used by LEVEL_UP UI reveal sequence.
+	return expand_by_adjacent_cells(count)
+
+
 func get_unlocked_cell_count() -> int:
 	return _unlocked.size()
 
