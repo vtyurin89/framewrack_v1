@@ -1,11 +1,9 @@
 class_name ItemDetailsPanel
 extends PanelContainer
 ## Right-side inspector for a selected body-module.
-## Shows localized name/description, combat stats, and merchant price when sellable.
+## Shows localized name/description and combat stats.
 
 signal closed
-
-const PRICE_SUFFIX := " Scrap"
 
 @onready var _title: Label = %TitleLabel
 @onready var _rarity: Label = %RarityLabel
@@ -57,7 +55,6 @@ func show_item(item: ItemData) -> void:
 
 	_stats.text = _build_stats_line(item)
 	_traits.text = _build_traits_line(item)
-	_update_price_line(item)
 
 
 func clear() -> void:
@@ -67,24 +64,16 @@ func clear() -> void:
 	_price.text = ""
 
 
-func _update_price_line(item: ItemData) -> void:
-	## Only render a price row for merchant-sellable items.
-	if item != null and item.is_sellable():
-		_price.visible = true
-		_price.text = "Price: %s%s" % [str(int(item.price)), PRICE_SUFFIX]
-	else:
-		# price == null (or non-positive): hide the line entirely — no "Not for Sale".
-		_price.visible = false
-		_price.text = ""
-
-
 func _build_stats_line(item: ItemData) -> String:
 	var parts: PackedStringArray = []
 	parts.append("%dx%d" % [item.size.x, item.size.y])
 	if item.requires_edge:
 		parts.append("EDGE")
-	if item.ap_cost > 0:
-		parts.append("%d AP" % item.ap_cost)
+	if item.consumable or item.ap_cost > 0:
+		if item.consumable:
+			parts.append(tr("KEY_USE_COST_FMT") % [item.ap_cost, tr("KEY_AP")])
+		else:
+			parts.append(tr("KEY_AP_COST_FMT") % [item.ap_cost, tr("KEY_AP")])
 	var dmg := item.format_damage_display(false)
 	if not dmg.is_empty():
 		parts.append(dmg)

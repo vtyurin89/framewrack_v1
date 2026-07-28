@@ -25,6 +25,7 @@ const FALLBACK_ICON_PATH := "res://assets/icons/fallback_item.png"
 ## Classification / rarity used by adjacency rules and UI.
 @export var item_type: ItemTypeData
 @export var rarity: ItemRarityData
+@export var sub_type: String = ""  ## HELMET / LEG_ARMOR / CORE / STANDARD / ...
 
 ## Optional per-item icon. If null, falls back to item_type.default_type_icon.
 @export var texture: Texture2D
@@ -58,6 +59,11 @@ const FALLBACK_ICON_PATH := "res://assets/icons/fallback_item.png"
 
 ## If true, remove from grid when charges hit 0.
 @export var destroy_on_empty: bool = false
+
+## Currency / stackables.
+@export var is_stackable: bool = false
+@export var max_stack: int = 99
+@export var current_stack: int = 1
 
 ## Merchant value in Scrap. `null` = cannot be bought or sold.
 @export var price: Variant = null
@@ -135,6 +141,7 @@ func initialize_runtime_state() -> void:
 		current_charges = maxi(max_charges, 0)
 	else:
 		current_charges = -1
+	current_stack = clampi(current_stack, 1, maxi(max_stack, 1))
 
 
 func reset_turn_uses() -> void:
@@ -249,6 +256,18 @@ func is_sellable() -> bool:
 
 func is_weapon() -> bool:
 	return (base_damage > 0 or damage > 0) and ap_cost > 0
+
+
+func is_armor() -> bool:
+	if item_type == null:
+		return false
+	return item_type.id.strip_edges().to_upper() == "ARMOR"
+
+
+func is_currency() -> bool:
+	if item_type == null:
+		return false
+	return item_type.id.strip_edges().to_upper() == "CURRENCY"
 
 
 func is_shield() -> bool:

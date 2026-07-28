@@ -22,3 +22,31 @@ TRAIT_DRAIN_LIFE_DESC,On hit; restores Frame HP equal to a portion of damage dea
 TRAIT_STUN_IMPACT,Heavy impact stuns the targeted enemy for 1 turn. Purely offensive — never damages; blocks; or corrupts your own inventory cells.,Тяжёлый удар оглушает выбранного врага на 1 ход. Только наступательный эффект — никогда не повреждает; не блокирует и не искажает ваши клетки инвентаря.
 TRAIT_FUEL_BURST,Ignites the enemy for bonus fire damage. The burn is directed outward only — it never scorches; blocks; or corrupts your body-grid cells.,Поджигает врага бонусным огненным уроном. Горение только вовне — никогда не опаляет; не блокирует и не искажает клетки вашей сетки тела.
 TRAIT_DRAIN_LIFE,On hit; restores Frame HP equal to a portion of damage dealt. Beneficial only — never drains; blocks; or corrupts your own inventory cells. Self-corruption remains exclusive to enemy attacks.,При попадании восстанавливает ОЗ каркаса от части нанесённого урона. Только польза — никогда не выкачивает; не блокирует и не искажает ваши клетки. Самоискажение остаётся только у атак врагов.
+TRAIT_ARMOR_EDGE_NAME,Edge Anchor,Краевой якорь
+TRAIT_ARMOR_EDGE_DESC,Edge-mounted armor gains extra stability.,Краевая броня получает дополнительную устойчивость.
+TRAIT_ARMOR_CHAIN_NAME,Armor Chain,Цепь брони
+TRAIT_ARMOR_CHAIN_DESC,Adjacent armor pieces reinforce each other.,Соседние бронемодули усиливают друг друга.
+TRAIT_SPIKES_OUTER_NAME,Outer Spikes,Внешние шипы
+TRAIT_SPIKES_OUTER_DESC,Spikes punish hostile pressure around the frame.,Шипы наказывают вражеское давление вокруг каркаса.
+TRAIT_HEAT_DISSIPATION_NAME,Heat Dissipation,Теплоотвод
+TRAIT_HEAT_DISSIPATION_DESC,Cooling channels increase defensive performance.,Охлаждающие каналы повышают защитный потенциал.
+TRAIT_REACTIVE_CLEANSE_NAME,Reactive Cleanse,Реактивная очистка
+TRAIT_REACTIVE_CLEANSE_DESC,Reactive weave dampens lingering corruption stress.,Реактивная ткань гасит остаточный стресс искажения.
+TRAIT_ARMOR_CORE_TRIGGER_NAME,Core Trigger,Триггер ядра
+TRAIT_ARMOR_CORE_TRIGGER_DESC,Activating this core triggers adjacent usable armor for free.,Активация ядра бесплатно запускает соседнюю активируемую броню.
+TRAIT_HELMET_LOW_NAME,Lower Profile Helmet,Нижний профиль шлема
+TRAIT_HELMET_LOW_DESC,Passive armor scales with cells below (+0.5 each), penalty for same-row helmets.,Пассивная броня масштабируется от клеток снизу (+0.5), штраф за шлемы в том же ряду.
+TRAIT_HELMET_HIGH_NAME,Lower Profile Helmet+,Нижний профиль шлема+
+TRAIT_HELMET_HIGH_DESC,Passive armor scales with cells below (+1 each), penalty for same-row helmets.,Пассивная броня масштабируется от клеток снизу (+1), штраф за шлемы в том же ряду.
+TRAIT_LEG_LOW_NAME,Upper Support Greaves,Поножи верхней опоры
+TRAIT_LEG_LOW_DESC,Passive armor scales with cells above (+0.5 each), penalty for same-row legs.,Пассивная броня масштабируется от клеток сверху (+0.5), штраф за броню ног в том же ряду.
+TRAIT_LEG_HIGH_NAME,Upper Support Greaves+,Поножи верхней опоры+
+TRAIT_LEG_HIGH_DESC,Passive armor scales with cells above (+1 each), penalty for same-row legs.,Пассивная броня масштабируется от клеток сверху (+1), штраф за броню ног в том же ряду.
+TRAIT_BIO_GEL_HEAL_NAME,Bio Gel Patch,Био-гелевая заплатка
+TRAIT_BIO_GEL_HEAL_DESC,Instantly restores 8 HP.,Мгновенно восстанавливает 8 ОЗ.
+TRAIT_GIVE_AP_NAME,Adrenal Salt,Адреналиновая соль
+TRAIT_GIVE_AP_DESC,Instantly restores 2 AP for the current turn.,Мгновенно восстанавливает 2 ОД на текущий ход.
+TRAIT_BURN_DAMAGE_NAME,Thermite Burn,Термитный прожиг
+TRAIT_BURN_DAMAGE_DESC,Deals 18 damage to selected enemy and applies 3 Burn.,Наносит 18 урона выбранному врагу и накладывает 3 Горения.
+TRAIT_CLEANSE_DEBUFFS_NAME,Purge Cycle,Цикл очистки
+TRAIT_CLEANSE_DEBUFFS_DESC,Cleanses all negative status effects (Poison, Rust, Burn).,Снимает все негативные эффекты (Яд, Ржавчина, Горение).

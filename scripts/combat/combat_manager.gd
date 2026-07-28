@@ -22,6 +22,9 @@ var current_ap: int = 0
 var max_ap: int = 3
 var current_block: int = 0
 var target_index: int = 0
+var _player_poison_stacks: int = 0
+var _player_rust_stacks: int = 0
+var _player_burn_stacks: int = 0
 
 
 func setup(p_inventory: InventoryController) -> void:
@@ -69,6 +72,7 @@ func _begin_player_turn() -> void:
 	max_ap = inventory.get_max_ap()
 	current_ap = max_ap
 	_reset_all_item_turn_uses()
+	TraitManager.apply_passive_armor_from_spatial_traits(inventory.grid, Callable(self, "_gain_block"))
 	_ensure_valid_selection()
 	EventBus.ap_changed.emit(current_ap, max_ap)
 	EventBus.combat_item_availability_changed.emit()
@@ -121,7 +125,7 @@ func can_activate_item(placed: PlacedItem) -> bool:
 	if placed == null or placed.data == null:
 		return false
 	var data: ItemData = placed.data
-	if not data.usable or data.ap_cost <= 0:
+	if not data.usable:
 		return false
 	if not inventory.grid.is_item_functional(placed):
 		return false
@@ -169,7 +173,7 @@ func _log_activation_failure(placed: PlacedItem) -> void:
 	var data: ItemData = placed.data
 	if not inventory.grid.is_item_functional(placed):
 		EventBus.combat_log_message.emit(tr("KEY_LOG_OFFLINE") % data.get_localized_name())
-	elif not data.usable or data.ap_cost <= 0:
+	elif not data.usable:
 		EventBus.combat_log_message.emit(tr("KEY_LOG_PASSIVE") % data.get_localized_name())
 	elif current_ap < data.ap_cost:
 		EventBus.combat_log_message.emit(tr("KEY_LOG_NOT_ENOUGH_AP"))
@@ -183,29 +187,44 @@ func _resolve_single_enemy(placed: PlacedItem) -> void:
 	_ensure_valid_selection()
 	if target_index < 0:
 		return
+	var data := placed.data
+	if data.item_type != null and data.item_type.id.to_upper() == "CONSUMABLE":
+		_resolve_consumable_enemy(placed, target_index)
+		return
 	var dmg := _calc_damage(placed)
-	_deal_damage_to(target_index, dmg, placed.data.get_localized_name())
+	var trait_bonus := _consume_attack_trait_bonus(placed)
+	dmg += trait_bonus
+	_deal_damage_to(target_index, dmg, data.get_localized_name())
 
 
 func _resolve_all_enemies(placed: PlacedItem) -> void:
 	var dmg := _calc_damage(placed)
+	var trait_bonus := _consume_attack_trait_bonus(placed)
+	dmg += trait_bonus
 	var living := _living_enemy_indices()
 	for idx: int in living:
 		_deal_damage_to(idx, dmg, placed.data.get_localized_name())
 
 
 func _resolve_self(placed: PlacedItem) -> void:
+	if TraitManager.has_trait(placed.data, "TRAIT_ARMOR_CORE_TRIGGER"):
+		TraitManager.activate_armor_core(placed, inventory.grid, Callable(self, "_gain_block"))
+		return
+
+	var data := placed.data
+	if data.item_type != null and data.item_type.id.to_upper() == "CONSUMABLE":
+		_apply_self_use_traits(placed)
+		return
+
 	var armor := placed.data.get_effective_armor()
 	if armor <= 0 and placed.data.block_amount > 0:
 		armor = placed.data.block_amount
 	if armor > 0:
-		current_block += armor
-		EventBus.block_changed.emit(current_block)
-		EventBus.combat_log_message.emit(
-			tr("KEY_LOG_BLOCK") % [placed.data.get_localized_name(), armor, current_block]
-		)
+		_gain_block(armor, placed.data.get_localized_name())
 	else:
 		EventBus.combat_log_message.emit(tr("KEY_LOG_ACTIVATED") % placed.data.get_localized_name())
+
+	_apply_self_use_traits(placed)
 
 
 func _calc_damage(placed: PlacedItem) -> int:
@@ -244,6 +263,57 @@ func _consume_charge_if_needed(placed: PlacedItem) -> void:
 		EventBus.combat_log_message.emit(tr("KEY_LOG_ITEM_DESTROYED") % data.get_localized_name())
 
 
+func _gain_block(amount: int, source_name: String) -> void:
+	if amount <= 0:
+		return
+	current_block += amount
+	EventBus.block_changed.emit(current_block)
+	EventBus.combat_log_message.emit(
+		tr("KEY_LOG_BLOCK") % [source_name, amount, current_block]
+	)
+
+
+func _consume_attack_trait_bonus(placed: PlacedItem) -> int:
+	## Extra damage from consumable / weapon traits that should apply per-use.
+	if placed == null or placed.data == null:
+		return 0
+	var bonus := 0
+	if TraitManager.has_trait(placed.data, "TRAIT_BURN_DAMAGE"):
+		bonus += 4
+	return bonus
+
+
+func _apply_self_use_traits(placed: PlacedItem) -> void:
+	## Self-targeted trait effects (consumables and special self modules).
+	if placed == null or placed.data == null:
+		return
+	var data := placed.data
+	if TraitManager.has_trait(data, "TRAIT_BIO_GEL_HEAL"):
+		inventory.current_hp = mini(inventory.max_hp, inventory.current_hp + 8)
+		EventBus.player_hp_changed.emit(inventory.current_hp, inventory.max_hp)
+	if TraitManager.has_trait(data, "TRAIT_GIVE_AP"):
+		current_ap += 2
+		EventBus.ap_changed.emit(current_ap, max_ap)
+	if TraitManager.has_trait(data, "TRAIT_CLEANSE_DEBUFFS"):
+		_clear_player_negative_statuses()
+		inventory.grid.clear_all_corruption()
+
+
+func _resolve_consumable_enemy(placed: PlacedItem, enemy_index: int) -> void:
+	var data := placed.data
+	var dealt := 0
+	if TraitManager.has_trait(data, "TRAIT_BURN_DAMAGE"):
+		var burn_hit := TraitManager.get_trait_value(data, "TRAIT_BURN_DAMAGE", 18)
+		_deal_damage_to(enemy_index, burn_hit, data.get_localized_name())
+		dealt = burn_hit
+		var entry: Dictionary = enemies[enemy_index]
+		var cur_burn := int(entry.get("burn", 0))
+		entry["burn"] = cur_burn + TraitManager.BURN_APPLY_STACKS
+		enemies[enemy_index] = entry
+	if dealt == 0:
+		_deal_damage_to(enemy_index, data.base_damage, data.get_localized_name())
+
+
 func _reset_all_item_turn_uses() -> void:
 	if inventory == null:
 		return
@@ -259,6 +329,7 @@ func _begin_enemy_turn() -> void:
 
 
 func _run_enemy_actions() -> void:
+	_tick_enemy_burn()
 	for i in enemies.size():
 		var entry: Dictionary = enemies[i]
 		if int(entry["hp"]) <= 0:
@@ -310,6 +381,28 @@ func _enemy_special(index: int, data: EnemyData) -> void:
 		]
 	)
 	EventBus.enemy_hp_changed.emit(index, int(enemies[index]["hp"]), data.max_hp)
+
+
+func _tick_enemy_burn() -> void:
+	for i in enemies.size():
+		var entry: Dictionary = enemies[i]
+		if int(entry["hp"]) <= 0:
+			continue
+		var burn := int(entry.get("burn", 0))
+		if burn <= 0:
+			continue
+		entry["hp"] = maxi(0, int(entry["hp"]) - burn)
+		entry["burn"] = maxi(0, burn - 1)
+		enemies[i] = entry
+		var enemy_name := (entry["data"] as EnemyData).get_localized_name()
+		EventBus.combat_log_message.emit("%s burns for %d." % [enemy_name, burn])
+		EventBus.enemy_hp_changed.emit(i, int(entry["hp"]), (entry["data"] as EnemyData).max_hp)
+
+
+func _clear_player_negative_statuses() -> void:
+	_player_poison_stacks = 0
+	_player_rust_stacks = 0
+	_player_burn_stacks = 0
 
 
 func _living_enemy_indices() -> Array[int]:

@@ -5,7 +5,8 @@ extends Node
 const ITEMS_CSV_PATH := "res://data/items.csv"
 const TYPE_DIR := "res://resources/item_types/"
 const RARITY_DIR := "res://resources/rarities/"
-const TRAIT_CATALOG_PATH := "res://data/trait_catalog.csv"
+const TRAIT_CATALOG_PATH := "res://data/traits.csv"
+const TRAIT_CATALOG_FALLBACK_PATH := "res://data/trait_catalog.csv"
 
 var _items_by_id: Dictionary = {}  # String -> ItemData
 var _types_by_id: Dictionary = {}  # String -> ItemTypeData
@@ -93,9 +94,12 @@ func _index_rarities() -> void:
 
 func _index_traits_from_catalog() -> void:
 	_traits_by_id.clear()
-	if not FileAccess.file_exists(TRAIT_CATALOG_PATH):
+	var source_path := TRAIT_CATALOG_PATH
+	if not FileAccess.file_exists(source_path):
+		source_path = TRAIT_CATALOG_FALLBACK_PATH
+	if not FileAccess.file_exists(source_path):
 		return
-	var file := FileAccess.open(TRAIT_CATALOG_PATH, FileAccess.READ)
+	var file := FileAccess.open(source_path, FileAccess.READ)
 	if file == null:
 		return
 	var header: PackedStringArray = file.get_csv_line()
@@ -171,6 +175,7 @@ func _parse_item_row(row: PackedStringArray, col: Dictionary) -> ItemData:
 	if type_id.is_empty():
 		type_id = _cell(row, col, "item_type")
 	item.item_type = _resolve_type(type_id)
+	item.sub_type = _cell(row, col, "sub_type").strip_edges().to_upper()
 
 	var rarity_id := _cell(row, col, "rarity_id")
 	if rarity_id.is_empty():
@@ -202,6 +207,9 @@ func _parse_item_row(row: PackedStringArray, col: Dictionary) -> ItemData:
 	item.consumable = _parse_bool(exhaust_raw, false)
 	item.max_charges = _parse_int(_cell(row, col, "max_charges"), 0)
 	item.destroy_on_empty = _parse_bool(_cell(row, col, "destroy_on_empty"), false)
+	item.is_stackable = _parse_bool(_cell(row, col, "is_stackable"), false)
+	item.max_stack = maxi(1, _parse_int(_cell(row, col, "max_stack"), 99))
+	item.current_stack = clampi(_parse_int(_cell(row, col, "current_stack"), 1), 1, item.max_stack)
 	item.initialize_runtime_state()
 
 	item.price = _parse_price(_cell(row, col, "price"))

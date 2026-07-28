@@ -191,9 +191,12 @@ func _populate(item: ItemData) -> void:
 	else:
 		_name_label.add_theme_color_override("font_color", DEFAULT_NAME_COLOR)
 
-	if item.ap_cost > 0:
+	if item.consumable or item.ap_cost > 0:
 		_ap_label.visible = true
-		_ap_label.text = "%d AP" % item.ap_cost
+		if item.consumable:
+			_ap_label.text = tr("KEY_USE_COST_FMT") % [item.ap_cost, tr("KEY_AP")]
+		else:
+			_ap_label.text = tr("KEY_AP_COST_FMT") % [item.ap_cost, tr("KEY_AP")]
 	else:
 		_ap_label.visible = false
 		_ap_label.text = ""

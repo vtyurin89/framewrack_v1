@@ -4,7 +4,6 @@ extends BaseModalWindow
 
 const PREVIEW_SIZE := Vector2(180, 180)
 const DEFAULT_NAME_COLOR := Color(0.92, 0.92, 0.92)
-const PRICE_SUFFIX := " Scrap"
 
 var _item: ItemData
 var _preview: TextureRect
@@ -13,7 +12,6 @@ var _name_label: Label
 var _ap_label: Label
 var _meta_label: Label
 var _combat_label: RichTextLabel
-var _price_label: Label
 var _desc_label: RichTextLabel
 var _traits_box: VBoxContainer
 var _built: bool = false
@@ -113,12 +111,6 @@ func _ensure_content() -> void:
 	_combat_label.visible = false
 	right.add_child(_combat_label)
 
-	_price_label = Label.new()
-	_price_label.add_theme_font_size_override("font_size", 14)
-	_price_label.add_theme_color_override("font_color", Color(0.85, 0.78, 0.45))
-	_price_label.visible = false
-	right.add_child(_price_label)
-
 	var sep := HSeparator.new()
 	right.add_child(sep)
 
@@ -146,9 +138,12 @@ func _populate(item: ItemData) -> void:
 	else:
 		_name_label.add_theme_color_override("font_color", DEFAULT_NAME_COLOR)
 
-	if item.ap_cost > 0:
+	if item.consumable or item.ap_cost > 0:
 		_ap_label.visible = true
-		_ap_label.text = "%d %s" % [item.ap_cost, tr("KEY_AP")]
+		if item.consumable:
+			_ap_label.text = tr("KEY_USE_COST_FMT") % [item.ap_cost, tr("KEY_AP")]
+		else:
+			_ap_label.text = tr("KEY_AP_COST_FMT") % [item.ap_cost, tr("KEY_AP")]
 	else:
 		_ap_label.visible = false
 		_ap_label.text = ""
@@ -169,13 +164,6 @@ func _populate(item: ItemData) -> void:
 		combat_parts.append(armor_line)
 	_combat_label.text = "\n".join(combat_parts)
 	_combat_label.visible = not _combat_label.text.is_empty()
-
-	if item.is_sellable():
-		_price_label.visible = true
-		_price_label.text = "%s: %s%s" % [tr("KEY_PRICE"), str(int(item.price)), PRICE_SUFFIX]
-	else:
-		_price_label.visible = false
-		_price_label.text = ""
 
 	var desc := item.get_localized_description()
 	_desc_label.visible = not desc.is_empty()

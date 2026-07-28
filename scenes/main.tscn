@@ -65,16 +65,6 @@ unique_name_in_owner = true
 layout_mode = 2
 text = "Body Grid"
 
-[node name="ExpandGridButton" type="Button" parent="RootLayout/TopBar"]
-unique_name_in_owner = true
-layout_mode = 2
-text = "Mutate (+cells)"
-
-[node name="NewRunButton" type="Button" parent="RootLayout/TopBar"]
-unique_name_in_owner = true
-layout_mode = 2
-text = "New Run"
-
 [node name="MenuButton" type="Button" parent="RootLayout/TopBar"]
 unique_name_in_owner = true
 layout_mode = 2

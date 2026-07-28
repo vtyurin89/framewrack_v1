@@ -6,6 +6,8 @@ extends Control
 const ENEMY_REBEL := preload("res://resources/enemies/desperate_rebel.tres")
 const ENEMY_SYNTHET := preload("res://resources/enemies/corrupted_synthet.tres")
 const STARTING_ITEM_ID := "SCRAP_PIPE"
+const STARTING_ARMOR_ID := "HEAVY_SCRAP_PLATE"
+const STARTING_CONSUMABLE_ID := "BIO_GEL"
 const EVENT_LOOT_ITEM_ID := "REBEL_CLEAVER"
 const MAIN_MENU_SCENE := preload("res://scenes/UI/main_menu.tscn")
 const GAME_OVER_SCENE := preload("res://scenes/UI/game_over_ui.tscn")
@@ -55,8 +57,6 @@ func _ready() -> void:
 
 	if _gameplay_hud:
 		_gameplay_hud.body_grid_pressed.connect(_toggle_inventory)
-		_gameplay_hud.mutate_pressed.connect(_expand_grid_demo)
-		_gameplay_hud.new_run_pressed.connect(_on_new_run_pressed)
 		_gameplay_hud.menu_pressed.connect(_on_menu_pressed)
 
 	LocalizationManager.language_changed.connect(_on_language_changed)
@@ -125,6 +125,12 @@ func _seed_starting_loadout() -> void:
 	var scrap_pipe: ItemData = ItemDatabase.create_instance(STARTING_ITEM_ID)
 	if scrap_pipe != null:
 		inventory.place_item(scrap_pipe, Vector2i(0, 0))
+	var heavy_armor: ItemData = ItemDatabase.create_instance(STARTING_ARMOR_ID)
+	if heavy_armor != null:
+		inventory.try_place_anywhere(heavy_armor)
+	var bio_gel: ItemData = ItemDatabase.create_instance(STARTING_CONSUMABLE_ID)
+	if bio_gel != null:
+		inventory.try_place_anywhere(bio_gel)
 
 
 func _set_flow(state: int) -> void:
@@ -244,7 +250,7 @@ func _on_return_to_main_menu() -> void:
 
 
 func _reset_run_to_startup() -> void:
-	## STARTUP_SETUP: full HP, clear grid, SCRAP_PIPE, reset map / combat.
+	## STARTUP_SETUP: full HP, clear grid, starter weapon/armor/consumable, reset map/combat.
 	if _combat.has_method("abort_combat"):
 		_combat.abort_combat()
 	_map.reset()
@@ -403,8 +409,3 @@ func _on_combat_continue() -> void:
 func _on_map_finished() -> void:
 	_status_banner.text = tr("KEY_STATUS_RUN_COMPLETE")
 	_set_flow(GameFlowState.State.VICTORY)
-
-
-func _on_new_run_pressed() -> void:
-	## Top-bar New Run acts as a mid-run restart into STARTUP_SETUP.
-	GameManager.request_restart()
