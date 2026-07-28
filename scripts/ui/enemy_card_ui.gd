@@ -1,32 +1,39 @@
 class_name EnemyCardUI
 extends PanelContainer
-## Compact combat enemy card: portrait, selection marker, and styled HP bar.
+## Compact combat enemy card: portrait, corner-bracket selection, and styled HP bar.
 
 signal card_gui_input(event: InputEvent, enemy_index: int)
 
 const FILL_COLOR := Color("#8b263e")
 const BG_COLOR := Color("#121212")
 const TEXT_COLOR := Color("#ffffff")
+const SELECT_COLOR := Color(0.95, 0.8, 0.25)
 const BAR_HEIGHT := 18.0
 const BAR_MIN_WIDTH := 80.0
 const SPRITE_DIR := "res://assets/sprites/enemies/"
+const BRACKET_THICKNESS := 2.5
+## Both arms share the same length (~half card width).
+const BRACKET_SPAN := 0.5
+## Gap between brackets and card content (drawn outside the content rect).
+const BRACKET_PAD := 8.0
 
 var enemy_index: int = -1
 var _enemy: EnemyInstance
+var _is_selected: bool = false
 
-@onready var _select_marker: Label = %SelectMarker
 @onready var _combat_text_host: Control = %CombatTextHost
-@onready var _name_label: Label = %NameLabel
 @onready var _placeholder: ColorRect = %Placeholder
 @onready var _sprite: TextureRect = %Sprite
 @onready var _hp_bar: ProgressBar = %HPBar
 @onready var _hp_label: Label = %HPLabel
+@onready var _selection_overlay: Control = %SelectionOverlay
 
 
 func _ready() -> void:
 	mouse_filter = Control.MOUSE_FILTER_STOP
 	mouse_default_cursor_shape = Control.CURSOR_POINTING_HAND
 	clip_contents = false
+	_apply_panel_style()
 	_apply_hp_bar_styles()
 	if _hp_label:
 		_hp_label.mouse_filter = Control.MOUSE_FILTER_IGNORE
@@ -39,6 +46,9 @@ func _ready() -> void:
 		_sprite.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
 	if _placeholder:
 		_placeholder.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	if _selection_overlay:
+		_selection_overlay.mouse_filter = Control.MOUSE_FILTER_IGNORE
+		_selection_overlay.draw.connect(_draw_selection_brackets)
 	gui_input.connect(_on_gui_input)
 
 
@@ -59,9 +69,9 @@ func get_combat_text_host() -> Control:
 
 
 func set_selected(selected: bool) -> void:
-	_style_panel(selected)
-	if _select_marker:
-		_select_marker.text = "▼" if selected else ""
+	_is_selected = selected
+	if _selection_overlay:
+		_selection_overlay.queue_redraw()
 
 
 func set_hp(current: int, maximum: int) -> void:
@@ -83,12 +93,31 @@ func set_hp(current: int, maximum: int) -> void:
 
 
 func _refresh_presentation(selected: bool) -> void:
-	_style_panel(selected)
-	if _select_marker:
-		_select_marker.text = "▼" if selected else ""
-	if _name_label and _enemy != null:
-		_name_label.text = _enemy.get_localized_name()
+	set_selected(selected)
 	_apply_enemy_sprite()
+
+
+func _draw_selection_brackets() -> void:
+	## Drawn on SelectionOverlay (above children) so brackets sit on top of the sprite.
+	if not _is_selected or _selection_overlay == null:
+		return
+	var w := _selection_overlay.size.x
+	var h := _selection_overlay.size.y
+	if w <= 0.0 or h <= 0.0:
+		return
+	var left := -BRACKET_PAD
+	var top := -BRACKET_PAD
+	var right := w + BRACKET_PAD
+	var bottom := h + BRACKET_PAD
+	## Equal arm length on both axes (based on content width).
+	var arm := w * BRACKET_SPAN
+	var t := BRACKET_THICKNESS
+	## Top-left bracket
+	_selection_overlay.draw_line(Vector2(left, top), Vector2(left + arm, top), SELECT_COLOR, t, true)
+	_selection_overlay.draw_line(Vector2(left, top), Vector2(left, top + arm), SELECT_COLOR, t, true)
+	## Bottom-right bracket
+	_selection_overlay.draw_line(Vector2(right - arm, bottom), Vector2(right, bottom), SELECT_COLOR, t, true)
+	_selection_overlay.draw_line(Vector2(right, bottom - arm), Vector2(right, bottom), SELECT_COLOR, t, true)
 
 
 func _apply_enemy_sprite() -> void:
@@ -126,12 +155,12 @@ func _resolve_enemy_texture() -> Texture2D:
 	return null
 
 
-func _style_panel(selected: bool) -> void:
+func _apply_panel_style() -> void:
+	## Transparent / seamless with the combat screen — no border box.
 	var style := StyleBoxFlat.new()
-	style.bg_color = Color(0.12, 0.12, 0.12)
-	style.set_border_width_all(3 if selected else 2)
-	style.border_color = Color(0.95, 0.8, 0.25) if selected else Color(0.45, 0.45, 0.5)
-	style.set_content_margin_all(10)
+	style.bg_color = Color(0, 0, 0, 0)
+	style.set_border_width_all(0)
+	style.set_content_margin_all(4)
 	add_theme_stylebox_override("panel", style)
 
 

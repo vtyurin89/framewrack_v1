@@ -3,6 +3,7 @@
 [ext_resource type="Script" path="res://scripts/ui/enemy_card_ui.gd" id="1"]
 
 [node name="EnemyCardUI" type="PanelContainer"]
+custom_minimum_size = Vector2(120, 180)
 clip_contents = false
 mouse_default_cursor_shape = 2
 script = ExtResource("1")
@@ -12,30 +13,17 @@ layout_mode = 2
 mouse_filter = 2
 theme_override_constants/separation = 4
 
-[node name="SelectMarker" type="Label" parent="VBox"]
-unique_name_in_owner = true
-layout_mode = 2
-mouse_filter = 2
-theme_override_colors/font_color = Color(0.95, 0.85, 0.35, 1)
-horizontal_alignment = 1
-
 [node name="CombatTextHost" type="Control" parent="VBox"]
 unique_name_in_owner = true
 custom_minimum_size = Vector2(0, 22)
 layout_mode = 2
 mouse_filter = 2
 
-[node name="NameLabel" type="Label" parent="VBox"]
-unique_name_in_owner = true
-layout_mode = 2
-mouse_filter = 2
-horizontal_alignment = 1
-text = "Enemy"
-
 [node name="SpriteHost" type="Control" parent="VBox"]
 unique_name_in_owner = true
-custom_minimum_size = Vector2(80, 100)
+custom_minimum_size = Vector2(112, 140)
 layout_mode = 2
+size_flags_vertical = 3
 mouse_filter = 2
 
 [node name="Placeholder" type="ColorRect" parent="VBox/SpriteHost"]
@@ -62,7 +50,7 @@ expand_mode = 1
 stretch_mode = 5
 
 [node name="HPBarHost" type="Control" parent="VBox"]
-custom_minimum_size = Vector2(80, 18)
+custom_minimum_size = Vector2(112, 18)
 layout_mode = 2
 mouse_filter = 2
 
@@ -93,3 +81,8 @@ theme_override_font_sizes/font_size = 12
 text = "0/0"
 horizontal_alignment = 1
 vertical_alignment = 1
+
+[node name="SelectionOverlay" type="Control" parent="."]
+unique_name_in_owner = true
+layout_mode = 2
+mouse_filter = 2
