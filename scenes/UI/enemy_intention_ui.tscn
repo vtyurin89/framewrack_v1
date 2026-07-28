@@ -1,0 +1,62 @@
+[gd_scene load_steps=2 format=3 uid="uid://bw_enemy_intention_ui"]
+
+[ext_resource type="Script" path="res://scripts/ui/enemy_intention_ui.gd" id="1"]
+
+[node name="EnemyIntentionUI" type="Control"]
+custom_minimum_size = Vector2(160, 36)
+layout_mode = 3
+anchors_preset = 10
+anchor_right = 1.0
+offset_bottom = 36.0
+grow_horizontal = 2
+mouse_filter = 2
+script = ExtResource("1")
+
+[node name="IntentRoot" type="VBoxContainer" parent="."]
+unique_name_in_owner = true
+layout_mode = 1
+anchors_preset = 8
+anchor_left = 0.5
+anchor_top = 0.5
+anchor_right = 0.5
+anchor_bottom = 0.5
+offset_left = -70.0
+offset_top = -18.0
+offset_right = 70.0
+offset_bottom = 18.0
+grow_horizontal = 2
+grow_vertical = 2
+mouse_filter = 2
+theme_override_constants/separation = 0
+alignment = 1
+
+[node name="MainRow" type="HBoxContainer" parent="IntentRoot"]
+layout_mode = 2
+mouse_filter = 2
+alignment = 1
+theme_override_constants/separation = 6
+
+[node name="IntentIcon" type="Label" parent="IntentRoot/MainRow"]
+unique_name_in_owner = true
+layout_mode = 2
+mouse_filter = 2
+theme_override_colors/font_color = Color(0.95, 0.85, 0.35, 1)
+theme_override_font_sizes/font_size = 18
+text = "⚔️"
+horizontal_alignment = 1
+
+[node name="IntentValue" type="Label" parent="IntentRoot/MainRow"]
+unique_name_in_owner = true
+layout_mode = 2
+mouse_filter = 2
+theme_override_colors/font_color = Color(1, 0.92, 0.85, 1)
+theme_override_font_sizes/font_size = 16
+text = "12"
+horizontal_alignment = 1
+
+[node name="IntentBadges" type="HBoxContainer" parent="IntentRoot"]
+unique_name_in_owner = true
+layout_mode = 2
+mouse_filter = 2
+alignment = 1
+theme_override_constants/separation = 4

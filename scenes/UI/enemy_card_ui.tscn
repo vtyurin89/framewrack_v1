@@ -3,7 +3,7 @@
 [ext_resource type="Script" path="res://scripts/ui/enemy_card_ui.gd" id="1"]
 
 [node name="EnemyCardUI" type="PanelContainer"]
-custom_minimum_size = Vector2(185, 250)
+custom_minimum_size = Vector2(185, 270)
 size_flags_vertical = 0
 clip_contents = false
 mouse_default_cursor_shape = 2
@@ -14,6 +14,12 @@ layout_mode = 2
 mouse_filter = 2
 theme_override_constants/separation = 4
 
+[node name="IntentionHost" type="Control" parent="VBox"]
+unique_name_in_owner = true
+custom_minimum_size = Vector2(0, 40)
+layout_mode = 2
+mouse_filter = 2
+
 [node name="CombatTextHost" type="Control" parent="VBox"]
 unique_name_in_owner = true
 custom_minimum_size = Vector2(0, 18)
@@ -22,7 +28,7 @@ mouse_filter = 2
 
 [node name="SpriteHost" type="Control" parent="VBox"]
 unique_name_in_owner = true
-custom_minimum_size = Vector2(170, 200)
+custom_minimum_size = Vector2(170, 190)
 layout_mode = 2
 size_flags_vertical = 0
 mouse_filter = 2

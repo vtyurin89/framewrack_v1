@@ -94,9 +94,40 @@ func _begin_player_turn() -> void:
 	_ensure_valid_selection()
 	EventBus.ap_changed.emit(current_ap, max_ap)
 	EventBus.combat_item_availability_changed.emit()
+	## Plan telegraphs before turn_started so the UI stagger reveals committed intents.
+	_plan_all_intentions(true)
+	_emit_enemy_hp()
 	_set_state(CombatState.PLAYER_TURN)
 	EventBus.combat_log_message.emit(tr("KEY_LOG_YOUR_TURN") % current_ap)
-	_emit_enemy_hp()
+
+
+func plan_intentions_for_living(force_reroll: bool = true) -> void:
+	_plan_all_intentions(force_reroll)
+
+
+func _plan_all_intentions(force_reroll: bool = true) -> void:
+	for i in enemies.size():
+		var enemy: EnemyInstance = enemies[i]
+		if enemy == null or not enemy.is_alive():
+			if enemy != null:
+				enemy.clear_intention()
+				EventBus.enemy_intention_changed.emit(i, enemy.current_intention)
+			continue
+		if force_reroll:
+			enemy.evaluate_intention({"block": current_block}, self)
+		else:
+			enemy.reevaluate_intention(false)
+		EventBus.enemy_intention_changed.emit(i, enemy.current_intention)
+
+
+func reevaluate_enemy_intention(index: int) -> void:
+	if index < 0 or index >= enemies.size():
+		return
+	var enemy: EnemyInstance = enemies[index]
+	if enemy == null or not enemy.is_alive():
+		return
+	enemy.reevaluate_intention(false)
+	EventBus.enemy_intention_changed.emit(index, enemy.current_intention)
 
 
 func end_player_turn() -> void:
@@ -293,7 +324,12 @@ func _deal_damage_to(index: int, dmg: int, source_name: String, allow_crit: bool
 		)
 	EventBus.enemy_hp_changed.emit(index, enemy.current_hp, enemy.max_hp)
 	if not enemy.is_alive():
+		enemy.clear_intention()
+		EventBus.enemy_intention_changed.emit(index, enemy.current_intention)
+		EventBus.enemy_died.emit(index)
 		_ensure_valid_selection()
+	elif state == CombatState.PLAYER_TURN:
+		reevaluate_enemy_intention(index)
 
 
 func _consume_charge_if_needed(placed: PlacedItem) -> void:
@@ -401,15 +437,37 @@ func _enemy_act(index: int, enemy: EnemyInstance) -> void:
 		if pre_ability != null:
 			_ability_executor.execute(enemy, index, pre_ability)
 
-	## 2) Main action through AbilityEffect handlers.
+	## 2) Main action — prefer committed intention plan so telegraph matches cast.
 	var action: Dictionary = EnemyAI.resolve_main_action(enemy)
 	var ability: EnemyAbility = action.get("ability") as EnemyAbility
+	enemy.consume_planned_ability()
+	enemy.clear_intention()
+	EventBus.enemy_intention_changed.emit(index, enemy.current_intention)
 	if ability != null:
 		_ability_executor.execute(enemy, index, ability)
 	else:
 		_enemy_act_legacy_fallback(index, enemy)
 
 	enemy.end_enemy_turn()
+
+
+func remove_enemy_at(index: int, emit_roster: bool = true) -> void:
+	## Called after death fade so the roster no longer holds a corpse slot.
+	if index < 0 or index >= enemies.size():
+		return
+	enemies.remove_at(index)
+	_ensure_valid_selection()
+	if emit_roster:
+		EventBus.enemy_roster_changed.emit()
+
+
+func purge_dead_enemies() -> void:
+	## Remove all HP<=0 combatants (highest index first). Prefer remove_enemy_at after UI fade.
+	for i in range(enemies.size() - 1, -1, -1):
+		if enemies[i] == null or not enemies[i].is_alive():
+			enemies.remove_at(i)
+	_ensure_valid_selection()
+	EventBus.enemy_roster_changed.emit()
 
 
 func _enemy_act_legacy_fallback(index: int, enemy: EnemyInstance) -> void:
@@ -460,6 +518,18 @@ func add_summoned_enemy(instance: EnemyInstance) -> void:
 	enemies.append(instance)
 	EventBus.enemy_roster_changed.emit()
 	_emit_enemy_hp()
+	if state == CombatState.PLAYER_TURN:
+		var idx := enemies.size() - 1
+		instance.evaluate_intention({"block": current_block}, self)
+		EventBus.enemy_intention_changed.emit(idx, instance.current_intention)
+
+
+func remove_enemy_instance(enemy: EnemyInstance, emit_roster: bool = true) -> void:
+	## Preferred death cleanup — stable even when other fades shift indices.
+	var index := enemies.find(enemy)
+	if index < 0:
+		return
+	remove_enemy_at(index, emit_roster)
 
 
 func apply_player_status(status_id: String, potency: int) -> void:
@@ -487,6 +557,10 @@ func _tick_enemy_burn() -> void:
 		enemy.burn = maxi(0, burn - 1)
 		EventBus.combat_log_message.emit("%s burns for %d." % [enemy.get_localized_name(), burn])
 		EventBus.enemy_hp_changed.emit(i, enemy.current_hp, enemy.max_hp)
+		if not enemy.is_alive():
+			enemy.clear_intention()
+			EventBus.enemy_intention_changed.emit(i, enemy.current_intention)
+			EventBus.enemy_died.emit(i)
 
 
 func _clear_player_negative_statuses() -> void:

@@ -1,5 +1,5 @@
 extends Control
-## Combat HUD: enemies (click to select), AP/HP/Block, log, End Turn.
+## Combat HUD: enemies (click to select), intentions, AP/HP/Block, log, End Turn.
 ## Item activation happens via inventory clicks (Backpack Hero model).
 
 signal end_turn_pressed
@@ -8,11 +8,14 @@ signal continue_pressed
 
 const ENEMY_INSPECT_SCENE := preload("res://scenes/UI/enemy_inspect_ui.tscn")
 const ENEMY_CARD_SCENE := preload("res://scenes/UI/enemy_card_ui.tscn")
+const INTENTION_STAGGER_DELAY := 0.15
 
 var combat: Node  # CombatManager
 var inventory: InventoryController
 var _enemy_inspect: EnemyInspectUI
 var _enemy_context_menu: EnemyContextMenuUI
+var _intention_reveal_token: int = 0
+var _dying_indices: Dictionary = {}  # index -> true while fade in progress
 
 @onready var _enemy_row: HBoxContainer = %EnemyRow
 @onready var _hp_label: Label = %HPLabel
@@ -36,9 +39,12 @@ func _ready() -> void:
 	EventBus.enemy_hp_changed.connect(_on_enemy_hp)
 	EventBus.enemy_selected.connect(_on_enemy_selected)
 	EventBus.enemy_roster_changed.connect(_rebuild_enemies)
+	EventBus.combat_started.connect(_on_combat_started)
 	EventBus.turn_started.connect(_on_turn_started)
 	EventBus.combat_ended.connect(_on_combat_ended)
 	EventBus.enemy_combat_text.connect(_on_enemy_combat_text)
+	EventBus.enemy_intention_changed.connect(_on_enemy_intention_changed)
+	EventBus.enemy_died.connect(_on_enemy_died)
 	LocalizationManager.language_changed.connect(_on_language_changed)
 	_apply_static_locale()
 
@@ -49,6 +55,7 @@ func setup(p_combat: Node, p_inventory: InventoryController) -> void:
 	_log.clear()
 	_continue_btn.visible = false
 	_end_turn_btn.disabled = false
+	_dying_indices.clear()
 	_apply_static_locale()
 	_on_hp_changed(inventory.current_hp, inventory.max_hp)
 	_rebuild_enemies()
@@ -76,7 +83,6 @@ func _on_language_changed(_locale: String) -> void:
 
 func _apply_static_locale() -> void:
 	_end_turn_btn.text = tr("KEY_END_TURN")
-	## Hint label is hidden in the battle layout; keep text synced if re-enabled.
 	if _hint_label:
 		_hint_label.text = tr("KEY_COMBAT_CLICK_HINT")
 
@@ -92,16 +98,60 @@ func _ensure_enemy_inspect() -> void:
 
 
 func _rebuild_enemies() -> void:
+	_intention_reveal_token += 1
+	_dying_indices.clear()
 	for child in _enemy_row.get_children():
 		child.queue_free()
 	if combat == null:
 		return
+	## Only show living enemies — corpses are purged after death fade.
 	for i in combat.enemies.size():
 		var enemy: EnemyInstance = combat.enemies[i]
+		if enemy == null or not enemy.is_alive():
+			continue
 		var card: EnemyCardUI = ENEMY_CARD_SCENE.instantiate() as EnemyCardUI
 		_enemy_row.add_child(card)
 		card.setup(enemy, i, enemy.is_selected)
 		card.card_gui_input.connect(_on_enemy_panel_input)
+		card.death_fade_finished.connect(_on_card_death_fade_finished)
+		if combat.state == combat.CombatState.ENEMY_TURN:
+			card.set_intentions_hidden(true)
+		elif enemy.current_intention != null:
+			card.set_intention(enemy.current_intention)
+
+
+func _find_card_by_index(index: int) -> EnemyCardUI:
+	for child in _enemy_row.get_children():
+		var card := child as EnemyCardUI
+		if card != null and card.enemy_index == index and is_instance_valid(card):
+			return card
+	## Fallback: positional match while indices still align with row order.
+	if index >= 0 and index < _enemy_row.get_child_count():
+		return _enemy_row.get_child(index) as EnemyCardUI
+	return null
+
+
+func _find_card_by_enemy(enemy: EnemyInstance) -> EnemyCardUI:
+	if enemy == null:
+		return null
+	for child in _enemy_row.get_children():
+		var card := child as EnemyCardUI
+		if card != null and card.get_enemy() == enemy:
+			return card
+	return null
+
+
+func _sync_card_indices() -> void:
+	if combat == null:
+		return
+	for child in _enemy_row.get_children():
+		var card := child as EnemyCardUI
+		if card == null:
+			continue
+		var enemy := card.get_enemy()
+		if enemy == null:
+			continue
+		card.enemy_index = combat.enemies.find(enemy)
 
 
 func _on_enemy_panel_input(event: InputEvent, index: int) -> void:
@@ -147,7 +197,6 @@ func _on_enemy_context_inspect_pressed(enemy: EnemyInstance) -> void:
 
 
 func _open_enemy_inspect(index: int) -> void:
-	## Kept for callers that already have an enemy index.
 	if combat == null or index < 0 or index >= combat.enemies.size():
 		return
 	_on_enemy_context_inspect_pressed(combat.enemies[index])
@@ -156,11 +205,11 @@ func _open_enemy_inspect(index: int) -> void:
 func _on_enemy_selected(index: int) -> void:
 	if combat == null:
 		return
-	for i in _enemy_row.get_child_count():
-		var card: EnemyCardUI = _enemy_row.get_child(i) as EnemyCardUI
+	for child in _enemy_row.get_children():
+		var card: EnemyCardUI = child as EnemyCardUI
 		if card == null:
 			continue
-		card.set_selected(i == index)
+		card.set_selected(card.enemy_index == index)
 
 
 func _on_ap_changed(current: int, maximum: int) -> void:
@@ -175,16 +224,108 @@ func _on_block_changed(amount: int) -> void:
 	_block_label.text = tr("KEY_BLOCK_FMT") % [tr("KEY_BLOCK"), amount]
 
 
-func _on_turn_started(is_player: bool) -> void:
-	_turn_label.text = tr("KEY_PLAYER_TURN") if is_player else tr("KEY_ENEMY_TURN")
-	_end_turn_btn.disabled = not is_player
+func _on_combat_started(_enemy_ids: Array) -> void:
+	_dying_indices.clear()
 	_rebuild_enemies()
 
 
-func _on_enemy_hp(index: int, current: int, maximum: int) -> void:
-	if index < 0 or index >= _enemy_row.get_child_count():
+func _on_turn_started(is_player: bool) -> void:
+	_turn_label.text = tr("KEY_PLAYER_TURN") if is_player else tr("KEY_ENEMY_TURN")
+	_end_turn_btn.disabled = not is_player
+	## Ensure cards exist if combat started before the HUD was ready.
+	if combat != null and _enemy_row.get_child_count() == 0 and not combat.enemies.is_empty():
+		_rebuild_enemies()
+	_sync_card_indices()
+	if is_player:
+		for child in _enemy_row.get_children():
+			var card: EnemyCardUI = child as EnemyCardUI
+			if card == null:
+				continue
+			card.set_intentions_hidden(false)
+			if combat != null and card.enemy_index >= 0 and card.enemy_index < combat.enemies.size():
+				var enemy: EnemyInstance = combat.enemies[card.enemy_index]
+				if enemy != null:
+					card.set_intention(enemy.current_intention)
+		_play_staggered_intention_reveal()
+	else:
+		_intention_reveal_token += 1
+		for child in _enemy_row.get_children():
+			var card: EnemyCardUI = child as EnemyCardUI
+			if card == null:
+				continue
+			card.set_intentions_hidden(true)
+
+
+func _play_staggered_intention_reveal() -> void:
+	_intention_reveal_token += 1
+	var token := _intention_reveal_token
+	## Left-to-right pop-in across living cards.
+	var cards: Array[EnemyCardUI] = []
+	for child in _enemy_row.get_children():
+		var card := child as EnemyCardUI
+		if card != null and is_instance_valid(card):
+			cards.append(card)
+	for i in cards.size():
+		if token != _intention_reveal_token:
+			return
+		var card := cards[i]
+		if not is_instance_valid(card):
+			continue
+		card.play_intention_pop()
+		if i < cards.size() - 1:
+			await get_tree().create_timer(INTENTION_STAGGER_DELAY).timeout
+
+
+func _on_enemy_intention_changed(index: int, intention: RefCounted) -> void:
+	if _dying_indices.get(index, false):
 		return
-	var card: EnemyCardUI = _enemy_row.get_child(index) as EnemyCardUI
+	var card := _find_card_by_index(index)
+	if card == null:
+		return
+	var typed := intention as CombatIntention
+	## Reactive mid-turn updates use the thinking transition; turn-start uses stagger pop.
+	if (
+		combat != null
+		and combat.state == combat.CombatState.PLAYER_TURN
+		and typed != null
+		and not typed.is_empty()
+	):
+		card.set_intentions_hidden(false)
+		card.play_intention_reevaluate(typed)
+	else:
+		card.set_intention(typed)
+
+
+func _on_enemy_died(index: int) -> void:
+	if _dying_indices.get(index, false):
+		return
+	var card := _find_card_by_index(index)
+	if card == null:
+		return
+	_dying_indices[index] = true
+	card.play_death_fade()
+
+
+func _on_card_death_fade_finished(card: EnemyCardUI) -> void:
+	if card == null or combat == null:
+		return
+	var enemy := card.get_enemy()
+	var old_index := card.enemy_index
+	_dying_indices.erase(old_index)
+	## Quiet remove — card already queue_free's itself; avoid full roster rebuild.
+	if enemy != null and combat.has_method("remove_enemy_instance"):
+		combat.remove_enemy_instance(enemy, false)
+	elif combat.has_method("remove_enemy_at"):
+		combat.remove_enemy_at(old_index, false)
+	_sync_card_indices()
+	if combat.target_index >= 0:
+		_on_enemy_selected(combat.target_index)
+
+
+func _on_enemy_hp(index: int, current: int, maximum: int) -> void:
+	if _dying_indices.get(index, false):
+		return
+	var card := _find_card_by_index(index)
 	if card == null:
 		return
 	card.set_hp(current, maximum)
@@ -192,7 +333,6 @@ func _on_enemy_hp(index: int, current: int, maximum: int) -> void:
 
 func _on_log(text: String) -> void:
 	_log.append_text(text + "\n")
-	## Keep newest entry visible even if scroll_following misses a frame.
 	await get_tree().process_frame
 	if is_instance_valid(_log):
 		_log.scroll_to_line(_log.get_line_count())
@@ -205,12 +345,17 @@ func _on_combat_ended(victory: bool) -> void:
 	_continue_btn.visible = true
 	_continue_btn.text = tr("KEY_CONTINUE") if victory else tr("KEY_RETURN_TO_MAP")
 	_turn_label.text = tr("KEY_VICTORY") if victory else tr("KEY_FRAME_FAILURE")
+	_intention_reveal_token += 1
+	for child in _enemy_row.get_children():
+		var card: EnemyCardUI = child as EnemyCardUI
+		if card:
+			card.set_intentions_hidden(true)
 
 
 func _on_enemy_combat_text(enemy_index: int, text: String, kind: String) -> void:
-	if text.is_empty() or enemy_index < 0 or enemy_index >= _enemy_row.get_child_count():
+	if text.is_empty():
 		return
-	var card: EnemyCardUI = _enemy_row.get_child(enemy_index) as EnemyCardUI
+	var card := _find_card_by_index(enemy_index)
 	if card == null:
 		return
 	var host: Control = card.get_combat_text_host()

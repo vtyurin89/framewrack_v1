@@ -35,6 +35,10 @@ signal enemy_roster_changed
 signal combat_log_message(text: String)
 ## Floating notice over an enemy panel (ability name / crit / etc.).
 signal enemy_combat_text(enemy_index: int, text: String, kind: String)
+## Fired when an enemy's telegraphed intention is planned or reactively updated.
+signal enemy_intention_changed(enemy_index: int, intention: RefCounted)
+## Fired when an enemy reaches 0 HP (UI fades the card; manager may purge afterward).
+signal enemy_died(enemy_index: int)
 signal block_changed(amount: int)
 signal combat_item_availability_changed
 signal player_died

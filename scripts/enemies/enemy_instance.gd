@@ -16,6 +16,12 @@ var abilities: Array[EnemyAbility] = []
 var turns_taken: int = 0
 ## Remaining cooldown turns keyed by ability id.
 var _ability_cooldowns: Dictionary = {}
+## Committed next main ability (matches the telegraphed CombatIntention).
+var planned_ability: EnemyAbility = null
+var current_intention: CombatIntention = null
+## HP ratio that last forced a reactive intention refresh.
+var _last_intention_hp_ratio: float = 1.0
+const INTENTION_REACT_HP_THRESHOLD := 0.40
 
 
 func setup(blueprint: EnemyData) -> void:
@@ -27,6 +33,8 @@ func setup(blueprint: EnemyData) -> void:
 		max_hp = 1
 		current_hp = 1
 		abilities.clear()
+		planned_ability = null
+		current_intention = null
 		return
 
 	strength = maxi(MIN_STAT, data.strength)
@@ -50,6 +58,9 @@ func setup(blueprint: EnemyData) -> void:
 	for ability: EnemyAbility in data.abilities:
 		if ability != null:
 			abilities.append(ability)
+	planned_ability = null
+	current_intention = null
+	_last_intention_hp_ratio = 1.0
 
 
 func begin_enemy_turn() -> void:
@@ -326,6 +337,60 @@ func has_traits() -> bool:
 
 func is_alive() -> bool:
 	return current_hp > 0
+
+
+func evaluate_intention(_player_state = null, _combat_context = null) -> CombatIntention:
+	## Commit next main action and build a rich CombatIntention telegraph.
+	if not is_alive():
+		clear_intention()
+		return current_intention
+	var action: Dictionary = EnemyAI.commit_main_action(self, true)
+	var ability: EnemyAbility = action.get("ability") as EnemyAbility
+	if ability == null:
+		current_intention = CombatIntention.new()
+		current_intention.primary_type = CombatIntention.Type.UNKNOWN
+	else:
+		current_intention = CombatIntention.from_ability(self, ability)
+	_last_intention_hp_ratio = get_hp_ratio()
+	return current_intention
+
+
+func reevaluate_intention(force: bool = false) -> CombatIntention:
+	## Reactive refresh — e.g. HP crossed the desperate threshold mid player-turn.
+	if not is_alive():
+		clear_intention()
+		return current_intention
+	var hp_ratio := get_hp_ratio()
+	var crossed_desperate := (
+		_last_intention_hp_ratio > INTENTION_REACT_HP_THRESHOLD
+		and hp_ratio <= INTENTION_REACT_HP_THRESHOLD
+	)
+	if force or crossed_desperate or planned_ability == null:
+		var action: Dictionary = EnemyAI.commit_main_action(self, true)
+		var ability: EnemyAbility = action.get("ability") as EnemyAbility
+		if ability == null:
+			current_intention = CombatIntention.new()
+			current_intention.primary_type = CombatIntention.Type.UNKNOWN
+		else:
+			current_intention = CombatIntention.from_ability(self, ability)
+	elif current_intention != null and planned_ability != null:
+		## Refresh displayed numbers (stats / difficulty) without re-rolling the pick.
+		current_intention = CombatIntention.from_ability(self, planned_ability)
+	_last_intention_hp_ratio = hp_ratio
+	return current_intention
+
+
+func clear_intention() -> void:
+	planned_ability = null
+	if current_intention == null:
+		current_intention = CombatIntention.new()
+	current_intention.clear()
+
+
+func consume_planned_ability() -> EnemyAbility:
+	var ability := planned_ability
+	planned_ability = null
+	return ability
 
 
 func emit_combat_notice(enemy_index: int, text: String, kind: String = "ability") -> void:

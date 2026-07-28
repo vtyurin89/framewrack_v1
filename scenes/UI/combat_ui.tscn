@@ -19,7 +19,7 @@ anchor_bottom = 1.0
 offset_left = 8.0
 offset_top = 8.0
 offset_right = -8.0
-offset_bottom = -8.0
+offset_bottom = -198.0
 grow_horizontal = 2
 grow_vertical = 2
 theme_override_constants/separation = 8
@@ -78,39 +78,48 @@ text = "Click a body module to use it. Click an enemy to retarget."
 horizontal_alignment = 1
 autowrap_mode = 3
 
-[node name="Mid" type="HBoxContainer" parent="VBox"]
-layout_mode = 2
-size_flags_vertical = 0
+[node name="BottomDock" type="HBoxContainer" parent="."]
+layout_mode = 1
+anchors_preset = 12
+anchor_top = 1.0
+anchor_right = 1.0
+anchor_bottom = 1.0
+offset_left = 8.0
+offset_top = -190.0
+offset_right = -8.0
+offset_bottom = -8.0
+grow_horizontal = 2
+grow_vertical = 0
 theme_override_constants/separation = 12
 
-[node name="ActionsPanel" type="VBoxContainer" parent="VBox/Mid"]
+[node name="ActionsPanel" type="VBoxContainer" parent="BottomDock"]
 layout_mode = 2
 size_flags_horizontal = 0
 size_flags_vertical = 0
 
-[node name="EndTurnButton" type="Button" parent="VBox/Mid/ActionsPanel"]
+[node name="EndTurnButton" type="Button" parent="BottomDock/ActionsPanel"]
 unique_name_in_owner = true
 layout_mode = 2
 custom_minimum_size = Vector2(140, 36)
 text = "End Turn"
 
-[node name="ContinueButton" type="Button" parent="VBox/Mid/ActionsPanel"]
+[node name="ContinueButton" type="Button" parent="BottomDock/ActionsPanel"]
 unique_name_in_owner = true
 visible = false
 layout_mode = 2
 custom_minimum_size = Vector2(140, 36)
 text = "Continue"
 
-[node name="LogPanel" type="VBoxContainer" parent="VBox/Mid"]
+[node name="LogPanel" type="VBoxContainer" parent="BottomDock"]
 layout_mode = 2
 size_flags_horizontal = 3
 size_flags_vertical = 0
 
-[node name="LogTitle" type="Label" parent="VBox/Mid/LogPanel"]
+[node name="LogTitle" type="Label" parent="BottomDock/LogPanel"]
 layout_mode = 2
 text = "COMBAT LOG"
 
-[node name="CombatLog" type="RichTextLabel" parent="VBox/Mid/LogPanel"]
+[node name="CombatLog" type="RichTextLabel" parent="BottomDock/LogPanel"]
 unique_name_in_owner = true
 custom_minimum_size = Vector2(0, 150)
 layout_mode = 2
