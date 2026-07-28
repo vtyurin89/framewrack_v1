@@ -19,6 +19,16 @@ const RESERVED_ROWS_TOP := 0
 const RESERVED_ROWS_BOTTOM := 0
 const DRAG_TYPE := "framewrack_item"
 const INSPECT_MODAL_SCENE := preload("res://scenes/UI/item_inspect_modal.tscn")
+## Level-up overlay dimmer — dark enough to mute the grid underneath.
+const LEVEL_UP_OVERLAY_COLOR := Color(0.039, 0.039, 0.063, 0.8)
+## Industrial amber CTA against the dark overlay.
+const LEVEL_UP_BTN_BG := Color(0.831, 0.675, 0.051, 1.0) ## #D4AC0D
+const LEVEL_UP_BTN_BG_HOVER := Color(0.92, 0.78, 0.18, 1.0)
+const LEVEL_UP_BTN_BG_PRESSED := Color(0.7, 0.55, 0.04, 1.0)
+const LEVEL_UP_BTN_BG_DISABLED := Color(0.45, 0.38, 0.12, 0.85)
+const LEVEL_UP_BTN_BORDER := Color(0.98, 0.9, 0.45, 0.95)
+const LEVEL_UP_BTN_BORDER_HOVER := Color(1.0, 0.96, 0.7, 1.0)
+const LEVEL_UP_BTN_FONT := Color(0.12, 0.1, 0.05, 1.0)
 
 var inventory: InventoryController
 var player_stats: PlayerStats
@@ -75,6 +85,7 @@ func setup(p_inventory: InventoryController) -> void:
 		_close_button.pressed.connect(_on_close_pressed)
 	if _level_up_button and not _level_up_button.pressed.is_connected(_on_level_up_pressed):
 		_level_up_button.pressed.connect(_on_level_up_pressed)
+	_apply_level_up_visuals()
 	_apply_static_locale()
 	_sync_level_up_overlay()
 	refresh()
@@ -160,6 +171,47 @@ func _on_language_changed(_locale: String) -> void:
 	_apply_static_locale()
 	_hide_hover_tooltip()
 	refresh()
+
+
+func _apply_level_up_visuals() -> void:
+	if _level_up_overlay:
+		_level_up_overlay.color = LEVEL_UP_OVERLAY_COLOR
+	if _level_up_button == null:
+		return
+	_level_up_button.custom_minimum_size = Vector2(200, 52)
+	_level_up_button.add_theme_font_size_override("font_size", 20)
+	_level_up_button.add_theme_color_override("font_color", LEVEL_UP_BTN_FONT)
+	_level_up_button.add_theme_color_override("font_hover_color", LEVEL_UP_BTN_FONT)
+	_level_up_button.add_theme_color_override("font_pressed_color", LEVEL_UP_BTN_FONT)
+	_level_up_button.add_theme_color_override("font_disabled_color", Color(0.2, 0.18, 0.12, 0.7))
+	_level_up_button.add_theme_stylebox_override(
+		"normal", _make_level_up_button_style(LEVEL_UP_BTN_BG, LEVEL_UP_BTN_BORDER)
+	)
+	_level_up_button.add_theme_stylebox_override(
+		"hover", _make_level_up_button_style(LEVEL_UP_BTN_BG_HOVER, LEVEL_UP_BTN_BORDER_HOVER)
+	)
+	_level_up_button.add_theme_stylebox_override(
+		"pressed", _make_level_up_button_style(LEVEL_UP_BTN_BG_PRESSED, LEVEL_UP_BTN_BORDER)
+	)
+	_level_up_button.add_theme_stylebox_override(
+		"disabled", _make_level_up_button_style(LEVEL_UP_BTN_BG_DISABLED, Color(0.55, 0.48, 0.2, 0.6))
+	)
+	_level_up_button.add_theme_stylebox_override(
+		"focus", _make_level_up_button_style(LEVEL_UP_BTN_BG_HOVER, LEVEL_UP_BTN_BORDER_HOVER)
+	)
+
+
+func _make_level_up_button_style(bg: Color, border: Color) -> StyleBoxFlat:
+	var style := StyleBoxFlat.new()
+	style.bg_color = bg
+	style.set_border_width_all(2)
+	style.border_color = border
+	style.set_corner_radius_all(4)
+	style.content_margin_left = 18
+	style.content_margin_right = 18
+	style.content_margin_top = 10
+	style.content_margin_bottom = 10
+	return style
 
 
 func _apply_static_locale() -> void:

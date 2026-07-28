@@ -92,7 +92,7 @@ layout_mode = 2
 size_flags_horizontal = 3
 size_flags_vertical = 3
 mouse_filter = 0
-color = Color(0.16, 0.16, 0.18, 0.78)
+color = Color(0.039, 0.039, 0.063, 0.8)
 
 [node name="LevelUpCenter" type="CenterContainer" parent="Padding/GridColumn/GridFrame/LevelUpOverlay"]
 layout_mode = 1
@@ -106,6 +106,10 @@ mouse_filter = 2
 [node name="LevelUpButton" type="Button" parent="Padding/GridColumn/GridFrame/LevelUpOverlay/LevelUpCenter"]
 unique_name_in_owner = true
 layout_mode = 2
-custom_minimum_size = Vector2(180, 48)
-theme_override_font_sizes/font_size = 18
+custom_minimum_size = Vector2(200, 52)
+theme_override_colors/font_color = Color(0.12, 0.1, 0.05, 1)
+theme_override_colors/font_hover_color = Color(0.08, 0.06, 0.02, 1)
+theme_override_colors/font_pressed_color = Color(0.08, 0.06, 0.02, 1)
+theme_override_colors/font_disabled_color = Color(0.2, 0.18, 0.12, 0.7)
+theme_override_font_sizes/font_size = 20
 text = "Level Up"
