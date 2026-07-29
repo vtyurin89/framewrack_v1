@@ -23,11 +23,26 @@ func reset_run() -> void:
 
 
 func apply_actor_stats(stats: ActorStats) -> void:
-	## Sync Max HP from ActorStats formula (base 30 + END * 5).
+	## Sync Max HP from ActorStats (base 30 + END * 5).
+	## END up → current HP rises by the same delta; END down → clamp to new max only.
 	if stats == null:
 		return
-	max_hp = maxi(1, stats.get_max_hp(BASE_HP_POOL))
-	current_hp = mini(current_hp, max_hp)
+	var old_max := max_hp
+	var new_max := maxi(1, stats.get_max_hp(BASE_HP_POOL))
+	apply_max_hp_change(new_max, old_max)
+
+
+func apply_max_hp_change(new_max: int, old_max: int = -1) -> void:
+	## Central HP pool reaction to Max HP changes (endurance, gear, etc.).
+	## Gain: current += (new_max - old_max). Loss: current = min(current, new_max).
+	var previous := old_max if old_max >= 0 else max_hp
+	max_hp = maxi(1, new_max)
+	var delta := max_hp - previous
+	if delta > 0:
+		current_hp += delta
+	elif delta < 0:
+		current_hp = mini(current_hp, max_hp)
+	current_hp = clampi(current_hp, 0, max_hp)
 	EventBus.player_hp_changed.emit(current_hp, max_hp)
 
 

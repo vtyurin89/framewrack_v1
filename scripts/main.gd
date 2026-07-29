@@ -356,14 +356,22 @@ func _show_combat() -> void:
 func _toggle_inventory() -> void:
 	if _body_grid_overlay == null:
 		return
-	var next_visible := not _body_grid_overlay.visible
-	_body_grid_overlay.visible = next_visible
-	if next_visible:
-		if player_stats != null and player_stats.has_pending_level_ups():
-			if _inventory_ui.has_method("set_level_up_mode"):
-				_inventory_ui.set_level_up_mode(true)
+	if _body_grid_overlay.visible:
+		_hide_inventory_overlay()
+	else:
+		_open_inventory_overlay()
+
+
+func _open_inventory_overlay() -> void:
+	if _body_grid_overlay == null:
+		return
+	_body_grid_overlay.visible = true
+	if player_stats != null and player_stats.has_pending_level_ups():
+		if _inventory_ui.has_method("set_level_up_mode"):
+			_inventory_ui.set_level_up_mode(true)
+	if _inventory_ui:
 		_inventory_ui.refresh()
-		_request_inventory_overlay_relayout()
+	_request_inventory_overlay_relayout()
 
 
 func _hide_inventory_overlay() -> void:
@@ -590,6 +598,9 @@ func _on_inventory_item_activated(placed: PlacedItem) -> void:
 
 func _on_target(index: int) -> void:
 	_combat.set_target(index)
+	## Targeting an enemy should surface Body Grid if it is closed.
+	if _body_grid_overlay != null and not _body_grid_overlay.visible:
+		_open_inventory_overlay()
 
 
 func _on_combat_state(_s: int) -> void:
@@ -641,13 +652,9 @@ func _on_pending_level_ups_changed(count: int) -> void:
 
 
 func _show_inventory_for_level_up() -> void:
-	if _body_grid_overlay != null:
-		_body_grid_overlay.visible = true
-	if _inventory_ui != null:
-		if _inventory_ui.has_method("set_level_up_mode"):
-			_inventory_ui.set_level_up_mode(true)
-		_inventory_ui.refresh()
-	_request_inventory_overlay_relayout()
+	if _inventory_ui != null and _inventory_ui.has_method("set_level_up_mode"):
+		_inventory_ui.set_level_up_mode(true)
+	_open_inventory_overlay()
 
 
 func _on_combat_continue() -> void:
