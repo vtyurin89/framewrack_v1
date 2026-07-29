@@ -12,6 +12,7 @@ const EVENT_LOOT_ITEM_ID := "REBEL_CLEAVER"
 const MAIN_MENU_SCENE := preload("res://scenes/UI/main_menu.tscn")
 const GAME_OVER_SCENE := preload("res://scenes/UI/game_over_ui.tscn")
 const SETTINGS_SCENE := preload("res://scenes/UI/settings_modal.tscn")
+const DIALOG_EVENT_SCENE := preload("res://scenes/UI/dialog_event_ui.tscn")
 
 @onready var _map_ui: Control = %MapUI
 @onready var _inventory_ui: Control = %InventoryUI
@@ -466,7 +467,10 @@ func _on_encounter_request_dialog(dialog: DialogEventData, _encounter: Encounter
 	_ensure_dialog_event_ui()
 	if _dialog_event_ui:
 		_dialog_event_ui.bind_encounter_manager(_encounters)
-		_dialog_event_ui.open_dialog(dialog)
+		## Wait one frame so TopBar has a valid size before measuring clearance.
+		await get_tree().process_frame
+		_layout_dialog_event_under_top_bar()
+		_dialog_event_ui.start_event(dialog)
 
 
 func _on_encounter_placeholder(_encounter: EncounterData, message_key: String) -> void:
@@ -477,9 +481,26 @@ func _on_encounter_placeholder(_encounter: EncounterData, message_key: String) -
 func _ensure_dialog_event_ui() -> void:
 	if _dialog_event_ui != null and is_instance_valid(_dialog_event_ui):
 		return
-	_dialog_event_ui = DialogEventUI.new()
+	_dialog_event_ui = DIALOG_EVENT_SCENE.instantiate() as DialogEventUI
 	_dialog_event_ui.name = "DialogEventUI"
 	add_child(_dialog_event_ui)
+	if not resized.is_connected(_on_main_resized_for_dialog):
+		resized.connect(_on_main_resized_for_dialog)
+
+
+func _layout_dialog_event_under_top_bar() -> void:
+	if _dialog_event_ui == null or not is_instance_valid(_dialog_event_ui):
+		return
+	## Leave the shared TopBar (FRAMEWRACK + Menu) exposed above the event module.
+	var pad := 0.0
+	if _root_layout:
+		pad = float(_root_layout.get_theme_constant("separation"))
+	_dialog_event_ui.layout_below_top_bar(_gameplay_hud, pad)
+
+
+func _on_main_resized_for_dialog() -> void:
+	if _dialog_event_ui != null and _dialog_event_ui.visible:
+		_layout_dialog_event_under_top_bar()
 
 
 func _start_combat_for_current() -> void:

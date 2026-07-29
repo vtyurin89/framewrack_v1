@@ -20,6 +20,7 @@ static func build_old_machine_god() -> EncounterData:
 	dialog.title = "The Old Machine God"
 	dialog.title_key = "EVENT_OLD_MACHINE_GOD_TITLE"
 	dialog.start_node_id = "start"
+	dialog.image_path = "res://assets/sprites/gods/sleeping_god.png"
 
 	var start := DialogNodeData.new()
 	start.id = "start"
