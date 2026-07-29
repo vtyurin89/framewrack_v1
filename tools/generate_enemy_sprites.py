@@ -3,7 +3,7 @@
 
 Reads enemy rows from data/enemies.csv, builds Fear & Hunger-inspired prompts,
 calls dall-e-3, strips white/solid backgrounds, and writes 512x512 PNGs to
-assets/sprites/enemies/{enemy_id}.png.
+assets/sprites/enemies/{faction}/{enemy_id}.png.
 
 Usage:
   set OPENAI_API_KEY=sk-...
@@ -228,10 +228,13 @@ def main(argv: Optional[Iterable[str]] = None) -> int:
 
 	for enemy in enemies:
 		enemy_id = enemy["id"]
-		out_path = args.out_dir / f"{enemy_id}.png"
-		rel_res = f"res://assets/sprites/enemies/{enemy_id}.png"
+		faction = (enemy.get("faction") or "unknown").strip().lower() or "unknown"
+		faction_dir = args.out_dir / faction
+		faction_dir.mkdir(parents=True, exist_ok=True)
+		out_path = faction_dir / f"{enemy_id}.png"
+		rel_res = f"res://assets/sprites/enemies/{faction}/{enemy_id}.png"
 		prompt = build_prompt(enemy)
-		print(f"\n=== {enemy_id} ===")
+		print(f"\n=== {enemy_id} ({faction}) ===")
 		print(prompt)
 
 		if args.skip_existing and out_path.is_file():

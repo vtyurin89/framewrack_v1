@@ -226,6 +226,10 @@ func _resolve_enemy_texture() -> Texture2D:
 		candidates.append(csv_path)
 	var enemy_id := _enemy.data.id.strip_edges()
 	if not enemy_id.is_empty():
+		var faction := _enemy.data.get_faction()
+		if not faction.is_empty():
+			candidates.append("%s%s/%s.png" % [SPRITE_DIR, faction, enemy_id])
+		## Legacy flat path (pre-faction folders).
 		candidates.append("%s%s.png" % [SPRITE_DIR, enemy_id])
 	for path in candidates:
 		if ResourceLoader.exists(path):

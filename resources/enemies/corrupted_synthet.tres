@@ -25,4 +25,5 @@ exp_reward = 20
 special_damage = 3
 corruption_duration = 0
 special_chance = 0.0
+sprite_path = "res://assets/sprites/enemies/synthet/corrupted_synthet.png"
 placeholder_color = Color(0.65, 0.55, 0.7, 1)
