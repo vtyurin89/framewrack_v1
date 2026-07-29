@@ -9,7 +9,7 @@ KEY_CLOSE,Close,Закрыть
 KEY_SAVE_AND_EXIT,Save and exit,Сохранить и выйти
 KEY_RESTART,Restart,Заново
 KEY_GAME_OVER_TITLE,SYSTEM FAILURE,СБОЙ СИСТЕМЫ
-KEY_GAME_OVER_SUBTITLE,Frame integrity critical. YOU DIED.,Целостность каркаса критична. ВЫ ПОГИБЛИ.
+KEY_GAME_OVER_SUBTITLE,Frame integrity critical. YOU DIED.,Критические повреждения фрейма. ВЫ ПОГИБЛИ.
 KEY_MAIN_MENU_TAGLINE,Your inventory is your body.,Твой инвентарь — твоё тело.
 KEY_SETTINGS,Settings,Настройки
 KEY_DIFFICULTY,Difficulty,Сложность
@@ -68,7 +68,7 @@ KEY_CORRUPTED_TURNS_FMT,%s (%d turns),%s (%d ход.)
 KEY_ACTION_ITEM_FMT,[%s] %s  (%d %s),[%s] %s  (%d %s)
 KEY_PASSIVE_FMT,%s: %s,%s: %s
 KEY_MUTATION_OVERLAY_FMT,MUTATION: flesh/bone overlay +%d cells,МУТАЦИЯ: плоть/кость +%d клеток
-KEY_HINT_DRAG,Drag modules on the body. Hold LMB to move; RMB while dragging to rotate. Drop outside the grid cancels.,Перетаскивайте модули по телу. ЛКМ — перемещение; ПКМ во время перетаскивания — поворот. Дроп вне сетки отменяет.
+KEY_HINT_DRAG,Drag modules on the body. Hold LMB to move; RMB while dragging to rotate. Drop outside the grid cancels.,Перетаскивайте модули по телу. ЛКМ — перемещение; ПКМ во время перетаскивания — поворот. Дроп вне сетки отменяет действие.
 KEY_HINT_CANNOT_PLACE,Cannot place: %s,Нельзя установить: %s
 KEY_HINT_DRAGGING,Dragging %s — RMB to rotate; release on a valid cell.,Перетаскивание: %s — ПКМ для поворота; отпустите на валидной клетке.
 KEY_HINT_GRAFTED,Module grafted.,Модуль встроен.
@@ -114,20 +114,20 @@ ABILITY_PIPE_SWING_NAME,Pipe Swing,Удар трубой
 ABILITY_PIPE_SWING_DESC,A desperate overhead smash.,Отчаянный удар сверху.
 ABILITY_GUARD_NAME,Scrap Guard,Хламовый блок
 ABILITY_GUARD_DESC,Raises a makeshift guard.,Поднимает импровизированную защиту.
-ABILITY_SIGNAL_SPIKE_NAME,Signal Spike,Шип сигнала
-ABILITY_SIGNAL_SPIKE_DESC,A spike of corrupted current.,Всплеск искажённого тока.
-ABILITY_REPAIR_PULSE_NAME,Repair Pulse,Импульс ремонта
+ABILITY_SIGNAL_SPIKE_NAME,Signal Spike,Сигнальный всплеск
+ABILITY_SIGNAL_SPIKE_DESC,A spike of corrupted current.,Всплеск искажённого потока.
+ABILITY_REPAIR_PULSE_NAME,Repair Pulse,Ремонтный пульс
 ABILITY_REPAIR_PULSE_DESC,Emergency self-suture protocols.,Аварийный саморемонт.
 ABILITY_ENEMY_STUDY_NAME,Enemy Study,Изучение врага
-ABILITY_ENEMY_STUDY_DESC,Studies your frame every other turn and permanently gains Luck.,Каждый второй ход изучает ваш каркас и навсегда повышает Удачу.
+ABILITY_ENEMY_STUDY_DESC,Studies your frame every other turn and permanently gains Luck.,Каждый второй ход изучает ваш фрейм и навсегда повышает свою Удачу.
 ABILITY_ENEMY_STUDY_TEXT,Enemy Study,Изучение врага
 ABILITY_DESPERATE_ATTACK_NAME,Desperate Attack,Отчаянная атака
 ABILITY_DESPERATE_ATTACK_DESC,Below 40% HP: three strikes adding half Strength (1-turn cooldown).,Ниже 40% ОЗ: три удара с половиной Силы (перезарядка 1 ход).
 ABILITY_DESPERATE_ATTACK_TEXT,Desperate Attack,Отчаянная атака
 ABILITY_PIPE_SWING_TEXT,Pipe Swing,Удар трубой
-ABILITY_GUARD_TEXT,Scrap Guard,Хламовый блок
-ABILITY_SIGNAL_SPIKE_TEXT,Signal Spike,Шип сигнала
-ABILITY_REPAIR_PULSE_TEXT,Repair Pulse,Импульс ремонта
+ABILITY_GUARD_TEXT,Scrap Guard,Блок щитом из мусора
+ABILITY_SIGNAL_SPIKE_TEXT,Signal Spike,Сигнальный всплеск
+ABILITY_REPAIR_PULSE_TEXT,Repair Pulse,Ремонтный пульс
 KEY_COMBAT_TEXT_ENEMY_CRIT,Critical hit!,Критический удар!
 KEY_PRICE,Price,Цена
 KEY_DAMAGE,Damage,Урон
@@ -140,16 +140,16 @@ KEY_DIMENSIONS,Size,Размер
 KEY_DETAILS_EMPTY,Hover a grafted module to inspect it.,Наведите на встроенный модуль; чтобы осмотреть.
 KEY_STASH_TOOLTIP_FMT,%s  [%dx%d]%s | %s,%s  [%dx%d]%s | %s
 KEY_STATUS_ONLINE,FRAMEWRACK — graft modules; then enter the sector.,FRAMEWRACK — встройте модули и войдите в сектор.
-KEY_STATUS_MUTATED,Body grid mutated — new cells grafted (placeholder flesh/bone).,Сетка тела мутировала — привиты новые клетки (заглушка плоть/кость).
-KEY_STATUS_REPAIR,Repair bench: corruption cleared; frame restored.,Ремверстак: искажение снято; каркас восстановлен.
-KEY_STATUS_EVENT,Mutation Cache: scavenged Rebel Cleaver (+10 HP).,Кэш мутации: найден Rebel Cleaver (+10 ОЗ).
+KEY_STATUS_MUTATED,Body grid mutated — new cells grafted (placeholder flesh/bone).,Сетка тела мутировала — добавлены новые клетки (заглушка плоть/кость).
+KEY_STATUS_REPAIR,Repair bench: corruption cleared; frame restored.,Ремонтный верстак: разложение снято; фрейм восстановлен.
+KEY_STATUS_EVENT,Mutation Cache: scavenged Rebel Cleaver (+10 HP).,Кэш мутации: найден Тесак повстанца (+10 ОЗ).
 KEY_STATUS_ENGAGEMENT,ENGAGEMENT — %s,СТОЛКНОВЕНИЕ — %s
 KEY_STATUS_COMBAT_WIN,Combat resolved. Continue when ready.,Бой завершён. Продолжайте; когда будете готовы.
-KEY_STATUS_COMBAT_LOSE,Frame failed. Start a new run.,Каркас разрушен. Начните новый забег.
+KEY_STATUS_COMBAT_LOSE,Frame failed. Start a new run.,Фрейм разрушен. Начинайте заново.
 KEY_STATUS_SECTOR_SECURED,Sector secured. Select the next node.,Сектор зачищен. Выберите следующий узел.
-KEY_STATUS_WRECKAGE,You are wreckage. Press New Run.,Вы — обломки. Нажмите «Новый забег».
+KEY_STATUS_WRECKAGE,You are wreckage. Press New Run.,Вы развалились на части. Нажмите «Новая игра».
 KEY_STATUS_RUN_COMPLETE,FRAMEWRACK CORE silenced. Run complete.,ЯДРО FRAMEWRACK заглушено. Забег завершён.
-KEY_STATUS_NEW_RUN,New frame online. Graft. Advance. Mutate.,Новый каркас в сети. Встраивай. Продвигай. Мутируй.
+KEY_STATUS_NEW_RUN,New frame online. Graft. Advance. Mutate.,Новый фрейм в сети. Встраивай. Развивайся. Мутируй.
 KEY_COMBAT_CLICK_HINT,Click a body module to use it. LMB enemy to target; RMB to inspect.,Клик по модулю — использовать. ЛКМ по врагу — цель; ПКМ — осмотр.
 KEY_LOG_NO_USES,No uses left this turn.,Нет использований на этот ход.
 KEY_LOG_NO_CHARGES,No charges remaining.,Заряды закончились.
@@ -168,7 +168,7 @@ KEY_LOG_CELL_CORRUPTED,%s unleashes corruption! %d damage; %s locked %d turns.,%
 KEY_LOG_CELL_NAME,cell (%d,%d),клетка (%d,%d)
 KEY_LOG_NO_CELL,no cell,нет клетки
 KEY_LOG_VICTORY,Hostiles neutralized.,Противники нейтрализованы.
-KEY_LOG_DEFEAT,Frame integrity critical. Shutdown.,Целостность каркаса критична. Отключение.
+KEY_LOG_DEFEAT,Frame integrity critical. Shutdown.,Критические повреждения фрейма. Отключение.
 KEY_LOG_XP_GAINED,You gained %d XP.,Вы получили %d опыта.
 KEY_LOG_TARGETING,Targeting enemy #%d.,Цель: враг #%d.
 KEY_PLACE_NO_DATA,No item data.,Нет данных предмета.
@@ -180,15 +180,15 @@ KEY_PLACE_EDGE,Item requires edge placement.,Предмет требует ус�
 ENEMY_DESPERATE_REBEL_NAME,Desperate Rebel,Отчаянный повстанец
 ENEMY_DESPERATE_REBEL_DESC,A starving human with a pipe. Still believes this city has a future.,Голодный человек с трубой. Всё ещё верит; что у города есть будущее.
 ENEMY_CORRUPTED_SYNTHET_NAME,Corrupted Synthet,Искажённый синтет
-ENEMY_CORRUPTED_SYNTHET_DESC,Half-melted chassis leaking signal noise. Dangerous when cornered.,Полурасплавленный корпус с шумом сигнала. Опасен; когда загнан в угол.
+ENEMY_CORRUPTED_SYNTHET_DESC,Half-melted chassis leaking signal noise. Dangerous when cornered.,Полуразрушенный фрейм, источающий искажения. Становится опасен; если загнать его в угол.
 ENEMY_SCRAP_DRONE_NAME,Scrap Drone,Хламовый дрон
-ENEMY_SCRAP_DRONE_DESC,A buzzing scout chassis. Fragile but persistent.,Жужжащий разведчик. Хрупкий; но настойчивый.
+ENEMY_SCRAP_DRONE_DESC,A buzzing scout chassis. Fragile but persistent.,Летающий разведчик. Хрупкий; но опасный.
 ENEMY_FIELD_MEDIC_NAME,Field Medic,Полевой медик
-ENEMY_FIELD_MEDIC_DESC,Keeps the scrap-line standing with jury-rigged stims.,Держит линию на ногах кустарными стимуляторами.
+ENEMY_FIELD_MEDIC_DESC,Keeps the scrap-line standing with jury-rigged stims.,Держит союзников на ногах при помощи самодельных стимуляторов.
 ENEMY_REBEL_WARLORD_NAME,Rebel Warlord,Главарь повстанцев
-ENEMY_REBEL_WARLORD_DESC,Hardened commander who studies every weakness in your frame.,Закалённый командир; изучающий каждую слабость вашего каркаса.
+ENEMY_REBEL_WARLORD_DESC,Hardened commander who studies every weakness in your frame.,Закалённый командир; способный изучить каждую слабость вашего фрейма.
 ENEMY_SYNTHET_OVERSEER_NAME,Synthet Overseer,Надзиратель синтетов
-ENEMY_SYNTHET_OVERSEER_DESC,A towering signal-core that frenzies when critically damaged.,Гигантское ядро сигнала; впадающее в ярость при критических повреждениях.
+ENEMY_SYNTHET_OVERSEER_DESC,A towering signal-core that frenzies when critically damaged.,Гигантское ядро; впадающее в ярость при критических повреждениях.
 MAP_N0_NAME,Scrap Corridor,Мусорный коридор
 MAP_N1_NAME,Jury-Rig Bench,Кустарный верстак
 MAP_N2_NAME,Synth Nest,Гнездо синтетов
@@ -197,31 +197,31 @@ MAP_N4_NAME,Framewrack Core,Ядро Framewrack
 ITEM_UNKNOWN_NAME,Unknown Module,Неизвестный модуль
 ENEMY_UNKNOWN_NAME,Unknown Host,Неизвестный носитель
 ITEM_NEURO_CHIP_NAME,Neuro-Chip,Нейро-чип
-ITEM_NEURO_CHIP_DESC,Neuro-Chip currency used in vendors and upgrade stations.,Валютный нейро-чип для торговцев и станций улучшения.
+ITEM_NEURO_CHIP_DESC,Neuro-Chip currency used in vendors and upgrade stations.,Валютный нейро-чип, который можно потратить у торговцев или на станциях улучшений.
 ITEM_SCRAP_PLATE_NAME,Heavy Scrap Plate,Тяжелая пластина из хлама
 ITEM_SCRAP_PLATE_DESC,Crude reinforced plate. Reliable starter armor.,Грубая усиленная пластина. Надежная стартовая броня.
-ITEM_EXO_FRAME_NAME,Perforated Exo Frame,Перфорированный экзокаркас
-ITEM_EXO_FRAME_DESC,Long exo frame distributing impacts along the chassis.,Длинный экзокаркас, распределяющий удары по шасси.
+ITEM_EXO_FRAME_NAME,Perforated Exo Frame,Перфорированный экзо-фрейм
+ITEM_EXO_FRAME_DESC,Long exo frame distributing impacts along the chassis.,Длинный экзо-фрейм, способный поглощать удары.
 ITEM_SPIKED_BUMPER_NAME,Spiked Bumper,Шипованный бампер
 ITEM_SPIKED_BUMPER_DESC,Outer armor with punishing spikes for close threats.,Внешняя броня с шипами для ближних угроз.
 ITEM_COOLING_SHIELD_NAME,Cooling Shield,Охлаждающий щит
-ITEM_COOLING_SHIELD_DESC,Cryo-laced plating that maintains high defensive output.,Крио-пластины, поддерживающие высокий защитный потенциал.
+ITEM_COOLING_SHIELD_DESC,Cryo-laced plating that maintains high defensive output.,Крио-пластины с высоким защитным потенциалом.
 ITEM_REACTIVE_COMPOSITE_NAME,Reactive Composite,Реактивный композит
-ITEM_REACTIVE_COMPOSITE_DESC,Adaptive laminate that stabilizes after corruption shock.,Адаптивный ламинат, стабилизирующийся после искажения.
-ITEM_ARMOR_CORE_NAME,Armor Core,Ядро брони
-ITEM_ARMOR_CORE_DESC,Activator core that chains adjacent usable armor modules.,Активатор, цепной запуск соседних активируемых бронемодулей.
+ITEM_REACTIVE_COMPOSITE_DESC,Adaptive laminate that stabilizes after corruption shock.,Адаптивное покрытие, способное стабилизировать вас после удара током.
+ITEM_ARMOR_CORE_NAME,Armor Core,Защитное ядро
+ITEM_ARMOR_CORE_DESC,Activator core that chains adjacent usable armor modules.,Активатор, осуществляет цепной запуск соседних активируемых бронемодулей.
 ITEM_TACTICAL_VISOR_NAME,Tactical Visor,Тактический визор
-ITEM_TACTICAL_VISOR_DESC,Passive helmet improving defense from lower body support.,Пассивный шлем, усиливающий защиту за счет поддержки снизу.
+ITEM_TACTICAL_VISOR_DESC,Passive helmet improving defense from lower body support.,Шлем, пассивно усиливающий защиту.
 ITEM_WELDED_DOME_NAME,Welded Dome,Сварной купол
-ITEM_WELDED_DOME_DESC,Wide welded helmet with strong lower-cell scaling.,Широкий сварной шлем с сильным масштабированием от клеток снизу.
+ITEM_WELDED_DOME_DESC,Wide welded helmet with strong lower-cell scaling.,Широкий сварной шлем, получающий значительные бонусы от клеток снизу.
 ITEM_NEURAL_HELM_NAME,Neural Helm,Нейрошлем
-ITEM_NEURAL_HELM_DESC,High-end helmet with superior passive scaling.,Продвинутый шлем с превосходным пассивным масштабированием.
-ITEM_GREAVES_FRAME_NAME,Greaves Frame,Каркас поножей
-ITEM_GREAVES_FRAME_DESC,Passive leg frame gaining defense from structure above.,Пассивный каркас ног, усиливается от структуры сверху.
+ITEM_NEURAL_HELM_DESC,High-end helmet with superior passive scaling.,Продвинутый шлем с превосходным скейлингом.
+ITEM_GREAVES_FRAME_NAME,Greaves Frame,Фрейм-поножи
+ITEM_GREAVES_FRAME_DESC,Passive leg frame gaining defense from structure above.,Фрейм для ног, усиливается за счёт клеток над ним.
 ITEM_TRACKED_FOOTING_NAME,Tracked Footing,Гусеничная опора
-ITEM_TRACKED_FOOTING_DESC,Stabilized leg assembly that rewards upper support.,Стабилизированная опора ног, выигрывает от поддержки сверху.
+ITEM_TRACKED_FOOTING_DESC,Stabilized leg assembly that rewards upper support.,Стабилизированная опора ног, получает бонусы от клеток сверху.
 ITEM_HYDRAULIC_BRACE_NAME,Hydraulic Brace,Гидравлический упор
-ITEM_HYDRAULIC_BRACE_DESC,Tall hydraulic brace with powerful passive scaling.,Высокий гидравлический упор с мощным пассивным масштабированием.
+ITEM_HYDRAULIC_BRACE_DESC,Tall hydraulic brace with powerful passive scaling.,Высокий гидравлический упор с мощным пассивным бонусом.
 ITEM_BIO_GEL_NAME,Bio Gel,Био-гель
 ITEM_BIO_GEL_DESC,Heals 8 HP. Produced from flesh. You don't want to know what flesh.,Восстанавливает 8 ОЗ. Произведен из плоти. Лучше не знать, из чьей именно.
 ITEM_SALT_INJECTOR_NAME,Salt Injector,Солевой инжектор
@@ -232,24 +232,24 @@ ITEM_PURGE_SOLVENT_NAME,Purge Solvent,Очищающий раствор
 ITEM_PURGE_SOLVENT_DESC,Cleanses all negative status effects (Poison, Rust, Burn).,Снимает все негативные эффекты (Яд, Ржавчина, Горение).
 TRAIT_ARMOR_EDGE_NAME,Edge Anchor,Краевой якорь
 TRAIT_ARMOR_EDGE_DESC,Edge-mounted armor gains extra stability.,Краевая броня получает дополнительную устойчивость.
-TRAIT_ARMOR_CHAIN_NAME,Armor Chain,Цепь брони
-TRAIT_ARMOR_CHAIN_DESC,Adjacent armor pieces reinforce each other.,Соседние бронемодули усиливают друг друга.
+TRAIT_ARMOR_CHAIN_NAME,Armor Chain,Броня-цепь
+TRAIT_ARMOR_CHAIN_DESC,Adjacent armor pieces reinforce each other.,Соседство с другими предметами брони даёт бонус к броне.
 TRAIT_SPIKES_OUTER_NAME,Outer Spikes,Внешние шипы
-TRAIT_SPIKES_OUTER_DESC,Spikes punish hostile pressure around the frame.,Шипы наказывают вражеское давление вокруг каркаса.
+TRAIT_SPIKES_OUTER_DESC,Spikes punish hostile pressure around the frame.,Шипы наносят урон атакующим врагам.
 TRAIT_HEAT_DISSIPATION_NAME,Heat Dissipation,Теплоотвод
 TRAIT_HEAT_DISSIPATION_DESC,Cooling channels increase defensive performance.,Охлаждающие каналы повышают защитный потенциал.
 TRAIT_REACTIVE_CLEANSE_NAME,Reactive Cleanse,Реактивная очистка
-TRAIT_REACTIVE_CLEANSE_DESC,Reactive weave dampens lingering corruption stress.,Реактивная ткань гасит остаточный стресс искажения.
+TRAIT_REACTIVE_CLEANSE_DESC,Reactive weave dampens lingering corruption stress.,Реактивная ткань гасит остаточный эффект искажения.
 TRAIT_ARMOR_CORE_TRIGGER_NAME,Core Trigger,Триггер ядра
-TRAIT_ARMOR_CORE_TRIGGER_DESC,Activating this core triggers adjacent usable armor for free.,Активация ядра бесплатно запускает соседнюю активируемую броню.
-TRAIT_HELMET_LOW_NAME,Lower Profile Helmet,Нижний профиль шлема
-TRAIT_HELMET_LOW_DESC,Passive armor scales with cells below (+0.5 each), penalty for same-row helmets.,Пассивная броня масштабируется от клеток снизу (+0.5), штраф за шлемы в том же ряду.
+TRAIT_ARMOR_CORE_TRIGGER_DESC,Activating this core triggers adjacent usable armor for free.,Активация ядра бесплатно активирует соседние активируемые элементы брони.
+TRAIT_HELMET_LOW_NAME,Lower Profile Helmet,Скрытный шлем
+TRAIT_HELMET_LOW_DESC,Passive armor scales with cells below (+0.5 each), penalty for same-row helmets.,Бонус к броне за каждую клетку снизу (+0.5), штраф за шлемы в том же ряду.
 TRAIT_HELMET_HIGH_NAME,Lower Profile Helmet+,Нижний профиль шлема+
-TRAIT_HELMET_HIGH_DESC,Passive armor scales with cells below (+1 each), penalty for same-row helmets.,Пассивная броня масштабируется от клеток снизу (+1), штраф за шлемы в том же ряду.
+TRAIT_HELMET_HIGH_DESC,Passive armor scales with cells below (+1 each), penalty for same-row helmets.,Бонус к броне за каждую клетку снизу (+1), штраф за шлемы в том же ряду.
 TRAIT_LEG_LOW_NAME,Upper Support Greaves,Поножи верхней опоры
-TRAIT_LEG_LOW_DESC,Passive armor scales with cells above (+0.5 each), penalty for same-row legs.,Пассивная броня масштабируется от клеток сверху (+0.5), штраф за броню ног в том же ряду.
+TRAIT_LEG_LOW_DESC,Passive armor scales with cells above (+0.5 each), penalty for same-row legs.,Бонус к броне за каждую клетку сверху (+0.5), штраф за броню для ног в том же ряду.
 TRAIT_LEG_HIGH_NAME,Upper Support Greaves+,Поножи верхней опоры+
-TRAIT_LEG_HIGH_DESC,Passive armor scales with cells above (+1 each), penalty for same-row legs.,Пассивная броня масштабируется от клеток сверху (+1), штраф за броню ног в том же ряду.
+TRAIT_LEG_HIGH_DESC,Passive armor scales with cells above (+1 each), penalty for same-row legs.,Бонус к броне за каждую клетку сверху (+1), штраф за броню для ног в том же ряду.
 TRAIT_BIO_GEL_HEAL_NAME,Bio Gel Patch,Био-гелевая заплатка
 TRAIT_BIO_GEL_HEAL_DESC,Restore frame HP when consumed.,Восстанавливает ОЗ каркаса при применении.
 TRAIT_GIVE_AP_NAME,Adrenal Salt,Адреналиновая соль
@@ -257,27 +257,27 @@ TRAIT_GIVE_AP_DESC,Gain AP immediately on use.,Мгновенно дает до�
 TRAIT_BURN_DAMAGE_NAME,Thermite Burn,Термитный прожиг
 TRAIT_BURN_DAMAGE_DESC,Adds burn damage to target hit.,Добавляет прожигающий урон по цели.
 TRAIT_CLEANSE_DEBUFFS_NAME,Purge Cycle,Цикл очистки
-TRAIT_CLEANSE_DEBUFFS_DESC,Cleanses active corruption pressure on use.,Снимает активное давление искажения при применении.
+TRAIT_CLEANSE_DEBUFFS_DESC,Cleanses active corruption pressure on use.,Снимает активное искажение при применении.
 ITEM_SCRAP_PIPE_NAME,Scrap Pipe,Обломок трубы
-ITEM_SCRAP_PIPE_DESC,Bent conduit swung as a club. Edge-mounted. Simple; reliable blunt trauma.,Согнутая труба как дубина. На край. Простой и надёжный дробящий удар.
+ITEM_SCRAP_PIPE_DESC,Bent conduit swung as a club. Edge-mounted. Simple; reliable blunt trauma.,Согнутая труба как дубина. Должна лежать на краю инвентаря. Простое и надёжное дробящее оружие.
 ITEM_REBEL_CLEAVER_NAME,Rebel Cleaver,Тесак повстанца
-ITEM_REBEL_CLEAVER_DESC,A scavenged meat cleaver. Bleeds foes; but goes dull beside biomorphic grafts.,Трофейный тесак. Вызывает кровотечение; но тупится рядом с биоморфными имплантами.
+ITEM_REBEL_CLEAVER_DESC,A scavenged meat cleaver. Bleeds foes; but goes dull beside biomorphic grafts.,Трофейный тесак. Вызывает кровотечение; но теряет эффективность рядом с биоморфными имплантами.
 ITEM_JACKHAMMER_NAME,Pneumatic Jackhammer,Пневматический отбойник
 ITEM_JACKHAMMER_DESC,Industrial breaker arm. Costs 2 AP. Stuns the enemy on impact — never harms your own grid.,Промышленный отбойный рычаг. Стоит 2 ОД. Оглушает врага при ударе — свою сетку не трогает.
 ITEM_BIO_CLAW_NAME,Biomorphic Claw,Биоморфный коготь
 ITEM_BIO_CLAW_DESC,Living talon that can graft inside the frame. Resonates with nearby biomorphic modules.,Живой коготь; можно встроить внутрь каркаса. Резонирует с соседними биоморфными модулями.
 ITEM_NAIL_GUN_NAME,Nail Gun,Гвоздомёт
-ITEM_NAIL_GUN_DESC,Compressed nail driver. Edge-mounted ranged weapon with limited ammo bursts.,Пневматический гвоздомёт. Краевое дальнобойное оружие с ограниченным боезапасом.
+ITEM_NAIL_GUN_DESC,Compressed nail driver. Edge-mounted ranged weapon with limited ammo bursts.,Пневматический гвоздомёт. Дальнобойное оружие с ограниченным боезапасом; должно располагаться на краю инвентаря.
 ITEM_ARC_DISCHARGER_NAME,Arc Discharger,Дуговой разрядник
-ITEM_ARC_DISCHARGER_DESC,Coiled contacts that arc harder when a reactor shares an edge.,Скрученные контакты. Дуга сильнее; если реактор касается по ребру.
+ITEM_ARC_DISCHARGER_DESC,Coiled contacts that arc harder when a reactor shares an edge.,Скрученные провода. Бьют сильнее; если касаются реактора.
 ITEM_SURGICAL_SAW_NAME,Surgical Saw,Хирургическая пила
-ITEM_SURGICAL_SAW_DESC,Precision bone saw. Compact 1x1 edge tool that pierces Block.,Точная костная пила. Компактный инструмент 1x1 на край; пробивает Блок.
+ITEM_SURGICAL_SAW_DESC,Precision bone saw. Compact 1x1 edge tool that pierces Block.,Точная костная пила. Компактный инструмент 1x1; должен располагаться на краю инвентаря; пробивает Блок.
 ITEM_FLAMETHROWER_NAME,Flamethrower,Огнемёт
-ITEM_FLAMETHROWER_DESC,Fuel-fed projector. Spends 2 AP for a fire burst against enemies only — your cells stay intact.,Топливный проектор. 2 ОД за огненный выброс только по врагам — ваши клетки целы.
-ITEM_REBAR_CUDGEL_NAME,Rebar Cudgel,Арматурная дубина
-ITEM_REBAR_CUDGEL_DESC,Heavy rebar length. Stronger when given room — no adjacent weapons.,Тяжёлая арматура. Сильнее; когда есть пространство — без соседнего оружия.
+ITEM_FLAMETHROWER_DESC,Fuel-fed projector. Spends 2 AP for a fire burst against enemies only — your cells stay intact.,Мощный огнемёт. 2 ОД за атаку по врагам — ваши клетки целы.
+ITEM_REBAR_CUDGEL_NAME,Rebar Cudgel,Кусок арматуры
+ITEM_REBAR_CUDGEL_DESC,Heavy rebar length. Stronger when given room — no adjacent weapons.,Тяжёлая арматура. Бьет сильнее; когда не касается другого оружия.
 ITEM_CYBER_SPIKE_NAME,Cyber Spike,Кибершип
-ITEM_CYBER_SPIKE_DESC,Needle implant that siphons vitality from the target into your Frame HP. Never damages your inventory.,Игольчатый имплант; тянет жизненность с цели в ОЗ каркаса. Инвентарь не повреждает.
+ITEM_CYBER_SPIKE_DESC,Needle implant that siphons vitality from the target into your Frame HP.,Игольчатый имплант; тянет жизненную силу с цели в ОЗ фрейма.
 KEY_STATUS_CHEST,Salvage chest cracked open.,Контейнер взломан.
 KEY_STATUS_SHOP,Shop stub — nothing for sale yet.,Магазин-заглушка — пока нечего купить.
 KEY_STATUS_STAIRS,Stairs to the next sector.,Лестница в следующий сектор.
