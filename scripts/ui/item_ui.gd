@@ -78,8 +78,23 @@ func _build_visual() -> void:
 	_label.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
 	_label.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	_label.add_theme_color_override("font_color", Color(0.08, 0.08, 0.08))
-	_label.text = _short_name(item.get_localized_name() if item else "?")
+	_label.text = _display_label(item)
 	add_child(_label)
+
+	if item != null and item.is_stackable and item.current_stack > 1:
+		var stack := Label.new()
+		stack.text = "×%d" % item.current_stack
+		stack.mouse_filter = Control.MOUSE_FILTER_IGNORE
+		stack.horizontal_alignment = HORIZONTAL_ALIGNMENT_RIGHT
+		stack.vertical_alignment = VERTICAL_ALIGNMENT_BOTTOM
+		stack.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+		stack.offset_right = -3.0
+		stack.offset_bottom = -2.0
+		stack.add_theme_font_size_override("font_size", 12)
+		stack.add_theme_color_override("font_color", Color(1, 1, 1))
+		stack.add_theme_color_override("font_outline_color", Color(0, 0, 0))
+		stack.add_theme_constant_override("outline_size", 4)
+		add_child(stack)
 
 
 func _apply_footprint_size(footprint: Vector2i) -> void:
@@ -87,6 +102,14 @@ func _apply_footprint_size(footprint: Vector2i) -> void:
 	var h := footprint.y * cell_size + maxi(footprint.y - 1, 0) * cell_gap
 	custom_minimum_size = Vector2(w, h)
 	size = custom_minimum_size
+
+
+func _display_label(p_item: ItemData) -> String:
+	if p_item == null:
+		return "?"
+	if p_item.is_stackable:
+		return _short_name(p_item.get_localized_name())
+	return _short_name(p_item.get_localized_name())
 
 
 func _short_name(full: String) -> String:

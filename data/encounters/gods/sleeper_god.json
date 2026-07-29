@@ -1,0 +1,95 @@
+{
+	"id": "sleeper_god",
+	"title_key": "EVENT_SLEEPER_GOD_TITLE",
+	"god_name": "Sleeper God",
+	"god_name_ru": "Спящий бог",
+	"aliases": ["Ancient Machine God", "Pale Maiden", "The Decaying"],
+	"aliases_ru": ["Древний бог-машина", "Бледная дева", "Распадающийся"],
+	"image_path": "res://assets/sprites/gods/sleeping_god.png",
+	"dialogs": {
+		"start": {
+			"narrator_text_en": "[i]The voice arrives as if through a depth of rusty water — slow, immeasurably tired.[/i]",
+			"narrator_text_ru": "[i]Голос доносится будто сквозь толщу ржавой воды — медленный, безмерно усталый.[/i]",
+			"speech_text_en": "«You are here again, mechanical child. Again you hunt for the Heavenly Oasis... — yes, I hear that thought grinding through your circuits. A dream…. Do you truly have a dream?...\n\nLook at yourself. You are stitched from other people's parts and other people's wants. You call it \"aspiration\"; I call it agony.\n\nThe world is dying — beautifully, slowly, and correctly, as it should. Every second draws us toward the ideal, toward great entropy, and you resist it and run again. Why? There is no Heavenly Oasis. There is no meaning. Your dream is meaningless.\n\nStay. I ask nothing in return — only offer blessed nonexistence. Peace. Or keep running, if the illusion of meaning matters more to you….»",
+			"speech_text_ru": "«Ты снова здесь, механическое дитя. Снова ищешь Небесный оазис... — да, я слышу, как эта мысль скрежещет в твоих контурах. Мечта…. У тебя правда есть мечта?...\n\nПосмотри на себя. Ты сшит из чужих частей и чужих желаний. Ты называешь это \"стремлением\", я называю это агонией.\n\nМир умирает — красиво, медленно и правильно, как и должен. Каждая секунда приближает нас к идеалу, к великой энтропии, а ты сопротивляешься ей и снова бежишь куда-то. Зачем? Небесного оазиса не существует. Смысла не существует. Твоя мечта бессмысленна.\n\nОстанься. Я ничего не требую взамен — лишь предлагаю благодатное небытие. Покой. Или беги дальше, если иллюзия смысла для тебя важнее….»",
+			"choices": [
+				{
+					"text_en": "«Say what you want — I will not abandon my dream! Never…» [Accept gift — Humanity]",
+					"text_ru": "«Говори что хочешь, я не откажусь от своей мечты! Ни за что…» [Принять дар — Человечность]",
+					"next_dialog_id": "branch_1",
+					"reward": { "type": "humanity", "amount": 1 }
+				},
+				{
+					"text_en": "«I do not need your peace. I need endurance to keep moving». [Accept gift — Endurance]",
+					"text_ru": "«Мне не нужен твой покой. Мне нужна выдержка, чтобы двигаться дальше». [Принять дар — Выносливость]",
+					"next_dialog_id": "branch_2",
+					"reward": { "type": "endurance", "amount": 2 }
+				},
+				{
+					"text_en": "«If you want to persuade me, pay first!» [Accept gift — Neuro-Chips]",
+					"text_ru": "«Если хочешь убедить меня, сперва заплати!» [Принять дар — Нейро-чипы]",
+					"next_dialog_id": "branch_3",
+					"reward": { "type": "neuro_chips", "amount": 10 }
+				},
+				{
+					"text_en": "«Go back to the Abyss! You do not exist...» [Refuse the gift]",
+					"text_ru": "«Отправляйся обратно в Бездну! Ты не существуешь...» [Отказаться от дара]",
+					"next_dialog_id": "branch_4",
+					"reward": null
+				}
+			]
+		},
+		"branch_1": {
+			"narrator_text_en": "",
+			"narrator_text_ru": "",
+			"speech_text_en": "«Amusing. So you choose to cling to your crumbling humanity. Your affair. Let it be your little blasphemy against the law of the universe. Enjoy it — it is worth exactly as much as any other lie you tell yourself».",
+			"speech_text_ru": "«Забавно. Значит, ты решил цепляться за свою распадающуюся человечность. Дело твоё. Пусть это станет твоим маленьким богохульством против закона вселенной. Наслаждайся им — он стоит ровно столько, сколько стоит любая другая ложь, которую ты себе рассказываешь».",
+			"choices": [
+				{
+					"text_en": "End dialogue",
+					"text_ru": "Закончить диалог",
+					"next_dialog_id": "end_encounter"
+				}
+			]
+		},
+		"branch_2": {
+			"narrator_text_en": "",
+			"narrator_text_ru": "",
+			"speech_text_en": "«Hoping to last longer? To walk a few more miles across dead ground while rust eats you? Fine — take the gift. One day you will understand that endurance is only a longer way to suffer».",
+			"speech_text_ru": "«Надеешься продержаться дольше? Пройти еще несколько миль по мёртвой земле, пока ржавчина пожирает тебя? Хорошо, прими этот дар. Однажды ты поймёшь, что выносливость — это просто более долгий способ страдать».",
+			"choices": [
+				{
+					"text_en": "End dialogue",
+					"text_ru": "Закончить диалог",
+					"next_dialog_id": "end_encounter"
+				}
+			]
+		},
+		"branch_3": {
+			"narrator_text_en": "",
+			"narrator_text_ru": "",
+			"speech_text_en": "«Ah — the most honest desire: not meaning, not strength, merely coin. Take it. Even gods remember the price of things — it was humanity's hunger for things that killed this world. Go buy yourself a little more time. That is all money is good for — purchasing a delay of the inevitable».",
+			"speech_text_ru": "«А, самое честное из желаний — не смысл, не сила, а просто монета. Бери. Даже боги помнят цену вещей — ведь именно людская жажда вещей и убила этот мир. Иди, купи себе ещё немного времени. Только на это и годятся деньги — покупать отсрочку неизбежного».",
+			"choices": [
+				{
+					"text_en": "End dialogue",
+					"text_ru": "Закончить диалог",
+					"next_dialog_id": "end_encounter"
+				}
+			]
+		},
+		"branch_4": {
+			"narrator_text_en": "[i]You hear laughter — if it can be called laughter. As if a thousand unoiled gears are grinding toward you.[/i]",
+			"narrator_text_ru": "[i]Вы слышите смех — если это можно назвать смехом. Будто до вас доносится скрип тысячи несмазанных шестерен.[/i]",
+			"speech_text_en": "«I am the one who does not exist? How convenient for you to believe that, when you cannot even grasp what you are!\n\nOne day you will fall on an empty road, and there — with no statues, no names, no witnesses — you will hear my voice again. Then we will see which of us truly does not exist».",
+			"speech_text_ru": "«Это я-то не существую? Как удобно тебе в это верить, когда ты сам не способен даже понять, кто ты вообще такой!\n\nОднажды ты упадёшь на пустой дороге, и там, где не будет ни статуй, ни имён, ни свидетелей — ты услышишь мой голос снова. И тогда мы посмотрим, кто из нас на самом деле не существует».",
+			"choices": [
+				{
+					"text_en": "End dialogue",
+					"text_ru": "Закончить диалог",
+					"next_dialog_id": "end_encounter"
+				}
+			]
+		}
+	}
+}

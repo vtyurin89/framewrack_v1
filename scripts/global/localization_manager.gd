@@ -56,6 +56,22 @@ func cycle_language() -> String:
 	return next
 
 
+static func pick_en_ru(en: String, ru: String, fallback: String = "") -> String:
+	## Runtime bilingual pick for content authored outside CSV (e.g. god JSON).
+	var locale := TranslationServer.get_locale().to_lower()
+	if locale.begins_with("ru"):
+		if not ru.is_empty():
+			return ru
+		if not fallback.is_empty():
+			return fallback
+		return en
+	if not en.is_empty():
+		return en
+	if not fallback.is_empty():
+		return fallback
+	return ru
+
+
 func _load_translations_from_csv(path: String) -> void:
 	if _loaded_paths.has(path):
 		return

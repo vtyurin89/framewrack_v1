@@ -44,7 +44,22 @@ func is_prologue_active() -> bool:
 
 
 func start_prologue() -> void:
-	start_encounter(EncounterCatalog.build_old_machine_god())
+	## Pick a random starting god from res://data/encounters/gods/.
+	var god_encounter := load_random_starting_god()
+	if god_encounter == null:
+		push_warning("EncounterManager: no starting god available")
+		encounter_completed.emit({"prologue": true, "failed": true})
+		return
+	start_encounter(god_encounter)
+
+
+func load_random_starting_god() -> EncounterData:
+	## Public loader for the starting-god pool under data/encounters/gods/.
+	return StartingGodRegistry.pick_random_god_encounter()
+
+
+func load_starting_god(god_id: String) -> EncounterData:
+	return StartingGodRegistry.load_god_encounter(god_id)
 
 
 func start_encounter(data: EncounterData) -> void:
@@ -107,10 +122,19 @@ func apply_dialog_outcome(outcome: DialogOutcomeData) -> void:
 			if outcome.next_node_id.is_empty():
 				_finish_encounter(_pending_rewards)
 		DialogOutcomeData.OutcomeKind.GRANT_ITEM:
-			_grant_item(outcome.item_id)
+			_grant_item(outcome.item_id, outcome.item_amount)
 			if not outcome.message_key.is_empty():
 				_pending_rewards["message_key"] = outcome.message_key
 			_pending_rewards["item_id"] = outcome.item_id
+			_pending_rewards["item_amount"] = outcome.item_amount
+			if outcome.next_node_id.is_empty():
+				_finish_encounter(_pending_rewards)
+		DialogOutcomeData.OutcomeKind.GRANT_STAT:
+			_grant_stat(outcome.stat_name, outcome.stat_amount)
+			if not outcome.message_key.is_empty():
+				_pending_rewards["message_key"] = outcome.message_key
+			_pending_rewards["stat_name"] = outcome.stat_name
+			_pending_rewards["stat_amount"] = outcome.stat_amount
 			if outcome.next_node_id.is_empty():
 				_finish_encounter(_pending_rewards)
 		DialogOutcomeData.OutcomeKind.COMBAT:
@@ -253,13 +277,29 @@ func _apply_damage(amount: int) -> void:
 		EventBus.player_died.emit()
 
 
-func _grant_item(item_id: String) -> void:
+func _grant_item(item_id: String, amount: int = 1) -> void:
 	var id_str := item_id.strip_edges()
 	if inventory == null or id_str.is_empty() or ItemDatabase == null:
 		return
-	var item: ItemData = ItemDatabase.create_instance(id_str)
-	if item != null:
-		inventory.try_place_anywhere(item)
+	var qty := maxi(amount, 1)
+	## Stackable currency (Neuro-Chips) merges into a single cell when possible.
+	var prototype: ItemData = ItemDatabase.get_item(id_str)
+	if prototype != null and prototype.is_stackable:
+		inventory.add_stackable_item(id_str, qty)
+		return
+	for _i in qty:
+		var item: ItemData = ItemDatabase.create_instance(id_str)
+		if item != null:
+			inventory.try_place_anywhere(item)
+
+
+func _grant_stat(stat_name: String, amount: int) -> void:
+	if player_stats == null or amount == 0:
+		return
+	player_stats.add_stat_bonus(stat_name, amount)
+	## Endurance changes Max HP — keep inventory pool in sync.
+	if inventory != null:
+		inventory.apply_actor_stats(player_stats)
 
 
 func _get_player_stat(stat_name: String) -> int:
@@ -276,5 +316,7 @@ func _get_player_stat(stat_name: String) -> int:
 			return player_stats.intelligence
 		"LCK", "LUCK":
 			return player_stats.luck
+		"HUM", "HUMANITY":
+			return player_stats.humanity
 		_:
 			return 1

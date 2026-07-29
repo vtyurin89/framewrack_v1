@@ -4,10 +4,11 @@
 
 [resource]
 script = ExtResource("1")
-id = "OLD_MACHINE_GOD_EVENT"
-title = "The Old Machine God"
-title_key = "EVENT_OLD_MACHINE_GOD_TITLE"
+id = "SLEEPER_GOD"
+title = "Sleeper God"
+title_key = "EVENT_SLEEPER_GOD_TITLE"
 type = 3
 payload = {
-"prologue": true
+"prologue": true,
+"god_id": "SLEEPER_GOD"
 }

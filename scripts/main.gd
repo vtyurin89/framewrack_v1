@@ -239,7 +239,7 @@ func _enter_gameplay() -> void:
 		## Prologue dialog before Act 1 map.
 		_map_ui.visible = false
 		_combat_ui.visible = false
-		_status_banner.text = tr("EVENT_OLD_MACHINE_GOD_TITLE")
+		_status_banner.text = tr("EVENT_SLEEPER_GOD_TITLE")
 		_encounters.start_prologue()
 
 

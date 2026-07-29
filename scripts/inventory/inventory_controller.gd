@@ -63,15 +63,95 @@ func place_dragged(item: ItemData, origin: Vector2i, footprint: Vector2i = Vecto
 
 func try_place_anywhere(item: ItemData) -> bool:
 	## Place on the first valid unlocked footprint; returns false if no fit.
+	## Stackables first try to merge into an existing matching cell.
 	if item == null:
 		return false
+	if item.is_stackable:
+		var leftover := _merge_into_existing_stacks(item)
+		if leftover <= 0:
+			EventBus.inventory_changed.emit()
+			return true
+		item.current_stack = leftover
 	for y in grid.height:
 		for x in grid.width:
 			var origin := Vector2i(x, y)
 			if grid.can_place_item(item, origin):
-				return place_item(item, origin)
+				var ok := place_item(item, origin)
+				if ok:
+					EventBus.inventory_changed.emit()
+				return ok
 	EventBus.placement_failed.emit("KEY_PLACE_OCCUPIED")
 	return false
+
+
+func add_stackable_item(item_id: String, amount: int) -> int:
+	## Grants `amount` of a stackable catalog item, merging into existing stacks.
+	## Returns how many units were successfully stored.
+	if amount <= 0 or ItemDatabase == null:
+		return 0
+	var prototype: ItemData = ItemDatabase.get_item(item_id)
+	if prototype == null:
+		push_warning("InventoryController: unknown item '%s'" % item_id)
+		return 0
+	var max_stack := maxi(prototype.max_stack, 1) if prototype.is_stackable else 1
+	if item_id == NeuroChipItem.ITEM_ID:
+		max_stack = maxi(max_stack, NeuroChipItem.DEFAULT_MAX_STACK)
+	var remaining := amount
+	## Fill existing stacks first.
+	if grid != null:
+		for placed: PlacedItem in grid.items:
+			if remaining <= 0:
+				break
+			if placed == null or placed.data == null:
+				continue
+			if placed.data.id != item_id or not placed.data.is_stackable:
+				continue
+			var room := maxi(0, max_stack - placed.data.current_stack)
+			if room <= 0:
+				continue
+			var add := mini(room, remaining)
+			placed.data.current_stack += add
+			placed.data.max_stack = max_stack
+			remaining -= add
+	## Place new stacks for the remainder.
+	while remaining > 0:
+		var chunk := mini(remaining, max_stack)
+		var inst: ItemData = ItemDatabase.create_instance(item_id)
+		if inst == null:
+			break
+		inst.is_stackable = true
+		inst.max_stack = max_stack
+		inst.current_stack = chunk
+		if not try_place_anywhere(inst):
+			break
+		remaining -= chunk
+	var granted := amount - remaining
+	if granted > 0:
+		EventBus.inventory_changed.emit()
+	return granted
+
+
+func _merge_into_existing_stacks(item: ItemData) -> int:
+	## Returns leftover stack that still needs a new cell.
+	if item == null or not item.is_stackable or grid == null:
+		return item.current_stack if item else 0
+	var remaining := item.current_stack
+	var max_stack := maxi(item.max_stack, 1)
+	for placed: PlacedItem in grid.items:
+		if remaining <= 0:
+			break
+		if placed == null or placed.data == null:
+			continue
+		if placed.data.id != item.id or not placed.data.is_stackable:
+			continue
+		var room := maxi(0, max_stack - placed.data.current_stack)
+		if room <= 0:
+			continue
+		var add := mini(room, remaining)
+		placed.data.current_stack += add
+		placed.data.max_stack = max_stack
+		remaining -= add
+	return remaining
 
 
 func get_max_ap() -> int:

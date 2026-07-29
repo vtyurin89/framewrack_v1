@@ -196,7 +196,7 @@ MAP_N3_NAME,Mutation Cache,Кэш мутации
 MAP_N4_NAME,Framewrack Core,Ядро Framewrack
 ITEM_UNKNOWN_NAME,Unknown Module,Неизвестный модуль
 ENEMY_UNKNOWN_NAME,Unknown Host,Неизвестный носитель
-ITEM_NEURO_CHIP_NAME,Neuro-Chip,Нейро-чип
+ITEM_NEURO_CHIP_NAME,Neuro-Chips,Нейро-чипы
 ITEM_NEURO_CHIP_DESC,Neuro-Chip currency used in vendors and upgrade stations.,Валютный нейро-чип, который можно потратить у торговцев или на станциях улучшений.
 ITEM_SCRAP_PLATE_NAME,Heavy Scrap Plate,Тяжелая пластина из хлама
 ITEM_SCRAP_PLATE_DESC,Crude reinforced plate. Reliable starter armor.,Грубая усиленная пластина. Надежная стартовая броня.
@@ -294,3 +294,4 @@ EVENT_OLD_MACHINE_GOD_COMMUNE_FAIL,Feedback spikes through your grafts (-4 HP).,
 EVENT_OLD_MACHINE_GOD_SALVAGE_OK,You pry free a sealed Bio Gel.,Ты выдираешь целый Bio Gel.
 EVENT_OLD_MACHINE_GOD_FORCE_COMBAT,The core shrieks awake — a corrupted synthet unfolds.,Ядро взвизгивает — раскрывается искажённый синтет.
 EVENT_OLD_MACHINE_GOD_LEAVE,You mark the wreck and move on.,Ты помечаешь обломок и идёшь дальше.
+EVENT_SLEEPER_GOD_TITLE,Sleeper God,Спящий Бог
