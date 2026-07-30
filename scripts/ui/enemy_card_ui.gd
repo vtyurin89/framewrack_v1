@@ -17,6 +17,7 @@ const BRACKET_SPAN := 0.5
 const BRACKET_PAD := 8.0
 const DEATH_FADE_DURATION := 0.45
 const INTENTION_SCENE := preload("res://scenes/UI/enemy_intention_ui.tscn")
+const STATUS_EFFECTS_SCENE := preload("res://scenes/UI/status_effects_ui.tscn")
 
 var enemy_index: int = -1
 var _enemy: EnemyInstance
@@ -30,8 +31,10 @@ var _is_dying: bool = false
 @onready var _hp_bar: ProgressBar = %HPBar
 @onready var _hp_label: Label = %HPLabel
 @onready var _selection_overlay: Control = %SelectionOverlay
+@onready var _status_host: HBoxContainer = %StatusHost
 
 var _intention_ui: EnemyIntentionUI
+var _statuses_ui: StatusEffectsUI
 
 
 func _ready() -> void:
@@ -65,13 +68,18 @@ func setup(enemy: EnemyInstance, index: int, selected: bool) -> void:
 	if not is_node_ready():
 		await ready
 	_ensure_intention_ui()
+	_ensure_statuses_ui()
 	_refresh_presentation(selected)
 	if enemy != null:
 		set_hp(enemy.current_hp, enemy.max_hp)
 		set_intention(enemy.current_intention)
+		if _statuses_ui:
+			_statuses_ui.bind_controller(enemy.statuses)
 	else:
 		set_hp(0, 1)
 		set_intention(null)
+		if _statuses_ui:
+			_statuses_ui.unbind()
 
 
 func get_enemy() -> EnemyInstance:
@@ -175,6 +183,19 @@ func _ensure_intention_ui() -> void:
 	_intention_host.add_child(_intention_ui)
 	_intention_ui.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
 	_intention_ui.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+
+
+func _ensure_statuses_ui() -> void:
+	if _statuses_ui != null and is_instance_valid(_statuses_ui):
+		return
+	if _status_host == null:
+		return
+	for child in _status_host.get_children():
+		if child is StatusEffectsUI:
+			_statuses_ui = child
+			return
+	_statuses_ui = STATUS_EFFECTS_SCENE.instantiate() as StatusEffectsUI
+	_status_host.add_child(_statuses_ui)
 
 
 func _refresh_presentation(selected: bool) -> void:

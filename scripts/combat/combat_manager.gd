@@ -15,6 +15,8 @@ signal state_changed(new_state: CombatState)
 var inventory: InventoryController
 var player_stats: PlayerStats
 var state: CombatState = CombatState.INACTIVE
+## Player combat statuses (poison, rust, stun, …).
+var player_statuses: StatusController = StatusController.new()
 
 ## Runtime enemy combatants (difficulty-scaled HP + ability AI).
 var enemies: Array[EnemyInstance] = []
@@ -24,9 +26,6 @@ var current_ap: int = 0
 var max_ap: int = 3
 var current_block: int = 0
 var target_index: int = 0
-var _player_poison_stacks: int = 0
-var _player_rust_stacks: int = 0
-var _player_burn_stacks: int = 0
 
 
 func setup(p_inventory: InventoryController, p_stats: PlayerStats = null) -> void:
@@ -49,6 +48,9 @@ func is_player_turn_active() -> bool:
 
 func start_combat(enemy_datas: Array[EnemyData]) -> void:
 	_ensure_ability_executor()
+	if player_statuses == null:
+		player_statuses = StatusController.new()
+	player_statuses.clear_combat_statuses()
 	enemies.clear()
 	var ids: Array[String] = []
 	for data: EnemyData in enemy_datas:
@@ -85,12 +87,11 @@ func _set_state(next: CombatState) -> void:
 
 
 func _begin_player_turn() -> void:
-	current_block = 0
-	EventBus.block_changed.emit(current_block)
-	max_ap = inventory.get_max_ap()
-	current_ap = max_ap
-	_reset_all_item_turn_uses()
-	TraitManager.apply_passive_armor_from_spatial_traits(inventory.grid, Callable(self, "_gain_block"))
+	## Strict player turn pipeline.
+	_reset_player_resources()
+	if not _player_pre_turn_phase():
+		return
+	_player_start_turn_phase()
 	_ensure_valid_selection()
 	EventBus.ap_changed.emit(current_ap, max_ap)
 	EventBus.combat_item_availability_changed.emit()
@@ -99,10 +100,56 @@ func _begin_player_turn() -> void:
 	_emit_enemy_hp()
 	_set_state(CombatState.PLAYER_TURN)
 	EventBus.combat_log_message.emit(tr("KEY_LOG_YOUR_TURN") % current_ap)
+	## Action phase is interactive (activate_item / end_player_turn).
 
 
-func plan_intentions_for_living(force_reroll: bool = true) -> void:
-	_plan_all_intentions(force_reroll)
+func _reset_player_resources() -> void:
+	current_block = 0
+	EventBus.block_changed.emit(current_block)
+	max_ap = inventory.get_max_ap()
+	current_ap = max_ap
+	_reset_all_item_turn_uses()
+	TraitManager.apply_passive_armor_from_spatial_traits(inventory.grid, Callable(self, "_gain_block"))
+
+
+func _player_pre_turn_phase() -> bool:
+	## Tick negative statuses. Returns false if turn should abort (death / stun skip handled).
+	var result: Dictionary = player_statuses.tick_negative_statuses()
+	var dmg: int = int(result.get("damage", 0))
+	if dmg > 0:
+		var dealt := inventory.apply_damage(dmg, 0)
+		EventBus.combat_log_message.emit(tr("KEY_LOG_STATUS_DOT") % [tr("KEY_STATUS_DOT"), dmg, dealt])
+		EventBus.player_hp_changed.emit(inventory.current_hp, inventory.max_hp)
+		if inventory.is_dead():
+			_lose()
+			return false
+	if bool(result.get("skip_turn", false)):
+		EventBus.combat_log_message.emit(tr("KEY_LOG_STUNNED"))
+		_player_post_turn_phase()
+		_begin_enemy_turn()
+		return false
+	return true
+
+
+func _player_start_turn_phase() -> void:
+	var result: Dictionary = player_statuses.tick_positive_statuses()
+	var heal_amt: int = int(result.get("heal", 0))
+	if heal_amt > 0 and inventory != null:
+		inventory.current_hp = mini(inventory.max_hp, inventory.current_hp + heal_amt)
+		EventBus.player_hp_changed.emit(inventory.current_hp, inventory.max_hp)
+		EventBus.combat_log_message.emit(tr("KEY_LOG_STATUS_HEAL") % heal_amt)
+
+
+func _player_post_turn_phase() -> void:
+	## End-of-turn hooks (duration POST_TURN statuses, etc.).
+	player_statuses.tick_post_turn()
+
+
+func end_player_turn() -> void:
+	if state != CombatState.PLAYER_TURN:
+		return
+	_player_post_turn_phase()
+	_begin_enemy_turn()
 
 
 func _plan_all_intentions(force_reroll: bool = true) -> void:
@@ -130,10 +177,8 @@ func reevaluate_enemy_intention(index: int) -> void:
 	EventBus.enemy_intention_changed.emit(index, enemy.current_intention)
 
 
-func end_player_turn() -> void:
-	if state != CombatState.PLAYER_TURN:
-		return
-	_begin_enemy_turn()
+func plan_intentions_for_living(force_reroll: bool = true) -> void:
+	_plan_all_intentions(force_reroll)
 
 
 func set_target(index: int) -> void:
@@ -197,6 +242,13 @@ func activate_item(placed: PlacedItem) -> bool:
 	current_ap -= data.ap_cost
 	data.current_turn_uses += 1
 	EventBus.ap_changed.emit(current_ap, max_ap)
+
+	## Rust jam: AP already spent, effect skipped.
+	if player_statuses != null and player_statuses.roll_rust_fail():
+		EventBus.combat_log_message.emit(tr("KEY_LOG_RUST_JAM") % data.get_localized_name())
+		_consume_charge_if_needed(placed)
+		EventBus.combat_item_availability_changed.emit()
+		return true
 
 	match data.target_type:
 		ItemData.TargetType.SELF:
@@ -283,7 +335,10 @@ func _resolve_self(placed: PlacedItem) -> void:
 
 func _calc_damage(placed: PlacedItem) -> int:
 	var adjacency_bonus: int = inventory.grid.get_adjacency_damage_bonus_for(placed)
-	return placed.data.get_scaled_damage(player_stats) + adjacency_bonus
+	var raw := placed.data.get_scaled_damage(player_stats) + adjacency_bonus
+	if player_statuses != null:
+		return player_statuses.modify_outgoing_damage(raw)
+	return raw
 
 
 func _armor_stat_bonus(data: ItemData) -> int:
@@ -308,12 +363,24 @@ func _deal_damage_to(index: int, dmg: int, source_name: String, allow_crit: bool
 	if not enemy.is_alive():
 		return
 	var final_dmg := dmg
+	## Enemy vulnerability amplifies incoming hits.
+	if enemy.statuses != null:
+		final_dmg = enemy.statuses.modify_incoming_damage(final_dmg)
 	var is_crit := false
 	if allow_crit and _roll_player_crit():
 		is_crit = true
-		final_dmg = roundi(float(dmg) * EnemyInstance.CRIT_DAMAGE_MULT)
+		var crit_mult := EnemyInstance.CRIT_DAMAGE_MULT
+		if player_statuses != null:
+			crit_mult = player_statuses.get_crit_damage_multiplier(crit_mult)
+		final_dmg = roundi(float(final_dmg) * crit_mult)
 	var adjacency_note := ""
 	enemy.apply_incoming_damage(final_dmg)
+	## Thorns on enemy reflect to player.
+	if enemy.statuses != null:
+		var thorns := enemy.statuses.get_thorns_reflect()
+		if thorns > 0:
+			apply_enemy_damage_to_player(thorns)
+			EventBus.combat_log_message.emit(tr("KEY_LOG_THORNS") % [enemy.get_localized_name(), thorns])
 	if is_crit:
 		EventBus.combat_log_message.emit(
 			tr("KEY_LOG_ENEMY_CRIT_HIT") % [source_name, final_dmg]
@@ -379,7 +446,8 @@ func _apply_self_use_traits(placed: PlacedItem) -> void:
 		current_ap += 2
 		EventBus.ap_changed.emit(current_ap, max_ap)
 	if TraitManager.has_trait(data, "TRAIT_CLEANSE_DEBUFFS"):
-		_clear_player_negative_statuses()
+		if player_statuses != null:
+			player_statuses.clear_debuffs()
 		inventory.grid.clear_all_corruption()
 
 
@@ -391,7 +459,7 @@ func _resolve_consumable_enemy(placed: PlacedItem, enemy_index: int) -> void:
 		_deal_damage_to(enemy_index, burn_hit, data.get_localized_name())
 		dealt = burn_hit
 		if enemy_index >= 0 and enemy_index < enemies.size():
-			enemies[enemy_index].burn += TraitManager.BURN_APPLY_STACKS
+			apply_status_to_enemy(enemy_index, "burn", TraitManager.BURN_APPLY_STACKS)
 	if dealt == 0:
 		_deal_damage_to(enemy_index, data.base_damage, data.get_localized_name())
 
@@ -411,15 +479,21 @@ func _begin_enemy_turn() -> void:
 
 
 func _run_enemy_actions() -> void:
-	_tick_enemy_burn()
 	for i in enemies.size():
 		var enemy: EnemyInstance = enemies[i]
+		if enemy == null or not enemy.is_alive():
+			continue
+		if not _enemy_pre_turn_phase(i, enemy):
+			continue
+		_enemy_start_turn_phase(i, enemy)
 		if not enemy.is_alive():
 			continue
-		_enemy_act(i, enemy)
+		_enemy_pre_action_phase(i, enemy)
+		_enemy_main_action_phase(i, enemy)
 		if inventory.is_dead():
 			_lose()
 			return
+		_enemy_post_turn_phase(i, enemy)
 
 	inventory.grid.tick_corruption()
 
@@ -429,26 +503,93 @@ func _run_enemy_actions() -> void:
 		_begin_player_turn()
 
 
-func _enemy_act(index: int, enemy: EnemyInstance) -> void:
-	## 1) Pre-action phase (e.g. Rebel Enemy Study luck buff via modify_stat).
+func _enemy_pre_turn_phase(index: int, enemy: EnemyInstance) -> bool:
+	## Returns false if enemy dies or is stunned (skip rest of act).
+	if enemy.statuses == null:
+		enemy.statuses = StatusController.new()
+	var result: Dictionary = enemy.statuses.tick_negative_statuses()
+	var dmg: int = int(result.get("damage", 0))
+	if dmg > 0:
+		enemy.apply_incoming_damage(dmg)
+		EventBus.combat_log_message.emit(
+			tr("KEY_LOG_ENEMY_STATUS_DOT") % [enemy.get_localized_name(), dmg]
+		)
+		EventBus.enemy_hp_changed.emit(index, enemy.current_hp, enemy.max_hp)
+		if not enemy.is_alive():
+			enemy.clear_intention()
+			EventBus.enemy_intention_changed.emit(index, enemy.current_intention)
+			EventBus.enemy_died.emit(index)
+			return false
+	if bool(result.get("skip_turn", false)):
+		EventBus.combat_log_message.emit(
+			tr("KEY_LOG_ENEMY_STUNNED") % enemy.get_localized_name()
+		)
+		enemy.begin_enemy_turn()
+		enemy.clear_intention()
+		EventBus.enemy_intention_changed.emit(index, enemy.current_intention)
+		enemy.end_enemy_turn()
+		return false
+	return true
+
+
+func _enemy_start_turn_phase(index: int, enemy: EnemyInstance) -> void:
+	if enemy.statuses == null:
+		return
+	var result: Dictionary = enemy.statuses.tick_positive_statuses()
+	var heal_amt: int = int(result.get("heal", 0))
+	if heal_amt > 0:
+		enemy.heal(heal_amt)
+		EventBus.enemy_hp_changed.emit(index, enemy.current_hp, enemy.max_hp)
+		EventBus.combat_log_message.emit(
+			tr("KEY_LOG_ENEMY_HEAL") % [enemy.get_localized_name(), heal_amt]
+		)
+
+
+func _enemy_pre_action_phase(index: int, enemy: EnemyInstance) -> void:
+	enemy.begin_enemy_turn()
 	var pre: Dictionary = EnemyAI.trigger_pre_action_phase(enemy)
 	if bool(pre.get("triggered", false)):
 		var pre_ability: EnemyAbility = pre.get("ability") as EnemyAbility
 		if pre_ability != null:
 			_ability_executor.execute(enemy, index, pre_ability)
 
-	## 2) Main action — prefer committed intention plan so telegraph matches cast.
+
+func _enemy_main_action_phase(index: int, enemy: EnemyInstance) -> void:
 	var action: Dictionary = EnemyAI.resolve_main_action(enemy)
 	var ability: EnemyAbility = action.get("ability") as EnemyAbility
 	enemy.consume_planned_ability()
 	enemy.clear_intention()
 	EventBus.enemy_intention_changed.emit(index, enemy.current_intention)
+
+	## Rust miss: skip damaging effects.
+	if enemy.statuses != null and enemy.statuses.roll_rust_fail():
+		EventBus.combat_log_message.emit(
+			tr("KEY_LOG_RUST_MISS") % enemy.get_localized_name()
+		)
+		return
+
 	if ability != null:
 		_ability_executor.execute(enemy, index, ability)
 	else:
 		_enemy_act_legacy_fallback(index, enemy)
 
+
+func _enemy_post_turn_phase(_index: int, enemy: EnemyInstance) -> void:
+	if enemy.statuses != null:
+		enemy.statuses.tick_post_turn()
 	enemy.end_enemy_turn()
+
+
+func _enemy_act(index: int, enemy: EnemyInstance) -> void:
+	## Legacy entry retained for any external callers — routes through phased pipeline.
+	if not _enemy_pre_turn_phase(index, enemy):
+		return
+	_enemy_start_turn_phase(index, enemy)
+	if not enemy.is_alive():
+		return
+	_enemy_pre_action_phase(index, enemy)
+	_enemy_main_action_phase(index, enemy)
+	_enemy_post_turn_phase(index, enemy)
 
 
 func remove_enemy_at(index: int, emit_roster: bool = true) -> void:
@@ -473,6 +614,8 @@ func purge_dead_enemies() -> void:
 func _enemy_act_legacy_fallback(index: int, enemy: EnemyInstance) -> void:
 	var data := enemy.data
 	var dmg := data.basic_damage if data else 5
+	if enemy.statuses != null:
+		dmg = enemy.statuses.modify_outgoing_damage(dmg)
 	if GameSettings != null:
 		dmg = int(round(float(dmg) * GameSettings.get_enemy_damage_multiplier()))
 	var dealt := apply_enemy_damage_to_player(dmg)
@@ -485,9 +628,13 @@ func _enemy_act_legacy_fallback(index: int, enemy: EnemyInstance) -> void:
 ## --- AbilityEffect combat hooks ---------------------------------------------
 
 func apply_enemy_damage_to_player(damage: int) -> int:
-	var dealt := inventory.apply_damage(damage, current_block)
-	current_block = maxi(0, current_block - damage)
+	var incoming := damage
+	if player_statuses != null:
+		incoming = player_statuses.modify_incoming_damage(incoming)
+	var dealt := inventory.apply_damage(incoming, current_block)
+	current_block = maxi(0, current_block - incoming)
 	EventBus.block_changed.emit(current_block)
+	## Player thorns reflect to the acting enemy is handled by ability effects when needed.
 	return dealt
 
 
@@ -533,40 +680,28 @@ func remove_enemy_instance(enemy: EnemyInstance, emit_roster: bool = true) -> vo
 
 
 func apply_player_status(status_id: String, potency: int) -> void:
-	var amount := maxi(1, potency)
-	match status_id.strip_edges().to_lower():
-		"poison":
-			_player_poison_stacks += amount
-		"burn":
-			_player_burn_stacks += amount
-		"rust":
-			_player_rust_stacks += amount
-		_:
-			pass
+	if player_statuses == null:
+		player_statuses = StatusController.new()
+	player_statuses.apply_status_by_id(status_id, maxi(1, potency))
 
 
-func _tick_enemy_burn() -> void:
-	for i in enemies.size():
-		var enemy: EnemyInstance = enemies[i]
-		if not enemy.is_alive():
-			continue
-		var burn := enemy.burn
-		if burn <= 0:
-			continue
-		enemy.current_hp = maxi(0, enemy.current_hp - burn)
-		enemy.burn = maxi(0, burn - 1)
-		EventBus.combat_log_message.emit("%s burns for %d." % [enemy.get_localized_name(), burn])
-		EventBus.enemy_hp_changed.emit(i, enemy.current_hp, enemy.max_hp)
-		if not enemy.is_alive():
-			enemy.clear_intention()
-			EventBus.enemy_intention_changed.emit(i, enemy.current_intention)
-			EventBus.enemy_died.emit(i)
+func apply_status_to_enemy(index: int, status_id: String, amount: int = 1) -> void:
+	if index < 0 or index >= enemies.size():
+		return
+	var enemy: EnemyInstance = enemies[index]
+	if enemy == null:
+		return
+	if enemy.statuses == null:
+		enemy.statuses = StatusController.new()
+	enemy.statuses.apply_status_by_id(status_id, maxi(1, amount))
 
 
-func _clear_player_negative_statuses() -> void:
-	_player_poison_stacks = 0
-	_player_rust_stacks = 0
-	_player_burn_stacks = 0
+func apply_status_to_enemy_instance(enemy: EnemyInstance, status_id: String, amount: int = 1) -> void:
+	if enemy == null:
+		return
+	if enemy.statuses == null:
+		enemy.statuses = StatusController.new()
+	enemy.statuses.apply_status_by_id(status_id, maxi(1, amount))
 
 
 func _living_enemy_indices() -> Array[int]:
@@ -590,6 +725,11 @@ func _emit_enemy_hp() -> void:
 
 
 func _win() -> void:
+	if player_statuses != null:
+		player_statuses.clear_combat_statuses()
+	for enemy: EnemyInstance in enemies:
+		if enemy != null and enemy.statuses != null:
+			enemy.statuses.clear_combat_statuses()
 	_set_state(CombatState.VICTORY)
 	EventBus.combat_log_message.emit(tr("KEY_LOG_VICTORY"))
 	EventBus.combat_ended.emit(true)
@@ -613,4 +753,6 @@ func abort_combat() -> void:
 	current_ap = 0
 	current_block = 0
 	target_index = -1
+	if player_statuses != null:
+		player_statuses.clear_combat_statuses()
 	state_changed.emit(state)

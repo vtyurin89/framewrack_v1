@@ -8,6 +8,7 @@ signal continue_pressed
 
 const ENEMY_INSPECT_SCENE := preload("res://scenes/UI/enemy_inspect_ui.tscn")
 const ENEMY_CARD_SCENE := preload("res://scenes/UI/enemy_card_ui.tscn")
+const STATUS_EFFECTS_SCENE := preload("res://scenes/UI/status_effects_ui.tscn")
 const INTENTION_STAGGER_DELAY := 0.15
 
 var combat: Node  # CombatManager
@@ -16,6 +17,7 @@ var _enemy_inspect: EnemyInspectUI
 var _enemy_context_menu: EnemyContextMenuUI
 var _intention_reveal_token: int = 0
 var _dying_indices: Dictionary = {}  # index -> true while fade in progress
+var _player_statuses_ui: StatusEffectsUI
 
 @onready var _enemy_row: HBoxContainer = %EnemyRow
 @onready var _hp_label: Label = %HPLabel
@@ -26,6 +28,7 @@ var _dying_indices: Dictionary = {}  # index -> true while fade in progress
 @onready var _end_turn_btn: Button = %EndTurnButton
 @onready var _continue_btn: Button = %ContinueButton
 @onready var _hint_label: Label = %CombatHint
+@onready var _player_status_host: HBoxContainer = %PlayerStatuses
 
 
 func _ready() -> void:
@@ -58,7 +61,22 @@ func setup(p_combat: Node, p_inventory: InventoryController) -> void:
 	_dying_indices.clear()
 	_apply_static_locale()
 	_on_hp_changed(inventory.current_hp, inventory.max_hp)
+	_ensure_player_statuses_ui()
 	_rebuild_enemies()
+
+
+func _ensure_player_statuses_ui() -> void:
+	if _player_status_host == null:
+		return
+	if _player_statuses_ui == null or not is_instance_valid(_player_statuses_ui):
+		for child in _player_status_host.get_children():
+			child.queue_free()
+		_player_statuses_ui = STATUS_EFFECTS_SCENE.instantiate() as StatusEffectsUI
+		_player_status_host.add_child(_player_statuses_ui)
+	if combat != null and combat.get("player_statuses") != null:
+		_player_statuses_ui.bind_controller(combat.player_statuses as StatusController)
+	else:
+		_player_statuses_ui.unbind()
 
 
 func _on_language_changed(_locale: String) -> void:
@@ -226,6 +244,7 @@ func _on_block_changed(amount: int) -> void:
 
 func _on_combat_started(_enemy_ids: Array) -> void:
 	_dying_indices.clear()
+	_ensure_player_statuses_ui()
 	_rebuild_enemies()
 
 

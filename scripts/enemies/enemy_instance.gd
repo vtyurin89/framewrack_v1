@@ -9,9 +9,10 @@ var data: EnemyData
 var max_hp: int = 1
 var current_hp: int = 1
 var current_block: int = 0
-var burn: int = 0
 var is_selected: bool = false
 var abilities: Array[EnemyAbility] = []
+## Combat status effects (poison, burn, rust, …).
+var statuses: StatusController = StatusController.new()
 ## Number of combat turns this enemy has started (for PRE_ACTION intervals).
 var turns_taken: int = 0
 ## Remaining cooldown turns keyed by ability id.
@@ -35,6 +36,10 @@ func setup(blueprint: EnemyData) -> void:
 		abilities.clear()
 		planned_ability = null
 		current_intention = null
+		if statuses == null:
+			statuses = StatusController.new()
+		else:
+			statuses.clear_combat_statuses()
 		return
 
 	strength = maxi(MIN_STAT, data.strength)
@@ -51,8 +56,11 @@ func setup(blueprint: EnemyData) -> void:
 	max_hp = maxi(1, int(round(raw_hp * hp_mult)))
 	current_hp = max_hp
 	current_block = 0
-	burn = 0
 	is_selected = false
+	if statuses == null:
+		statuses = StatusController.new()
+	else:
+		statuses.clear_combat_statuses()
 
 	abilities.clear()
 	for ability: EnemyAbility in data.abilities:

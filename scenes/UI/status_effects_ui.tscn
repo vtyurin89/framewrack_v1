@@ -1,0 +1,7 @@
+[gd_scene load_steps=2 format=3 uid="uid://bw_status_effects_ui"]
+
+[ext_resource type="Script" path="res://scripts/ui/status_effects_ui.gd" id="1"]
+
+[node name="StatusEffectsUI" type="HBoxContainer"]
+theme_override_constants/separation = 6
+script = ExtResource("1")

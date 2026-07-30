@@ -106,6 +106,15 @@ KEY_LOG_ENEMY_STUDY,%s: %s — Luck is now %d.,%s: %s — Удача тепер�
 KEY_LOG_ENEMY_MULTI_HIT,%s uses %s (%d hits)!,%s использует %s (%d ударов)!
 KEY_LOG_ENEMY_STAT_MOD,"%s modified %s by %d (now %d).","%s изменил %s на %d (теперь %d)."
 KEY_LOG_ENEMY_STATUS,%s applies %s (%d).,%s накладывает %s (%d).
+KEY_LOG_STATUS_DOT,%s deals %d (%d taken).,%s наносит %d (получено %d).
+KEY_STATUS_DOT,Status damage,Урон статуса
+KEY_LOG_STATUS_HEAL,Status repair restores %d HP.,Ремонт статуса восстанавливает %d ОЗ.
+KEY_LOG_STUNNED,You are stunned and skip this turn.,Вы оглушены и пропускаете ход.
+KEY_LOG_ENEMY_STUNNED,%s is stunned and skips its turn.,%s оглушён и пропускает ход.
+KEY_LOG_ENEMY_STATUS_DOT,%s suffers %d status damage.,%s получает %d урона от статуса.
+KEY_LOG_RUST_JAM,%s jams from Rust — AP wasted.,%s заклинивает от Ржавчины — ОД потрачены впустую.
+KEY_LOG_RUST_MISS,%s misses (Rust).,%s промахивается (Ржавчина).
+KEY_LOG_THORNS,%s thorns deal %d.,Шипы %s наносят %d.
 KEY_LOG_ENEMY_SUMMON,%s summons %s!,%s призывает %s!
 KEY_LOG_ENEMY_SUMMON_FAIL,%s failed to summon %s.,%s не смог призвать %s.
 KEY_ABILITY_PRE_ACTION_FMT,Pre-action every %d turns (permanent +1 Luck).,Преддействие каждые %d хода (постоянно +1 Удача).

@@ -1,7 +1,6 @@
 class_name EffectStatus
 extends AbilityEffect
-## Applies a named status / debuff to the player.
-## Block / guard / shield rows should use EffectShield (executor remaps them).
+## Applies a named status / debuff to the player (or remaps shield rows).
 
 
 func apply(caster: EnemyInstance, target: Node, params: Array) -> void:
@@ -23,14 +22,12 @@ func apply(caster: EnemyInstance, target: Node, params: Array) -> void:
 		EffectShield.new().apply(caster, target, params)
 		return
 
-	match status_id:
-		"poison", "burn", "rust":
-			if target != null and target.has_method("apply_player_status"):
-				target.call("apply_player_status", status_id, maxi(1, potency))
-				EventBus.combat_log_message.emit(
-					tr("KEY_LOG_ENEMY_STATUS") % [caster.get_localized_name(), status_id, potency]
-				)
-		_:
-			EventBus.combat_log_message.emit(
-				tr("KEY_LOG_ENEMY_STATUS") % [caster.get_localized_name(), status_id, potency]
-			)
+	if target != null and target.has_method("apply_player_status"):
+		target.call("apply_player_status", status_id, maxi(1, potency))
+		EventBus.combat_log_message.emit(
+			tr("KEY_LOG_ENEMY_STATUS") % [caster.get_localized_name(), status_id, potency]
+		)
+	else:
+		EventBus.combat_log_message.emit(
+			tr("KEY_LOG_ENEMY_STATUS") % [caster.get_localized_name(), status_id, potency]
+		)
