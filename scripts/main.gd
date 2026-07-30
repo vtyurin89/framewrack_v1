@@ -236,11 +236,11 @@ func _enter_gameplay() -> void:
 	_set_gameplay_ui_visible(true)
 	if _fresh_run_pending:
 		_fresh_run_pending = false
-		## Run starts on the map; node 0 is MAIN_STORY and picks a random god encounter.
-		_show_exploring()
+		## Auto-start with the opening god dialog (no map selection screen first).
+		_map_ui.visible = false
+		_combat_ui.visible = false
 		_status_banner.text = tr("KEY_STATUS_ONLINE")
-		EventBus.run_started.emit()
-		_inventory_ui.refresh()
+		_encounters.start_prologue()
 
 
 func _enter_game_over() -> void:
@@ -438,11 +438,15 @@ func _on_encounter_completed(rewards: Dictionary) -> void:
 	var message_key := str(rewards.get("message_key", ""))
 	var is_prologue := bool(rewards.get("prologue", false))
 	if is_prologue:
+		## Opening story consumed the MAIN_STORY start node; advance map to node 1.
+		_map.current_index = 0
+		_map.completed["n0"] = true
 		_show_exploring()
 		_status_banner.text = (
 			tr(message_key) if not message_key.is_empty() else tr("KEY_STATUS_ONLINE")
 		)
 		EventBus.run_started.emit()
+		_map_ui.refresh()
 		_inventory_ui.refresh()
 		return
 	## Map-node encounter finished (dialog / rest / chest / combat resolution).
