@@ -15,6 +15,10 @@ const COLOR_SHIELD := Color("#3498DB")
 const COLOR_MAIN_STORY := Color("#F1C40F")
 const COLOR_MAP_PATH_LOCKED := Color("#646A73")
 const COLOR_MAP_PATH_ACTIVE := Color("#ECF0F1")
+const COLOR_MAP_NODE_AVAILABLE := Color("#F1C40F")
+const COLOR_MAP_NODE_VISITED := Color("#B0B8C0")
+const COLOR_MAP_NODE_LOCKED := Color("#7F8C8D")
+const COLOR_MAP_PATH_TRAVELED := Color("#9AA3AD")
 
 
 func get_damage_color(damage_type: String, is_crit: bool = false, is_miss: bool = false) -> Color:

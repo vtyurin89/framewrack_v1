@@ -4,8 +4,10 @@ extends Control
 signal node_pressed(node_data: MapNodeData)
 
 @export var node_scene: PackedScene
-@export var dash_length: float = 10.0
-@export var gap_length: float = 8.0
+@export var dash_length: float = 9.0
+@export var gap_length: float = 7.0
+@export var curve_samples: int = 18
+@export var curve_side_offset: float = 28.0
 
 var map_data: MapData
 
@@ -41,12 +43,10 @@ func _draw() -> void:
 				continue
 			var color := GamePalette.COLOR_MAP_PATH_LOCKED
 			var width := 2.0
-			## Forward edges from current visited node to AVAILABLE choices.
 			var is_forward := (
 				node.state == MapNodeData.NodeState.VISITED
 				and next.state == MapNodeData.NodeState.AVAILABLE
 			)
-			## Past path (already taken) stays muted.
 			var is_traveled := (
 				node.state == MapNodeData.NodeState.VISITED
 				and next.state == MapNodeData.NodeState.VISITED
@@ -55,32 +55,77 @@ func _draw() -> void:
 				color = GamePalette.COLOR_MAP_PATH_ACTIVE
 				width = 2.5
 			elif is_traveled:
-				color = Color(
-					GamePalette.COLOR_MAP_PATH_LOCKED.r,
-					GamePalette.COLOR_MAP_PATH_LOCKED.g,
-					GamePalette.COLOR_MAP_PATH_LOCKED.b,
-					0.55
-				)
-			_draw_dashed_line(node.position, next.position, color, width)
+				color = GamePalette.COLOR_MAP_PATH_TRAVELED
+				width = 2.0
+			_draw_dashed_bezier(node.position, next.position, color, width, node.id, next.id)
 	for node: MapNodeData in map_data.get_all_nodes():
-		var dot_color := Color(0.36, 0.36, 0.4, 1.0)
+		var dot_color := GamePalette.COLOR_MISS
 		if node.state == MapNodeData.NodeState.AVAILABLE:
-			dot_color = GamePalette.COLOR_MAIN_STORY
+			dot_color = GamePalette.COLOR_MAP_NODE_AVAILABLE
 		elif node.state == MapNodeData.NodeState.VISITED:
-			dot_color = Color(0.5, 0.5, 0.52, 1.0)
-		draw_circle(node.position, 8.0, dot_color)
+			dot_color = GamePalette.COLOR_MAP_NODE_VISITED
+		draw_circle(node.position, 7.0, dot_color)
 
 
-func _draw_dashed_line(from: Vector2, to: Vector2, color: Color, width: float) -> void:
-	var delta := to - from
-	var length := delta.length()
-	if length <= 0.001:
+func _draw_dashed_bezier(
+	from: Vector2,
+	to: Vector2,
+	color: Color,
+	width: float,
+	from_id: String,
+	to_id: String
+) -> void:
+	var control := _bezier_control_point(from, to, from_id, to_id)
+	var points := _sample_quadratic_bezier(from, control, to, curve_samples)
+	if points.size() < 2:
 		return
-	var direction := delta / length
-	var step := maxf(dash_length + gap_length, 0.001)
-	var drawn := 0.0
-	while drawn < length:
-		var seg_start := from + direction * drawn
-		var seg_end := from + direction * minf(drawn + dash_length, length)
-		draw_line(seg_start, seg_end, color, width, true)
-		drawn += step
+	var draw_on := true
+	var leftover := 0.0
+	for i in range(points.size() - 1):
+		var a: Vector2 = points[i]
+		var b: Vector2 = points[i + 1]
+		var seg := b - a
+		var seg_len := seg.length()
+		if seg_len <= 0.001:
+			continue
+		var dir := seg / seg_len
+		var traveled := 0.0
+		while traveled < seg_len:
+			var budget := (dash_length if draw_on else gap_length) - leftover
+			var step := minf(budget, seg_len - traveled)
+			var p0 := a + dir * traveled
+			var p1 := a + dir * (traveled + step)
+			if draw_on:
+				draw_line(p0, p1, color, width, true)
+			traveled += step
+			leftover = 0.0
+			if is_equal_approx(traveled, seg_len):
+				## Carry remainder into next polyline segment for continuous dashes.
+				leftover = budget - step
+				if leftover <= 0.001:
+					draw_on = not draw_on
+					leftover = 0.0
+				break
+			draw_on = not draw_on
+
+
+func _bezier_control_point(from: Vector2, to: Vector2, from_id: String, to_id: String) -> Vector2:
+	var mid := (from + to) * 0.5
+	var delta := to - from
+	if delta.length_squared() < 0.001:
+		return mid
+	var normal := Vector2(-delta.y, delta.x).normalized()
+	## Deterministic left/right bend from ids so redraws stay stable.
+	var side := 1.0 if int(from_id.hash() + to_id.hash()) % 2 == 0 else -1.0
+	var amount := curve_side_offset * (0.75 + 0.35 * float((from_id.hash() % 5)) / 4.0)
+	return mid + normal * side * amount
+
+
+func _sample_quadratic_bezier(p0: Vector2, p1: Vector2, p2: Vector2, samples: int) -> PackedVector2Array:
+	var out := PackedVector2Array()
+	var count := maxi(samples, 4)
+	for i in count + 1:
+		var t := float(i) / float(count)
+		var u := 1.0 - t
+		out.append(u * u * p0 + 2.0 * u * t * p1 + t * t * p2)
+	return out

@@ -4,7 +4,7 @@ extends Button
 signal node_pressed(node_data: MapNodeData)
 
 var node_data: MapNodeData
-var _pulse_t: float = 0.0
+var _pulse_tween: Tween
 
 
 func bind_data(data: MapNodeData) -> void:
@@ -12,29 +12,35 @@ func bind_data(data: MapNodeData) -> void:
 	if node_data == null:
 		return
 	size = Vector2(56, 56)
-	position = node_data.position - (custom_minimum_size * 0.5)
+	custom_minimum_size = size
+	position = node_data.position - (size * 0.5)
 	text = _icon_for_type(node_data.node_type)
 	tooltip_text = _display_name()
 	disabled = node_data.state == MapNodeData.NodeState.LOCKED
 	modulate = _state_color(node_data.state)
+	scale = Vector2.ONE
+	pivot_offset = size * 0.5
 	mouse_default_cursor_shape = Control.CURSOR_POINTING_HAND
+	_refresh_pulse()
 
 
 func _ready() -> void:
 	custom_minimum_size = Vector2(56, 56)
 	size = custom_minimum_size
+	pivot_offset = size * 0.5
 	pressed.connect(_on_pressed)
 
 
-func _process(delta: float) -> void:
-	if node_data == null:
+func _refresh_pulse() -> void:
+	if _pulse_tween != null and _pulse_tween.is_valid():
+		_pulse_tween.kill()
+		_pulse_tween = null
+	scale = Vector2.ONE
+	if node_data == null or node_data.state != MapNodeData.NodeState.AVAILABLE:
 		return
-	if node_data.state == MapNodeData.NodeState.AVAILABLE:
-		_pulse_t += delta * 3.5
-		var pulse := 0.88 + 0.12 * sin(_pulse_t)
-		self_modulate.a = pulse
-	else:
-		self_modulate.a = 1.0
+	_pulse_tween = create_tween().set_loops()
+	_pulse_tween.tween_property(self, "scale", Vector2(1.08, 1.08), 0.55).set_trans(Tween.TRANS_SINE).set_ease(Tween.EASE_IN_OUT)
+	_pulse_tween.tween_property(self, "scale", Vector2(1.0, 1.0), 0.55).set_trans(Tween.TRANS_SINE).set_ease(Tween.EASE_IN_OUT)
 
 
 func _on_pressed() -> void:
@@ -46,12 +52,11 @@ func _on_pressed() -> void:
 func _state_color(state: MapNodeData.NodeState) -> Color:
 	match state:
 		MapNodeData.NodeState.LOCKED:
-			return Color(0.4, 0.4, 0.42, 1.0)
+			return GamePalette.COLOR_MISS
 		MapNodeData.NodeState.VISITED:
-			## Dimmed / inactive — already cleared, no longer selectable.
-			return Color(0.55, 0.55, 0.58, 0.85)
+			return GamePalette.COLOR_MAP_NODE_VISITED
 		_:
-			return GamePalette.COLOR_MAIN_STORY
+			return GamePalette.COLOR_MAP_NODE_AVAILABLE
 
 
 func _icon_for_type(node_type: MapNodeData.MapNodeType) -> String:

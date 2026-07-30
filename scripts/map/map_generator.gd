@@ -34,8 +34,11 @@ static func generate_for_act(act_data: ActData) -> MapData:
 
 	## Layer 1 — exactly 3 starting arteries (Left / Center / Right).
 	var prev_by_col: Dictionary = {}  ## int grid_x -> MapNodeData
+	var layer1_types: Dictionary = {}
 	for col in LAYER1_COLUMNS:
-		var node := _create_node(act_data, 1, col, _pick_middle_type())
+		var node_type := _pick_middle_type(act_data, 1, layer1_types)
+		layer1_types[node_type] = int(layer1_types.get(node_type, 0)) + 1
+		var node := _create_node(act_data, 1, col, node_type)
 		out.nodes[node.id] = node
 		prev_by_col[col] = node
 		start.next_nodes.append(node.id)
@@ -45,8 +48,11 @@ static func generate_for_act(act_data: ActData) -> MapData:
 		var phase := _density_phase(layer, boss_layer)
 		var next_cols := _plan_next_columns(prev_by_col.keys(), phase)
 		var next_by_col: Dictionary = {}
+		var layer_type_counts: Dictionary = {}
 		for col in next_cols:
-			var node := _create_node(act_data, layer, col, _pick_middle_type())
+			var node_type := _pick_middle_type(act_data, layer, layer_type_counts)
+			layer_type_counts[node_type] = int(layer_type_counts.get(node_type, 0)) + 1
+			var node := _create_node(act_data, layer, col, node_type)
 			out.nodes[node.id] = node
 			next_by_col[col] = node
 		_connect_adjacent_layers(prev_by_col, next_by_col)
@@ -287,11 +293,40 @@ static func _add_edge(from_node: MapNodeData, to_node: MapNodeData) -> void:
 
 static func _layout_positions(map_data: MapData) -> void:
 	## Absolute column layout keeps lanes visually parallel (no per-layer reindexing).
+	const MIN_NODE_SEPARATION := 72.0
+	const JITTER_X := 20.0
+	const JITTER_Y := 15.0
 	var origin_x := CANVAS_WIDTH * 0.5 - float(MAX_COLUMNS - 1) * X_SPACING * 0.5
+
+	var by_layer: Dictionary = {}
 	for node: MapNodeData in map_data.get_all_nodes():
 		var y := CANVAS_HEIGHT - BOTTOM_PADDING - float(node.layer) * Y_SPACING
 		y = maxf(y, 80.0)
 		node.position = Vector2(origin_x + float(node.grid_x) * X_SPACING, y)
+		if not by_layer.has(node.layer):
+			by_layer[node.layer] = []
+		(by_layer[node.layer] as Array).append(node)
+
+	## Organic jitter with same-layer overlap resolution.
+	for layer in by_layer.keys():
+		var layer_nodes: Array = by_layer[layer]
+		layer_nodes.sort_custom(
+			func(a: MapNodeData, b: MapNodeData) -> bool:
+				return a.grid_x < b.grid_x
+		)
+		for node: MapNodeData in layer_nodes:
+			node.position += Vector2(randf_range(-JITTER_X, JITTER_X), randf_range(-JITTER_Y, JITTER_Y))
+		## Push apart horizontally if jitter caused overlap.
+		for _pass in 4:
+			for i in range(layer_nodes.size() - 1):
+				var left: MapNodeData = layer_nodes[i]
+				var right: MapNodeData = layer_nodes[i + 1]
+				var gap := right.position.x - left.position.x
+				if gap >= MIN_NODE_SEPARATION:
+					continue
+				var push := (MIN_NODE_SEPARATION - gap) * 0.5
+				left.position.x -= push
+				right.position.x += push
 
 
 static func _create_node(
@@ -378,14 +413,56 @@ static func _title_key_for_type(kind: EncounterData.EncounterType) -> String:
 			return ""
 
 
-static func _pick_middle_type() -> MapNodeData.MapNodeType:
-	var roll := randf()
-	if roll < 0.45:
-		return MapNodeData.MapNodeType.COMBAT
-	if roll < 0.65:
-		return MapNodeData.MapNodeType.EVENT
-	if roll < 0.80:
-		return MapNodeData.MapNodeType.REPAIR if randf() < 0.5 else MapNodeData.MapNodeType.SHOP
-	if roll < 0.95:
-		return MapNodeData.MapNodeType.ELITE
-	return MapNodeData.MapNodeType.MAIN_STORY
+static func _pick_middle_type(
+	act_data: ActData,
+	layer: int,
+	layer_type_counts: Dictionary
+) -> MapNodeData.MapNodeType:
+	## Weighted pick with layer caps and Act 1 early-layer exclusions.
+	for _attempt in 24:
+		var candidate := _roll_middle_type(act_data, layer)
+		if int(layer_type_counts.get(candidate, 0)) >= 3:
+			continue
+		return candidate
+	## Fallback: first allowed type under the per-layer cap.
+	for candidate in _allowed_middle_types(act_data, layer):
+		if int(layer_type_counts.get(candidate, 0)) < 3:
+			return candidate as MapNodeData.MapNodeType
+	return MapNodeData.MapNodeType.COMBAT
+
+
+static func _allowed_middle_types(act_data: ActData, layer: int) -> Array:
+	var types: Array = [
+		MapNodeData.MapNodeType.COMBAT,
+		MapNodeData.MapNodeType.EVENT,
+		MapNodeData.MapNodeType.SHOP,
+		MapNodeData.MapNodeType.MAIN_STORY,
+		MapNodeData.MapNodeType.REPAIR,
+		MapNodeData.MapNodeType.ELITE,
+	]
+	if act_data != null and act_data.act_index == 1 and layer <= 2:
+		types.erase(MapNodeData.MapNodeType.ELITE)
+		types.erase(MapNodeData.MapNodeType.REPAIR)
+	return types
+
+
+static func _roll_middle_type(act_data: ActData, layer: int) -> MapNodeData.MapNodeType:
+	var exclude_elite_repair := act_data != null and act_data.act_index == 1 and layer <= 2
+	## Re-roll until we land on an allowed type (keeps original weight feel).
+	for _attempt in 16:
+		var roll := randf()
+		var picked: MapNodeData.MapNodeType
+		if roll < 0.45:
+			picked = MapNodeData.MapNodeType.COMBAT
+		elif roll < 0.65:
+			picked = MapNodeData.MapNodeType.EVENT
+		elif roll < 0.80:
+			picked = MapNodeData.MapNodeType.REPAIR if randf() < 0.5 else MapNodeData.MapNodeType.SHOP
+		elif roll < 0.95:
+			picked = MapNodeData.MapNodeType.ELITE
+		else:
+			picked = MapNodeData.MapNodeType.MAIN_STORY
+		if exclude_elite_repair and picked in [MapNodeData.MapNodeType.ELITE, MapNodeData.MapNodeType.REPAIR]:
+			continue
+		return picked
+	return MapNodeData.MapNodeType.COMBAT
