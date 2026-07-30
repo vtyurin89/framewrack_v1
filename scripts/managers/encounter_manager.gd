@@ -53,12 +53,16 @@ func start_prologue() -> void:
 	start_encounter(god_encounter)
 
 
-func load_random_starting_god() -> EncounterData:
-	## Public loader for the starting-god pool under data/encounters/gods/.
+func get_random_god_encounter() -> MainStoryEncounterData:
 	return StartingGodRegistry.pick_random_god_encounter()
 
 
-func load_starting_god(god_id: String) -> EncounterData:
+func load_random_starting_god() -> MainStoryEncounterData:
+	## Public loader for the starting-god pool under data/encounters/gods/.
+	return get_random_god_encounter()
+
+
+func load_starting_god(god_id: String) -> MainStoryEncounterData:
 	return StartingGodRegistry.load_god_encounter(god_id)
 
 
@@ -168,6 +172,16 @@ func _launch_by_type(data: EncounterData) -> void:
 				_apply_heal(int(data.payload.get("heal_amount", 10)))
 				_pending_rewards["message_key"] = "KEY_STATUS_EVENT"
 				_finish_encounter(_pending_rewards)
+		EncounterData.EncounterType.MAIN_STORY:
+			var story_dialog := data.get_dialog_event()
+			if story_dialog != null:
+				request_show_dialog.emit(story_dialog, data)
+			else:
+				var picked := get_random_god_encounter()
+				if picked != null:
+					start_encounter(picked)
+				else:
+					_finish_encounter(_pending_rewards)
 		EncounterData.EncounterType.REST_SITE:
 			if inventory:
 				inventory.grid.clear_all_corruption()

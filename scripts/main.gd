@@ -236,11 +236,11 @@ func _enter_gameplay() -> void:
 	_set_gameplay_ui_visible(true)
 	if _fresh_run_pending:
 		_fresh_run_pending = false
-		## Prologue dialog before Act 1 map.
-		_map_ui.visible = false
-		_combat_ui.visible = false
-		_status_banner.text = tr("EVENT_SLEEPER_GOD_TITLE")
-		_encounters.start_prologue()
+		## Run starts on the map; node 0 is MAIN_STORY and picks a random god encounter.
+		_show_exploring()
+		_status_banner.text = tr("KEY_STATUS_ONLINE")
+		EventBus.run_started.emit()
+		_inventory_ui.refresh()
 
 
 func _enter_game_over() -> void:
@@ -471,10 +471,12 @@ func _on_encounter_request_combat(enemy_datas: Array, encounter: EncounterData) 
 	_status_banner.text = tr("KEY_STATUS_ENGAGEMENT") % label
 
 
-func _on_encounter_request_dialog(dialog: DialogEventData, _encounter: EncounterData) -> void:
+func _on_encounter_request_dialog(dialog: DialogEventData, encounter: EncounterData) -> void:
 	_ensure_dialog_event_ui()
 	if _dialog_event_ui:
 		_dialog_event_ui.bind_encounter_manager(_encounters)
+		if encounter != null:
+			_dialog_event_ui.set_encounter_type(encounter.type)
 		## Wait one frame so TopBar has a valid size before measuring clearance.
 		await get_tree().process_frame
 		_layout_dialog_event_under_top_bar()

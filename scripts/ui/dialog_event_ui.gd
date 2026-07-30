@@ -20,6 +20,7 @@ const CHOICE_MIN_HEIGHT_BASE := 36.0
 const END_ENCOUNTER_ID := "end_encounter"
 
 @onready var _title_label: Label = %TitleLabel
+@onready var _story_badge: Label = %StoryBadge
 @onready var _story_text: RichTextLabel = %StoryText
 @onready var _result_label: Label = %ResultLabel
 @onready var _choices_box: VBoxContainer = %ChoicesBox
@@ -30,6 +31,7 @@ const END_ENCOUNTER_ID := "end_encounter"
 
 var _dialog: DialogEventData
 var _encounter_manager: EncounterManager
+var _encounter_type: int = EncounterData.EncounterType.EVENT
 var _current_node_id: String = ""
 var _fade_tween: Tween
 var _is_closing: bool = false
@@ -54,6 +56,11 @@ func _ready() -> void:
 
 func bind_encounter_manager(manager: EncounterManager) -> void:
 	_encounter_manager = manager
+
+
+func set_encounter_type(encounter_type: int) -> void:
+	_encounter_type = encounter_type
+	_apply_story_badge()
 
 
 func layout_below_top_bar(top_bar: Control, extra_pad: float = 0.0) -> void:
@@ -90,6 +97,7 @@ func open_dialog(dialog: DialogEventData) -> void:
 	_dialog = dialog
 	_current_node_id = dialog.start_node_id
 	_apply_responsive_layout()
+	_apply_story_badge()
 	_apply_event_image(dialog)
 	_show_node(_current_node_id)
 	visible = true
@@ -147,6 +155,13 @@ func _apply_responsive_layout() -> void:
 		_title_label.add_theme_font_size_override("font_size", title_size)
 		_title_label.add_theme_color_override("font_color", Color(0.95, 0.95, 0.97))
 		_title_label.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	if _story_badge:
+		_story_badge.add_theme_font_size_override("font_size", int(round(12 * s)))
+		_story_badge.add_theme_color_override(
+			"font_color",
+			GamePalette.COLOR_MAIN_STORY if GamePalette != null else Color("#F1C40F")
+		)
+	_apply_story_badge()
 	if _story_text:
 		_story_text.bbcode_enabled = true
 		_story_text.scroll_active = true
@@ -179,6 +194,14 @@ func _apply_event_image(dialog: DialogEventData) -> void:
 	if _image_placeholder:
 		_image_placeholder.visible = true
 		_image_placeholder.color = Color(0.03, 0.03, 0.04, 1) if tex != null else Color(0.08, 0.08, 0.1, 1)
+
+
+func _apply_story_badge() -> void:
+	if _story_badge == null:
+		return
+	var is_main_story := _encounter_type == EncounterData.EncounterType.MAIN_STORY
+	_story_badge.visible = is_main_story
+	_story_badge.text = tr("KEY_MAIN_STORY_BADGE")
 
 
 func _show_node(node_id: String) -> void:

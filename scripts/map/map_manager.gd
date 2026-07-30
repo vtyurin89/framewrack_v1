@@ -1,12 +1,13 @@
 class_name MapManager
 extends Node
-## Simple branching node map: Combat → Event/Repair → Combat → Boss.
+## Simple branching node map: Main Story > Combat/Repair/Event > Boss.
 
 enum NodeType {
 	COMBAT,
 	REPAIR,
 	EVENT,
 	BOSS,
+	MAIN_STORY,
 }
 
 signal node_entered(node_id: String, node_type: NodeType)
@@ -14,7 +15,7 @@ signal map_finished
 
 var nodes: Array[Dictionary] = []
 var current_index: int = -1
-var completed: Dictionary = {}  # node_id → true
+var completed: Dictionary = {}  # node_id > true
 
 
 func _ready() -> void:
@@ -23,7 +24,15 @@ func _ready() -> void:
 
 func _build_default_map() -> void:
 	nodes = [
-		{"id": "n0", "type": NodeType.COMBAT, "label_key": "MAP_N0_NAME", "label": "Scrap Corridor", "faction": "human", "threat_budget": 18, "enemy_ids": ["desperate_rebel"]},
+		{
+			"id": "n0",
+			"type": NodeType.MAIN_STORY,
+			"label_key": "MAP_N0_NAME",
+			"label": "Awakening Shrine",
+			"faction": "",
+			"threat_budget": 0,
+			"enemy_ids": [],
+		},
 		{"id": "n1", "type": NodeType.REPAIR, "label_key": "MAP_N1_NAME", "label": "Jury-Rig Bench", "enemy_ids": []},
 		{"id": "n2", "type": NodeType.COMBAT, "label_key": "MAP_N2_NAME", "label": "Synth Nest", "faction": "synthet", "threat_budget": 20, "enemy_ids": ["corrupted_synthet"]},
 		{"id": "n3", "type": NodeType.EVENT, "label_key": "MAP_N3_NAME", "label": "Mutation Cache", "enemy_ids": []},

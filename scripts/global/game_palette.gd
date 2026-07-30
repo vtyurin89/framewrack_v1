@@ -12,6 +12,7 @@ const COLOR_MISS := Color("#7F8C8D")
 const COLOR_HP_MAIN := Color("#E74C3C")
 const COLOR_HP_GHOST := Color("#F39C12")
 const COLOR_SHIELD := Color("#3498DB")
+const COLOR_MAIN_STORY := Color("#F1C40F")
 
 
 func get_damage_color(damage_type: String, is_crit: bool = false, is_miss: bool = false) -> Color:

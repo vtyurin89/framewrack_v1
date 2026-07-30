@@ -1,5 +1,5 @@
 extends Control
-## Node map UI — linear path of combat / repair / event / boss.
+## Node map UI - linear path of main story / combat / repair / event / boss.
 
 signal node_chosen(node_id: String)
 
@@ -46,7 +46,7 @@ func refresh() -> void:
 		_path.add_child(btn)
 
 		var arrow := Label.new()
-		arrow.text = " → "
+		arrow.text = " > "
 		arrow.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
 		_path.add_child(arrow)
 
@@ -68,13 +68,15 @@ func _on_node(node_id: String) -> void:
 
 func _type_label(t: int) -> String:
 	match t:
-		0:
+		MapManager.NodeType.COMBAT:
 			return tr("KEY_TYPE_COMBAT")
-		1:
+		MapManager.NodeType.REPAIR:
 			return tr("KEY_TYPE_REPAIR")
-		2:
+		MapManager.NodeType.EVENT:
 			return tr("KEY_TYPE_EVENT")
-		3:
+		MapManager.NodeType.BOSS:
 			return tr("KEY_TYPE_BOSS")
+		MapManager.NodeType.MAIN_STORY:
+			return tr("KEY_TYPE_MAIN_STORY")
 		_:
 			return "?"

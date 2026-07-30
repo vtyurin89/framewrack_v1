@@ -7,6 +7,7 @@ enum EncounterType {
 	COMBAT_ELITE,
 	COMBAT_BOSS,
 	EVENT,
+	MAIN_STORY,
 	CHEST,
 	SHOP,
 	REST_SITE,
@@ -19,9 +20,9 @@ enum EncounterType {
 @export var title_key: String = ""
 @export var icon: Texture2D
 @export var type: EncounterType = EncounterType.UNKNOWN
-## Typed payload (DialogEventData, etc.) — preferred for structured content.
+## Typed payload (DialogEventData, etc.) - preferred for structured content.
 @export var encounter_payload: Resource
-## Loose parameters: enemy_ids, faction, threat_budget, item_ids, heal_amount, …
+## Loose parameters: enemy_ids, faction, threat_budget, item_ids, heal_amount, ...
 @export var payload: Dictionary = {}
 
 

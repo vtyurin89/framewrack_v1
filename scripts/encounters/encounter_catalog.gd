@@ -34,6 +34,8 @@ static func from_map_node(node: Dictionary) -> EncounterData:
 			encounter.type = EncounterData.EncounterType.REST_SITE
 		MapManager.NodeType.EVENT:
 			encounter.type = EncounterData.EncounterType.EVENT
+		MapManager.NodeType.MAIN_STORY:
+			encounter.type = EncounterData.EncounterType.MAIN_STORY
 		_:
 			encounter.type = EncounterData.EncounterType.COMBAT_NORMAL
 	var enemy_ids: Array = node.get("enemy_ids", [])
@@ -49,4 +51,11 @@ static func from_map_node(node: Dictionary) -> EncounterData:
 		var preset := get_encounter(catalog_id)
 		if preset != null:
 			return preset
+	## Starting node MAIN_STORY: pick a random god encounter from pool.
+	if encounter.type == EncounterData.EncounterType.MAIN_STORY:
+		var god_encounter := StartingGodRegistry.pick_random_god_encounter()
+		if god_encounter != null:
+			god_encounter.payload["map_node_id"] = encounter.id
+			god_encounter.payload["prologue"] = false
+			return god_encounter
 	return encounter

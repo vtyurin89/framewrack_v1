@@ -24,7 +24,7 @@ static func list_god_ids() -> Array[String]:
 	return ids
 
 
-static func load_god_encounter(god_id: String) -> EncounterData:
+static func load_god_encounter(god_id: String) -> MainStoryEncounterData:
 	var path := "%s%s.json" % [GODS_DIR, god_id.strip_edges()]
 	if not FileAccess.file_exists(path):
 		push_warning("StartingGodRegistry: missing %s" % path)
@@ -40,7 +40,7 @@ static func load_god_encounter(god_id: String) -> EncounterData:
 	return _build_encounter_from_dict(parsed as Dictionary)
 
 
-static func pick_random_god_encounter() -> EncounterData:
+static func pick_random_god_encounter() -> MainStoryEncounterData:
 	var ids := list_god_ids()
 	if ids.is_empty():
 		return load_god_encounter("sleeper_god")
@@ -51,7 +51,7 @@ static func pick_random_god_encounter() -> EncounterData:
 	return encounter
 
 
-static func _build_encounter_from_dict(raw: Dictionary) -> EncounterData:
+static func _build_encounter_from_dict(raw: Dictionary) -> MainStoryEncounterData:
 	var dialog := DialogEventData.new()
 	dialog.id = str(raw.get("id", "")).strip_edges()
 	dialog.title = LocalizationManager.pick_en_ru(
@@ -92,11 +92,18 @@ static func _build_encounter_from_dict(raw: Dictionary) -> EncounterData:
 	if not nodes.is_empty() and dialog.get_node("start") == null:
 		dialog.start_node_id = nodes[0].id
 
-	var encounter := EncounterData.new()
+	var encounter := MainStoryEncounterData.new()
 	encounter.id = dialog.id
 	encounter.title = dialog.title
 	encounter.title_key = dialog.title_key
-	encounter.type = EncounterData.EncounterType.EVENT
+	encounter.type = EncounterData.EncounterType.MAIN_STORY
+	encounter.story_act = int(raw.get("story_act", 1))
+	encounter.chapter_title = LocalizationManager.pick_en_ru(
+		str(raw.get("chapter_title_en", "")),
+		str(raw.get("chapter_title_ru", "")),
+		str(raw.get("chapter_title", ""))
+	)
+	encounter.dialog_event = dialog
 	encounter.encounter_payload = dialog
 	encounter.payload = {
 		"prologue": bool(raw.get("prologue", true)),
