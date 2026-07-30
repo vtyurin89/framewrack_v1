@@ -36,6 +36,7 @@ var _current_node_id: String = ""
 var _fade_tween: Tween
 var _is_closing: bool = false
 var _choices_locked: bool = false
+var _pending_select_outcome: DialogOutcomeData
 
 
 func _ready() -> void:
@@ -282,6 +283,19 @@ func _on_choice_pressed(choice: DialogChoiceData) -> void:
 		outcome = DialogOutcomeData.make_end()
 
 	## Rewards first, then branch — or fade out on end_encounter.
+	if outcome.kind == DialogOutcomeData.OutcomeKind.SELECT_ITEM:
+		_choices_locked = true
+		if _encounter_manager:
+			if not _encounter_manager.item_selection_resolved.is_connected(_on_item_selection_resolved):
+				_encounter_manager.item_selection_resolved.connect(
+					_on_item_selection_resolved, CONNECT_ONE_SHOT
+				)
+			_pending_select_outcome = outcome
+			_encounter_manager.apply_dialog_outcome(outcome)
+		else:
+			_finish_with_outcome(outcome)
+		return
+
 	if _is_continuing_outcome(outcome):
 		if _encounter_manager:
 			_encounter_manager.apply_dialog_outcome(outcome)
@@ -296,6 +310,20 @@ func _on_choice_pressed(choice: DialogChoiceData) -> void:
 		return
 
 	_finish_with_outcome(outcome)
+
+
+func _on_item_selection_resolved(_item: ItemData) -> void:
+	_choices_locked = false
+	var outcome := _pending_select_outcome
+	_pending_select_outcome = null
+	if outcome == null:
+		_finish_with_outcome(DialogOutcomeData.make_end())
+		return
+	var next_id := outcome.next_node_id.strip_edges()
+	if next_id.is_empty() or next_id == END_ENCOUNTER_ID:
+		_finish_with_outcome(DialogOutcomeData.make_end(outcome.message_key))
+		return
+	_show_node(next_id)
 
 
 func _is_continuing_outcome(outcome: DialogOutcomeData) -> bool:

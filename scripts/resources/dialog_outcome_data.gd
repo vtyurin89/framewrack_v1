@@ -10,6 +10,7 @@ enum OutcomeKind {
 	DAMAGE, ## Deal damage to player then continue or end
 	GRANT_ITEM, ## Give item_id (× item_amount) then continue or end
 	GRANT_STAT, ## Permanent player_stats bonus then continue or end
+	SELECT_ITEM, ## Open SelectItemUI with an item pool, then continue or end
 	SKIP, ## Complete encounter with no further effect
 }
 
@@ -25,6 +26,12 @@ enum OutcomeKind {
 @export var enemy_ids: Array[String] = []
 @export var faction: String = ""
 @export var threat_budget: int = 0
+## SELECT_ITEM: pool key (e.g. uncommon_weapon, grenade) or explicit ids.
+@export var item_pool_id: String = ""
+@export var item_pool_ids: Array[String] = []
+## Optional run buff applied alongside the outcome (e.g. enemies_start_1hp).
+@export var buff_id: String = ""
+@export var buff_amount: int = 0
 
 
 static func make_end(message_key: String = "") -> DialogOutcomeData:
@@ -87,6 +94,17 @@ static func make_stat(
 	o.kind = OutcomeKind.GRANT_STAT
 	o.stat_name = stat_name
 	o.stat_amount = amount
+	o.next_node_id = next_id
+	o.message_key = message_key
+	return o
+
+
+static func make_select_item(
+	pool_id: String, next_id: String = "", message_key: String = ""
+) -> DialogOutcomeData:
+	var o := DialogOutcomeData.new()
+	o.kind = OutcomeKind.SELECT_ITEM
+	o.item_pool_id = pool_id
 	o.next_node_id = next_id
 	o.message_key = message_key
 	return o

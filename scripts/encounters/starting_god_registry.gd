@@ -203,6 +203,21 @@ static func _outcome_from_choice(choice_dict: Dictionary) -> DialogOutcomeData:
 				o.kind = DialogOutcomeData.OutcomeKind.GRANT_ITEM
 				o.item_id = NeuroChipItem.ITEM_ID
 				o.item_amount = amount if amount > 0 else 10
+			"item_choice", "select_item":
+				o.kind = DialogOutcomeData.OutcomeKind.SELECT_ITEM
+				o.item_pool_id = str(reward.get("pool", reward.get("item_pool_id", ""))).strip_edges()
+				var ids_raw: Variant = reward.get("item_ids", [])
+				if ids_raw is Array:
+					for eid in ids_raw:
+						var sid := str(eid).strip_edges()
+						if not sid.is_empty():
+							o.item_pool_ids.append(sid)
+			"enemies_start_1hp", "cripple_foes":
+				## Keep dialog navigation; buff is applied by EncounterManager.
+				if o.kind == DialogOutcomeData.OutcomeKind.END:
+					o.kind = DialogOutcomeData.OutcomeKind.CONTINUE
+				o.buff_id = "enemies_start_1hp"
+				o.buff_amount = int(reward.get("battles", amount if amount > 0 else 2))
 			_:
 				pass
 		## Keep branch navigation when a reward leads into another slide.
@@ -232,6 +247,14 @@ static func _parse_outcome(raw: Dictionary) -> DialogOutcomeData:
 	o.item_amount = maxi(1, int(raw.get("item_amount", 1)))
 	o.stat_name = str(raw.get("stat_name", ""))
 	o.stat_amount = int(raw.get("stat_amount", 0))
+	o.item_pool_id = str(raw.get("item_pool_id", "")).strip_edges()
+	o.buff_id = str(raw.get("buff_id", "")).strip_edges()
+	o.buff_amount = int(raw.get("buff_amount", 0))
+	var pool_ids: Array = raw.get("item_pool_ids", [])
+	for pid in pool_ids:
+		var s := str(pid).strip_edges()
+		if not s.is_empty():
+			o.item_pool_ids.append(s)
 	var enemies: Array = raw.get("enemy_ids", [])
 	for eid in enemies:
 		o.enemy_ids.append(str(eid))
@@ -248,6 +271,8 @@ static func _parse_outcome(raw: Dictionary) -> DialogOutcomeData:
 			o.kind = DialogOutcomeData.OutcomeKind.GRANT_ITEM
 		"GRANT_STAT":
 			o.kind = DialogOutcomeData.OutcomeKind.GRANT_STAT
+		"SELECT_ITEM":
+			o.kind = DialogOutcomeData.OutcomeKind.SELECT_ITEM
 		"SKIP":
 			o.kind = DialogOutcomeData.OutcomeKind.SKIP
 		_:

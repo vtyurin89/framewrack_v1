@@ -8,6 +8,11 @@ signal encounter_completed(rewards: Dictionary)
 signal request_combat(enemy_datas: Array, encounter: EncounterData)
 signal request_show_dialog(dialog: DialogEventData, encounter: EncounterData)
 signal request_show_placeholder(encounter: EncounterData, message_key: String)
+signal request_item_selection(item_pool: Array, title: String)
+signal item_selection_resolved(item: ItemData)
+
+## Explicit starting-god pool ids (directory scan also picks up any extra JSON).
+const STARTING_GOD_IDS: Array[String] = ["sleeper_god", "mol_vagrit"]
 
 const UNKNOWN_RESOLVE_POOL: Array[EncounterData.EncounterType] = [
 	EncounterData.EncounterType.COMBAT_NORMAL,
@@ -22,6 +27,11 @@ var combat: Node
 var active_encounter: EncounterData
 var _awaiting_combat_resolution: bool = false
 var _pending_rewards: Dictionary = {}
+var _awaiting_item_selection: bool = false
+var _pending_select_outcome: DialogOutcomeData
+var _pending_post_combat_finish: bool = false
+## Mol-Vagrit buff: next N normal battles start enemies at 1 HP.
+var crippled_foe_battles_remaining: int = 0
 
 
 func setup(
@@ -30,6 +40,10 @@ func setup(
 	inventory = p_inventory
 	player_stats = p_player_stats
 	combat = p_combat
+	crippled_foe_battles_remaining = 0
+	_awaiting_item_selection = false
+	_pending_select_outcome = null
+	_pending_post_combat_finish = false
 
 
 func has_active_encounter() -> bool:
@@ -54,7 +68,18 @@ func start_prologue() -> void:
 
 
 func get_random_god_encounter() -> MainStoryEncounterData:
-	return StartingGodRegistry.pick_random_god_encounter()
+	## Prefer the curated starting pool; fall back to full gods directory.
+	var pool: Array[String] = []
+	for god_id in STARTING_GOD_IDS:
+		if FileAccess.file_exists("%s%s.json" % [StartingGodRegistry.GODS_DIR, god_id]):
+			pool.append(god_id)
+	if pool.is_empty():
+		return StartingGodRegistry.pick_random_god_encounter()
+	var pick: String = pool[randi() % pool.size()]
+	var encounter := StartingGodRegistry.load_god_encounter(pick)
+	if encounter == null:
+		return StartingGodRegistry.pick_random_god_encounter()
+	return encounter
 
 
 func load_random_starting_god() -> MainStoryEncounterData:
@@ -77,6 +102,9 @@ func start_encounter(data: EncounterData) -> void:
 	active_encounter = resolved
 	_pending_rewards = {"encounter_id": resolved.id, "type": resolved.type}
 	_awaiting_combat_resolution = false
+	_awaiting_item_selection = false
+	_pending_select_outcome = null
+	_pending_post_combat_finish = false
 	encounter_started.emit(resolved)
 	_launch_by_type(resolved)
 
@@ -106,7 +134,10 @@ func notify_combat_finished(victory: bool) -> void:
 	_pending_rewards["combat_victory"] = victory
 	if not victory:
 		_pending_rewards["failed"] = true
-	_finish_encounter(_pending_rewards)
+		_finish_encounter(_pending_rewards)
+		return
+	## Victory: route loot choice through SelectItemUI stub before completing.
+	_offer_post_combat_item_choice()
 
 
 func apply_dialog_outcome(outcome: DialogOutcomeData) -> void:
@@ -115,6 +146,7 @@ func apply_dialog_outcome(outcome: DialogOutcomeData) -> void:
 	if outcome == null:
 		_finish_encounter(_pending_rewards)
 		return
+	_apply_outcome_buff(outcome)
 	match outcome.kind:
 		DialogOutcomeData.OutcomeKind.END, DialogOutcomeData.OutcomeKind.SKIP:
 			if not outcome.message_key.is_empty():
@@ -154,10 +186,39 @@ func apply_dialog_outcome(outcome: DialogOutcomeData) -> void:
 			_pending_rewards["stat_amount"] = outcome.stat_amount
 			if outcome.next_node_id.is_empty():
 				_finish_encounter(_pending_rewards)
+		DialogOutcomeData.OutcomeKind.SELECT_ITEM:
+			if not outcome.message_key.is_empty():
+				_pending_rewards["message_key"] = outcome.message_key
+			_begin_item_selection(outcome, false)
 		DialogOutcomeData.OutcomeKind.COMBAT:
 			if not outcome.message_key.is_empty():
 				_pending_rewards["message_key"] = outcome.message_key
 			_start_combat_from_ids(outcome.enemy_ids, outcome.faction, outcome.threat_budget)
+
+
+func resolve_item_selection(selected_item: ItemData) -> void:
+	## Called by Main / SelectItemUI after the player confirms a choice.
+	if not _awaiting_item_selection:
+		return
+	_awaiting_item_selection = false
+	if selected_item != null:
+		_grant_item_data(selected_item)
+		_pending_rewards["item_id"] = selected_item.id
+		_pending_rewards["item_amount"] = 1
+	var pending := _pending_select_outcome
+	_pending_select_outcome = null
+	item_selection_resolved.emit(selected_item)
+	if _pending_post_combat_finish:
+		_pending_post_combat_finish = false
+		_finish_encounter(_pending_rewards)
+		return
+	if pending != null and pending.next_node_id.is_empty():
+		_finish_encounter(_pending_rewards)
+
+
+func open_item_selection(item_pool: Array, title: String = "Выберите награду") -> void:
+	## Public helper for external callers (dialog / rewards).
+	request_item_selection.emit(item_pool, title)
 
 
 func resolve_stat_check(stat_name: String, dc: int) -> bool:
@@ -251,8 +312,88 @@ func _start_combat_from_ids(
 		push_warning("EncounterManager: no enemies resolved for combat")
 		_finish_encounter(_pending_rewards)
 		return
+	datas = _apply_cripple_buff_to_enemies(datas)
 	_awaiting_combat_resolution = true
 	request_combat.emit(datas, active_encounter)
+
+
+func _apply_cripple_buff_to_enemies(datas: Array[EnemyData]) -> Array[EnemyData]:
+	## Mol-Vagrit gift: next N normal battles start with enemies at 1 HP.
+	if crippled_foe_battles_remaining <= 0:
+		return datas
+	if active_encounter == null:
+		return datas
+	if active_encounter.type != EncounterData.EncounterType.COMBAT_NORMAL:
+		return datas
+	var out: Array[EnemyData] = []
+	for data in datas:
+		if data == null:
+			continue
+		var copy := data.duplicate(true) as EnemyData
+		if copy != null:
+			copy.base_hp = 1
+			copy.max_hp = 1
+			out.append(copy)
+		else:
+			out.append(data)
+	crippled_foe_battles_remaining = maxi(0, crippled_foe_battles_remaining - 1)
+	_pending_rewards["cripple_buff_applied"] = true
+	return out
+
+
+func _begin_item_selection(outcome: DialogOutcomeData, post_combat: bool) -> void:
+	_awaiting_item_selection = true
+	_pending_select_outcome = outcome
+	_pending_post_combat_finish = post_combat
+	var pool: Array = _build_item_pool_from_outcome(outcome)
+	var title := "Выберите награду"
+	if post_combat:
+		title = "Награда за бой"
+	request_item_selection.emit(pool, title)
+
+
+func _offer_post_combat_item_choice() -> void:
+	var outcome := DialogOutcomeData.make_select_item("combat_loot")
+	_begin_item_selection(outcome, true)
+
+
+func _build_item_pool_from_outcome(outcome: DialogOutcomeData) -> Array:
+	var pool: Array = []
+	if outcome == null:
+		return pool
+	for item_id in outcome.item_pool_ids:
+		if ItemDatabase != null and ItemDatabase.has_item(item_id):
+			pool.append(ItemDatabase.get_item(item_id))
+	if pool.is_empty() and ItemDatabase != null:
+		pool = ItemDatabase.build_choice_pool(outcome.item_pool_id)
+	return pool
+
+
+func _apply_outcome_buff(outcome: DialogOutcomeData) -> void:
+	if outcome == null or outcome.buff_id.is_empty():
+		return
+	match outcome.buff_id.strip_edges().to_lower():
+		"enemies_start_1hp", "cripple_foes":
+			crippled_foe_battles_remaining = maxi(outcome.buff_amount, 1)
+			_pending_rewards["buff_id"] = outcome.buff_id
+			_pending_rewards["buff_amount"] = crippled_foe_battles_remaining
+		_:
+			pass
+
+
+func _grant_item_data(item: ItemData) -> void:
+	if inventory == null or item == null:
+		return
+	var instance := item
+	## Prefer a fresh instance from the catalog when we only have a prototype.
+	if ItemDatabase != null and ItemDatabase.has_item(item.id):
+		instance = ItemDatabase.create_instance(item.id)
+	if instance == null:
+		return
+	if instance.is_stackable:
+		inventory.add_stackable_item(instance.id, maxi(instance.current_stack, 1))
+		return
+	inventory.try_place_anywhere(instance)
 
 
 func _finish_encounter(rewards: Dictionary) -> void:

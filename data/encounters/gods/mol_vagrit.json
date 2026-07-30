@@ -1,0 +1,97 @@
+{
+	"id": "mol_vagrit",
+	"title_key": "EVENT_MOL_VAGRIT_TITLE",
+	"god_name": "Mol-Vagrit, Eater of Legions",
+	"god_name_ru": "Мол-Вагрит, Пожиратель Легионов",
+	"aliases": ["Eater of Legions", "War-God of Rust"],
+	"aliases_ru": ["Пожиратель Легионов", "Бог войны из ржавчины"],
+	"image_path": "res://assets/sprites/gods/god_of_war.png",
+	"prologue": true,
+	"story_act": 1,
+	"dialogs": {
+		"start": {
+			"narrator_text_en": "[i]The god of war's voice thunders like an artillery barrage — a mechanical roar laced with echoes of human screaming.[/i]",
+			"narrator_text_ru": "[i]Голос бога войны гремит, как артиллерийский залп — это механический рёв, в котором слышны отголоски человеческих воплей.[/i]",
+			"speech_text_en": "«A-HA-HA-HA-HA! Another scrap of meat stretched over rebar, pretending to be a fighter! Did you come to kneel before me — or to fight? Doesn't matter. Both end the same way.\n\nYou're hunting the Heavenly Oasis? Think you'll find your peaceful corner beyond the clouds? COWARD! A dream isn't something you simply persue — it must be conquered. You're a soldier; your calling is to kill, and kill, and devour enemies, then kill again until everything around you turns to ash. The Chimeras understand this.\n\nProve to me that a spark of war still burns within you — and I will arm you as my soldier. Or crawl back into the dark corner you crawled out of, you pathetic weakling.»",
+			"speech_text_ru": "«А-ХА-ХА-ХА-ХА! Ещё один кусок мяса, натянутый на арматуру, притворяется бойцом! Ты пришёл преклонить колени — или драться? Впрочем, неважно. И то, и другое заканчивается одинаково.\n\nТы ищешь небесный оазис? Думаешь, найдешь свой мирный уголок за облаками? ТРУС! Мечту невозможно просто так достичь, её нужно завоевать. Ты солдат, твоё призвание — убивать, и убивать, и пожирать врагов, а потом убивать снова, пока всё вокруг не превратится в пепел. Химеры понимают это.\n\nДокажи мне, что в тебе еще горит искра войны — и я вооружу тебя как своего солдата. Или уползай обратно во тьму, откуда ты и вылез, слабак».",
+			"choices": [
+				{
+					"text_en": "«Give me a blade worthy of a god. I'll find someone to stab with it.» [Accept gift — Weapon]",
+					"text_ru": "«Дай мне клинок, достойный бога. Я найду, в кого его вонзить». [Принять дар — Оружие]",
+					"next_dialog_id": "branch_1",
+					"reward": { "type": "item_choice", "pool": "uncommon_weapon" }
+				},
+				{
+					"text_en": "«Give me something that explodes. I'll blow them all to pieces.» [Accept gift — Grenade]",
+					"text_ru": "«Дай мне что-нибудь, что взрывается. Я взорву их». [Принять дар — Граната]",
+					"next_dialog_id": "branch_2",
+					"reward": { "type": "item_choice", "pool": "grenade" }
+				},
+				{
+					"text_en": "«Let the next two I meet pay for it.» [Accept gift — Enemy weakness]",
+					"text_ru": "«Пусть следующие двое, кого я встречу, поплатятся». [Принять дар — Слабость врагов]",
+					"next_dialog_id": "branch_3",
+					"reward": { "type": "enemies_start_1hp", "battles": 2 }
+				},
+				{
+					"text_en": "«Go back to the Abyss! You do not exist...» [Refuse]",
+					"text_ru": "«Отправляйся обратно в Бездну! Тебя нет...» [Отказаться]",
+					"next_dialog_id": "branch_4",
+					"reward": null
+				}
+			]
+		},
+		"branch_1": {
+			"narrator_text_en": "",
+			"narrator_text_ru": "",
+			"speech_text_en": "«THAT'S THE RIGHT CHOICE, soldier! Take it — this isn't just steel, this is MY WILL forged into metal! This weapon remembers the taste of blood, and it is HUNGRY. Don't disappoint it.\n\nA-HA-HA-HA-HA!»",
+			"speech_text_ru": "«ВОТ ЭТО ПРАВИЛЬНЫЙ ВЫБОР, солдат! Держи — это не просто железо, это МОЯ ВОЛЯ, вложенная в металл! Это оружие помнит вкус крови, и оно ГОЛОДНО. Не разочаруй его.\n\nА-ХА-ХА-ХА-ХА!»",
+			"choices": [
+				{
+					"text_en": "End dialogue",
+					"text_ru": "Закончить диалог",
+					"next_dialog_id": "end_encounter"
+				}
+			]
+		},
+		"branch_2": {
+			"narrator_text_en": "",
+			"narrator_text_ru": "",
+			"speech_text_en": "«HA! The silence after an explosion sounds sweeter than any prayer. Remember: you'll only get one chance — don't waste it. Burn them all… make them all turn to ash…»",
+			"speech_text_ru": "«ХА! Тишина после взрыва звучит слаще любой молитвы. Помни: у тебя будет только один шанс — не упусти его. Спали их всех… пусть они все обратятся в пепел…»",
+			"choices": [
+				{
+					"text_en": "End dialogue",
+					"text_ru": "Закончить диалог",
+					"next_dialog_id": "end_encounter"
+				}
+			]
+		},
+		"branch_3": {
+			"narrator_text_en": "",
+			"narrator_text_ru": "",
+			"speech_text_en": "«YES!!! THERE IT IS! You ask not for strength, not for a weapon — you ask for VICTIMS! That's the soldier's way! The next two who stand in your path will pay — their steel frames will crack, their flesh will split under a single glance from you. Enjoy the slaughter. Chop them to pieces.»",
+			"speech_text_ru": "«ДА!!! ВОТ ОНО! Ты просишь не силы, не оружия — ты просишь ЖЕРТВ! Это по-военному, солдат! Следующие двое, кто встанет на твоём пути, поплатятся — их железо треснет, их плоть разойдётся от одного твоего взгляда. Наслаждайся резнёй. Не нужно ничего доказывать — только рубить».",
+			"choices": [
+				{
+					"text_en": "End dialogue",
+					"text_ru": "Закончить диалог",
+					"next_dialog_id": "end_encounter"
+				}
+			]
+		},
+		"branch_4": {
+			"narrator_text_en": "[i]The god of war lets out a roar full of fury and delight at once — as if refusal itself gave him a twisted pleasure.[/i]",
+			"narrator_text_ru": "[i]Бог войны издаёт рёв, полный ярости и восторга одновременно — будто отказ доставил ему извращённое удовольствие.[/i]",
+			"speech_text_en": "«I DON'T EXIST?! HA-HA-HA-HA! You must be bold to say that to a god of bloody slaughter!\n\nI LIKE THAT! I will let you go. But remember — you can't escape me, and you can't run from me, because I am a part of you. We were made to kill and hate, we were made for war... We were made to wipe them all out.»",
+			"speech_text_ru": "«НЕ СУЩЕСТВУЮ?! ХА-ХА-ХА-ХА! А ты смелый — раз не боишься сказать такое богу кровавой резни!\n\nМНЕ ЭТО НРАВИТСЯ! Поэтому я тебя отпущу. Но запомни — тебе от меня никуда не деться, никуда не сбежать, ведь я — это часть тебя. Мы были созданы убивать и ненавидеть, мы были созданы для войны — чтобы истребить их всех».",
+			"choices": [
+				{
+					"text_en": "End dialogue",
+					"text_ru": "Закончить диалог",
+					"next_dialog_id": "end_encounter"
+				}
+			]
+		}
+	}
+}

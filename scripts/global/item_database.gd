@@ -53,6 +53,44 @@ func create_instance(item_id: String) -> ItemData:
 	return instance
 
 
+func build_choice_pool(pool_id: String) -> Array:
+	## Returns ItemData prototypes (not instances) for SelectItemUI / reward stubs.
+	var result: Array = []
+	var key := pool_id.strip_edges().to_lower()
+	match key:
+		"uncommon_weapon":
+			for item: ItemData in get_all_items():
+				if item == null or item.item_type == null or item.rarity == null:
+					continue
+				if item.item_type.id.strip_edges().to_upper() != "WEAPON":
+					continue
+				if item.rarity.id.strip_edges().to_upper() != "UNCOMMON":
+					continue
+				result.append(item)
+		"grenade", "grenades":
+			for item: ItemData in get_all_items():
+				if item == null or item.item_type == null:
+					continue
+				if item.item_type.id.strip_edges().to_upper() != "CONSUMABLE":
+					continue
+				## Explosives / thrown charges: damaging consumables aimed at enemies.
+				if item.target_type == ItemData.TargetType.SINGLE_ENEMY and item.base_damage > 0:
+					result.append(item)
+			if result.is_empty():
+				var thermite := get_item("THERMITE_CHARGE")
+				if thermite != null:
+					result.append(thermite)
+		"combat_loot", "post_combat":
+			for item_id in ["SURGICAL_SAW", "BIO_GEL", "SALT_INJECTOR", "REBEL_CLEAVER"]:
+				var item := get_item(item_id)
+				if item != null:
+					result.append(item)
+		_:
+			## Explicit CSV ids or unknown keys fall back to empty.
+			pass
+	return result
+
+
 func _parse_target_type(raw: String) -> ItemData.TargetType:
 	match raw.strip_edges().to_upper():
 		"SELF":

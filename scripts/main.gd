@@ -13,6 +13,7 @@ const MAIN_MENU_SCENE := preload("res://scenes/UI/main_menu.tscn")
 const GAME_OVER_SCENE := preload("res://scenes/UI/game_over_ui.tscn")
 const SETTINGS_SCENE := preload("res://scenes/UI/settings_modal.tscn")
 const DIALOG_EVENT_SCENE := preload("res://scenes/UI/dialog_event_ui.tscn")
+const SELECT_ITEM_SCENE := preload("res://scenes/UI/select_item_ui.tscn")
 
 @onready var _map_ui: Control = %MapUI
 @onready var _inventory_ui: Control = %InventoryUI
@@ -41,6 +42,7 @@ var _inventory_overlay_content_min: Vector2 = Vector2(460, 320)
 @onready var _run_flow: RunFlowManager = $RunFlowManager
 
 var _dialog_event_ui: DialogEventUI
+var _select_item_ui: SelectItemUI
 var _encounter_combat_active: bool = false
 
 
@@ -57,6 +59,7 @@ func _ready() -> void:
 	_encounters.request_combat.connect(_on_encounter_request_combat)
 	_encounters.request_show_dialog.connect(_on_encounter_request_dialog)
 	_encounters.request_show_placeholder.connect(_on_encounter_placeholder)
+	_encounters.request_item_selection.connect(_on_encounter_request_item_selection)
 	_style_inventory_panel()
 	_ensure_overlays()
 
@@ -489,6 +492,27 @@ func _on_encounter_request_dialog(dialog: DialogEventData, encounter: EncounterD
 func _on_encounter_placeholder(_encounter: EncounterData, message_key: String) -> void:
 	if not message_key.is_empty():
 		_status_banner.text = tr(message_key)
+
+
+func _on_encounter_request_item_selection(item_pool: Array, title: String) -> void:
+	_ensure_select_item_ui()
+	if _select_item_ui:
+		_select_item_ui.open_item_selection(item_pool, title)
+
+
+func _ensure_select_item_ui() -> void:
+	if _select_item_ui != null and is_instance_valid(_select_item_ui):
+		return
+	_select_item_ui = SELECT_ITEM_SCENE.instantiate() as SelectItemUI
+	_select_item_ui.name = "SelectItemUI"
+	add_child(_select_item_ui)
+	_select_item_ui.item_selected.connect(_on_select_item_chosen)
+
+
+func _on_select_item_chosen(item: ItemData) -> void:
+	_encounters.resolve_item_selection(item)
+	if _inventory_ui:
+		_inventory_ui.refresh()
 
 
 func _ensure_dialog_event_ui() -> void:
