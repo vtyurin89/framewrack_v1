@@ -1,6 +1,7 @@
-[gd_scene load_steps=2 format=3 uid="uid://bw_enemy_card_ui"]
+[gd_scene load_steps=3 format=3 uid="uid://bw_enemy_card_ui"]
 
 [ext_resource type="Script" path="res://scripts/ui/enemy_card_ui.gd" id="1"]
+[ext_resource type="PackedScene" path="res://scenes/UI/ghost_progress_bar.tscn" id="2"]
 
 [node name="EnemyCardUI" type="PanelContainer"]
 custom_minimum_size = Vector2(185, 300)
@@ -62,7 +63,7 @@ layout_mode = 2
 size_flags_horizontal = 3
 mouse_filter = 2
 
-[node name="HPBar" type="ProgressBar" parent="VBox/HPBarHost"]
+[node name="GhostHPBar" parent="VBox/HPBarHost" instance=ExtResource("2")]
 unique_name_in_owner = true
 layout_mode = 1
 anchors_preset = 15
@@ -70,25 +71,6 @@ anchor_right = 1.0
 anchor_bottom = 1.0
 grow_horizontal = 2
 grow_vertical = 2
-mouse_filter = 2
-max_value = 1.0
-value = 1.0
-show_percentage = false
-
-[node name="HPLabel" type="Label" parent="VBox/HPBarHost"]
-unique_name_in_owner = true
-layout_mode = 1
-anchors_preset = 15
-anchor_right = 1.0
-anchor_bottom = 1.0
-grow_horizontal = 2
-grow_vertical = 2
-mouse_filter = 2
-theme_override_colors/font_color = Color(1, 1, 1, 1)
-theme_override_font_sizes/font_size = 13
-text = "0/0"
-horizontal_alignment = 1
-vertical_alignment = 1
 
 [node name="StatusHost" type="HBoxContainer" parent="VBox"]
 unique_name_in_owner = true

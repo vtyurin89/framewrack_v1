@@ -18,6 +18,7 @@ var _enemy_context_menu: EnemyContextMenuUI
 var _intention_reveal_token: int = 0
 var _dying_indices: Dictionary = {}  # index -> true while fade in progress
 var _player_statuses_ui: StatusEffectsUI
+var _player_hp_initialized: bool = false
 
 @onready var _enemy_row: HBoxContainer = %EnemyRow
 @onready var _hp_label: Label = %HPLabel
@@ -29,6 +30,8 @@ var _player_statuses_ui: StatusEffectsUI
 @onready var _continue_btn: Button = %ContinueButton
 @onready var _hint_label: Label = %CombatHint
 @onready var _player_status_host: HBoxContainer = %PlayerStatuses
+@onready var _player_hp_bar: GhostProgressBar = %PlayerHPBar
+@onready var _stats_row: HBoxContainer = $VBox/StatsRow
 
 
 func _ready() -> void:
@@ -48,8 +51,10 @@ func _ready() -> void:
 	EventBus.enemy_combat_text.connect(_on_enemy_combat_text)
 	EventBus.enemy_intention_changed.connect(_on_enemy_intention_changed)
 	EventBus.enemy_died.connect(_on_enemy_died)
+	EventBus.damage_popup_requested.connect(_on_damage_popup_requested)
 	LocalizationManager.language_changed.connect(_on_language_changed)
 	_apply_static_locale()
+	_bind_damage_popup_manager()
 
 
 func setup(p_combat: Node, p_inventory: InventoryController) -> void:
@@ -59,10 +64,48 @@ func setup(p_combat: Node, p_inventory: InventoryController) -> void:
 	_continue_btn.visible = false
 	_end_turn_btn.disabled = false
 	_dying_indices.clear()
+	_player_hp_initialized = false
 	_apply_static_locale()
 	_on_hp_changed(inventory.current_hp, inventory.max_hp)
 	_ensure_player_statuses_ui()
+	_bind_damage_popup_manager()
 	_rebuild_enemies()
+
+
+func _bind_damage_popup_manager() -> void:
+	if DamagePopUpManager == null:
+		return
+	var anchor: Control = _player_hp_bar if _player_hp_bar != null else _stats_row
+	if anchor == null:
+		anchor = _hp_label
+	DamagePopUpManager.set_player_anchor(anchor)
+	DamagePopUpManager.set_enemy_resolver(Callable(self, "_resolve_enemy_popup_target"))
+
+
+func _resolve_enemy_popup_target(enemy_index: int) -> Control:
+	var card := _find_card_by_index(enemy_index)
+	if card == null:
+		return null
+	## Prefer the card body (stable size) over the thin CombatTextHost strip.
+	return card
+
+
+func _on_damage_popup_requested(
+	target_kind: String,
+	enemy_index: int,
+	amount: int,
+	damage_type: String,
+	is_crit: bool,
+	is_miss: bool
+) -> void:
+	if DamagePopUpManager == null:
+		return
+	match target_kind:
+		"enemy":
+			DamagePopUpManager.queue_enemy_damage(enemy_index, amount, damage_type, is_crit, is_miss)
+		"player":
+			## Player popups temporarily disabled (stub kept in DamagePopUpManager).
+			DamagePopUpManager.queue_player_damage(amount, damage_type, is_crit, is_miss)
 
 
 func _ensure_player_statuses_ui() -> void:
@@ -236,6 +279,10 @@ func _on_ap_changed(current: int, maximum: int) -> void:
 
 func _on_hp_changed(current: int, maximum: int) -> void:
 	_hp_label.text = tr("KEY_FRAME_HP_FMT") % [tr("KEY_FRAME_HP"), current, maximum]
+	if _player_hp_bar:
+		_player_hp_bar.bar_min_size = Vector2(280, 22)
+		_player_hp_bar.set_hp(current, maximum, _player_hp_initialized)
+		_player_hp_initialized = true
 
 
 func _on_block_changed(amount: int) -> void:
@@ -244,7 +291,13 @@ func _on_block_changed(amount: int) -> void:
 
 func _on_combat_started(_enemy_ids: Array) -> void:
 	_dying_indices.clear()
+	_player_hp_initialized = false
 	_ensure_player_statuses_ui()
+	_bind_damage_popup_manager()
+	if DamagePopUpManager:
+		DamagePopUpManager.clear_queue()
+	if inventory:
+		_on_hp_changed(inventory.current_hp, inventory.max_hp)
 	_rebuild_enemies()
 
 

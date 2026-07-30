@@ -42,3 +42,13 @@ signal enemy_died(enemy_index: int)
 signal block_changed(amount: int)
 signal combat_item_availability_changed
 signal player_died
+## Floating damage / miss / status popup request (CombatUI resolves target nodes).
+## target_kind: "enemy" | "player"
+signal damage_popup_requested(
+	target_kind: String,
+	enemy_index: int,
+	amount: int,
+	damage_type: String,
+	is_crit: bool,
+	is_miss: bool
+)

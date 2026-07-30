@@ -118,6 +118,8 @@ func _player_pre_turn_phase() -> bool:
 	var dmg: int = int(result.get("damage", 0))
 	if dmg > 0:
 		var dealt := inventory.apply_damage(dmg, 0)
+		var dtype := _infer_status_dot_type(result)
+		_request_player_popup(dealt if dealt > 0 else dmg, dtype)
 		EventBus.combat_log_message.emit(tr("KEY_LOG_STATUS_DOT") % [tr("KEY_STATUS_DOT"), dmg, dealt])
 		EventBus.player_hp_changed.emit(inventory.current_hp, inventory.max_hp)
 		if inventory.is_dead():
@@ -137,6 +139,7 @@ func _player_start_turn_phase() -> void:
 	if heal_amt > 0 and inventory != null:
 		inventory.current_hp = mini(inventory.max_hp, inventory.current_hp + heal_amt)
 		EventBus.player_hp_changed.emit(inventory.current_hp, inventory.max_hp)
+		_request_player_popup(heal_amt, "heal")
 		EventBus.combat_log_message.emit(tr("KEY_LOG_STATUS_HEAL") % heal_amt)
 
 
@@ -246,6 +249,7 @@ func activate_item(placed: PlacedItem) -> bool:
 	## Rust jam: AP already spent, effect skipped.
 	if player_statuses != null and player_statuses.roll_rust_fail():
 		EventBus.combat_log_message.emit(tr("KEY_LOG_RUST_JAM") % data.get_localized_name())
+		_request_player_popup(0, "rust", false, true)
 		_consume_charge_if_needed(placed)
 		EventBus.combat_item_availability_changed.emit()
 		return true
@@ -356,7 +360,13 @@ func _roll_player_crit() -> bool:
 	return randf() < chance
 
 
-func _deal_damage_to(index: int, dmg: int, source_name: String, allow_crit: bool = true) -> void:
+func _deal_damage_to(
+	index: int,
+	dmg: int,
+	source_name: String,
+	allow_crit: bool = true,
+	damage_type: String = "physical"
+) -> void:
 	if index < 0 or index >= enemies.size():
 		return
 	var enemy: EnemyInstance = enemies[index]
@@ -374,12 +384,16 @@ func _deal_damage_to(index: int, dmg: int, source_name: String, allow_crit: bool
 			crit_mult = player_statuses.get_crit_damage_multiplier(crit_mult)
 		final_dmg = roundi(float(final_dmg) * crit_mult)
 	var adjacency_note := ""
+	var hp_before := enemy.current_hp
 	enemy.apply_incoming_damage(final_dmg)
+	var dealt := maxi(0, hp_before - enemy.current_hp)
+	_request_enemy_popup(index, dealt if dealt > 0 else final_dmg, damage_type, is_crit, false)
 	## Thorns on enemy reflect to player.
 	if enemy.statuses != null:
 		var thorns := enemy.statuses.get_thorns_reflect()
 		if thorns > 0:
-			apply_enemy_damage_to_player(thorns)
+			var thorns_dealt := apply_enemy_damage_to_player(thorns)
+			_request_player_popup(thorns_dealt if thorns_dealt > 0 else thorns, "physical")
 			EventBus.combat_log_message.emit(tr("KEY_LOG_THORNS") % [enemy.get_localized_name(), thorns])
 	if is_crit:
 		EventBus.combat_log_message.emit(
@@ -456,7 +470,7 @@ func _resolve_consumable_enemy(placed: PlacedItem, enemy_index: int) -> void:
 	var dealt := 0
 	if TraitManager.has_trait(data, "TRAIT_BURN_DAMAGE"):
 		var burn_hit := TraitManager.get_trait_value(data, "TRAIT_BURN_DAMAGE", 18)
-		_deal_damage_to(enemy_index, burn_hit, data.get_localized_name())
+		_deal_damage_to(enemy_index, burn_hit, data.get_localized_name(), true, "burn")
 		dealt = burn_hit
 		if enemy_index >= 0 and enemy_index < enemies.size():
 			apply_status_to_enemy(enemy_index, "burn", TraitManager.BURN_APPLY_STACKS)
@@ -510,7 +524,11 @@ func _enemy_pre_turn_phase(index: int, enemy: EnemyInstance) -> bool:
 	var result: Dictionary = enemy.statuses.tick_negative_statuses()
 	var dmg: int = int(result.get("damage", 0))
 	if dmg > 0:
+		var hp_before := enemy.current_hp
 		enemy.apply_incoming_damage(dmg)
+		var dealt := maxi(0, hp_before - enemy.current_hp)
+		var dtype := _infer_status_dot_type(result)
+		_request_enemy_popup(index, dealt if dealt > 0 else dmg, dtype)
 		EventBus.combat_log_message.emit(
 			tr("KEY_LOG_ENEMY_STATUS_DOT") % [enemy.get_localized_name(), dmg]
 		)
@@ -540,6 +558,7 @@ func _enemy_start_turn_phase(index: int, enemy: EnemyInstance) -> void:
 	if heal_amt > 0:
 		enemy.heal(heal_amt)
 		EventBus.enemy_hp_changed.emit(index, enemy.current_hp, enemy.max_hp)
+		_request_enemy_popup(index, heal_amt, "heal")
 		EventBus.combat_log_message.emit(
 			tr("KEY_LOG_ENEMY_HEAL") % [enemy.get_localized_name(), heal_amt]
 		)
@@ -566,6 +585,7 @@ func _enemy_main_action_phase(index: int, enemy: EnemyInstance) -> void:
 		EventBus.combat_log_message.emit(
 			tr("KEY_LOG_RUST_MISS") % enemy.get_localized_name()
 		)
+		_request_player_popup(0, "rust", false, true)
 		return
 
 	if ability != null:
@@ -634,7 +654,8 @@ func apply_enemy_damage_to_player(damage: int) -> int:
 	var dealt := inventory.apply_damage(incoming, current_block)
 	current_block = maxi(0, current_block - incoming)
 	EventBus.block_changed.emit(current_block)
-	## Player thorns reflect to the acting enemy is handled by ability effects when needed.
+	if dealt > 0:
+		_request_player_popup(dealt, "physical")
 	return dealt
 
 
@@ -702,6 +723,36 @@ func apply_status_to_enemy_instance(enemy: EnemyInstance, status_id: String, amo
 	if enemy.statuses == null:
 		enemy.statuses = StatusController.new()
 	enemy.statuses.apply_status_by_id(status_id, maxi(1, amount))
+
+
+func _request_enemy_popup(
+	index: int,
+	amount: int,
+	damage_type: String = "physical",
+	is_crit: bool = false,
+	is_miss: bool = false
+) -> void:
+	EventBus.damage_popup_requested.emit("enemy", index, amount, damage_type, is_crit, is_miss)
+
+
+func _request_player_popup(
+	amount: int,
+	damage_type: String = "physical",
+	is_crit: bool = false,
+	is_miss: bool = false
+) -> void:
+	EventBus.damage_popup_requested.emit("player", -1, amount, damage_type, is_crit, is_miss)
+
+
+func _infer_status_dot_type(tick_result: Dictionary) -> String:
+	var logs: PackedStringArray = tick_result.get("logs", PackedStringArray()) as PackedStringArray
+	for entry in logs:
+		var s := str(entry)
+		if s.begins_with("burn"):
+			return "burn"
+		if s.begins_with("poison"):
+			return "poison"
+	return "poison"
 
 
 func _living_enemy_indices() -> Array[int]:

@@ -1,0 +1,9 @@
+[gd_scene load_steps=2 format=3 uid="uid://bw_ghost_progress_bar"]
+
+[ext_resource type="Script" path="res://scripts/ui/ghost_progress_bar.gd" id="1"]
+
+[node name="GhostProgressBar" type="Control"]
+custom_minimum_size = Vector2(170, 20)
+layout_mode = 3
+mouse_filter = 2
+script = ExtResource("1")

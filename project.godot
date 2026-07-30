@@ -29,6 +29,8 @@ GameManager="*res://scripts/global/game_manager.gd"
 GameSettings="*res://scripts/global/game_settings.gd"
 EnemyDatabase="*res://scripts/global/enemy_database.gd"
 StatusEffectDatabase="*res://scripts/global/status_effect_database.gd"
+GamePalette="*res://scripts/global/game_palette.gd"
+DamagePopUpManager="*res://scripts/managers/damage_popup_manager.gd"
 
 [display]
 
