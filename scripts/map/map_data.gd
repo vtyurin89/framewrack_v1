@@ -39,11 +39,17 @@ func mark_visited(node_id: String) -> void:
 		return
 	node.state = MapNodeData.NodeState.VISITED
 	current_node_id = node_id
+	## Forward-only: lock any other AVAILABLE options that were not taken.
+	for other: MapNodeData in get_all_nodes():
+		if other.id == node_id:
+			continue
+		if other.state == MapNodeData.NodeState.AVAILABLE:
+			other.state = MapNodeData.NodeState.LOCKED
 	for next_id in node.next_nodes:
 		var next_node := get_node(next_id)
 		if next_node == null:
 			continue
-		if next_node.state == MapNodeData.NodeState.LOCKED:
+		if next_node.state != MapNodeData.NodeState.VISITED:
 			next_node.state = MapNodeData.NodeState.AVAILABLE
 
 

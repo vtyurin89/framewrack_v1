@@ -14,7 +14,7 @@ func bind_data(data: MapNodeData) -> void:
 	size = Vector2(56, 56)
 	position = node_data.position - (custom_minimum_size * 0.5)
 	text = _icon_for_type(node_data.node_type)
-	tooltip_text = "%s (%s)" % [node_data.id, _type_label(node_data.node_type)]
+	tooltip_text = _display_name()
 	disabled = node_data.state == MapNodeData.NodeState.LOCKED
 	modulate = _state_color(node_data.state)
 	mouse_default_cursor_shape = Control.CURSOR_POINTING_HAND
@@ -46,9 +46,10 @@ func _on_pressed() -> void:
 func _state_color(state: MapNodeData.NodeState) -> Color:
 	match state:
 		MapNodeData.NodeState.LOCKED:
-			return Color(0.45, 0.45, 0.45, 1.0)
+			return Color(0.4, 0.4, 0.42, 1.0)
 		MapNodeData.NodeState.VISITED:
-			return Color(0.62, 0.62, 0.62, 1.0)
+			## Dimmed / inactive — already cleared, no longer selectable.
+			return Color(0.55, 0.55, 0.58, 0.85)
 		_:
 			return GamePalette.COLOR_MAIN_STORY
 
@@ -73,21 +74,30 @@ func _icon_for_type(node_type: MapNodeData.MapNodeType) -> String:
 			return "•"
 
 
+func _display_name() -> String:
+	if node_data != null and node_data.encounter_data != null:
+		var title := node_data.encounter_data.get_display_title().strip_edges()
+		## Prefer a real encounter title over a technical id like "act1_l1_n1".
+		if not title.is_empty() and title != node_data.id and not title.begins_with("act"):
+			return title
+	return _type_label(node_data.node_type if node_data != null else MapNodeData.MapNodeType.COMBAT)
+
+
 func _type_label(node_type: MapNodeData.MapNodeType) -> String:
 	match node_type:
 		MapNodeData.MapNodeType.MAIN_STORY:
-			return "Main Story"
+			return tr("KEY_TYPE_MAIN_STORY")
 		MapNodeData.MapNodeType.COMBAT:
-			return "Combat"
+			return tr("KEY_TYPE_COMBAT")
 		MapNodeData.MapNodeType.EVENT:
-			return "Event"
+			return tr("KEY_TYPE_EVENT")
 		MapNodeData.MapNodeType.REPAIR:
-			return "Repair"
+			return tr("KEY_TYPE_REPAIR")
 		MapNodeData.MapNodeType.SHOP:
-			return "Shop"
+			return tr("KEY_TYPE_SHOP")
 		MapNodeData.MapNodeType.ELITE:
-			return "Elite"
+			return tr("KEY_TYPE_ELITE")
 		MapNodeData.MapNodeType.BOSS:
-			return "Boss"
+			return tr("KEY_TYPE_BOSS")
 		_:
-			return "Unknown"
+			return "?"

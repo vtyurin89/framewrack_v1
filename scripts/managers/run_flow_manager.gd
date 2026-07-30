@@ -110,10 +110,15 @@ func complete_act() -> void:
 func emit_focus_for_current_progress() -> void:
 	if current_map_data == null:
 		return
-	var max_layer := 0
-	for node: MapNodeData in current_map_data.get_available_nodes():
-		max_layer = maxi(max_layer, node.layer)
-	focus_layer_requested.emit(max_layer)
+	## Prefer focusing the current node; otherwise the lowest available layer.
+	var focus_layer := 0
+	var current := current_map_data.get_node(current_map_data.current_node_id)
+	if current != null:
+		focus_layer = current.layer
+	else:
+		for node: MapNodeData in current_map_data.get_available_nodes():
+			focus_layer = maxi(focus_layer, node.layer)
+	focus_layer_requested.emit(focus_layer)
 
 
 func get_map_data() -> MapData:

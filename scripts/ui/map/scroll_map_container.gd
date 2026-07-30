@@ -5,8 +5,8 @@ signal node_pressed(node_data: MapNodeData)
 signal placeholder_continue_pressed
 
 @export var scroll_damping: float = 0.2
-@export var canvas_min_y: float = -1800.0
-@export var canvas_max_y: float = 80.0
+@export var canvas_min_y: float = -1900.0
+@export var canvas_max_y: float = 120.0
 
 @onready var _map_canvas: MapCanvas = $MapCanvas
 @onready var _placeholder_dialog: AcceptDialog = $PlaceholderDialog
@@ -21,15 +21,20 @@ func _ready() -> void:
 	gui_input.connect(_on_gui_input)
 	_map_canvas.node_pressed.connect(func(node: MapNodeData) -> void: node_pressed.emit(node))
 	_placeholder_dialog.confirmed.connect(_on_placeholder_continue)
+	resized.connect(_center_canvas_x)
+	call_deferred("_center_canvas_x")
 
 
 func set_map_data(data: MapData) -> void:
 	_map_canvas.set_map_data(data)
+	_center_canvas_x()
 	_target_y = _map_canvas.position.y
 
 
 func focus_layer(layer: int) -> void:
-	var target := -float(layer) * 250.0 + size.y * 0.45
+	## Bottom-up layout: higher layers sit higher on the canvas (smaller Y).
+	var focus_y := MapGenerator.CANVAS_HEIGHT - MapGenerator.BOTTOM_PADDING - float(layer) * MapGenerator.Y_SPACING
+	var target := size.y * 0.55 - focus_y
 	_target_y = clampf(target, canvas_min_y, canvas_max_y)
 
 
@@ -44,6 +49,12 @@ func _process(_delta: float) -> void:
 	var current := _map_canvas.position.y
 	var next := lerpf(current, _target_y, scroll_damping)
 	_map_canvas.position.y = clampf(next, canvas_min_y, canvas_max_y)
+
+
+func _center_canvas_x() -> void:
+	if _map_canvas == null:
+		return
+	_map_canvas.position.x = (size.x - _map_canvas.size.x) * 0.5
 
 
 func _on_gui_input(event: InputEvent) -> void:

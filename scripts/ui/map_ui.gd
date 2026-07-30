@@ -6,7 +6,6 @@ signal node_chosen(node_id: String)
 var map_manager: Node
 var _cached_map_data: MapData
 
-@onready var _title: Label = %MapTitle
 @onready var _scroll_map: ScrollMapContainer = %ScrollMap
 
 
@@ -34,7 +33,6 @@ func _on_language_changed(_locale: String) -> void:
 func refresh() -> void:
 	if map_manager == null:
 		return
-	_title.text = tr("KEY_SECTOR_MAP")
 	if map_manager.has_method("get_map_data"):
 		_cached_map_data = map_manager.get_map_data() as MapData
 	_scroll_map.set_map_data(_cached_map_data)
