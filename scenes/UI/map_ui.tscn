@@ -1,6 +1,7 @@
-[gd_scene load_steps=2 format=3 uid="uid://bw_map_ui"]
+[gd_scene load_steps=3 format=3 uid="uid://bw_map_ui"]
 
 [ext_resource type="Script" path="res://scripts/ui/map_ui.gd" id="1"]
+[ext_resource type="PackedScene" path="res://scenes/UI/map/scroll_map_container.tscn" id="2"]
 
 [node name="MapUI" type="Control"]
 layout_mode = 3
@@ -39,11 +40,15 @@ theme_override_font_sizes/font_size = 13
 text = "The sector is a circuit of fights and salvage. Your body-grid is the only map that matters."
 horizontal_alignment = 1
 
-[node name="Center" type="CenterContainer" parent="VBox"]
+[node name="Center" type="Control" parent="VBox"]
 layout_mode = 2
 size_flags_vertical = 3
 
-[node name="PathRow" type="HBoxContainer" parent="VBox/Center"]
+[node name="ScrollMap" parent="VBox/Center" instance=ExtResource("2")]
 unique_name_in_owner = true
-layout_mode = 2
-theme_override_constants/separation = 4
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2

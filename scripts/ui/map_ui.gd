@@ -1,18 +1,29 @@
 extends Control
-## Node map UI - linear path of main story / combat / repair / event / boss.
+## Graph map UI wrapper around ScrollMapContainer.
 
 signal node_chosen(node_id: String)
 
 var map_manager: Node
+var _cached_map_data: MapData
 
-@onready var _path: HBoxContainer = %PathRow
 @onready var _title: Label = %MapTitle
+@onready var _scroll_map: ScrollMapContainer = %ScrollMap
 
 
 func setup(p_map: Node) -> void:
 	map_manager = p_map
 	if not LocalizationManager.language_changed.is_connected(_on_language_changed):
 		LocalizationManager.language_changed.connect(_on_language_changed)
+	if not _scroll_map.node_pressed.is_connected(_on_node_pressed):
+		_scroll_map.node_pressed.connect(_on_node_pressed)
+	if map_manager != null and map_manager.has_signal("focus_layer_requested"):
+		if not map_manager.focus_layer_requested.is_connected(_on_focus_layer_requested):
+			map_manager.focus_layer_requested.connect(_on_focus_layer_requested)
+	if map_manager != null and map_manager.has_signal("placeholder_requested"):
+		if not map_manager.placeholder_requested.is_connected(_on_placeholder_requested):
+			map_manager.placeholder_requested.connect(_on_placeholder_requested)
+	if not _scroll_map.placeholder_continue_pressed.is_connected(_on_placeholder_continue):
+		_scroll_map.placeholder_continue_pressed.connect(_on_placeholder_continue)
 	refresh()
 
 
@@ -21,62 +32,33 @@ func _on_language_changed(_locale: String) -> void:
 
 
 func refresh() -> void:
-	for child in _path.get_children():
-		child.queue_free()
 	if map_manager == null:
 		return
 	_title.text = tr("KEY_SECTOR_MAP")
-	var available_ids: Dictionary = {}
-	for n: Dictionary in map_manager.get_available_nodes():
-		available_ids[n["id"]] = true
-
-	for n: Dictionary in map_manager.get_all_nodes():
-		var id: String = n["id"]
-		var btn := Button.new()
-		var type_name := _type_label(n["type"])
-		var label := _node_label(n)
-		btn.text = "%s\n%s" % [label, type_name]
-		btn.custom_minimum_size = Vector2(140, 72)
-		btn.disabled = not available_ids.has(id)
-		if map_manager.completed.has(id):
-			btn.disabled = true
-			btn.modulate = Color(0.45, 0.45, 0.45)
-			btn.text += "\n%s" % tr("KEY_DONE")
-		btn.pressed.connect(_on_node.bind(id))
-		_path.add_child(btn)
-
-		var arrow := Label.new()
-		arrow.text = " > "
-		arrow.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
-		_path.add_child(arrow)
-
-	if _path.get_child_count() > 0:
-		var last := _path.get_child(_path.get_child_count() - 1)
-		last.queue_free()
+	if map_manager.has_method("get_map_data"):
+		_cached_map_data = map_manager.get_map_data() as MapData
+	_scroll_map.set_map_data(_cached_map_data)
 
 
-func _node_label(n: Dictionary) -> String:
-	var key: String = str(n.get("label_key", ""))
-	if not key.is_empty():
-		return tr(key)
-	return str(n.get("label", "?"))
+func set_map_data(data: MapData) -> void:
+	_cached_map_data = data
+	_scroll_map.set_map_data(_cached_map_data)
 
 
-func _on_node(node_id: String) -> void:
-	node_chosen.emit(node_id)
+func _on_node_pressed(node_data: MapNodeData) -> void:
+	if node_data == null:
+		return
+	node_chosen.emit(node_data.id)
 
 
-func _type_label(t: int) -> String:
-	match t:
-		MapManager.NodeType.COMBAT:
-			return tr("KEY_TYPE_COMBAT")
-		MapManager.NodeType.REPAIR:
-			return tr("KEY_TYPE_REPAIR")
-		MapManager.NodeType.EVENT:
-			return tr("KEY_TYPE_EVENT")
-		MapManager.NodeType.BOSS:
-			return tr("KEY_TYPE_BOSS")
-		MapManager.NodeType.MAIN_STORY:
-			return tr("KEY_TYPE_MAIN_STORY")
-		_:
-			return "?"
+func _on_focus_layer_requested(layer: int) -> void:
+	_scroll_map.focus_layer(layer)
+
+
+func _on_placeholder_requested(title: String, message: String) -> void:
+	_scroll_map.show_placeholder(title, message)
+
+
+func _on_placeholder_continue() -> void:
+	if map_manager != null and map_manager.has_method("continue_placeholder_node"):
+		map_manager.continue_placeholder_node()

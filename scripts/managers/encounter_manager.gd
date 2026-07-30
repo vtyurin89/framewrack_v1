@@ -85,6 +85,19 @@ func start_from_map_node(node: Dictionary) -> void:
 	start_encounter(EncounterCatalog.from_map_node(node))
 
 
+func start_from_map_node_data(node_data: MapNodeData) -> void:
+	if node_data == null:
+		return
+	if node_data.encounter_data != null:
+		start_encounter(node_data.encounter_data)
+		return
+	var fallback := EncounterData.new()
+	fallback.id = node_data.id
+	fallback.type = EncounterData.EncounterType.UNKNOWN
+	fallback.payload = {"map_node_id": node_data.id}
+	start_encounter(fallback)
+
+
 func notify_combat_finished(victory: bool) -> void:
 	## Called by Main when a combat that this manager requested has ended.
 	if not _awaiting_combat_resolution:

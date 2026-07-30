@@ -1,0 +1,9 @@
+[gd_scene load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://scripts/ui/map/map_node_ui.gd" id="1"]
+
+[node name="MapNodeUI" type="Button"]
+custom_minimum_size = Vector2(56, 56)
+theme_override_font_sizes/font_size = 22
+text = "•"
+script = ExtResource("1")

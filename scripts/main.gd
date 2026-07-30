@@ -38,6 +38,7 @@ var _inventory_overlay_content_min: Vector2 = Vector2(460, 320)
 @onready var _combat: Node = $CombatManager
 @onready var _map: Node = $MapManager
 @onready var _encounters: EncounterManager = $EncounterManager
+@onready var _run_flow: RunFlowManager = $RunFlowManager
 
 var _dialog_event_ui: DialogEventUI
 var _encounter_combat_active: bool = false
@@ -59,14 +60,15 @@ func _ready() -> void:
 	_style_inventory_panel()
 	_ensure_overlays()
 
-	_map_ui.setup(_map)
+	_run_flow.setup(_encounters)
+	_map_ui.setup(_run_flow)
 	_inventory_ui.setup(inventory)
 	if _inventory_ui.has_method("bind_player_stats"):
 		_inventory_ui.bind_player_stats(player_stats)
 	_combat_ui.setup(_combat, inventory)
 
-	_map.node_entered.connect(_on_map_node_entered)
-	_map.map_finished.connect(_on_map_finished)
+	_run_flow.map_changed.connect(_on_run_map_changed)
+	_run_flow.run_state_changed.connect(_on_run_state_changed)
 	_map_ui.node_chosen.connect(_on_node_chosen)
 	_combat_ui.end_turn_pressed.connect(_on_end_turn)
 	_combat_ui.target_selected.connect(_on_target)
@@ -105,6 +107,13 @@ func _ready() -> void:
 
 
 func _unhandled_input(event: InputEvent) -> void:
+	if event is InputEventKey:
+		var key := event as InputEventKey
+		if key.pressed and not key.echo and key.keycode == KEY_M:
+			if GameManager.get_state() == GameManager.GameState.GAMEPLAY:
+				_map_ui.visible = not _map_ui.visible
+				get_viewport().set_input_as_handled()
+			return
 	if not event.is_action_pressed("ui_cancel"):
 		return
 	## Settings modal consumes ESC while open (PROCESS_MODE_ALWAYS).
@@ -236,11 +245,11 @@ func _enter_gameplay() -> void:
 	_set_gameplay_ui_visible(true)
 	if _fresh_run_pending:
 		_fresh_run_pending = false
-		## Auto-start with the opening god dialog (no map selection screen first).
-		_map_ui.visible = false
+		## Start a fresh act map immediately.
+		_map_ui.visible = true
 		_combat_ui.visible = false
 		_status_banner.text = tr("KEY_STATUS_ONLINE")
-		_encounters.start_prologue()
+		_run_flow.start_new_run()
 
 
 func _enter_game_over() -> void:
@@ -308,7 +317,6 @@ func _reset_run_to_startup() -> void:
 	## STARTUP_SETUP: full HP, clear grid, starter weapon/armor/consumable, reset map/combat.
 	if _combat.has_method("abort_combat"):
 		_combat.abort_combat()
-	_map.reset()
 	_seed_starting_loadout()
 	_combat.setup(inventory, player_stats)
 	_encounters.setup(inventory, player_stats, _combat)
@@ -417,15 +425,21 @@ func _expand_grid_demo() -> void:
 
 
 func _on_node_chosen(node_id: String) -> void:
-	_map.select_node(node_id)
+	_run_flow.select_node_by_id(node_id)
+
+func _on_run_map_changed(map_data: MapData) -> void:
+	if _map_ui.has_method("set_map_data"):
+		_map_ui.set_map_data(map_data)
+	_map_ui.refresh()
+	_inventory_ui.refresh()
 
 
-func _on_map_node_entered(_node_id: String, _node_type: int) -> void:
-	## All map nodes route through EncounterManager for scalable content.
-	var node: Dictionary = _map.get_current()
-	if node.is_empty():
-		return
-	_encounters.start_from_map_node(node)
+func _on_run_state_changed(_prev: RunFlowManager.RunState, new_state: RunFlowManager.RunState) -> void:
+	if new_state == RunFlowManager.RunState.MAP_VIEW:
+		_show_exploring()
+	elif new_state == RunFlowManager.RunState.VICTORY:
+		_status_banner.text = tr("KEY_STATUS_RUN_COMPLETE")
+		_set_flow(GameFlowState.State.VICTORY)
 
 
 func _on_encounter_started(data: EncounterData) -> void:
@@ -436,21 +450,6 @@ func _on_encounter_started(data: EncounterData) -> void:
 
 func _on_encounter_completed(rewards: Dictionary) -> void:
 	var message_key := str(rewards.get("message_key", ""))
-	var is_prologue := bool(rewards.get("prologue", false))
-	if is_prologue:
-		## Opening story consumed the MAIN_STORY start node; advance map to node 1.
-		_map.current_index = 0
-		_map.completed["n0"] = true
-		_show_exploring()
-		_status_banner.text = (
-			tr(message_key) if not message_key.is_empty() else tr("KEY_STATUS_ONLINE")
-		)
-		EventBus.run_started.emit()
-		_map_ui.refresh()
-		_inventory_ui.refresh()
-		return
-	## Map-node encounter finished (dialog / rest / chest / combat resolution).
-	_map.complete_current()
 	_show_exploring()
 	if not message_key.is_empty():
 		_status_banner.text = tr(message_key)
@@ -515,80 +514,6 @@ func _layout_dialog_event_under_top_bar() -> void:
 func _on_main_resized_for_dialog() -> void:
 	if _dialog_event_ui != null and _dialog_event_ui.visible:
 		_layout_dialog_event_under_top_bar()
-
-
-func _start_combat_for_current() -> void:
-	var node: Dictionary = _map.get_current()
-	var datas: Array[EnemyData] = _build_encounter_for_node(node)
-	_pending_combat_exp_reward = 0
-	for enemy_data: EnemyData in datas:
-		if enemy_data == null:
-			continue
-		_pending_combat_exp_reward += maxi(enemy_data.exp_reward, 0)
-	_show_combat()
-	_combat_ui.setup(_combat, inventory)
-	_combat.start_combat(datas)
-	var node_label := str(node.get("label", "Unknown"))
-	var label_key := str(node.get("label_key", ""))
-	if not label_key.is_empty():
-		node_label = tr(label_key)
-	_status_banner.text = tr("KEY_STATUS_ENGAGEMENT") % node_label
-
-
-func _build_encounter_for_node(node: Dictionary) -> Array[EnemyData]:
-	## Prefer explicit enemy_ids; otherwise budget/faction generation or boss pool.
-	var datas: Array[EnemyData] = []
-	var enemy_ids: Array = node.get("enemy_ids", [])
-	for eid in enemy_ids:
-		var enemy_data := _resolve_enemy_blueprint(str(eid))
-		if enemy_data != null:
-			datas.append(enemy_data)
-
-	var node_type: int = int(node.get("type", MapManager.NodeType.COMBAT))
-	var faction := str(node.get("faction", "")).strip_edges().to_lower()
-	if datas.is_empty() and node_type == MapManager.NodeType.BOSS:
-		var boss: EnemyData = null
-		if not faction.is_empty():
-			boss = EnemyDatabase.get_random_boss_for_faction(faction)
-		if boss == null:
-			boss = EnemyDatabase.get_random_boss()
-		if boss != null:
-			datas.append(boss)
-	elif datas.is_empty() and not faction.is_empty():
-		var budget := int(node.get("threat_budget", 20))
-		datas = EnemyDatabase.generate_encounter(faction, budget)
-
-	if not EnemyDatabase.validate_same_faction(datas):
-		push_warning("Encounter mixes factions — keeping first faction only")
-		datas = _filter_to_first_faction(datas)
-	return datas
-
-
-func _filter_to_first_faction(datas: Array[EnemyData]) -> Array[EnemyData]:
-	var filtered: Array[EnemyData] = []
-	var faction := ""
-	for enemy: EnemyData in datas:
-		if enemy == null:
-			continue
-		if faction.is_empty():
-			faction = enemy.get_faction()
-		if enemy.get_faction() == faction:
-			filtered.append(enemy)
-	return filtered
-
-
-func _resolve_enemy_blueprint(enemy_id: String) -> EnemyData:
-	## Prefer CSV catalog; fall back to legacy .tres resources.
-	if EnemyDatabase != null and EnemyDatabase.has_enemy(enemy_id):
-		return EnemyDatabase.create_blueprint(enemy_id)
-	match enemy_id:
-		"desperate_rebel":
-			return ENEMY_REBEL.duplicate(true) as EnemyData
-		"corrupted_synthet":
-			return ENEMY_SYNTHET.duplicate(true) as EnemyData
-		_:
-			push_warning("Unknown enemy id '%s'" % enemy_id)
-			return null
 
 
 func _on_end_turn() -> void:
@@ -671,10 +596,6 @@ func _on_combat_continue() -> void:
 			_encounter_combat_active = false
 			## EncounterManager emits encounter_completed → map advance / prologue exit.
 			_encounters.notify_combat_finished(true)
-		else:
-			_map.complete_current()
-			_show_exploring()
-			_status_banner.text = tr("KEY_STATUS_SECTOR_SECURED")
 	elif _combat.state == _combat.CombatState.DEFEAT:
 		if _encounter_combat_active:
 			_encounter_combat_active = false
@@ -682,8 +603,3 @@ func _on_combat_continue() -> void:
 		## Defeat is handled by Game Over modal; keep explore fallback if needed.
 		_show_exploring()
 		_status_banner.text = tr("KEY_STATUS_WRECKAGE")
-
-
-func _on_map_finished() -> void:
-	_status_banner.text = tr("KEY_STATUS_RUN_COMPLETE")
-	_set_flow(GameFlowState.State.VICTORY)
