@@ -110,6 +110,10 @@ func _on_damage_popup_requested(
 	is_crit: bool,
 	is_miss: bool
 ) -> void:
+	if target_kind == "enemy" and not is_miss:
+		var card := _find_card_by_index(enemy_index)
+		if card != null and card.has_method("play_hit_fx"):
+			card.play_hit_fx(is_crit)
 	if DamagePopUpManager == null:
 		return
 	match target_kind:

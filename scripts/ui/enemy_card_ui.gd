@@ -9,6 +9,8 @@ const SELECT_COLOR := Color(0.95, 0.8, 0.25)
 const BAR_HEIGHT := 20.0
 const BAR_MIN_WIDTH := 170.0
 const SPRITE_DIR := "res://assets/sprites/enemies/"
+const HIT_FX_TEXTURE := preload("res://assets/sprites/fx/hit_slash.png")
+const HIT_FX_DURATION := 0.35
 const BRACKET_THICKNESS := 2.5
 const BRACKET_SPAN := 0.5
 const BRACKET_PAD := 8.0
@@ -25,12 +27,14 @@ var _is_dying: bool = false
 @onready var _intention_host: Control = %IntentionHost
 @onready var _placeholder: ColorRect = %Placeholder
 @onready var _sprite: TextureRect = %Sprite
+@onready var _hit_fx: TextureRect = %HitFx
 @onready var _ghost_hp: GhostProgressBar = %GhostHPBar
 @onready var _selection_overlay: Control = %SelectionOverlay
 @onready var _status_host: HBoxContainer = %StatusHost
 
 var _intention_ui: EnemyIntentionUI
 var _statuses_ui: StatusEffectsUI
+var _hit_fx_tween: Tween
 
 
 func _ready() -> void:
@@ -46,6 +50,13 @@ func _ready() -> void:
 		_sprite.mouse_filter = Control.MOUSE_FILTER_IGNORE
 		_sprite.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
 		_sprite.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
+	if _hit_fx:
+		_hit_fx.texture = HIT_FX_TEXTURE
+		_hit_fx.visible = false
+		_hit_fx.modulate.a = 0.0
+		_hit_fx.mouse_filter = Control.MOUSE_FILTER_IGNORE
+		_hit_fx.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
+		_hit_fx.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
 	if _placeholder:
 		_placeholder.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	if _selection_overlay:
@@ -123,6 +134,35 @@ func play_intention_pop() -> void:
 	_ensure_intention_ui()
 	if _intention_ui:
 		await _intention_ui.play_pop_in()
+
+
+func play_hit_fx(is_crit: bool = false) -> void:
+	## Brief slash overlay when this enemy is struck.
+	if _is_dying or _hit_fx == null:
+		return
+	if _hit_fx_tween != null and _hit_fx_tween.is_valid():
+		_hit_fx_tween.kill()
+	_hit_fx.texture = HIT_FX_TEXTURE
+	_hit_fx.visible = true
+	var sz := _hit_fx.size
+	if sz.x < 1.0 or sz.y < 1.0:
+		sz = Vector2(170, 190)
+	_hit_fx.pivot_offset = sz * 0.5
+	_hit_fx.scale = Vector2(0.9, 0.9)
+	_hit_fx.modulate = Color(1.0, 0.82, 0.4, 1.0) if is_crit else Color(1, 1, 1, 1)
+	_hit_fx_tween = create_tween()
+	_hit_fx_tween.set_parallel(true)
+	_hit_fx_tween.tween_property(_hit_fx, "scale", Vector2(1.12, 1.12), HIT_FX_DURATION * 0.4).set_trans(
+		Tween.TRANS_QUAD
+	).set_ease(Tween.EASE_OUT)
+	_hit_fx_tween.tween_property(_hit_fx, "modulate:a", 0.0, HIT_FX_DURATION).set_delay(
+		HIT_FX_DURATION * 0.15
+	).set_trans(Tween.TRANS_SINE).set_ease(Tween.EASE_IN)
+	_hit_fx_tween.chain().tween_callback(func() -> void:
+		if is_instance_valid(_hit_fx):
+			_hit_fx.visible = false
+			_hit_fx.scale = Vector2.ONE
+	)
 
 
 func play_intention_reevaluate(intention: CombatIntention) -> void:
