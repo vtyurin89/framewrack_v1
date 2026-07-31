@@ -5,6 +5,8 @@ extends Resource
 enum StackType {
 	STACKS,
 	DURATION,
+	## Never ticks down; stays until explicitly cleared (combat end / flee / etc.).
+	PERMANENT,
 }
 
 enum TriggerPhase {

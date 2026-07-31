@@ -250,6 +250,11 @@ func _launch_by_type(data: EncounterData) -> void:
 			var story_dialog := data.get_dialog_event()
 			if story_dialog != null:
 				request_show_dialog.emit(story_dialog, data)
+			elif bool(data.payload.get("act_finale", false)):
+				## Post-boss chapter beat — no starting-god re-roll.
+				_pending_rewards["message_key"] = "KEY_TYPE_MAIN_STORY"
+				request_show_placeholder.emit(data, "KEY_TYPE_MAIN_STORY")
+				_finish_encounter(_pending_rewards)
 			else:
 				var picked := get_random_god_encounter()
 				if picked != null:
@@ -298,22 +303,38 @@ func _start_combat_from_ids(
 			if bp != null:
 				datas.append(bp)
 	if datas.is_empty() and active_encounter != null:
+		var act := int(active_encounter.payload.get("act", 1))
+		var resolved_faction := faction.strip_edges().to_lower()
+		if resolved_faction.is_empty():
+			resolved_faction = _default_faction_for_act(act)
 		if active_encounter.type == EncounterData.EncounterType.COMBAT_BOSS:
 			var boss: EnemyData = null
-			if not faction.is_empty():
-				boss = EnemyDatabase.get_random_boss_for_faction(faction)
+			if not resolved_faction.is_empty():
+				boss = EnemyDatabase.get_random_boss_for_faction(resolved_faction)
 			if boss == null:
 				boss = EnemyDatabase.get_random_boss()
 			if boss != null:
 				datas.append(boss)
-		elif not faction.is_empty():
-			var act := 1
-			if active_encounter != null:
-				act = int(active_encounter.payload.get("act", 1))
-			if faction.strip_edges().to_lower() == "human":
-				datas = EnemyManager.generate_act_encounter(act, threat_budget, faction)
+		elif not resolved_faction.is_empty():
+			if resolved_faction == "human":
+				datas = EnemyManager.generate_act_encounter(act, threat_budget, resolved_faction)
 			else:
-				datas = EnemyDatabase.generate_encounter(faction, threat_budget)
+				datas = EnemyDatabase.generate_encounter(resolved_faction, threat_budget)
+			## Fallback if a faction has no pool yet (e.g. chimera WIP).
+			if datas.is_empty() and resolved_faction != "human":
+				datas = EnemyManager.generate_act_encounter(act, threat_budget, "human")
+			## Elite: if the pack came out thin, pad once more with leftover budget feel.
+			if (
+				active_encounter.type == EncounterData.EncounterType.COMBAT_ELITE
+				and datas.size() <= 1
+				and EnemyDatabase != null
+			):
+				var pad_faction := resolved_faction if not datas.is_empty() else "human"
+				var extra: Array[EnemyData] = EnemyDatabase.generate_encounter(
+					pad_faction, maxi(8, threat_budget / 2)
+				)
+				for e in extra:
+					datas.append(e)
 	if datas.is_empty():
 		push_warning("EncounterManager: no enemies resolved for combat")
 		_finish_encounter(_pending_rewards)
@@ -321,6 +342,16 @@ func _start_combat_from_ids(
 	datas = _apply_cripple_buff_to_enemies(datas)
 	_awaiting_combat_resolution = true
 	request_combat.emit(datas, active_encounter)
+
+
+func _default_faction_for_act(act: int) -> String:
+	match act:
+		2:
+			return "synthet"
+		3:
+			return "chimera"
+		_:
+			return "human"
 
 
 func _apply_cripple_buff_to_enemies(datas: Array[EnemyData]) -> Array[EnemyData]:

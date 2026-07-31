@@ -9,6 +9,7 @@ enum MapNodeType {
 	SHOP,
 	ELITE,
 	BOSS,
+	STAIRS,
 }
 
 enum NodeState {

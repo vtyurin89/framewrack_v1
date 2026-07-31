@@ -88,7 +88,10 @@ func _make_icon(status: StatusInstance) -> Control:
 		row.add_child(glyph)
 
 	var count := Label.new()
-	count.text = str(status.get_display_count())
+	if status.is_permanent():
+		count.text = "∞"
+	else:
+		count.text = str(status.get_display_count())
 	count.add_theme_font_size_override("font_size", 12)
 	count.add_theme_color_override("font_color", Color(0.92, 0.92, 0.94))
 	count.mouse_filter = Control.MOUSE_FILTER_IGNORE
@@ -99,11 +102,11 @@ func _make_icon(status: StatusInstance) -> Control:
 func _build_tooltip(status: StatusInstance) -> String:
 	var title := status.data.get_display_title()
 	var body := status.data.get_display_description(status.stacks, status.duration)
-	var count_label := (
-		"Duration: %d" % status.duration
-		if status.data.stack_type == StatusEffectData.StackType.DURATION
-		else "Stacks: %d" % status.stacks
-	)
+	var count_label := "Permanent"
+	if status.data.stack_type == StatusEffectData.StackType.DURATION:
+		count_label = "Duration: %d" % status.duration
+	elif status.data.stack_type == StatusEffectData.StackType.STACKS:
+		count_label = "Stacks: %d" % status.stacks
 	if body.is_empty():
 		return "%s\n%s" % [title, count_label]
 	return "%s\n%s\n%s" % [title, count_label, body]

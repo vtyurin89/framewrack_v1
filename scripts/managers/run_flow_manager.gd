@@ -147,6 +147,19 @@ func _get_or_build_act_data(act_index: int) -> ActData:
 	built.act_index = act_index
 	built.title = "Act %d" % act_index
 	built.layer_count = 10
+	match act_index:
+		2:
+			built.primary_faction = "synthet"
+			built.normal_threat_budget = 22
+			built.elite_threat_budget = 38
+		3:
+			built.primary_faction = "chimera"
+			built.normal_threat_budget = 26
+			built.elite_threat_budget = 44
+		_:
+			built.primary_faction = "human"
+			built.normal_threat_budget = 18
+			built.elite_threat_budget = 32
 	return built
 
 

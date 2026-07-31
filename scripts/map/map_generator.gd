@@ -23,9 +23,12 @@ const BRIDGE_CHANCE := 0.22
 
 static func generate_for_act(act_data: ActData) -> MapData:
 	var out := MapData.new()
+	## Layout: start story → middle → boss → end story → stairs.
+	## Needs at least 5 layers (0..4).
 	var total_layers := maxi(5, act_data.layer_count)
-	var boss_layer := total_layers - 2
-	var finale_layer := total_layers - 1
+	var boss_layer := total_layers - 3
+	var finale_layer := total_layers - 2
+	var stairs_layer := total_layers - 1
 
 	## Layer 0 — single MAIN_STORY start.
 	var start := _create_node(act_data, 0, START_COLUMN, MapNodeData.MapNodeType.MAIN_STORY)
@@ -58,10 +61,13 @@ static func generate_for_act(act_data: ActData) -> MapData:
 		_connect_adjacent_layers(prev_by_col, next_by_col)
 		prev_by_col = next_by_col
 
-	## Boss convergence + act finale.
+	## Boss convergence → act finale story → stairs to next act.
 	var boss := _create_node(act_data, boss_layer, START_COLUMN, MapNodeData.MapNodeType.BOSS)
 	if act_data.boss_encounter_data != null:
 		boss.encounter_data = act_data.boss_encounter_data.duplicate(true) as EncounterData
+		if boss.encounter_data != null:
+			boss.encounter_data.payload["map_node_id"] = boss.id
+			boss.encounter_data.payload["act"] = act_data.act_index
 	out.nodes[boss.id] = boss
 	for col in prev_by_col.keys():
 		var prev: MapNodeData = prev_by_col[col]
@@ -71,6 +77,10 @@ static func generate_for_act(act_data: ActData) -> MapData:
 	var finale := _create_node(act_data, finale_layer, START_COLUMN, MapNodeData.MapNodeType.MAIN_STORY)
 	out.nodes[finale.id] = finale
 	boss.next_nodes.append(finale.id)
+
+	var stairs := _create_node(act_data, stairs_layer, START_COLUMN, MapNodeData.MapNodeType.STAIRS)
+	out.nodes[stairs.id] = stairs
+	finale.next_nodes.append(stairs.id)
 
 	_layout_positions(out)
 	return out
@@ -351,36 +361,89 @@ static func _build_encounter_for_node(act_data: ActData, node: MapNodeData) -> E
 		MapNodeData.MapNodeType.MAIN_STORY:
 			return _build_story_encounter(act_data, node)
 		MapNodeData.MapNodeType.COMBAT:
-			return _build_basic_encounter(node.id, EncounterData.EncounterType.COMBAT_NORMAL, "Skirmish")
+			return _build_combat_encounter(
+				act_data, node, EncounterData.EncounterType.COMBAT_NORMAL, "Skirmish"
+			)
 		MapNodeData.MapNodeType.EVENT:
-			return _build_basic_encounter(node.id, EncounterData.EncounterType.EVENT, "Event")
+			return _build_event_encounter(act_data, node)
 		MapNodeData.MapNodeType.REPAIR:
 			return _build_basic_encounter(node.id, EncounterData.EncounterType.REST_SITE, "Repair")
 		MapNodeData.MapNodeType.SHOP:
 			return _build_basic_encounter(node.id, EncounterData.EncounterType.SHOP, "Shop")
 		MapNodeData.MapNodeType.ELITE:
-			return _build_basic_encounter(node.id, EncounterData.EncounterType.COMBAT_ELITE, "Elite")
+			return _build_combat_encounter(
+				act_data, node, EncounterData.EncounterType.COMBAT_ELITE, "Elite"
+			)
 		MapNodeData.MapNodeType.BOSS:
-			return _build_basic_encounter(node.id, EncounterData.EncounterType.COMBAT_BOSS, "Boss")
+			return _build_combat_encounter(
+				act_data, node, EncounterData.EncounterType.COMBAT_BOSS, "Boss"
+			)
+		MapNodeData.MapNodeType.STAIRS:
+			return _build_basic_encounter(node.id, EncounterData.EncounterType.STAIRS, "Stairs")
 		_:
 			return _build_basic_encounter(node.id, EncounterData.EncounterType.UNKNOWN, "Unknown")
 
 
 static func _build_story_encounter(act_data: ActData, node: MapNodeData) -> EncounterData:
+	## Opening beat (layer 0): god / prologue pool for Act 1.
 	if node.layer == 0 and act_data.act_index == 1:
 		var god := StartingGodRegistry.pick_random_god_encounter()
 		if god != null:
 			var copy := god.duplicate(true) as EncounterData
 			copy.payload["map_node_id"] = node.id
 			copy.payload["prologue"] = false
+			copy.payload["act"] = act_data.act_index
 			return copy
 	var story := MainStoryEncounterData.new()
 	story.id = "%s_story" % node.id
 	story.title = "Act %d Story" % act_data.act_index
 	story.story_act = act_data.act_index
 	story.title_key = "KEY_TYPE_MAIN_STORY"
-	story.payload = {"map_node_id": node.id}
+	story.payload = {
+		"map_node_id": node.id,
+		"act": act_data.act_index,
+		## Finale story (after boss) should not re-roll a starting god.
+		"act_finale": node.layer > 0,
+	}
 	return story
+
+
+static func _build_event_encounter(act_data: ActData, node: MapNodeData) -> EncounterData:
+	var encounter := EncounterData.new()
+	encounter.id = node.id
+	encounter.type = EncounterData.EncounterType.EVENT
+	encounter.title = "Event"
+	encounter.title_key = "KEY_TYPE_EVENT"
+	encounter.payload = {
+		"map_node_id": node.id,
+		"act": act_data.act_index if act_data != null else 1,
+		"item_id": "REBEL_CLEAVER",
+		"heal_amount": 10,
+	}
+	return encounter
+
+
+static func _build_combat_encounter(
+	act_data: ActData,
+	node: MapNodeData,
+	kind: EncounterData.EncounterType,
+	title: String
+) -> EncounterData:
+	var encounter := EncounterData.new()
+	encounter.id = node.id
+	encounter.type = kind
+	encounter.title = title
+	encounter.title_key = _title_key_for_type(kind)
+	var faction := _faction_for_act(act_data)
+	var budget := _threat_budget_for(act_data, node.layer, kind)
+	encounter.payload = {
+		"map_node_id": node.id,
+		"act": act_data.act_index if act_data != null else 1,
+		"faction": faction,
+		"threat_budget": budget,
+		"enemy_ids": [],
+	}
+	return encounter
 
 
 static func _build_basic_encounter(id: String, kind: EncounterData.EncounterType, title: String) -> EncounterData:
@@ -391,6 +454,38 @@ static func _build_basic_encounter(id: String, kind: EncounterData.EncounterType
 	encounter.title_key = _title_key_for_type(kind)
 	encounter.payload = {"map_node_id": id}
 	return encounter
+
+
+static func _faction_for_act(act_data: ActData) -> String:
+	if act_data != null and not act_data.primary_faction.strip_edges().is_empty():
+		return act_data.primary_faction.strip_edges().to_lower()
+	var act_index := act_data.act_index if act_data != null else 1
+	match act_index:
+		2:
+			return "synthet"
+		3:
+			return "chimera"
+		_:
+			return "human"
+
+
+static func _threat_budget_for(
+	act_data: ActData, layer: int, kind: EncounterData.EncounterType
+) -> int:
+	var base := 18
+	var elite := 32
+	if act_data != null:
+		base = maxi(8, act_data.normal_threat_budget)
+		elite = maxi(base + 6, act_data.elite_threat_budget)
+	## Mild scaling by depth so early fights stay lighter.
+	var depth_bonus := maxi(0, layer - 1) * 2
+	match kind:
+		EncounterData.EncounterType.COMBAT_ELITE:
+			return elite + depth_bonus
+		EncounterData.EncounterType.COMBAT_BOSS:
+			return elite + depth_bonus + 12
+		_:
+			return base + depth_bonus
 
 
 static func _title_key_for_type(kind: EncounterData.EncounterType) -> String:
@@ -409,6 +504,8 @@ static func _title_key_for_type(kind: EncounterData.EncounterType) -> String:
 			return "KEY_TYPE_SHOP"
 		EncounterData.EncounterType.MAIN_STORY:
 			return "KEY_TYPE_MAIN_STORY"
+		EncounterData.EncounterType.STAIRS:
+			return "KEY_TYPE_STAIRS"
 		_:
 			return ""
 
@@ -419,6 +516,7 @@ static func _pick_middle_type(
 	layer_type_counts: Dictionary
 ) -> MapNodeData.MapNodeType:
 	## Weighted pick with layer caps and Act 1 early-layer exclusions.
+	## MAIN_STORY / STAIRS / BOSS are never rolled here — fixed at act ends.
 	for _attempt in 24:
 		var candidate := _roll_middle_type(act_data, layer)
 		if int(layer_type_counts.get(candidate, 0)) >= 3:
@@ -436,7 +534,6 @@ static func _allowed_middle_types(act_data: ActData, layer: int) -> Array:
 		MapNodeData.MapNodeType.COMBAT,
 		MapNodeData.MapNodeType.EVENT,
 		MapNodeData.MapNodeType.SHOP,
-		MapNodeData.MapNodeType.MAIN_STORY,
 		MapNodeData.MapNodeType.REPAIR,
 		MapNodeData.MapNodeType.ELITE,
 	]
@@ -454,14 +551,12 @@ static func _roll_middle_type(act_data: ActData, layer: int) -> MapNodeData.MapN
 		var picked: MapNodeData.MapNodeType
 		if roll < 0.45:
 			picked = MapNodeData.MapNodeType.COMBAT
-		elif roll < 0.65:
+		elif roll < 0.70:
 			picked = MapNodeData.MapNodeType.EVENT
-		elif roll < 0.80:
+		elif roll < 0.85:
 			picked = MapNodeData.MapNodeType.REPAIR if randf() < 0.5 else MapNodeData.MapNodeType.SHOP
-		elif roll < 0.95:
-			picked = MapNodeData.MapNodeType.ELITE
 		else:
-			picked = MapNodeData.MapNodeType.MAIN_STORY
+			picked = MapNodeData.MapNodeType.ELITE
 		if exclude_elite_repair and picked in [MapNodeData.MapNodeType.ELITE, MapNodeData.MapNodeType.REPAIR]:
 			continue
 		return picked

@@ -6,9 +6,9 @@
 script = ExtResource("1")
 id = "summoned_creature"
 title = "Summoned Creature"
-description = "Flees if its summoner dies. Yields no XP."
+description = "Permanent. Flees if its summoner dies. Yields no XP."
 is_debuff = false
-stack_type = 1
+stack_type = 2
 trigger_phase = 4
 base_value = 1
 max_stacks = 1
