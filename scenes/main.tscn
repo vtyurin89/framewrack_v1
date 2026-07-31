@@ -112,6 +112,12 @@ layout_mode = 2
 size_flags_vertical = 4
 text = "Body Grid"
 
+[node name="CombatLogButton" type="Button" parent="RootLayout/TopBar"]
+unique_name_in_owner = true
+layout_mode = 2
+size_flags_vertical = 4
+text = "Combat Log"
+
 [node name="DebugLevelUpButton" type="Button" parent="RootLayout/TopBar"]
 unique_name_in_owner = true
 layout_mode = 2

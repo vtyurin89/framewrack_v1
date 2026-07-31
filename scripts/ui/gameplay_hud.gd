@@ -4,6 +4,7 @@ extends HBoxContainer
 
 signal menu_pressed
 signal body_grid_pressed
+signal combat_log_pressed
 
 const HEART_ICON := preload("res://assets/icons/ui/heart.png")
 const GEAR_ICON := preload("res://assets/icons/ui/gear.png")
@@ -11,6 +12,7 @@ const GEAR_ICON := preload("res://assets/icons/ui/gear.png")
 @onready var _hp_label: Label = %HpLabel
 @onready var _heart_icon: TextureRect = %HeartIcon
 @onready var _btn_body: Button = %ToggleInventoryButton
+@onready var _btn_combat_log: Button = %CombatLogButton
 @onready var _btn_debug_level_up: Button = %DebugLevelUpButton
 @onready var _btn_menu: Button = %MenuButton
 @onready var _level_label: Label = %LevelLabel
@@ -27,6 +29,8 @@ func _ready() -> void:
 		_heart_icon.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
 	if _btn_body:
 		_btn_body.pressed.connect(func() -> void: body_grid_pressed.emit())
+	if _btn_combat_log:
+		_btn_combat_log.pressed.connect(func() -> void: combat_log_pressed.emit())
 	# TODO: удалить на продакшене
 	if _btn_debug_level_up:
 		_btn_debug_level_up.add_to_group("debug_ui")
@@ -83,6 +87,8 @@ func _configure_menu_button() -> void:
 func _apply_locale(_locale: String = "") -> void:
 	if _btn_body:
 		_btn_body.text = tr("KEY_BODY_GRID")
+	if _btn_combat_log:
+		_btn_combat_log.text = tr("KEY_COMBAT_LOG")
 	if _btn_menu:
 		_btn_menu.text = ""
 		_btn_menu.tooltip_text = tr("KEY_MENU")

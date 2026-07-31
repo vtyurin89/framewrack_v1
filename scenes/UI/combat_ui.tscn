@@ -20,7 +20,7 @@ anchor_bottom = 1.0
 offset_left = 8.0
 offset_top = 8.0
 offset_right = -8.0
-offset_bottom = -198.0
+offset_bottom = -56.0
 grow_horizontal = 2
 grow_vertical = 2
 theme_override_constants/separation = 8
@@ -98,7 +98,7 @@ anchor_top = 1.0
 anchor_right = 1.0
 anchor_bottom = 1.0
 offset_left = 8.0
-offset_top = -190.0
+offset_top = -48.0
 offset_right = -8.0
 offset_bottom = -8.0
 grow_horizontal = 2
@@ -123,22 +123,68 @@ layout_mode = 2
 custom_minimum_size = Vector2(140, 36)
 text = "Continue"
 
-[node name="LogPanel" type="VBoxContainer" parent="BottomDock"]
+[node name="CombatLogLayer" type="CanvasLayer" parent="."]
+layer = 30
+
+[node name="CombatLogModal" type="Control" parent="CombatLogLayer"]
+unique_name_in_owner = true
+visible = false
+layout_mode = 3
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+mouse_filter = 2
+
+[node name="LogPanel" type="PanelContainer" parent="CombatLogLayer/CombatLogModal"]
+unique_name_in_owner = true
+layout_mode = 1
+anchors_preset = 12
+anchor_top = 1.0
+anchor_right = 1.0
+anchor_bottom = 1.0
+offset_left = 8.0
+offset_top = -248.0
+offset_right = -8.0
+offset_bottom = -56.0
+grow_horizontal = 2
+grow_vertical = 0
+mouse_filter = 0
+
+[node name="LogVBox" type="VBoxContainer" parent="CombatLogLayer/CombatLogModal/LogPanel"]
+layout_mode = 2
+theme_override_constants/separation = 6
+
+[node name="LogHeader" type="HBoxContainer" parent="CombatLogLayer/CombatLogModal/LogPanel/LogVBox"]
+layout_mode = 2
+theme_override_constants/separation = 8
+
+[node name="LogTitle" type="Label" parent="CombatLogLayer/CombatLogModal/LogPanel/LogVBox/LogHeader"]
+unique_name_in_owner = true
 layout_mode = 2
 size_flags_horizontal = 3
-size_flags_vertical = 0
+theme_override_colors/font_color = Color(0.9, 0.9, 0.92, 1)
+theme_override_font_sizes/font_size = 14
+text = "Combat Log"
+vertical_alignment = 1
 
-[node name="LogTitle" type="Label" parent="BottomDock/LogPanel"]
-layout_mode = 2
-text = "COMBAT LOG"
-
-[node name="CombatLog" type="RichTextLabel" parent="BottomDock/LogPanel"]
+[node name="CloseLogButton" type="Button" parent="CombatLogLayer/CombatLogModal/LogPanel/LogVBox/LogHeader"]
 unique_name_in_owner = true
-custom_minimum_size = Vector2(0, 150)
+custom_minimum_size = Vector2(32, 28)
+layout_mode = 2
+flat = true
+text = "×"
+
+[node name="CombatLog" type="RichTextLabel" parent="CombatLogLayer/CombatLogModal/LogPanel/LogVBox"]
+unique_name_in_owner = true
+custom_minimum_size = Vector2(0, 160)
 layout_mode = 2
 size_flags_vertical = 0
+focus_mode = 2
+theme_override_colors/default_color = Color(0.75, 0.75, 0.75, 1)
 bbcode_enabled = true
-scroll_following = true
 fit_content = false
 scroll_active = true
-theme_override_colors/default_color = Color(0.75, 0.75, 0.75, 1)
+scroll_following = true
+autowrap_mode = 3

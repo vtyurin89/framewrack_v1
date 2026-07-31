@@ -93,6 +93,7 @@ func _ready() -> void:
 	if _gameplay_hud:
 		_gameplay_hud.body_grid_pressed.connect(_toggle_inventory)
 		_gameplay_hud.menu_pressed.connect(_on_menu_pressed)
+		_gameplay_hud.combat_log_pressed.connect(_on_combat_log_pressed)
 		_gameplay_hud.bind_player_stats(player_stats)
 		_gameplay_hud.bind_inventory(inventory)
 
@@ -122,6 +123,15 @@ func _unhandled_input(event: InputEvent) -> void:
 		return
 	## Settings modal consumes ESC while open (PROCESS_MODE_ALWAYS).
 	if _settings != null and _settings.is_open():
+		return
+	if (
+		_combat_ui != null
+		and _combat_ui.visible
+		and _combat_ui.has_method("is_combat_log_open")
+		and _combat_ui.is_combat_log_open()
+	):
+		_combat_ui.hide_combat_log()
+		get_viewport().set_input_as_handled()
 		return
 	match GameManager.get_state():
 		GameManager.GameState.GAMEPLAY:
@@ -284,6 +294,13 @@ func _on_main_menu_exit() -> void:
 
 func _on_menu_pressed() -> void:
 	GameManager.request_pause_to_menu()
+
+
+func _on_combat_log_pressed() -> void:
+	if _combat_ui == null or not _combat_ui.visible:
+		return
+	if _combat_ui.has_method("toggle_combat_log"):
+		_combat_ui.toggle_combat_log()
 
 
 func _on_settings_requested() -> void:

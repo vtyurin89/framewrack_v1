@@ -26,6 +26,10 @@ var _player_hp_initialized: bool = false
 @onready var _block_label: Label = %BlockLabel
 @onready var _turn_label: Label = %TurnLabel
 @onready var _log: RichTextLabel = %CombatLog
+@onready var _log_modal: Control = %CombatLogModal
+@onready var _log_panel: PanelContainer = %LogPanel
+@onready var _log_title: Label = %LogTitle
+@onready var _close_log_btn: Button = %CloseLogButton
 @onready var _end_turn_btn: Button = %EndTurnButton
 @onready var _continue_btn: Button = %ContinueButton
 @onready var _hint_label: Label = %CombatHint
@@ -38,6 +42,13 @@ func _ready() -> void:
 	_end_turn_btn.pressed.connect(func() -> void: end_turn_pressed.emit())
 	_continue_btn.pressed.connect(func() -> void: continue_pressed.emit())
 	_continue_btn.visible = false
+	if _close_log_btn:
+		_close_log_btn.pressed.connect(hide_combat_log)
+		_close_log_btn.tooltip_text = tr("KEY_CLOSE")
+		_close_log_btn.mouse_default_cursor_shape = Control.CURSOR_POINTING_HAND
+	_style_log_panel()
+	_configure_log_scroll()
+	hide_combat_log()
 	EventBus.ap_changed.connect(_on_ap_changed)
 	EventBus.player_hp_changed.connect(_on_hp_changed)
 	EventBus.block_changed.connect(_on_block_changed)
@@ -146,6 +157,59 @@ func _apply_static_locale() -> void:
 	_end_turn_btn.text = tr("KEY_END_TURN")
 	if _hint_label:
 		_hint_label.text = tr("KEY_COMBAT_CLICK_HINT")
+	if _log_title:
+		_log_title.text = tr("KEY_COMBAT_LOG")
+	if _close_log_btn:
+		_close_log_btn.tooltip_text = tr("KEY_CLOSE")
+
+
+func is_combat_log_open() -> bool:
+	return _log_modal != null and _log_modal.visible
+
+
+func toggle_combat_log() -> void:
+	if is_combat_log_open():
+		hide_combat_log()
+	else:
+		show_combat_log()
+
+
+func show_combat_log() -> void:
+	if _log_modal == null:
+		return
+	_log_modal.visible = true
+	_scroll_log_to_end()
+
+
+func hide_combat_log() -> void:
+	if _log_modal == null:
+		return
+	_log_modal.visible = false
+
+
+func _style_log_panel() -> void:
+	if _log_panel == null:
+		return
+	var style := StyleBoxFlat.new()
+	style.bg_color = Color(0.12, 0.12, 0.14, 0.96)
+	style.set_border_width_all(1)
+	style.border_color = Color(0.42, 0.42, 0.48, 1)
+	style.set_corner_radius_all(6)
+	style.set_content_margin_all(10)
+	style.shadow_color = Color(0, 0, 0, 0.4)
+	style.shadow_size = 8
+	_log_panel.add_theme_stylebox_override("panel", style)
+
+
+func _configure_log_scroll() -> void:
+	if _log == null:
+		return
+	_log.bbcode_enabled = true
+	_log.fit_content = false
+	_log.scroll_active = true
+	_log.scroll_following = true
+	_log.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	_log.custom_minimum_size.y = 160.0
 
 
 func _ensure_enemy_inspect() -> void:
@@ -292,6 +356,9 @@ func _on_block_changed(amount: int) -> void:
 func _on_combat_started(_enemy_ids: Array) -> void:
 	_dying_indices.clear()
 	_player_hp_initialized = false
+	if _log:
+		_log.clear()
+	hide_combat_log()
 	_ensure_player_statuses_ui()
 	_bind_damage_popup_manager()
 	if DamagePopUpManager:
@@ -404,7 +471,13 @@ func _on_enemy_hp(index: int, current: int, maximum: int) -> void:
 
 
 func _on_log(text: String) -> void:
+	if _log == null:
+		return
 	_log.append_text(text + "\n")
+	_scroll_log_to_end()
+
+
+func _scroll_log_to_end() -> void:
 	await get_tree().process_frame
 	if is_instance_valid(_log):
 		_log.scroll_to_line(_log.get_line_count())
