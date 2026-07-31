@@ -1,6 +1,6 @@
 class_name GameplayHUD
 extends HBoxContainer
-## In-game top bar: HP · Experience · Body Grid · Menu (gear).
+## In-game top bar: HP · Experience · Body Grid · Combat Log · Menu.
 
 signal menu_pressed
 signal body_grid_pressed

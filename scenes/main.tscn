@@ -146,12 +146,12 @@ text = "Systems online."
 [node name="Content" type="HBoxContainer" parent="RootLayout"]
 layout_mode = 2
 size_flags_vertical = 3
-theme_override_constants/separation = 12
+theme_override_constants/separation = 0
 
 [node name="MainStage" type="Control" parent="RootLayout/Content"]
 layout_mode = 2
 size_flags_horizontal = 3
-size_flags_stretch_ratio = 1.6
+size_flags_stretch_ratio = 1.7
 
 [node name="MapUI" parent="RootLayout/Content/MainStage" instance=ExtResource("2")]
 unique_name_in_owner = true
@@ -171,6 +171,24 @@ anchor_right = 1.0
 anchor_bottom = 1.0
 grow_horizontal = 2
 grow_vertical = 2
+
+[node name="StageDivider" type="ColorRect" parent="RootLayout/Content"]
+unique_name_in_owner = true
+visible = false
+custom_minimum_size = Vector2(1, 0)
+layout_mode = 2
+size_flags_vertical = 3
+mouse_filter = 2
+color = Color(0.38, 0.38, 0.42, 1)
+
+[node name="BodyGridPane" type="PanelContainer" parent="RootLayout/Content"]
+unique_name_in_owner = true
+visible = false
+custom_minimum_size = Vector2(460, 0)
+layout_mode = 2
+size_flags_horizontal = 3
+size_flags_stretch_ratio = 1.0
+size_flags_vertical = 3
 
 [node name="OverlayLayer" type="CanvasLayer" parent="."]
 layer = 5

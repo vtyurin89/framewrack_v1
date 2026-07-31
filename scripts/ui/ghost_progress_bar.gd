@@ -56,6 +56,8 @@ func _ensure_built() -> void:
 		_label.add_theme_color_override("font_color", Color.WHITE)
 		_label.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
 		add_child(_label)
+	elif _label != null:
+		_label.visible = false
 
 
 func _apply_styles() -> void:
@@ -66,12 +68,12 @@ func _apply_styles() -> void:
 	bg.set_content_margin_all(0)
 
 	var ghost_fill := StyleBoxFlat.new()
-	ghost_fill.bg_color = GamePalette.COLOR_HP_GHOST if GamePalette else Color("#F39C12")
+	ghost_fill.bg_color = GamePalette.COLOR_HP_GHOST if GamePalette else Color("#a85a5a")
 	ghost_fill.set_corner_radius_all(2)
 	ghost_fill.set_content_margin_all(0)
 
 	var main_fill := StyleBoxFlat.new()
-	main_fill.bg_color = GamePalette.COLOR_HP_MAIN if GamePalette else Color("#E74C3C")
+	main_fill.bg_color = GamePalette.COLOR_HP_MAIN if GamePalette else Color("#842d2d")
 	main_fill.set_corner_radius_all(2)
 	main_fill.set_content_margin_all(0)
 

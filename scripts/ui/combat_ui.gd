@@ -48,6 +48,7 @@ func _ready() -> void:
 		_close_log_btn.mouse_default_cursor_shape = Control.CURSOR_POINTING_HAND
 	_style_log_panel()
 	_configure_log_scroll()
+	_style_action_buttons()
 	hide_combat_log()
 	EventBus.ap_changed.connect(_on_ap_changed)
 	EventBus.player_hp_changed.connect(_on_hp_changed)
@@ -212,6 +213,38 @@ func _configure_log_scroll() -> void:
 	_log.custom_minimum_size.y = 160.0
 
 
+func _style_action_buttons() -> void:
+	_apply_primary_action_style(_end_turn_btn)
+	_apply_primary_action_style(_continue_btn)
+
+
+func _apply_primary_action_style(btn: Button) -> void:
+	if btn == null:
+		return
+	btn.custom_minimum_size = Vector2(220, 52)
+	btn.add_theme_font_size_override("font_size", 18)
+	var normal := StyleBoxFlat.new()
+	normal.bg_color = Color(0.1, 0.1, 0.12, 1)
+	normal.set_border_width_all(2)
+	normal.border_color = Color(0.92, 0.55, 0.18, 1)
+	normal.set_corner_radius_all(4)
+	normal.set_content_margin_all(10)
+	var hover := normal.duplicate() as StyleBoxFlat
+	hover.bg_color = Color(0.16, 0.14, 0.12, 1)
+	hover.border_color = Color(1.0, 0.7, 0.28, 1)
+	var pressed := normal.duplicate() as StyleBoxFlat
+	pressed.bg_color = Color(0.08, 0.08, 0.09, 1)
+	pressed.border_color = Color(0.75, 0.42, 0.12, 1)
+	var disabled := normal.duplicate() as StyleBoxFlat
+	disabled.bg_color = Color(0.08, 0.08, 0.09, 0.7)
+	disabled.border_color = Color(0.4, 0.35, 0.28, 0.8)
+	btn.add_theme_stylebox_override("normal", normal)
+	btn.add_theme_stylebox_override("hover", hover)
+	btn.add_theme_stylebox_override("pressed", pressed)
+	btn.add_theme_stylebox_override("disabled", disabled)
+	btn.add_theme_stylebox_override("focus", hover)
+
+
 func _ensure_enemy_inspect() -> void:
 	if _enemy_inspect != null and is_instance_valid(_enemy_inspect):
 		return
@@ -344,7 +377,10 @@ func _on_ap_changed(current: int, maximum: int) -> void:
 func _on_hp_changed(current: int, maximum: int) -> void:
 	_hp_label.text = tr("KEY_FRAME_HP_FMT") % [tr("KEY_FRAME_HP"), current, maximum]
 	if _player_hp_bar:
-		_player_hp_bar.bar_min_size = Vector2(280, 22)
+		_player_hp_bar.show_label = false
+		_player_hp_bar.bar_min_size = Vector2(200, 16)
+		_player_hp_bar.custom_minimum_size = Vector2(0, 16)
+		_player_hp_bar.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 		_player_hp_bar.set_hp(current, maximum, _player_hp_initialized)
 		_player_hp_initialized = true
 

@@ -17,13 +17,13 @@ layout_mode = 1
 anchors_preset = 15
 anchor_right = 1.0
 anchor_bottom = 1.0
-offset_left = 8.0
+offset_left = 12.0
 offset_top = 8.0
-offset_right = -8.0
-offset_bottom = -56.0
+offset_right = -12.0
+offset_bottom = -12.0
 grow_horizontal = 2
 grow_vertical = 2
-theme_override_constants/separation = 8
+theme_override_constants/separation = 10
 
 [node name="TurnLabel" type="Label" parent="VBox"]
 unique_name_in_owner = true
@@ -32,46 +32,52 @@ layout_mode = 2
 theme_override_colors/font_color = Color(0.9, 0.9, 0.9, 1)
 theme_override_font_sizes/font_size = 22
 text = "PLAYER TURN"
-horizontal_alignment = 1
+horizontal_alignment = 0
 
 [node name="StatsRow" type="HBoxContainer" parent="VBox"]
 layout_mode = 2
-alignment = 1
-theme_override_constants/separation = 24
+alignment = 0
+theme_override_constants/separation = 28
 
 [node name="HPLabel" type="Label" parent="VBox/StatsRow"]
 unique_name_in_owner = true
 layout_mode = 2
-theme_override_colors/font_color = Color(0.85, 0.85, 0.85, 1)
+theme_override_colors/font_color = Color(0.95, 0.95, 0.97, 1)
+theme_override_font_sizes/font_size = 18
 text = "FRAME HP 40 / 40"
 
 [node name="APLabel" type="Label" parent="VBox/StatsRow"]
 unique_name_in_owner = true
 layout_mode = 2
-theme_override_colors/font_color = Color(0.85, 0.85, 0.85, 1)
+theme_override_colors/font_color = Color(0.95, 0.95, 0.97, 1)
+theme_override_font_sizes/font_size = 18
 text = "AP 3 / 3"
 
 [node name="BlockLabel" type="Label" parent="VBox/StatsRow"]
 unique_name_in_owner = true
 layout_mode = 2
-theme_override_colors/font_color = Color(0.75, 0.75, 0.8, 1)
+theme_override_colors/font_color = Color(0.88, 0.88, 0.92, 1)
+theme_override_font_sizes/font_size = 18
 text = "BLOCK 0"
 
 [node name="PlayerHPBar" parent="VBox" instance=ExtResource("2")]
 unique_name_in_owner = true
-custom_minimum_size = Vector2(280, 22)
+custom_minimum_size = Vector2(0, 16)
 layout_mode = 2
-size_flags_horizontal = 4
+size_flags_horizontal = 3
+show_label = false
+bar_min_size = Vector2(200, 16)
 
 [node name="PlayerStatuses" type="HBoxContainer" parent="VBox"]
 unique_name_in_owner = true
 layout_mode = 2
-alignment = 1
+alignment = 0
 theme_override_constants/separation = 6
 
 [node name="StatsEnemyGap" type="Control" parent="VBox"]
-custom_minimum_size = Vector2(0, 16)
+custom_minimum_size = Vector2(0, 20)
 layout_mode = 2
+size_flags_vertical = 3
 mouse_filter = 2
 
 [node name="EnemyRow" type="HBoxContainer" parent="VBox"]
@@ -88,39 +94,33 @@ layout_mode = 2
 theme_override_colors/font_color = Color(0.65, 0.65, 0.7, 1)
 theme_override_font_sizes/font_size = 12
 text = "Click a body module to use it. Click an enemy to retarget."
-horizontal_alignment = 1
+horizontal_alignment = 0
 autowrap_mode = 3
 
-[node name="BottomDock" type="HBoxContainer" parent="."]
-layout_mode = 1
-anchors_preset = 12
-anchor_top = 1.0
-anchor_right = 1.0
-anchor_bottom = 1.0
-offset_left = 8.0
-offset_top = -48.0
-offset_right = -8.0
-offset_bottom = -8.0
-grow_horizontal = 2
-grow_vertical = 0
+[node name="EnemyActionsGap" type="Control" parent="VBox"]
+custom_minimum_size = Vector2(0, 16)
+layout_mode = 2
+size_flags_vertical = 3
+mouse_filter = 2
+
+[node name="ActionsPanel" type="HBoxContainer" parent="VBox"]
+layout_mode = 2
+alignment = 0
 theme_override_constants/separation = 12
 
-[node name="ActionsPanel" type="VBoxContainer" parent="BottomDock"]
-layout_mode = 2
-size_flags_horizontal = 0
-size_flags_vertical = 0
-
-[node name="EndTurnButton" type="Button" parent="BottomDock/ActionsPanel"]
+[node name="EndTurnButton" type="Button" parent="VBox/ActionsPanel"]
 unique_name_in_owner = true
+custom_minimum_size = Vector2(220, 52)
 layout_mode = 2
-custom_minimum_size = Vector2(140, 36)
+theme_override_font_sizes/font_size = 18
 text = "End Turn"
 
-[node name="ContinueButton" type="Button" parent="BottomDock/ActionsPanel"]
+[node name="ContinueButton" type="Button" parent="VBox/ActionsPanel"]
 unique_name_in_owner = true
 visible = false
+custom_minimum_size = Vector2(220, 52)
 layout_mode = 2
-custom_minimum_size = Vector2(140, 36)
+theme_override_font_sizes/font_size = 18
 text = "Continue"
 
 [node name="CombatLogLayer" type="CanvasLayer" parent="."]
@@ -146,8 +146,8 @@ anchor_right = 1.0
 anchor_bottom = 1.0
 offset_left = 8.0
 offset_top = -248.0
-offset_right = -8.0
-offset_bottom = -56.0
+offset_right = -480.0
+offset_bottom = -12.0
 grow_horizontal = 2
 grow_vertical = 0
 mouse_filter = 0
