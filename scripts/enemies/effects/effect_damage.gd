@@ -53,3 +53,38 @@ func apply(caster: EnemyInstance, target: Node, params: Array) -> void:
 
 		if target.has_method("is_player_defeated") and bool(target.call("is_player_defeated")):
 			return
+
+	_apply_status_riders(caster, target, ability)
+
+	if caster.statuses != null:
+		caster.statuses.consume_frenzy_after_attack()
+
+
+func _apply_status_riders(caster: EnemyInstance, target: Node, ability: EnemyAbility) -> void:
+	if ability == null or target == null:
+		return
+	var csv := ability.get_effect_param_list()
+	var i := 0
+	while i < csv.size():
+		var token := str(csv[i]).strip_edges().to_lower()
+		if token.is_empty() or token.is_valid_int():
+			i += 1
+			continue
+	## Whitelist known status riders so numeric / misc params are ignored.
+		var known := [
+			"slow", "bleed", "burn", "poison", "weakness", "vulnerability", "rust", "stun"
+		]
+		if token not in known:
+			i += 1
+			continue
+		var stacks := 1
+		if i + 1 < csv.size() and str(csv[i + 1]).is_valid_int():
+			stacks = maxi(1, int(csv[i + 1]))
+			i += 2
+		else:
+			i += 1
+		if target.has_method("apply_player_status"):
+			target.call("apply_player_status", token, stacks)
+			EventBus.combat_log_message.emit(
+				tr("KEY_LOG_ENEMY_STATUS") % [caster.get_localized_name(), token, stacks]
+			)

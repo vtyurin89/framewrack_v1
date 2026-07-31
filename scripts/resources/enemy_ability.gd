@@ -176,6 +176,14 @@ static func parse_main_effect(raw: String) -> String:
 			return "status"
 		"summon":
 			return "summon"
+		"brand_stim", "brand_stimulation":
+			return "brand_stim"
+		"steal_chips", "steal":
+			return "steal_chips"
+		"flee", "escape":
+			return "flee"
+		"ally_buff":
+			return "ally_buff"
 		"damage", "attack", "multi_hit", "":
 			return "damage"
 		_:

@@ -307,7 +307,13 @@ func _start_combat_from_ids(
 			if boss != null:
 				datas.append(boss)
 		elif not faction.is_empty():
-			datas = EnemyDatabase.generate_encounter(faction, threat_budget)
+			var act := 1
+			if active_encounter != null:
+				act = int(active_encounter.payload.get("act", 1))
+			if faction.strip_edges().to_lower() == "human":
+				datas = EnemyManager.generate_act_encounter(act, threat_budget, faction)
+			else:
+				datas = EnemyDatabase.generate_encounter(faction, threat_budget)
 	if datas.is_empty():
 		push_warning("EncounterManager: no enemies resolved for combat")
 		_finish_encounter(_pending_rewards)

@@ -122,6 +122,14 @@ KEY_LOG_RUST_MISS,%s misses (Rust).,%s промахивается (Ржавчи�
 KEY_LOG_THORNS,%s thorns deal %d.,Шипы %s наносят %d.
 KEY_LOG_ENEMY_SUMMON,%s summons %s!,%s призывает %s!
 KEY_LOG_ENEMY_SUMMON_FAIL,%s failed to summon %s.,%s не смог призвать %s.
+KEY_LOG_BRAND_STIM,%s is branded (%d damage) and enters Frenzy!,%s клеймят (%d урона) — ярость!
+KEY_LOG_BRAND_STIM_FAIL,%s has no minions to brand.,%s некого клеймить.
+KEY_LOG_CHIP_THEFT,%s steals %d Neuro-Chips (%d dmg; you take %d).,%s крадёт %d нейро-чипов (%d урона; вы получаете %d).
+KEY_LOG_ENEMY_FLED,%s flees with %d Neuro-Chips!,%s сбегает с %d нейро-чипами!
+KEY_LOG_CHIPS_RECOVERED,%s: recovered %d Neuro-Chips.,%s: возвращено %d нейро-чипов.
+KEY_LOG_SUMMON_FLED,%s flees as %s falls.,%s бежит — %s пал.
+KEY_LOG_EVASION_NEGATE,Evasion! The hit is negated.,Уклонение! Удар поглощён.
+KEY_LOG_EVASION_NEGATE_ENEMY,%s evades the hit!,%s уклоняется от удара!
 KEY_ABILITY_PRE_ACTION_FMT,Pre-action every %d turns (permanent +1 Luck).,Преддействие каждые %d хода (постоянно +1 Удача).
 KEY_ABILITY_MULTI_HIT_FMT,"%d× %d–%d (+⌊STR/2⌋=%d); unlocks at ≤%d%% HP","%d× %d–%d (+⌊СИЛ/2⌋=%d); открывается при ≤%d%% ОЗ"
 ABILITY_PIPE_SWING_NAME,Pipe Swing,Удар трубой
@@ -142,6 +150,60 @@ ABILITY_PIPE_SWING_TEXT,Pipe Swing,Удар трубой
 ABILITY_GUARD_TEXT,Scrap Guard,Блок щитом из мусора
 ABILITY_SIGNAL_SPIKE_TEXT,Signal Spike,Сигнальный всплеск
 ABILITY_REPAIR_PULSE_TEXT,Repair Pulse,Ремонтный пульс
+ABILITY_SLAVER_SUMMON_NAME,Into the Fray!,В бой; шваль!
+ABILITY_SLAVER_SUMMON_DESC,Summons 1–2 branded slaves to fill the master's retinue.,Призывает 1–2 клеймённых рабов; добивая свиту хозяина.
+ABILITY_SLAVER_SUMMON_TEXT,Into the Fray!,В бой; шваль!
+ABILITY_SLAVER_BRAND_NAME,Brand Stimulation,Стимуляция клейма
+ABILITY_SLAVER_BRAND_DESC,Burns living minions for 3 and grants Frenzy (+50% next attack).,Жжёт живых миньонов на 3 и даёт Ярость (+50% к следующей атаке).
+ABILITY_SLAVER_BRAND_TEXT,Brand Stimulation,Стимуляция клейма
+ABILITY_SLAVER_DOUBLE_NAME,Double Strike,Двойной удар
+ABILITY_SLAVER_DOUBLE_DESC,Two moderate physical strikes.,Два средних физических удара.
+ABILITY_SLAVER_DOUBLE_TEXT,Double Strike,Двойной удар
+ABILITY_SLAVER_STIMS_NAME,Combat Stimulants,Боевые стимуляторы
+ABILITY_SLAVER_STIMS_DESC,Every 3 turns: +2 Strength to self and living minions.,Каждые 3 хода: +2 Силы себе и живым миньонам.
+ABILITY_SLAVER_STIMS_TEXT,Combat Stimulants,Боевые стимуляторы
+ABILITY_SLAVER_ARMOR_NAME,Armor Up,Броня
+ABILITY_SLAVER_ARMOR_DESC,Raises a heavy personal shield.,Поднимает тяжёлый личный щит.
+ABILITY_SLAVER_ARMOR_TEXT,Armor Up,Броня
+ABILITY_MINION_LUNGE_NAME,Desperate Lunge,Отчаянный бросок
+ABILITY_MINION_LUNGE_DESC,A weak physical strike.,Слабый физический удар.
+ABILITY_MINION_LUNGE_TEXT,Desperate Lunge,Отчаянный бросок
+ABILITY_DESERTER_AIM_NAME,Take Aim,Прицеливание
+ABILITY_DESERTER_AIM_DESC,Marks the target with Vulnerability (no damage).,Помечает цель Уязвимостью (без урона).
+ABILITY_DESERTER_AIM_TEXT,Take Aim,Прицеливание
+ABILITY_DESERTER_SNIPE_NAME,Precision Shot,Точечный выстрел
+ABILITY_DESERTER_SNIPE_DESC,Huge single-target damage after aiming.,Огромный урон по одной цели после прицеливания.
+ABILITY_DESERTER_SNIPE_TEXT,Precision Shot,Точечный выстрел
+ABILITY_DESERTER_EVASION_NAME,Evasion Protocol,Протокол уклонения
+ABILITY_DESERTER_EVASION_DESC,Gain 2 Evasion stacks (each negates one hit).,Получает 2 стака Уклонения (каждый блокирует удар).
+ABILITY_DESERTER_EVASION_TEXT,Evasion Protocol,Протокол уклонения
+ABILITY_DESERTER_SHIELD_NAME,Hard Cover,Укрытие
+ABILITY_DESERTER_SHIELD_DESC,Generates a personal shield.,Создаёт личный щит.
+ABILITY_DESERTER_SHIELD_TEXT,Hard Cover,Укрытие
+ABILITY_THIEF_STEAL_NAME,Pocket Lift,Карманная кража
+ABILITY_THIEF_STEAL_DESC,Minor damage and steals Intellect×4 Neuro-Chips.,Небольшой урон и кража Интеллект×4 нейро-чипов.
+ABILITY_THIEF_STEAL_TEXT,Pocket Lift,Карманная кража
+ABILITY_THIEF_STAB_NAME,Rib Shiv,Заточка в ребро
+ABILITY_THIEF_STAB_DESC,When the target has no chips: attack and apply Bleed.,Если у цели нет чипов: удар и Кровотечение.
+ABILITY_THIEF_STAB_TEXT,Rib Shiv,Заточка в ребро
+ABILITY_THIEF_SCOUT_NAME,Scout Escape,Присматривает путь
+ABILITY_THIEF_SCOUT_DESC,Applies Fleeing — will escape next turn.,Накладывает Побег — сбежит на следующем ходу.
+ABILITY_THIEF_SCOUT_TEXT,Scout Escape,Присматривает путь
+ABILITY_THIEF_FLEE_NAME,Escape!,Побег!
+ABILITY_THIEF_FLEE_DESC,Leaves combat with all stolen Neuro-Chips.,Покидает бой со всеми украденными нейро-чипами.
+ABILITY_THIEF_FLEE_TEXT,Escape!,Побег!
+ABILITY_SCRAPPER_PREBUFF_NAME,Hydraulic Surge,Гидравлический рывок
+ABILITY_SCRAPPER_PREBUFF_DESC,Every 3 turns: permanent +2 Strength before attacking.,Каждые 3 хода: постоянно +2 Силы перед атакой.
+ABILITY_SCRAPPER_PREBUFF_TEXT,Hydraulic Surge,Гидравлический рывок
+ABILITY_SCRAPPER_SHIELD_NAME,Bulkhead,Заслон
+ABILITY_SCRAPPER_SHIELD_DESC,Heavy personal shield.,Тяжёлый личный щит.
+ABILITY_SCRAPPER_SHIELD_TEXT,Bulkhead,Заслон
+ABILITY_SCRAPPER_BUMPER_NAME,Bumper Slam,Удар бампером
+ABILITY_SCRAPPER_BUMPER_DESC,Heavy physical hit (14–18) and Slow.,Тяжёлый удар (14–18) и Замедление.
+ABILITY_SCRAPPER_BUMPER_TEXT,Bumper Slam,Удар бампером
+ABILITY_SCRAPPER_EXHAUST_NAME,Exhaust Dump,Выхлопной сброс
+ABILITY_SCRAPPER_EXHAUST_DESC,Weak damage and Burn ×2.,Слабый урон и Горение ×2.
+ABILITY_SCRAPPER_EXHAUST_TEXT,Exhaust Dump,Выхлопной сброс
 KEY_COMBAT_TEXT_ENEMY_CRIT,Critical hit!,Критический удар!
 KEY_PRICE,Price,Цена
 KEY_DAMAGE,Damage,Урон
@@ -203,9 +265,19 @@ ENEMY_REBEL_WARLORD_NAME,Rebel Warlord,Главарь повстанцев
 ENEMY_REBEL_WARLORD_DESC,Hardened commander who studies every weakness in your frame.,Закалённый командир; способный изучить каждую слабость вашего фрейма.
 ENEMY_SYNTHET_OVERSEER_NAME,Synthet Overseer,Надзиратель синтетов
 ENEMY_SYNTHET_OVERSEER_DESC,A towering signal-core that frenzies when critically damaged.,Гигантское ядро; впадающее в ярость при критических повреждениях.
+ENEMY_SLAVER_MASTER_NAME,Slaver Master,Работорговец
+ENEMY_SLAVER_MASTER_DESC,A branded overseer who fights alone until the slaves are called.,Клеймённый надсмотрщик; бьётся один; пока не призовёт рабов.
+ENEMY_SLAVER_MINION_NAME,Chipped Slave,Зачипованный раб
+ENEMY_SLAVER_MINION_DESC,A summoned thrall. Flees if the master dies. Yields no XP.,Призванный раб. Бежит; если хозяин пал. Не даёт опыта.
+ENEMY_CORP_DESERTER_NAME,Corporate Deserter,Корпоративный дезертир
+ENEMY_CORP_DESERTER_DESC,Backline rifle specialist: aim; then erase you.,Тыловой стрелок: прицеливается; потом стирает вас.
+ENEMY_POCKET_THIEF_NAME,Pocket Thief,Шнырь
+ENEMY_POCKET_THIEF_DESC,Timer thief who pockets Neuro-Chips; then bolts.,Вор-таймер; тащит нейро-чипы и смывается.
+ENEMY_SCRAPPER_TANK_NAME,Scrapper Tank,Утильщик
+ENEMY_SCRAPPER_TANK_DESC,Frontline scrap bulkhead. Turns vicious when alone.,Фронтовой хламовый танк. Звереет; оставшись один.
 MAP_N0_NAME,Scrap Corridor,Мусорный коридор
 MAP_N1_NAME,Jury-Rig Bench,Кустарный верстак
-MAP_N2_NAME,Synth Nest,Гнездо синтетов
+MAP_N2_NAME,Slaver Crossing,Переход работорговца
 MAP_N3_NAME,Mutation Cache,Кэш мутации
 MAP_N4_NAME,Framewrack Core,Ядро Framewrack
 ITEM_UNKNOWN_NAME,Unknown Module,Неизвестный модуль

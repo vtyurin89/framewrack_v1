@@ -66,5 +66,17 @@ func get_ui_glyph() -> String:
 			return "🌵"
 		"ferocity":
 			return "🩸"
+		"evasion":
+			return "🌀"
+		"fleeing":
+			return "👢"
+		"summoned_creature":
+			return "🔗"
+		"frenzy":
+			return "😡"
+		"bleed":
+			return "🩸"
+		"slow":
+			return "🐢"
 		_:
 			return "•"

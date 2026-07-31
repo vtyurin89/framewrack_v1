@@ -573,8 +573,11 @@ func _on_encounter_request_combat(enemy_datas: Array, encounter: EncounterData) 
 	var datas: Array[EnemyData] = []
 	for entry in enemy_datas:
 		if entry is EnemyData:
-			datas.append(entry as EnemyData)
-			_pending_combat_exp_reward += maxi((entry as EnemyData).exp_reward, 0)
+			var data := entry as EnemyData
+			datas.append(data)
+			## Summoned / zero-XP blueprints do not contribute to combat XP.
+			if data.exp_reward > 0 and not ("summoned_creature" in data.trait_ids):
+				_pending_combat_exp_reward += maxi(data.exp_reward, 0)
 	_show_combat()
 	_combat_ui.setup(_combat, inventory)
 	_combat.start_combat(datas)

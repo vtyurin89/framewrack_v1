@@ -6,6 +6,10 @@ signal statuses_updated(active_statuses: Array)
 
 ## Weakness: -25% outgoing physical damage.
 const WEAKNESS_OUTGOING_MULT := 0.75
+## Slow: -20% outgoing physical damage.
+const SLOW_OUTGOING_MULT := 0.80
+## Frenzy: +50% outgoing physical damage (next attack turn).
+const FRENZY_OUTGOING_MULT := 1.5
 ## Vulnerability: +50% incoming physical damage.
 const VULN_INCOMING_MULT := 1.5
 ## Ferocity: crit damage multiplier override.
@@ -108,6 +112,12 @@ func tick_negative_statuses() -> Dictionary:
 		logs.append("burn:%d" % burn.stacks)
 		burn.stacks = 0
 
+	var bleed := get_instance("bleed")
+	if bleed != null and bleed.stacks > 0:
+		damage += bleed.stacks
+		logs.append("bleed:%d" % bleed.stacks)
+		bleed.stacks = maxi(0, bleed.stacks - 1)
+
 	var stun := get_instance("stun")
 	if stun != null and stun.duration > 0:
 		skip_turn = true
@@ -159,7 +169,32 @@ func modify_outgoing_damage(amount: int) -> int:
 	var result := float(amount)
 	if has_status("weakness"):
 		result *= WEAKNESS_OUTGOING_MULT
+	if has_status("slow"):
+		result *= SLOW_OUTGOING_MULT
+	if has_status("frenzy"):
+		result *= FRENZY_OUTGOING_MULT
 	return maxi(0, int(round(result)))
+
+
+func try_consume_evasion() -> bool:
+	## Returns true if a hit was fully negated (1 stack consumed).
+	var evasion := get_instance("evasion")
+	if evasion == null or evasion.stacks <= 0:
+		return false
+	evasion.stacks = maxi(0, evasion.stacks - 1)
+	_prune_expired()
+	_emit_updated()
+	return true
+
+
+func consume_frenzy_after_attack() -> void:
+	var frenzy := get_instance("frenzy")
+	if frenzy == null:
+		return
+	frenzy.duration = 0
+	frenzy.stacks = 0
+	_prune_expired()
+	_emit_updated()
 
 
 func modify_incoming_damage(amount: int) -> int:

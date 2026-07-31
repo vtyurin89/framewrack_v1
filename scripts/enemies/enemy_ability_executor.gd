@@ -15,6 +15,10 @@ func _init(combat: Node = null) -> void:
 		"status": EffectStatus.new(),
 		"shield": EffectShield.new(),
 		"summon": EffectSummon.new(),
+		"brand_stim": EffectBrandStimulation.new(),
+		"steal_chips": EffectStealChips.new(),
+		"flee": EffectFlee.new(),
+		"ally_buff": EffectAllyBuff.new(),
 	}
 
 

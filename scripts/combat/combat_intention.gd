@@ -89,6 +89,18 @@ func get_damage_text() -> String:
 func get_icon_glyph() -> String:
 	if is_secret:
 		return "?"
+	if source_ability != null:
+		var effect := source_ability.infer_main_effect()
+		if effect == "flee":
+			return "👢"
+		if effect == "summon":
+			return "📣"
+		if effect == "status":
+			var csv := source_ability.get_effect_param_list()
+			if csv.size() >= 1 and str(csv[0]).strip_edges().to_lower() == "fleeing":
+				return "👢"
+			if csv.size() >= 1 and str(csv[0]).strip_edges().to_lower() == "evasion":
+				return "🌀"
 	match primary_type:
 		Type.ATTACK:
 			return "⚔️"
@@ -156,6 +168,16 @@ static func from_ability(enemy: EnemyInstance, ability: EnemyAbility) -> CombatI
 		"summon":
 			intent.primary_type = Type.SECRET
 			intent.is_secret = true
+		"flee":
+			intent.primary_type = Type.BUFF
+		"steal_chips":
+			intent.primary_type = Type.ATTACK
+			intent.damage_range = _apply_damage_mult(scaled)
+			intent.hit_count = maxi(1, ability.hit_count)
+		"brand_stim":
+			intent.primary_type = Type.DEBUFF
+		"ally_buff":
+			intent.primary_type = Type.BUFF
 		_:
 			if ability.type == EnemyAbility.AbilityType.SPECIAL:
 				intent.primary_type = Type.SECRET

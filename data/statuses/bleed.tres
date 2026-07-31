@@ -1,0 +1,14 @@
+[gd_resource type="Resource" script_class="StatusEffectData" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://scripts/resources/status_effect_data.gd" id="1"]
+
+[resource]
+script = ExtResource("1")
+id = "bleed"
+title = "Bleed"
+description = "Takes {stacks} damage at the start of each turn, then loses 1 stack."
+is_debuff = true
+stack_type = 0
+trigger_phase = 0
+base_value = 1
+max_stacks = -1

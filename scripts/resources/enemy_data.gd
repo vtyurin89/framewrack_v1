@@ -37,6 +37,8 @@ const ROLE_BOSS := "boss"
 @export var role: String = ROLE_DAMAGE
 ## Difficulty cost for dynamic threat budgets.
 @export var threat_level: int = 10
+## Encounter-generator power weight (group budgets). Defaults to threat_level when unset in CSV.
+@export var power_rating: int = 1
 
 ## Base HP before endurance / difficulty scaling. 0 = fall back to legacy max_hp.
 @export var base_hp: int = 0

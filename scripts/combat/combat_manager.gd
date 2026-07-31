@@ -166,7 +166,7 @@ func _plan_all_intentions(force_reroll: bool = true) -> void:
 		if force_reroll:
 			enemy.evaluate_intention({"block": current_block}, self)
 		else:
-			enemy.reevaluate_intention(false)
+			enemy.reevaluate_intention(false, self)
 		EventBus.enemy_intention_changed.emit(i, enemy.current_intention)
 
 
@@ -176,7 +176,7 @@ func reevaluate_enemy_intention(index: int) -> void:
 	var enemy: EnemyInstance = enemies[index]
 	if enemy == null or not enemy.is_alive():
 		return
-	enemy.reevaluate_intention(false)
+	enemy.reevaluate_intention(false, self)
 	EventBus.enemy_intention_changed.emit(index, enemy.current_intention)
 
 
@@ -384,9 +384,27 @@ func _deal_damage_to(
 			crit_mult = player_statuses.get_crit_damage_multiplier(crit_mult)
 		final_dmg = roundi(float(final_dmg) * crit_mult)
 	var adjacency_note := ""
+	var had_evasion := (
+		enemy.statuses != null
+		and enemy.statuses.has_status("evasion")
+		and enemy.statuses.get_stacks("evasion") > 0
+	)
 	var hp_before := enemy.current_hp
+	var block_before := enemy.current_block
 	enemy.apply_incoming_damage(final_dmg)
 	var dealt := maxi(0, hp_before - enemy.current_hp)
+	if (
+		had_evasion
+		and dealt <= 0
+		and enemy.current_block == block_before
+		and final_dmg > 0
+	):
+		_request_enemy_popup(index, 0, damage_type, false, true)
+		EventBus.combat_log_message.emit(
+			tr("KEY_LOG_EVASION_NEGATE_ENEMY") % enemy.get_localized_name()
+		)
+		EventBus.enemy_hp_changed.emit(index, enemy.current_hp, enemy.max_hp)
+		return
 	_request_enemy_popup(index, dealt if dealt > 0 else final_dmg, damage_type, is_crit, false)
 	## Thorns on enemy reflect to player.
 	if enemy.statuses != null:
@@ -407,6 +425,7 @@ func _deal_damage_to(
 	if not enemy.is_alive():
 		enemy.clear_intention()
 		EventBus.enemy_intention_changed.emit(index, enemy.current_intention)
+		_on_enemy_defeated(enemy, index)
 		EventBus.enemy_died.emit(index)
 		_ensure_valid_selection()
 	elif state == CombatState.PLAYER_TURN:
@@ -536,6 +555,7 @@ func _enemy_pre_turn_phase(index: int, enemy: EnemyInstance) -> bool:
 		if not enemy.is_alive():
 			enemy.clear_intention()
 			EventBus.enemy_intention_changed.emit(index, enemy.current_intention)
+			_on_enemy_defeated(enemy, index)
 			EventBus.enemy_died.emit(index)
 			return false
 	if bool(result.get("skip_turn", false)):
@@ -546,6 +566,10 @@ func _enemy_pre_turn_phase(index: int, enemy: EnemyInstance) -> bool:
 		enemy.clear_intention()
 		EventBus.enemy_intention_changed.emit(index, enemy.current_intention)
 		enemy.end_enemy_turn()
+		return false
+	## FLEEING: escape at the start of this turn before acting.
+	if enemy.statuses != null and enemy.statuses.has_status("fleeing"):
+		EffectFlee.new().apply(enemy, self, [])
 		return false
 	return true
 
@@ -574,7 +598,7 @@ func _enemy_pre_action_phase(index: int, enemy: EnemyInstance) -> void:
 
 
 func _enemy_main_action_phase(index: int, enemy: EnemyInstance) -> void:
-	var action: Dictionary = EnemyAI.resolve_main_action(enemy)
+	var action: Dictionary = EnemyAI.resolve_main_action(enemy, self)
 	var ability: EnemyAbility = action.get("ability") as EnemyAbility
 	enemy.consume_planned_ability()
 	enemy.clear_intention()
@@ -649,6 +673,11 @@ func _enemy_act_legacy_fallback(index: int, enemy: EnemyInstance) -> void:
 
 func apply_enemy_damage_to_player(damage: int) -> int:
 	var incoming := damage
+	## Player evasion (if ever applied) negates the hit fully.
+	if player_statuses != null and player_statuses.try_consume_evasion():
+		EventBus.combat_log_message.emit(tr("KEY_LOG_EVASION_NEGATE"))
+		_request_player_popup(0, "physical", false, true)
+		return 0
 	if player_statuses != null:
 		incoming = player_statuses.modify_incoming_damage(incoming)
 	var dealt := inventory.apply_damage(incoming, current_block)
@@ -698,6 +727,49 @@ func remove_enemy_instance(enemy: EnemyInstance, emit_roster: bool = true) -> vo
 	if index < 0:
 		return
 	remove_enemy_at(index, emit_roster)
+
+
+func _on_enemy_defeated(enemy: EnemyInstance, _index: int) -> void:
+	if enemy == null:
+		return
+	## Pocket thief: return stolen Neuro-Chips on death.
+	if enemy.stolen_chips > 0:
+		var refunded := NeuroChipItem.grant_to_inventory(inventory, enemy.stolen_chips)
+		if refunded > 0:
+			EventBus.combat_log_message.emit(
+				tr("KEY_LOG_CHIPS_RECOVERED") % [enemy.get_localized_name(), refunded]
+			)
+		enemy.stolen_chips = 0
+	## Summoned creatures flee immediately when their master dies.
+	_flee_summons_of(enemy)
+
+
+func _flee_summons_of(master: EnemyInstance) -> void:
+	if master == null:
+		return
+	var fleeing: Array[EnemyInstance] = []
+	for other: EnemyInstance in enemies:
+		if other == null or not other.is_alive() or other == master:
+			continue
+		if not other.is_summoned_creature():
+			continue
+		if other.get_summoner() == master or (
+			other.get_summoner() == null and master.data != null and master.data.id == "slaver_master"
+		):
+			fleeing.append(other)
+	for minion in fleeing:
+		EventBus.combat_log_message.emit(
+			tr("KEY_LOG_SUMMON_FLED") % [minion.get_localized_name(), master.get_localized_name()]
+		)
+		minion.stolen_chips = 0
+		if minion.statuses != null:
+			minion.statuses.clear_combat_statuses()
+		minion.current_hp = 0
+		var idx := enemies.find(minion)
+		if idx >= 0:
+			minion.clear_intention()
+			EventBus.enemy_intention_changed.emit(idx, minion.current_intention)
+			EventBus.enemy_died.emit(idx)
 
 
 func apply_player_status(status_id: String, potency: int) -> void:

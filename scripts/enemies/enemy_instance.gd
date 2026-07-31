@@ -13,6 +13,10 @@ var is_selected: bool = false
 var abilities: Array[EnemyAbility] = []
 ## Combat status effects (poison, burn, rust, …).
 var statuses: StatusController = StatusController.new()
+## Summoner link for summoned_creature minions (WeakRef to EnemyInstance).
+var summoner_ref: WeakRef = null
+## Pocket thief: chips stolen this combat (returned on death, kept on flee).
+var stolen_chips: int = 0
 ## Number of combat turns this enemy has started (for PRE_ACTION intervals).
 var turns_taken: int = 0
 ## Remaining cooldown turns keyed by ability id.
@@ -28,6 +32,8 @@ const INTENTION_REACT_HP_THRESHOLD := 0.40
 func setup(blueprint: EnemyData) -> void:
 	data = blueprint
 	turns_taken = 0
+	stolen_chips = 0
+	summoner_ref = null
 	_ability_cooldowns.clear()
 	if data == null:
 		reset_combat_stats(MIN_STAT, MIN_STAT, MIN_STAT, MIN_STAT, MIN_STAT)
@@ -69,6 +75,12 @@ func setup(blueprint: EnemyData) -> void:
 	planned_ability = null
 	current_intention = null
 	_last_intention_hp_ratio = 1.0
+	## Trait passives applied at spawn (e.g. summoned_creature on slaver minions).
+	for trait_id: String in data.trait_ids:
+		var tid := trait_id.strip_edges().to_lower()
+		if tid.is_empty():
+			continue
+		statuses.apply_status_by_id(tid, 1)
 
 
 func begin_enemy_turn() -> void:
@@ -305,6 +317,9 @@ func resolve_multi_hit_base_rolls(ability: EnemyAbility, hit_count: int) -> Arra
 
 func apply_incoming_damage(amount: int) -> int:
 	## Absorb with enemy block first; returns HP lost.
+	## Evasion fully negates the instance before block.
+	if amount > 0 and statuses != null and statuses.try_consume_evasion():
+		return 0
 	var remaining := maxi(0, amount)
 	if current_block > 0:
 		var absorbed := mini(current_block, remaining)
@@ -313,6 +328,26 @@ func apply_incoming_damage(amount: int) -> int:
 	var before := current_hp
 	current_hp = maxi(0, current_hp - remaining)
 	return before - current_hp
+
+
+func get_summoner() -> EnemyInstance:
+	if summoner_ref == null:
+		return null
+	return summoner_ref.get_ref() as EnemyInstance
+
+
+func set_summoner(master: EnemyInstance) -> void:
+	summoner_ref = weakref(master) if master != null else null
+
+
+func is_summoned_creature() -> bool:
+	return statuses != null and statuses.has_status("summoned_creature")
+
+
+func awards_exp() -> bool:
+	if is_summoned_creature():
+		return false
+	return true
 
 
 func gain_block(amount: int) -> void:
@@ -347,12 +382,12 @@ func is_alive() -> bool:
 	return current_hp > 0
 
 
-func evaluate_intention(_player_state = null, _combat_context = null) -> CombatIntention:
+func evaluate_intention(_player_state = null, combat_context = null) -> CombatIntention:
 	## Commit next main action and build a rich CombatIntention telegraph.
 	if not is_alive():
 		clear_intention()
 		return current_intention
-	var action: Dictionary = EnemyAI.commit_main_action(self, true)
+	var action: Dictionary = EnemyAI.commit_main_action(self, true, combat_context)
 	var ability: EnemyAbility = action.get("ability") as EnemyAbility
 	if ability == null:
 		current_intention = CombatIntention.new()
@@ -363,7 +398,7 @@ func evaluate_intention(_player_state = null, _combat_context = null) -> CombatI
 	return current_intention
 
 
-func reevaluate_intention(force: bool = false) -> CombatIntention:
+func reevaluate_intention(force: bool = false, combat_context = null) -> CombatIntention:
 	## Reactive refresh — e.g. HP crossed the desperate threshold mid player-turn.
 	if not is_alive():
 		clear_intention()
@@ -374,7 +409,7 @@ func reevaluate_intention(force: bool = false) -> CombatIntention:
 		and hp_ratio <= INTENTION_REACT_HP_THRESHOLD
 	)
 	if force or crossed_desperate or planned_ability == null:
-		var action: Dictionary = EnemyAI.commit_main_action(self, true)
+		var action: Dictionary = EnemyAI.commit_main_action(self, true, combat_context)
 		var ability: EnemyAbility = action.get("ability") as EnemyAbility
 		if ability == null:
 			current_intention = CombatIntention.new()

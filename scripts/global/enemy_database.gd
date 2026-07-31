@@ -109,7 +109,7 @@ func get_random_boss_for_faction(faction: String) -> EnemyData:
 
 
 func generate_encounter(faction: String, budget: int) -> Array[EnemyData]:
-	## Builds a same-faction NORMAL-tier pack that fits within `budget` threat.
+	## Builds a same-faction NORMAL-tier pack that fits within `budget` power.
 	var result: Array[EnemyData] = []
 	var pool: Array[EnemyData] = get_enemies_by_faction_and_tier(faction, EnemyData.TIER_NORMAL)
 	if pool.is_empty():
@@ -119,30 +119,53 @@ func generate_encounter(faction: String, budget: int) -> Array[EnemyData]:
 	var remaining := maxi(budget, 0)
 	if remaining <= 0:
 		## Still return one cheapest fighter so combat can start.
-		pool.sort_custom(func(a: EnemyData, b: EnemyData) -> bool: return a.threat_level < b.threat_level)
+		pool.sort_custom(func(a: EnemyData, b: EnemyData) -> bool:
+			return _encounter_cost(a) < _encounter_cost(b)
+		)
 		result.append(create_blueprint(pool[0].id))
 		return result
 
-	var working: Array[EnemyData] = pool.duplicate()
+	var working: Array[EnemyData] = []
+	for enemy: EnemyData in pool:
+		if enemy == null:
+			continue
+		## Summon-only minions are not randomly packed into budgets.
+		if enemy.get_role() == EnemyData.ROLE_MINION and "summoned_creature" in enemy.trait_ids:
+			continue
+		if EnemyManager.is_summon_only(enemy.id):
+			continue
+		working.append(enemy)
+	if working.is_empty():
+		working = pool.duplicate()
 	working.shuffle()
 	var guard := 0
 	while remaining > 0 and guard < 64:
 		guard += 1
 		var candidates: Array[EnemyData] = []
 		for enemy: EnemyData in working:
-			var cost := maxi(enemy.threat_level, 1)
+			var cost := _encounter_cost(enemy)
 			if cost <= remaining:
 				candidates.append(enemy)
 		if candidates.is_empty():
 			break
 		var pick: EnemyData = candidates[randi() % candidates.size()]
 		result.append(create_blueprint(pick.id))
-		remaining -= maxi(pick.threat_level, 1)
+		remaining -= _encounter_cost(pick)
 
 	if result.is_empty():
-		working.sort_custom(func(a: EnemyData, b: EnemyData) -> bool: return a.threat_level < b.threat_level)
+		working.sort_custom(func(a: EnemyData, b: EnemyData) -> bool:
+			return _encounter_cost(a) < _encounter_cost(b)
+		)
 		result.append(create_blueprint(working[0].id))
 	return result
+
+
+func _encounter_cost(enemy: EnemyData) -> int:
+	if enemy == null:
+		return 1
+	if enemy.power_rating > 0:
+		return enemy.power_rating
+	return maxi(enemy.threat_level, 1)
 
 
 func validate_same_faction(enemies: Array[EnemyData]) -> bool:
@@ -305,6 +328,8 @@ func _parse_enemy_row(row: PackedStringArray, col: Dictionary) -> EnemyData:
 	enemy.combat_tier = _normalize_tier(_cell(row, col, "combat_tier"))
 	enemy.role = _normalize_role(_cell(row, col, "role"), enemy.combat_tier)
 	enemy.threat_level = maxi(1, _parse_int(_cell(row, col, "threat_level"), 10))
+	var power_raw := _parse_int(_cell(row, col, "power_rating"), 0)
+	enemy.power_rating = power_raw if power_raw > 0 else enemy.threat_level
 
 	enemy.abilities = _parse_ability_list(_cell(row, col, "abilities"))
 	enemy.trait_ids = _parse_id_list(_cell(row, col, "traits"))

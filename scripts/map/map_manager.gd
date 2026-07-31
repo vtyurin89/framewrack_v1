@@ -34,7 +34,16 @@ func _build_default_map() -> void:
 			"enemy_ids": [],
 		},
 		{"id": "n1", "type": NodeType.REPAIR, "label_key": "MAP_N1_NAME", "label": "Jury-Rig Bench", "enemy_ids": []},
-		{"id": "n2", "type": NodeType.COMBAT, "label_key": "MAP_N2_NAME", "label": "Synth Nest", "faction": "synthet", "threat_budget": 20, "enemy_ids": ["corrupted_synthet"]},
+		{
+			"id": "n2",
+			"type": NodeType.COMBAT,
+			"label_key": "MAP_N2_NAME",
+			"label": "Slaver Crossing",
+			"faction": "human",
+			"act": 1,
+			"threat_budget": 8,
+			"enemy_ids": ["slaver_master"],
+		},
 		{"id": "n3", "type": NodeType.EVENT, "label_key": "MAP_N3_NAME", "label": "Mutation Cache", "enemy_ids": []},
 		{
 			"id": "n4",

@@ -3,7 +3,11 @@ extends RefCounted
 ## Spawns additional combatants into an active CombatManager encounter.
 
 
-static func spawn_enemy(combat: Node, enemy_id: String) -> EnemyInstance:
+static func spawn_enemy(
+	combat: Node,
+	enemy_id: String,
+	summoner: EnemyInstance = null
+) -> EnemyInstance:
 	if combat == null or enemy_id.strip_edges().is_empty():
 		return null
 	if EnemyDatabase == null or not EnemyDatabase.has_enemy(enemy_id):
@@ -12,6 +16,11 @@ static func spawn_enemy(combat: Node, enemy_id: String) -> EnemyInstance:
 	var instance: EnemyInstance = EnemyDatabase.create_instance(enemy_id)
 	if instance == null:
 		return null
+	if summoner != null:
+		instance.set_summoner(summoner)
+	if instance.statuses == null:
+		instance.statuses = StatusController.new()
+	instance.statuses.apply_status_by_id("summoned_creature", 1)
 	if combat.has_method("add_summoned_enemy"):
 		combat.call("add_summoned_enemy", instance)
 	return instance
