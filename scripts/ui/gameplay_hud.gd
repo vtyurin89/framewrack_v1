@@ -1,11 +1,15 @@
 class_name GameplayHUD
 extends HBoxContainer
-## In-game top bar actions: Body Grid / Menu.
-## Language lives in Settings — not here.
+## In-game top bar: HP · Experience · Body Grid · Menu (gear).
 
 signal menu_pressed
 signal body_grid_pressed
 
+const HEART_ICON := preload("res://assets/icons/ui/heart.png")
+const GEAR_ICON := preload("res://assets/icons/ui/gear.png")
+
+@onready var _hp_label: Label = %HpLabel
+@onready var _heart_icon: TextureRect = %HeartIcon
 @onready var _btn_body: Button = %ToggleInventoryButton
 @onready var _btn_debug_level_up: Button = %DebugLevelUpButton
 @onready var _btn_menu: Button = %MenuButton
@@ -16,6 +20,11 @@ var _player_stats: PlayerStats
 
 
 func _ready() -> void:
+	alignment = BoxContainer.ALIGNMENT_CENTER
+	if _heart_icon:
+		_heart_icon.texture = HEART_ICON
+		_heart_icon.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
+		_heart_icon.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
 	if _btn_body:
 		_btn_body.pressed.connect(func() -> void: body_grid_pressed.emit())
 	# TODO: удалить на продакшене
@@ -26,8 +35,11 @@ func _ready() -> void:
 	if _btn_menu:
 		_btn_menu.pressed.connect(func() -> void: menu_pressed.emit())
 		_btn_menu.mouse_default_cursor_shape = Control.CURSOR_POINTING_HAND
+		_configure_menu_button()
 	if not LocalizationManager.language_changed.is_connected(_apply_locale):
 		LocalizationManager.language_changed.connect(_apply_locale)
+	if not EventBus.player_hp_changed.is_connected(_on_hp_changed):
+		EventBus.player_hp_changed.connect(_on_hp_changed)
 	_apply_locale()
 	_refresh_level_xp()
 
@@ -49,14 +61,40 @@ func bind_player_stats(stats: PlayerStats) -> void:
 		_refresh_level_xp()
 
 
+func bind_inventory(inventory: InventoryController) -> void:
+	if inventory == null:
+		_on_hp_changed(0, 0)
+		return
+	_on_hp_changed(inventory.current_hp, inventory.max_hp)
+
+
+func _configure_menu_button() -> void:
+	if _btn_menu == null:
+		return
+	_btn_menu.text = ""
+	_btn_menu.icon = GEAR_ICON
+	_btn_menu.expand_icon = true
+	_btn_menu.custom_minimum_size = Vector2(36, 32)
+	_btn_menu.add_theme_constant_override("icon_max_width", 22)
+	_btn_menu.flat = true
+	_btn_menu.focus_mode = Control.FOCUS_NONE
+
+
 func _apply_locale(_locale: String = "") -> void:
 	if _btn_body:
 		_btn_body.text = tr("KEY_BODY_GRID")
 	if _btn_menu:
-		_btn_menu.text = tr("KEY_MENU")
+		_btn_menu.text = ""
+		_btn_menu.tooltip_text = tr("KEY_MENU")
 	if _btn_debug_level_up:
 		_btn_debug_level_up.text = tr("KEY_DEBUG_LEVEL_UP")
 	_refresh_level_xp()
+
+
+func _on_hp_changed(current: int, maximum: int) -> void:
+	if _hp_label == null:
+		return
+	_hp_label.text = "%d/%d" % [maxi(current, 0), maxi(maximum, 0)]
 
 
 func _on_exp_changed(

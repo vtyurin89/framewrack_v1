@@ -1,4 +1,4 @@
-[gd_scene load_steps=10 format=3 uid="uid://bw_main"]
+[gd_scene load_steps=12 format=3 uid="uid://bw_main"]
 
 [ext_resource type="Script" path="res://scripts/main.gd" id="1"]
 [ext_resource type="PackedScene" path="res://scenes/UI/map_ui.tscn" id="2"]
@@ -10,6 +10,8 @@
 [ext_resource type="Script" path="res://scripts/ui/gameplay_hud.gd" id="8"]
 [ext_resource type="Script" path="res://scripts/managers/encounter_manager.gd" id="9"]
 [ext_resource type="Script" path="res://scripts/managers/run_flow_manager.gd" id="10"]
+[ext_resource type="Texture2D" path="res://assets/icons/ui/heart.png" id="11"]
+[ext_resource type="Texture2D" path="res://assets/icons/ui/gear.png" id="12"]
 
 [node name="Main" type="Control"]
 layout_mode = 3
@@ -58,31 +60,48 @@ theme_override_constants/separation = 8
 [node name="TopBar" type="HBoxContainer" parent="RootLayout"]
 unique_name_in_owner = true
 layout_mode = 2
+alignment = 1
 theme_override_constants/separation = 12
 script = ExtResource("8")
 
-[node name="Title" type="Label" parent="RootLayout/TopBar"]
+[node name="HpBox" type="HBoxContainer" parent="RootLayout/TopBar"]
 layout_mode = 2
 size_flags_horizontal = 3
-theme_override_colors/font_color = Color(0.9, 0.9, 0.9, 1)
-theme_override_font_sizes/font_size = 26
-text = "FRAMEWRACK"
+size_flags_vertical = 4
+theme_override_constants/separation = 6
 
-[node name="LevelBox" type="VBoxContainer" parent="RootLayout/TopBar"]
+[node name="HeartIcon" type="TextureRect" parent="RootLayout/TopBar/HpBox"]
+unique_name_in_owner = true
+custom_minimum_size = Vector2(22, 22)
 layout_mode = 2
-custom_minimum_size = Vector2(180, 0)
-theme_override_constants/separation = 2
+size_flags_vertical = 4
+texture = ExtResource("11")
+expand_mode = 1
+stretch_mode = 5
 
-[node name="LevelLabel" type="Label" parent="RootLayout/TopBar/LevelBox"]
+[node name="HpLabel" type="Label" parent="RootLayout/TopBar/HpBox"]
 unique_name_in_owner = true
 layout_mode = 2
+size_flags_vertical = 4
+theme_override_colors/font_color = Color(0.95, 0.95, 0.97, 1)
+theme_override_font_sizes/font_size = 16
+text = "40/40"
+vertical_alignment = 1
+
+[node name="LevelLabel" type="Label" parent="RootLayout/TopBar"]
+unique_name_in_owner = true
+layout_mode = 2
+size_flags_vertical = 4
 theme_override_colors/font_color = Color(0.82, 0.82, 0.84, 1)
-theme_override_font_sizes/font_size = 12
+theme_override_font_sizes/font_size = 13
 text = "Experience: 0/30"
+vertical_alignment = 1
 
-[node name="XPBar" type="ProgressBar" parent="RootLayout/TopBar/LevelBox"]
+[node name="XPBar" type="ProgressBar" parent="RootLayout/TopBar"]
 unique_name_in_owner = true
+visible = false
 layout_mode = 2
+custom_minimum_size = Vector2(120, 8)
 max_value = 30.0
 value = 0.0
 show_percentage = false
@@ -90,20 +109,28 @@ show_percentage = false
 [node name="ToggleInventoryButton" type="Button" parent="RootLayout/TopBar"]
 unique_name_in_owner = true
 layout_mode = 2
+size_flags_vertical = 4
 text = "Body Grid"
 
 [node name="DebugLevelUpButton" type="Button" parent="RootLayout/TopBar"]
 unique_name_in_owner = true
 layout_mode = 2
+size_flags_vertical = 4
 text = "Level Up (Debug)"
 
 [node name="MenuButton" type="Button" parent="RootLayout/TopBar"]
 unique_name_in_owner = true
+custom_minimum_size = Vector2(36, 32)
 layout_mode = 2
-text = "Menu"
+size_flags_vertical = 4
+theme_override_constants/icon_max_width = 22
+flat = true
+icon = ExtResource("12")
+expand_icon = true
 
 [node name="StatusBanner" type="Label" parent="RootLayout"]
 unique_name_in_owner = true
+visible = false
 layout_mode = 2
 theme_override_colors/font_color = Color(0.7, 0.7, 0.72, 1)
 theme_override_font_sizes/font_size = 13

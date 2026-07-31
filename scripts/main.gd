@@ -94,6 +94,7 @@ func _ready() -> void:
 		_gameplay_hud.body_grid_pressed.connect(_toggle_inventory)
 		_gameplay_hud.menu_pressed.connect(_on_menu_pressed)
 		_gameplay_hud.bind_player_stats(player_stats)
+		_gameplay_hud.bind_inventory(inventory)
 
 	LocalizationManager.language_changed.connect(_on_language_changed)
 
@@ -329,6 +330,9 @@ func _reset_run_to_startup() -> void:
 	_inventory_ui.setup(inventory)
 	if _inventory_ui.has_method("bind_player_stats"):
 		_inventory_ui.bind_player_stats(player_stats)
+	if _gameplay_hud:
+		_gameplay_hud.bind_player_stats(player_stats)
+		_gameplay_hud.bind_inventory(inventory)
 	if _inventory_ui.has_method("set_combat_mode"):
 		_inventory_ui.set_combat_mode(false)
 	_combat_ui.setup(_combat, inventory)
@@ -528,7 +532,7 @@ func _ensure_dialog_event_ui() -> void:
 func _layout_dialog_event_under_top_bar() -> void:
 	if _dialog_event_ui == null or not is_instance_valid(_dialog_event_ui):
 		return
-	## Leave the shared TopBar (FRAMEWRACK + Menu) exposed above the event module.
+	## Leave the shared TopBar (HP + actions) exposed above the event module.
 	var pad := 0.0
 	if _root_layout:
 		pad = float(_root_layout.get_theme_constant("separation"))
