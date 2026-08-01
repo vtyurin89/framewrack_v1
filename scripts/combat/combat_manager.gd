@@ -26,6 +26,9 @@ var current_ap: int = 0
 var max_ap: int = 3
 var current_block: int = 0
 var target_index: int = 0
+## Group Intent Coordination (from EnemyGroup.max_attackers_per_turn).
+var max_attackers_per_turn: int = 2
+var _attacker_slots_used: int = 0
 
 
 func setup(p_inventory: InventoryController, p_stats: PlayerStats = null) -> void:
@@ -46,12 +49,14 @@ func is_player_turn_active() -> bool:
 	return state == CombatState.PLAYER_TURN
 
 
-func start_combat(enemy_datas: Array[EnemyData]) -> void:
+func start_combat(enemy_datas: Array[EnemyData], max_attackers: int = -1) -> void:
 	_ensure_ability_executor()
 	if player_statuses == null:
 		player_statuses = StatusController.new()
 	player_statuses.clear_combat_statuses()
 	enemies.clear()
+	if max_attackers > 0:
+		set_group_attack_cap(max_attackers)
 	var ids: Array[String] = []
 	for data: EnemyData in enemy_datas:
 		if data == null:
@@ -66,6 +71,28 @@ func start_combat(enemy_datas: Array[EnemyData]) -> void:
 	_select_first_living_enemy()
 	EventBus.combat_started.emit(ids)
 	_begin_player_turn()
+
+
+func set_group_attack_cap(cap: int) -> void:
+	## Group Intent Coordination — how many heavy attackers may fire per enemy turn.
+	max_attackers_per_turn = maxi(1, cap)
+	_attacker_slots_used = 0
+
+
+func reset_attacker_slots() -> void:
+	_attacker_slots_used = 0
+
+
+func try_reserve_attacker_slot() -> bool:
+	## Returns true if this unit may commit an offensive main action.
+	if _attacker_slots_used >= max_attackers_per_turn:
+		return false
+	_attacker_slots_used += 1
+	return true
+
+
+func has_attacker_slot() -> bool:
+	return _attacker_slots_used < max_attackers_per_turn
 
 
 func _set_state(next: CombatState) -> void:
@@ -156,6 +183,8 @@ func end_player_turn() -> void:
 
 
 func _plan_all_intentions(force_reroll: bool = true) -> void:
+	## Plan in roster order so attacker-slot reservation is deterministic.
+	reset_attacker_slots()
 	for i in enemies.size():
 		var enemy: EnemyInstance = enemies[i]
 		if enemy == null or not enemy.is_alive():
@@ -176,8 +205,8 @@ func reevaluate_enemy_intention(index: int) -> void:
 	var enemy: EnemyInstance = enemies[index]
 	if enemy == null or not enemy.is_alive():
 		return
-	enemy.reevaluate_intention(false, self)
-	EventBus.enemy_intention_changed.emit(index, enemy.current_intention)
+	## Full replan so group attacker caps stay consistent with telegraphs.
+	_plan_all_intentions(true)
 
 
 func plan_intentions_for_living(force_reroll: bool = true) -> void:
@@ -509,6 +538,8 @@ func _reset_all_item_turn_uses() -> void:
 func _begin_enemy_turn() -> void:
 	_set_state(CombatState.ENEMY_TURN)
 	EventBus.combat_log_message.emit(tr("KEY_LOG_ENEMY_TURN"))
+	## Re-open attacker budget for the act phase (matches telegraphed plans).
+	reset_attacker_slots()
 	_run_enemy_actions()
 
 

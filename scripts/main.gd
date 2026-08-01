@@ -580,7 +580,10 @@ func _on_encounter_request_combat(enemy_datas: Array, encounter: EncounterData) 
 				_pending_combat_exp_reward += maxi(data.exp_reward, 0)
 	_show_combat()
 	_combat_ui.setup(_combat, inventory)
-	_combat.start_combat(datas)
+	var attack_cap := 2
+	if encounter != null:
+		attack_cap = maxi(1, int(encounter.payload.get("max_attackers_per_turn", 2)))
+	_combat.start_combat(datas, attack_cap)
 	var label := encounter.get_display_title() if encounter != null else tr("KEY_STATUS_ENGAGEMENT")
 	_status_banner.text = tr("KEY_STATUS_ENGAGEMENT") % label
 

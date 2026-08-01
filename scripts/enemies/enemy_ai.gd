@@ -60,17 +60,32 @@ static func resolve_main_action(enemy: EnemyInstance, combat: Node = null) -> Di
 		var desperate := _get_desperate_if_ready(enemy)
 		if desperate != null and enemy.planned_ability != desperate:
 			if enemy.planned_ability.type != EnemyAbility.AbilityType.MULTI_HIT:
-				result["ability"] = desperate
-				enemy.planned_ability = desperate
-				return result
+				if _can_commit_offensive(combat, desperate):
+					result["ability"] = desperate
+					enemy.planned_ability = desperate
+					return result
 		## Scripted overrides that must win even over a prior plan.
 		var forced := _pick_scripted_main(enemy, combat)
 		if forced != null and forced != enemy.planned_ability:
 			## Aim→snipe and flee prep must not be blocked by stale plans.
 			if forced.id in [ID_DESERTER_SNIPE, ID_THIEF_SCOUT, ID_THIEF_FLEE, ID_SLAVER_SUMMON]:
+				if is_offensive_ability(forced) and not _can_commit_offensive(combat, forced):
+					var alt := _pick_non_offensive(enemy)
+					if alt != null:
+						enemy.planned_ability = alt
+						result["ability"] = alt
+						return result
 				enemy.planned_ability = forced
 				result["ability"] = forced
 				return result
+		## Planned offensive still consumes a slot on the act phase.
+		if is_offensive_ability(enemy.planned_ability):
+			if not _can_commit_offensive(combat, enemy.planned_ability):
+				var defensive := _pick_non_offensive(enemy)
+				if defensive != null:
+					enemy.planned_ability = defensive
+					result["ability"] = defensive
+					return result
 		result["ability"] = enemy.planned_ability
 		return result
 
@@ -90,16 +105,19 @@ static func commit_main_action(
 		return result
 
 	var desperate := _get_desperate_if_ready(enemy)
-	if desperate != null:
+	if desperate != null and _can_commit_offensive(combat, desperate):
 		enemy.planned_ability = desperate
 		result["ability"] = desperate
 		return result
 
 	var scripted := _pick_scripted_main(enemy, combat)
 	if scripted != null:
-		enemy.planned_ability = scripted
-		result["ability"] = scripted
-		return result
+		if is_offensive_ability(scripted) and not _can_commit_offensive(combat, scripted):
+			scripted = _pick_non_offensive(enemy)
+		if scripted != null:
+			enemy.planned_ability = scripted
+			result["ability"] = scripted
+			return result
 
 	if (
 		not force_reroll
@@ -107,12 +125,62 @@ static func commit_main_action(
 		and _is_ability_still_usable(enemy, enemy.planned_ability)
 		and enemy.planned_ability.is_main_deck_ability()
 	):
-		result["ability"] = enemy.planned_ability
-		return result
+		## Keep plan only if it still fits the group attack cap.
+		if (
+			not is_offensive_ability(enemy.planned_ability)
+			or _can_commit_offensive(combat, enemy.planned_ability)
+		):
+			result["ability"] = enemy.planned_ability
+			return result
 
-	enemy.planned_ability = _choose_weighted(enemy, combat)
-	result["ability"] = enemy.planned_ability
+	var picked := _choose_weighted(enemy, combat)
+	if is_offensive_ability(picked) and not _can_commit_offensive(combat, picked):
+		picked = _pick_non_offensive(enemy)
+	enemy.planned_ability = picked
+	result["ability"] = picked
 	return result
+
+
+static func is_offensive_ability(ability: EnemyAbility) -> bool:
+	if ability == null:
+		return false
+	if ability.type == EnemyAbility.AbilityType.MULTI_HIT:
+		return true
+	var effect := ability.infer_main_effect()
+	return effect in ["damage", "steal_chips"]
+
+
+static func _can_commit_offensive(combat: Node, ability: EnemyAbility) -> bool:
+	if not is_offensive_ability(ability):
+		return true
+	if combat == null:
+		return true
+	if combat.has_method("try_reserve_attacker_slot"):
+		return bool(combat.call("try_reserve_attacker_slot"))
+	return true
+
+
+static func _pick_non_offensive(enemy: EnemyInstance) -> EnemyAbility:
+	## Prefer shield / status-self / heal when the group attack cap is full.
+	var preferred: Array[EnemyAbility] = []
+	var fallback: Array[EnemyAbility] = []
+	for ability: EnemyAbility in enemy.abilities:
+		if ability == null or not ability.is_main_deck_ability():
+			continue
+		if enemy.is_ability_on_cooldown(ability):
+			continue
+		if is_offensive_ability(ability):
+			continue
+		var effect := ability.infer_main_effect()
+		if effect in ["shield", "heal", "status", "summon", "ally_buff", "brand_stim", "flee"]:
+			preferred.append(ability)
+		else:
+			fallback.append(ability)
+	if not preferred.is_empty():
+		return preferred[randi() % preferred.size()]
+	if not fallback.is_empty():
+		return fallback[randi() % fallback.size()]
+	return null
 
 
 static func _pick_ready_pre_action(enemy: EnemyInstance) -> EnemyAbility:

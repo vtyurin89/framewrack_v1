@@ -193,7 +193,7 @@ func apply_dialog_outcome(outcome: DialogOutcomeData) -> void:
 		DialogOutcomeData.OutcomeKind.COMBAT:
 			if not outcome.message_key.is_empty():
 				_pending_rewards["message_key"] = outcome.message_key
-			_start_combat_from_ids(outcome.enemy_ids, outcome.faction, outcome.threat_budget)
+			_start_combat_from_ids(outcome.enemy_ids, outcome.faction, null)
 
 
 func resolve_item_selection(selected_item: ItemData) -> void:
@@ -283,15 +283,28 @@ func _launch_by_type(data: EncounterData) -> void:
 			_finish_encounter(_pending_rewards)
 
 
+func get_encounter_for_node(node_layer: int, is_elite: bool = false) -> EnemyGroup:
+	## Public API: hand-crafted group pick for map combat nodes.
+	return EnemyManager.get_encounter_for_node(node_layer, is_elite)
+
+
 func _start_combat_from_encounter(data: EncounterData) -> void:
 	var ids := data.get_enemy_ids()
 	var faction := str(data.payload.get("faction", ""))
-	var budget := int(data.payload.get("threat_budget", 20))
-	_start_combat_from_ids(ids, faction, budget)
+	var layer := int(data.payload.get("layer", data.payload.get("node_layer", 1)))
+	var is_elite := data.type == EncounterData.EncounterType.COMBAT_ELITE
+	var group: EnemyGroup = null
+	## Prefer an authored group when the encounter has no fixed enemy_ids.
+	if ids.is_empty() and data.type != EncounterData.EncounterType.COMBAT_BOSS:
+		group = get_encounter_for_node(layer, is_elite)
+		if group != null:
+			data.payload["enemy_group_id"] = group.group_id
+			data.payload["max_attackers_per_turn"] = group.max_attackers_per_turn
+	_start_combat_from_ids(ids, faction, group)
 
 
 func _start_combat_from_ids(
-	enemy_ids: Array, faction: String = "", threat_budget: int = 20
+	enemy_ids: Array, faction: String = "", group: EnemyGroup = null
 ) -> void:
 	var datas: Array[EnemyData] = []
 	for eid in enemy_ids:
@@ -302,12 +315,16 @@ func _start_combat_from_ids(
 			var bp := EnemyDatabase.create_blueprint(id_str)
 			if bp != null:
 				datas.append(bp)
+
+	if datas.is_empty() and group != null:
+		datas = group.resolve_enemy_datas()
+
 	if datas.is_empty() and active_encounter != null:
-		var act := int(active_encounter.payload.get("act", 1))
-		var resolved_faction := faction.strip_edges().to_lower()
-		if resolved_faction.is_empty():
-			resolved_faction = _default_faction_for_act(act)
 		if active_encounter.type == EncounterData.EncounterType.COMBAT_BOSS:
+			var act := int(active_encounter.payload.get("act", 1))
+			var resolved_faction := faction.strip_edges().to_lower()
+			if resolved_faction.is_empty():
+				resolved_faction = _default_faction_for_act(act)
 			var boss: EnemyData = null
 			if not resolved_faction.is_empty():
 				boss = EnemyDatabase.get_random_boss_for_faction(resolved_faction)
@@ -315,32 +332,32 @@ func _start_combat_from_ids(
 				boss = EnemyDatabase.get_random_boss()
 			if boss != null:
 				datas.append(boss)
-		elif not resolved_faction.is_empty():
-			if resolved_faction == "human":
-				datas = EnemyManager.generate_act_encounter(act, threat_budget, resolved_faction)
-			else:
-				datas = EnemyDatabase.generate_encounter(resolved_faction, threat_budget)
-			## Fallback if a faction has no pool yet (e.g. chimera WIP).
-			if datas.is_empty() and resolved_faction != "human":
-				datas = EnemyManager.generate_act_encounter(act, threat_budget, "human")
-			## Elite: if the pack came out thin, pad once more with leftover budget feel.
-			if (
-				active_encounter.type == EncounterData.EncounterType.COMBAT_ELITE
-				and datas.size() <= 1
-				and EnemyDatabase != null
-			):
-				var pad_faction := resolved_faction if not datas.is_empty() else "human"
-				var extra: Array[EnemyData] = EnemyDatabase.generate_encounter(
-					pad_faction, maxi(8, threat_budget / 2)
-				)
-				for e in extra:
-					datas.append(e)
+		else:
+			## Last-resort group pick when payload lacked layer / ids.
+			var layer := int(active_encounter.payload.get("layer", 1))
+			var is_elite := active_encounter.type == EncounterData.EncounterType.COMBAT_ELITE
+			var fallback := get_encounter_for_node(layer, is_elite)
+			if fallback != null:
+				group = fallback
+				datas = fallback.resolve_enemy_datas()
+				active_encounter.payload["enemy_group_id"] = fallback.group_id
+				active_encounter.payload["max_attackers_per_turn"] = fallback.max_attackers_per_turn
+
 	if datas.is_empty():
 		push_warning("EncounterManager: no enemies resolved for combat")
 		_finish_encounter(_pending_rewards)
 		return
+
+	var max_attackers := 2
+	if group != null:
+		max_attackers = maxi(1, group.max_attackers_per_turn)
+	elif active_encounter != null:
+		max_attackers = maxi(1, int(active_encounter.payload.get("max_attackers_per_turn", 2)))
+
 	datas = _apply_cripple_buff_to_enemies(datas)
 	_awaiting_combat_resolution = true
+	if combat != null and combat.has_method("set_group_attack_cap"):
+		combat.call("set_group_attack_cap", max_attackers)
 	request_combat.emit(datas, active_encounter)
 
 
@@ -453,9 +470,8 @@ func _apply_unknown_defaults(data: EncounterData) -> void:
 	match data.type:
 		EncounterData.EncounterType.COMBAT_NORMAL:
 			if data.get_enemy_ids().is_empty():
-				data.payload["enemy_ids"] = ["desperate_rebel"]
 				data.payload["faction"] = "human"
-				data.payload["threat_budget"] = 18
+				data.payload["layer"] = int(data.payload.get("layer", 1))
 		EncounterData.EncounterType.EVENT:
 			if data.get_dialog_event() == null:
 				data.payload["item_id"] = "REBEL_CLEAVER"

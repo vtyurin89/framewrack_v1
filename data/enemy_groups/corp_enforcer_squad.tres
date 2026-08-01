@@ -1,0 +1,14 @@
+[gd_resource type="Resource" script_class="EnemyGroup" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://scripts/resources/enemy_group.gd" id="1"]
+
+[resource]
+script = ExtResource("1")
+group_id = "corp_enforcer_squad"
+group_name = "Corp Enforcer Squad"
+enemy_ids = Array[String](["scrapper_tank", "corp_deserter", "field_medic"])
+min_layer = 1
+max_layer = 99
+is_starter_group = false
+is_elite = true
+max_attackers_per_turn = 2

@@ -44,6 +44,7 @@ static func from_map_node(node: Dictionary) -> EncounterData:
 		"faction": str(node.get("faction", "")),
 		"threat_budget": int(node.get("threat_budget", 20)),
 		"act": int(node.get("act", 1)),
+		"layer": int(node.get("layer", 1)),
 		"map_node_id": encounter.id,
 	}
 	## Explicit encounter_id on the node overrides catalog lookup for events.

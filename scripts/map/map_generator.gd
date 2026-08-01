@@ -435,12 +435,12 @@ static func _build_combat_encounter(
 	encounter.title = title
 	encounter.title_key = _title_key_for_type(kind)
 	var faction := _faction_for_act(act_data)
-	var budget := _threat_budget_for(act_data, node.layer, kind)
+	## Enemy packs are resolved at launch via EnemyGroup (layer + elite flag).
 	encounter.payload = {
 		"map_node_id": node.id,
 		"act": act_data.act_index if act_data != null else 1,
 		"faction": faction,
-		"threat_budget": budget,
+		"layer": node.layer,
 		"enemy_ids": [],
 	}
 	return encounter

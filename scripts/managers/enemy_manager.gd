@@ -1,10 +1,14 @@
 class_name EnemyManager
 extends RefCounted
-## Act spawn tables and encounter helpers for human (and other) enemy packs.
-## Enemy blueprints live in CSV via EnemyDatabase; this registers content IDs
-## used by Act 1 / Act 2 generators and fixed encounters.
+## Registry for hand-crafted EnemyGroup packs (human Act 1+).
+## Enemy blueprints still resolve through EnemyDatabase (CSV).
+
+const GROUPS_DIR := "res://data/enemy_groups/"
 
 const HUMAN_CORE_IDS: Array[String] = [
+	"desperate_rebel",
+	"field_medic",
+	"rebel_warlord",
 	"slaver_master",
 	"slaver_minion",
 	"corp_deserter",
@@ -12,93 +16,72 @@ const HUMAN_CORE_IDS: Array[String] = [
 	"scrapper_tank",
 ]
 
-## Act 1 human pool — summon minions are excluded from random packs.
-const ACT1_HUMAN_SPAWN: Array[String] = [
-	"desperate_rebel",
-	"field_medic",
-	"slaver_master",
-	"corp_deserter",
-	"pocket_thief",
-	"scrapper_tank",
-]
-
-const ACT2_HUMAN_SPAWN: Array[String] = [
-	"desperate_rebel",
-	"field_medic",
-	"rebel_warlord",
-	"slaver_master",
-	"corp_deserter",
-	"pocket_thief",
-	"scrapper_tank",
-]
-
-## Fixed showcase packs (solo master, deserter duo, etc.).
-const PACK_SLAVER_SOLO: Array[String] = ["slaver_master"]
-const PACK_DESERTER: Array[String] = ["corp_deserter"]
-const PACK_THIEF: Array[String] = ["pocket_thief"]
-const PACK_SCRAPPER: Array[String] = ["scrapper_tank"]
-const PACK_HUMAN_STREET: Array[String] = ["pocket_thief", "desperate_rebel"]
-const PACK_HUMAN_CHECKPOINT: Array[String] = ["scrapper_tank", "corp_deserter"]
+static var _groups_cache: Array[EnemyGroup] = []
+static var _groups_loaded: bool = false
 
 
 static func get_registered_human_ids() -> Array[String]:
 	return HUMAN_CORE_IDS.duplicate()
 
 
-static func get_act_spawn_table(act: int) -> Array[String]:
-	if act >= 2:
-		return ACT2_HUMAN_SPAWN.duplicate()
-	return ACT1_HUMAN_SPAWN.duplicate()
-
-
 static func is_summon_only(enemy_id: String) -> bool:
 	return enemy_id.strip_edges().to_lower() == "slaver_minion"
 
 
-static func generate_act_encounter(act: int, budget: int, faction: String = "human") -> Array[EnemyData]:
-	## Builds an encounter from the act spawn table using power_rating costs.
-	var result: Array[EnemyData] = []
-	if EnemyDatabase == null:
-		return result
-	var pool_ids := get_act_spawn_table(act)
-	var pool: Array[EnemyData] = []
-	for eid in pool_ids:
-		if is_summon_only(eid):
-			continue
-		if not EnemyDatabase.has_enemy(eid):
-			continue
-		var bp: EnemyData = EnemyDatabase.get_enemy(eid)
-		if bp == null:
-			continue
-		if not faction.is_empty() and bp.get_faction() != faction.strip_edges().to_lower():
-			continue
-		pool.append(bp)
+static func get_all_groups(force_reload: bool = false) -> Array[EnemyGroup]:
+	if force_reload:
+		_groups_loaded = false
+		_groups_cache.clear()
+	_ensure_groups_loaded()
+	return _groups_cache.duplicate()
+
+
+static func get_group_by_id(group_id: String) -> EnemyGroup:
+	_ensure_groups_loaded()
+	var needle := group_id.strip_edges()
+	for group: EnemyGroup in _groups_cache:
+		if group != null and group.group_id == needle:
+			return group
+	return null
+
+
+static func get_encounter_for_node(node_layer: int, is_elite: bool) -> EnemyGroup:
+	## Starter layers 1–2: starter groups. Layer 3+: mid packs. Elite: elite packs.
+	_ensure_groups_loaded()
+	var layer := maxi(node_layer, 0)
+	var pool: Array[EnemyGroup] = []
+
+	if is_elite:
+		for group: EnemyGroup in _groups_cache:
+			if group == null or not group.is_elite:
+				continue
+			if group.matches_layer(layer):
+				pool.append(group)
+	elif layer <= 2:
+		for group: EnemyGroup in _groups_cache:
+			if group == null or not group.is_starter_group or group.is_elite:
+				continue
+			if group.matches_layer(layer):
+				pool.append(group)
+	else:
+		for group: EnemyGroup in _groups_cache:
+			if group == null or group.is_starter_group or group.is_elite:
+				continue
+			if group.matches_layer(layer):
+				pool.append(group)
+
 	if pool.is_empty():
-		return EnemyDatabase.generate_encounter(faction, budget)
-
-	var remaining := maxi(budget, 0)
-	var working := pool.duplicate()
-	working.shuffle()
-	var guard := 0
-	while remaining > 0 and guard < 64:
-		guard += 1
-		var candidates: Array[EnemyData] = []
-		for enemy: EnemyData in working:
-			var cost := _cost(enemy)
-			if cost <= remaining:
-				candidates.append(enemy)
-		if candidates.is_empty():
-			break
-		var pick: EnemyData = candidates[randi() % candidates.size()]
-		result.append(EnemyDatabase.create_blueprint(pick.id))
-		remaining -= _cost(pick)
-
-	if result.is_empty():
-		working.sort_custom(func(a: EnemyData, b: EnemyData) -> bool:
-			return _cost(a) < _cost(b)
-		)
-		result.append(EnemyDatabase.create_blueprint(working[0].id))
-	return result
+		## Soft fallback: any non-elite group that matches the layer.
+		for group: EnemyGroup in _groups_cache:
+			if group == null or group.is_elite:
+				continue
+			if group.matches_layer(maxi(layer, 1)):
+				pool.append(group)
+	if pool.is_empty() and not _groups_cache.is_empty():
+		pool.append(_groups_cache[0])
+	if pool.is_empty():
+		return null
+	return pool[randi() % pool.size()]
 
 
 static func create_pack(pack_ids: Array) -> Array[EnemyData]:
@@ -115,9 +98,22 @@ static func create_pack(pack_ids: Array) -> Array[EnemyData]:
 	return result
 
 
-static func _cost(enemy: EnemyData) -> int:
-	if enemy == null:
-		return 1
-	if enemy.power_rating > 0:
-		return enemy.power_rating
-	return maxi(enemy.threat_level, 1)
+static func _ensure_groups_loaded() -> void:
+	if _groups_loaded:
+		return
+	_groups_loaded = true
+	_groups_cache.clear()
+	var dir := DirAccess.open(GROUPS_DIR)
+	if dir == null:
+		push_warning("EnemyManager: cannot open %s" % GROUPS_DIR)
+		return
+	dir.list_dir_begin()
+	var file_name := dir.get_next()
+	while file_name != "":
+		if not dir.current_is_dir() and file_name.ends_with(".tres"):
+			var path := GROUPS_DIR.path_join(file_name)
+			var loaded := load(path)
+			if loaded is EnemyGroup:
+				_groups_cache.append(loaded as EnemyGroup)
+		file_name = dir.get_next()
+	dir.list_dir_end()

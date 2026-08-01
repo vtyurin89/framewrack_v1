@@ -1,0 +1,14 @@
+[gd_resource type="Resource" script_class="EnemyGroup" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://scripts/resources/enemy_group.gd" id="1"]
+
+[resource]
+script = ExtResource("1")
+group_id = "slaver_solo_hunt"
+group_name = "Slaver Hunt"
+enemy_ids = Array[String](["slaver_master"])
+min_layer = 3
+max_layer = 99
+is_starter_group = false
+is_elite = false
+max_attackers_per_turn = 2
