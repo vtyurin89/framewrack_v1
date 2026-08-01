@@ -146,7 +146,7 @@ text = "Systems online."
 [node name="Content" type="HBoxContainer" parent="RootLayout"]
 layout_mode = 2
 size_flags_vertical = 3
-theme_override_constants/separation = 0
+theme_override_constants/separation = 10
 
 [node name="MainStage" type="Control" parent="RootLayout/Content"]
 layout_mode = 2

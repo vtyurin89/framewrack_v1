@@ -27,6 +27,8 @@ signal combat_started(enemy_ids: Array[String])
 signal combat_ended(victory: bool)
 signal turn_started(is_player: bool)
 signal ap_changed(current: int, maximum: int)
+## Fired when the player tries to act without enough AP (HUD shake / flash).
+signal ap_insufficient
 signal player_hp_changed(current: int, maximum: int)
 signal enemy_hp_changed(enemy_index: int, current: int, maximum: int)
 signal enemy_selected(enemy_index: int)

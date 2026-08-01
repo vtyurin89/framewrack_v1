@@ -70,6 +70,7 @@ KEY_AP_FMT,%s %d / %d,%s %d / %d
 KEY_HP_FMT,%s %d/%d,%s %d/%d
 KEY_FRAME_HP_FMT,%s %d / %d,%s %d / %d
 KEY_BLOCK_FMT,%s %d,%s %d
+KEY_FLOAT_BLOCK_GAIN,+%d Block,+%d Блок
 KEY_CORRUPTED_TURNS_FMT,%s (%d turns),%s (%d ход.)
 KEY_ACTION_ITEM_FMT,[%s] %s  (%d %s),[%s] %s  (%d %s)
 KEY_PASSIVE_FMT,%s: %s,%s: %s

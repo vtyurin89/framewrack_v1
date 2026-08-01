@@ -185,7 +185,7 @@ func _style_body_grid_pane() -> void:
 	var style := StyleBoxFlat.new()
 	style.bg_color = Color(0.09, 0.09, 0.11, 1.0)
 	style.set_border_width_all(0)
-	style.set_content_margin_all(0)
+	style.set_content_margin_all(12)
 	_body_grid_pane.add_theme_stylebox_override("panel", style)
 	_body_grid_pane.mouse_filter = Control.MOUSE_FILTER_STOP
 

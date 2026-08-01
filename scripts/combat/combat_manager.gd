@@ -282,6 +282,7 @@ func _log_activation_failure(placed: PlacedItem) -> void:
 		EventBus.combat_log_message.emit(tr("KEY_LOG_PASSIVE") % data.get_localized_name())
 	elif current_ap < data.ap_cost:
 		EventBus.combat_log_message.emit(tr("KEY_LOG_NOT_ENOUGH_AP"))
+		EventBus.ap_insufficient.emit()
 	elif not data.can_use_this_turn():
 		EventBus.combat_log_message.emit(tr("KEY_LOG_NO_USES"))
 	elif not data.has_charges_remaining():

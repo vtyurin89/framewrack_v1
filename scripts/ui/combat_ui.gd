@@ -11,6 +11,10 @@ const ENEMY_CARD_SCENE := preload("res://scenes/UI/enemy_card_ui.tscn")
 const STATUS_EFFECTS_SCENE := preload("res://scenes/UI/status_effects_ui.tscn")
 const INTENTION_STAGGER_DELAY := 0.15
 
+const AP_FLASH_SPEND := Color(0.75, 0.95, 1.0)
+const AP_FLASH_DENY := Color(1.0, 0.25, 0.25)
+const BLOCK_FLASH_GAIN := Color("3498db")
+
 var combat: Node  # CombatManager
 var inventory: InventoryController
 var _enemy_inspect: EnemyInspectUI
@@ -19,6 +23,12 @@ var _intention_reveal_token: int = 0
 var _dying_indices: Dictionary = {}  # index -> true while fade in progress
 var _player_statuses_ui: StatusEffectsUI
 var _player_hp_initialized: bool = false
+var _last_ap: int = -1
+var _last_block: int = -1
+var _ap_base_color: Color = Color(0.95, 0.95, 0.97)
+var _block_base_color: Color = Color(0.88, 0.88, 0.92)
+var _ap_juice_tween: Tween
+var _block_juice_tween: Tween
 
 @onready var _enemy_row: HBoxContainer = %EnemyRow
 @onready var _hp_label: Label = %HPLabel
@@ -51,6 +61,7 @@ func _ready() -> void:
 	_style_action_buttons()
 	hide_combat_log()
 	EventBus.ap_changed.connect(_on_ap_changed)
+	EventBus.ap_insufficient.connect(_on_ap_insufficient)
 	EventBus.player_hp_changed.connect(_on_hp_changed)
 	EventBus.block_changed.connect(_on_block_changed)
 	EventBus.combat_log_message.connect(_on_log)
@@ -67,6 +78,7 @@ func _ready() -> void:
 	LocalizationManager.language_changed.connect(_on_language_changed)
 	_apply_static_locale()
 	_bind_damage_popup_manager()
+	_prepare_stat_juice_hosts()
 
 
 func setup(p_combat: Node, p_inventory: InventoryController) -> void:
@@ -376,6 +388,17 @@ func _on_enemy_selected(index: int) -> void:
 
 func _on_ap_changed(current: int, maximum: int) -> void:
 	_ap_label.text = tr("KEY_AP_FMT") % [tr("KEY_AP"), current, maximum]
+	var previous := _last_ap
+	_last_ap = current
+	if previous < 0:
+		_reset_ap_visuals()
+		return
+	if current < previous:
+		_play_ap_spend_juice()
+
+
+func _on_ap_insufficient() -> void:
+	_play_ap_deny_juice()
 
 
 func _on_hp_changed(current: int, maximum: int) -> void:
@@ -391,11 +414,162 @@ func _on_hp_changed(current: int, maximum: int) -> void:
 
 func _on_block_changed(amount: int) -> void:
 	_block_label.text = tr("KEY_BLOCK_FMT") % [tr("KEY_BLOCK"), amount]
+	var previous := _last_block
+	_last_block = amount
+	if previous < 0:
+		_reset_block_visuals(amount)
+		return
+	if amount > previous:
+		_play_block_gain_juice(amount - previous)
+	elif amount < previous:
+		_play_block_hit_juice()
+		if amount <= 0:
+			_play_block_expire_juice()
+	elif amount <= 0:
+		_reset_block_visuals(0)
+
+
+func _prepare_stat_juice_hosts() -> void:
+	if _ap_label:
+		_ap_base_color = _ap_label.get_theme_color("font_color")
+		_ap_label.pivot_offset = _ap_label.size * 0.5
+	if _block_label:
+		_block_base_color = _block_label.get_theme_color("font_color")
+		_block_label.pivot_offset = _block_label.size * 0.5
+		_block_label.modulate.a = 1.0 if _last_block > 0 else 0.7
+
+
+func _kill_tween(tween: Tween) -> void:
+	if tween != null and tween.is_valid():
+		tween.kill()
+
+
+func _reset_ap_visuals() -> void:
+	if _ap_label == null:
+		return
+	_ap_label.scale = Vector2.ONE
+	_ap_label.rotation_degrees = 0.0
+	_ap_label.modulate = Color.WHITE
+	_ap_label.add_theme_color_override("font_color", _ap_base_color)
+
+
+func _reset_block_visuals(amount: int) -> void:
+	if _block_label == null:
+		return
+	_block_label.scale = Vector2.ONE
+	_block_label.rotation_degrees = 0.0
+	_block_label.modulate = Color(1, 1, 1, 1.0 if amount > 0 else 0.7)
+	_block_label.add_theme_color_override("font_color", _block_base_color)
+
+
+func _play_ap_spend_juice() -> void:
+	if _ap_label == null:
+		return
+	_kill_tween(_ap_juice_tween)
+	_reset_ap_visuals()
+	_ap_label.pivot_offset = _ap_label.size * 0.5
+	_ap_label.add_theme_color_override("font_color", AP_FLASH_SPEND)
+	_ap_juice_tween = create_tween()
+	_ap_juice_tween.tween_property(_ap_label, "scale", Vector2(1.2, 1.2), 0.075).set_trans(
+		Tween.TRANS_BACK
+	).set_ease(Tween.EASE_OUT)
+	_ap_juice_tween.tween_property(_ap_label, "scale", Vector2.ONE, 0.075).set_trans(
+		Tween.TRANS_SINE
+	).set_ease(Tween.EASE_IN)
+	_ap_juice_tween.tween_callback(
+		func() -> void: _ap_label.add_theme_color_override("font_color", _ap_base_color)
+	)
+
+
+func _play_ap_deny_juice() -> void:
+	if _ap_label == null:
+		return
+	_kill_tween(_ap_juice_tween)
+	_ap_label.scale = Vector2.ONE
+	_ap_label.rotation_degrees = 0.0
+	_ap_label.pivot_offset = _ap_label.size * 0.5
+	_ap_label.add_theme_color_override("font_color", AP_FLASH_DENY)
+	## Horizontal shake via rotation — safe inside HBoxContainer layout.
+	_ap_juice_tween = create_tween()
+	var angles: Array[float] = [-7.0, 7.0, -5.0, 5.0, -2.0, 0.0]
+	for angle in angles:
+		_ap_juice_tween.tween_property(_ap_label, "rotation_degrees", angle, 0.033).set_trans(
+			Tween.TRANS_SINE
+		)
+	_ap_juice_tween.tween_callback(
+		func() -> void:
+			_ap_label.rotation_degrees = 0.0
+			_ap_label.add_theme_color_override("font_color", _ap_base_color)
+	)
+
+
+func _play_block_gain_juice(gained: int) -> void:
+	if _block_label == null:
+		return
+	_kill_tween(_block_juice_tween)
+	_block_label.modulate = Color.WHITE
+	_block_label.scale = Vector2.ONE
+	_block_label.pivot_offset = _block_label.size * 0.5
+	_block_label.add_theme_color_override("font_color", BLOCK_FLASH_GAIN)
+	_block_juice_tween = create_tween()
+	_block_juice_tween.tween_property(_block_label, "scale", Vector2(1.35, 1.35), 0.1).set_trans(
+		Tween.TRANS_CUBIC
+	).set_ease(Tween.EASE_OUT)
+	_block_juice_tween.tween_property(_block_label, "scale", Vector2.ONE, 0.1).set_trans(
+		Tween.TRANS_CUBIC
+	).set_ease(Tween.EASE_OUT)
+	_block_juice_tween.tween_callback(
+		func() -> void: _block_label.add_theme_color_override("font_color", _block_base_color)
+	)
+	if gained > 0:
+		_spawn_block_float_text(tr("KEY_FLOAT_BLOCK_GAIN") % gained)
+
+
+func _play_block_hit_juice() -> void:
+	if _block_label == null:
+		return
+	_kill_tween(_block_juice_tween)
+	_block_label.rotation_degrees = 0.0
+	_block_label.pivot_offset = _block_label.size * 0.5
+	_block_juice_tween = create_tween()
+	var angles: Array[float] = [-5.0, 5.0, -3.0, 3.0, 0.0]
+	for angle in angles:
+		_block_juice_tween.tween_property(_block_label, "rotation_degrees", angle, 0.03).set_trans(
+			Tween.TRANS_SINE
+		)
+	_block_juice_tween.tween_callback(
+		func() -> void: _block_label.rotation_degrees = 0.0
+	)
+
+
+func _play_block_expire_juice() -> void:
+	if _block_label == null:
+		return
+	var expire := create_tween()
+	expire.set_parallel(true)
+	expire.tween_property(_block_label, "modulate:a", 0.55, 0.18).set_trans(Tween.TRANS_SINE)
+	expire.tween_property(_block_label, "scale", Vector2(0.88, 0.88), 0.18).set_trans(
+		Tween.TRANS_SINE
+	).set_ease(Tween.EASE_IN)
+	expire.chain().tween_property(_block_label, "scale", Vector2.ONE, 0.08)
+
+
+func _spawn_block_float_text(text: String) -> void:
+	var host: Control = _block_label if _block_label != null else _stats_row
+	if host == null or text.is_empty():
+		return
+	_spawn_floating_combat_text(host, text, "block")
 
 
 func _on_combat_started(_enemy_ids: Array) -> void:
 	_dying_indices.clear()
 	_player_hp_initialized = false
+	_last_ap = -1
+	_last_block = -1
+	_kill_tween(_ap_juice_tween)
+	_kill_tween(_block_juice_tween)
+	_reset_ap_visuals()
+	_reset_block_visuals(0)
 	if _log:
 		_log.clear()
 	hide_combat_log()
@@ -563,6 +737,8 @@ func _spawn_floating_combat_text(host: Control, text: String, kind: String) -> v
 			label.add_theme_color_override("font_color", Color(0.95, 0.82, 0.35))
 		"multi_hit":
 			label.add_theme_color_override("font_color", Color(1.0, 0.55, 0.35))
+		"block":
+			label.add_theme_color_override("font_color", BLOCK_FLASH_GAIN)
 		_:
 			label.add_theme_color_override("font_color", Color(0.92, 0.94, 1.0))
 	host.add_child(label)
