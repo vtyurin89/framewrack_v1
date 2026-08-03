@@ -1,0 +1,12 @@
+[gd_resource type="Resource" script_class="NarrativeGodDialog" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://scripts/resources/narrative_god_dialog.gd" id="1"]
+
+[resource]
+script = ExtResource("1")
+god_id = "pale_maiden"
+title_key = "EVENT_PALE_MAIDEN_TITLE"
+god_name = "Pale Maiden"
+god_name_ru = "Бледная дева"
+dialog_json = "res://data/encounters/gods/pale_maiden.json"
+is_starting_god = true

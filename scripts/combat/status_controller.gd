@@ -201,7 +201,7 @@ func modify_incoming_damage(amount: int) -> int:
 	if amount <= 0:
 		return 0
 	var result := float(amount)
-	if has_status("vulnerability"):
+	if has_status("vulnerability") or has_status("panic"):
 		result *= VULN_INCOMING_MULT
 	return maxi(0, int(round(result)))
 

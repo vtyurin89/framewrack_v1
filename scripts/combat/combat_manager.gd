@@ -29,6 +29,8 @@ var target_index: int = 0
 ## Group Intent Coordination (from EnemyGroup.max_attackers_per_turn).
 var max_attackers_per_turn: int = 2
 var _attacker_slots_used: int = 0
+## Counts completed player turn starts this combat (1 = first turn).
+var player_turn_index: int = 0
 
 
 func setup(p_inventory: InventoryController, p_stats: PlayerStats = null) -> void:
@@ -68,6 +70,7 @@ func start_combat(enemy_datas: Array[EnemyData], max_attackers: int = -1) -> voi
 		enemies.append(instance)
 		ids.append(data.id)
 	current_block = 0
+	player_turn_index = 0
 	_select_first_living_enemy()
 	EventBus.combat_started.emit(ids)
 	_begin_player_turn()
@@ -135,8 +138,31 @@ func _reset_player_resources() -> void:
 	EventBus.block_changed.emit(current_block)
 	max_ap = inventory.get_max_ap()
 	current_ap = max_ap
+	player_turn_index += 1
+	if player_turn_index == 1:
+		current_ap += _eye_of_pale_maiden_turn1_ap_mod()
+		current_ap = maxi(0, current_ap)
 	_reset_all_item_turn_uses()
 	TraitManager.apply_passive_armor_from_spatial_traits(inventory.grid, Callable(self, "_gain_block"))
+
+
+func _eye_of_pale_maiden_turn1_ap_mod() -> int:
+	## +1 AP on turn 1, or -1 if the eye sits adjacent to any weapon.
+	if inventory == null or inventory.grid == null:
+		return 0
+	for placed: PlacedItem in inventory.grid.items:
+		if placed == null or placed.data == null:
+			continue
+		if not TraitManager.has_trait(placed.data, "TRAIT_EYE_OF_PALE_MAIDEN"):
+			if placed.data.id.strip_edges().to_upper() != "EYE_OF_PALE_MAIDEN":
+				continue
+		var next_to_weapon := false
+		for neighbour: PlacedItem in inventory.grid.get_adjacent_items(placed):
+			if neighbour != null and neighbour.data != null and neighbour.data.is_weapon():
+				next_to_weapon = true
+				break
+		return -1 if next_to_weapon else 1
+	return 0
 
 
 func _player_pre_turn_phase() -> bool:
@@ -162,12 +188,21 @@ func _player_pre_turn_phase() -> bool:
 
 func _player_start_turn_phase() -> void:
 	var result: Dictionary = player_statuses.tick_positive_statuses()
-	var heal_amt: int = int(result.get("heal", 0))
+	var heal_amt: int = _modify_player_healing(int(result.get("heal", 0)))
 	if heal_amt > 0 and inventory != null:
 		inventory.current_hp = mini(inventory.max_hp, inventory.current_hp + heal_amt)
 		EventBus.player_hp_changed.emit(inventory.current_hp, inventory.max_hp)
 		_request_player_popup(heal_amt, "heal")
 		EventBus.combat_log_message.emit(tr("KEY_LOG_STATUS_HEAL") % heal_amt)
+
+
+func _modify_player_healing(amount: int) -> int:
+	## Dead Grip / healing_curse halves incoming heals.
+	if amount <= 0:
+		return 0
+	if player_statuses != null and player_statuses.has_status("healing_curse"):
+		return maxi(0, int(round(float(amount) * 0.5)))
+	return amount
 
 
 func _player_post_turn_phase() -> void:
@@ -330,6 +365,7 @@ func _resolve_single_enemy(placed: PlacedItem) -> void:
 	var trait_bonus := _consume_attack_trait_bonus(placed)
 	dmg += trait_bonus
 	_deal_damage_to(target_index, dmg, data.get_localized_name())
+	_apply_on_hit_weapon_statuses(placed, target_index)
 
 
 func _resolve_all_enemies(placed: PlacedItem) -> void:
@@ -339,6 +375,7 @@ func _resolve_all_enemies(placed: PlacedItem) -> void:
 	var living := _living_enemy_indices()
 	for idx: int in living:
 		_deal_damage_to(idx, dmg, placed.data.get_localized_name())
+		_apply_on_hit_weapon_statuses(placed, idx)
 
 
 func _resolve_self(placed: PlacedItem) -> void:
@@ -503,7 +540,8 @@ func _apply_self_use_traits(placed: PlacedItem) -> void:
 		return
 	var data := placed.data
 	if TraitManager.has_trait(data, "TRAIT_BIO_GEL_HEAL"):
-		inventory.current_hp = mini(inventory.max_hp, inventory.current_hp + 8)
+		var heal_amt := _modify_player_healing(8)
+		inventory.current_hp = mini(inventory.max_hp, inventory.current_hp + heal_amt)
 		EventBus.player_hp_changed.emit(inventory.current_hp, inventory.max_hp)
 	if TraitManager.has_trait(data, "TRAIT_GIVE_AP"):
 		current_ap += 2
@@ -775,8 +813,20 @@ func _on_enemy_defeated(enemy: EnemyInstance, _index: int) -> void:
 				tr("KEY_LOG_CHIPS_RECOVERED") % [enemy.get_localized_name(), refunded]
 			)
 		enemy.stolen_chips = 0
+	## Faceless Lady: permanent removal from spawn pools once slain.
+	if enemy.data != null and enemy.data.id.strip_edges().to_lower() == "faceless_lady":
+		if StoryEventManager != null:
+			StoryEventManager.mark_faceless_lady_defeated()
 	## Summoned creatures flee immediately when their master dies.
 	_flee_summons_of(enemy)
+
+
+func _apply_on_hit_weapon_statuses(placed: PlacedItem, enemy_index: int) -> void:
+	if placed == null or placed.data == null:
+		return
+	if TraitManager.has_trait(placed.data, "TRAIT_FANG_POISON"):
+		var stacks := TraitManager.get_trait_value(placed.data, "TRAIT_FANG_POISON", 3)
+		apply_status_to_enemy(enemy_index, "poison", maxi(1, stacks))
 
 
 func _flee_summons_of(master: EnemyInstance) -> void:

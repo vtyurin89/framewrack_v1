@@ -39,8 +39,15 @@ func compose_story_bbcode() -> String:
 		return LocalizationManager.pick_en_ru(text_en, text_ru, text)
 	var parts: PackedStringArray = []
 	if not narrator.is_empty():
+		## One italic block per paragraph so design-doc blank lines stay distinct.
 		if narrator.find("[i]") < 0 and narrator.find("[I]") < 0:
-			narrator = "[i]%s[/i]" % narrator
+			var paras: PackedStringArray = narrator.split("\n\n", false)
+			var italic_paras: PackedStringArray = []
+			for para in paras:
+				var trimmed := str(para).strip_edges()
+				if not trimmed.is_empty():
+					italic_paras.append("[i]%s[/i]" % trimmed)
+			narrator = "\n\n".join(italic_paras)
 		parts.append(narrator)
 	if not speech.is_empty():
 		parts.append(speech)

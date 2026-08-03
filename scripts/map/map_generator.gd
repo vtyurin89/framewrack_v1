@@ -409,6 +409,14 @@ static func _build_story_encounter(act_data: ActData, node: MapNodeData) -> Enco
 
 
 static func _build_event_encounter(act_data: ActData, node: MapNodeData) -> EncounterData:
+	var act_index := act_data.act_index if act_data != null else 1
+	## Prefer StoryEventManager act queues (Pale Maiden, White Fog, faction fillers).
+	if StoryEventManager != null:
+		var story_enc := StoryEventManager.build_encounter_for_act(act_index)
+		if story_enc != null:
+			story_enc.payload["map_node_id"] = node.id
+			story_enc.payload["act"] = act_index
+			return story_enc
 	var encounter := EncounterData.new()
 	encounter.id = node.id
 	encounter.type = EncounterData.EncounterType.EVENT
@@ -416,7 +424,7 @@ static func _build_event_encounter(act_data: ActData, node: MapNodeData) -> Enco
 	encounter.title_key = "KEY_TYPE_EVENT"
 	encounter.payload = {
 		"map_node_id": node.id,
-		"act": act_data.act_index if act_data != null else 1,
+		"act": act_index,
 		"item_id": "REBEL_CLEAVER",
 		"heal_amount": 10,
 	}

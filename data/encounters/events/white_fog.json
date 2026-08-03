@@ -1,0 +1,21 @@
+{
+	"id": "white_fog",
+	"title_key": "EVENT_WHITE_FOG_TITLE",
+	"god_name": "White Fog",
+	"god_name_ru": "Белый туман",
+	"dialogs": {
+		"start": {
+			"narrator_text_en": "A pale fog rolls across the road without wind. Shapes move inside it — too tall, too still. When it thins, the road is empty again, and your teeth ache as if something counted them.",
+			"narrator_text_ru": "Без ветра по дороге стелется белёсый туман. Внутри него движутся силуэты — слишком высокие, слишком неподвижные. Когда туман редеет, дорога снова пуста, а зубы ноют, будто кто-то их пересчитал.",
+			"speech_text_en": "",
+			"speech_text_ru": "",
+			"choices": [
+				{
+					"text_en": "Keep walking",
+					"text_ru": "Идти дальше",
+					"next_dialog_id": "end_encounter"
+				}
+			]
+		}
+	}
+}

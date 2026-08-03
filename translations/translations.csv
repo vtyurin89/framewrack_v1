@@ -390,3 +390,24 @@ EVENT_OLD_MACHINE_GOD_FORCE_COMBAT,The core shrieks awake — a corrupted synthe
 EVENT_OLD_MACHINE_GOD_LEAVE,You mark the wreck and move on.,Ты помечаешь обломок и идёшь дальше.
 EVENT_SLEEPER_GOD_TITLE,Sleeper God,Спящий Бог
 EVENT_MOL_VAGRIT_TITLE,Mol-Vagrit — Eater of Legions,Мол-Вагрит — Пожиратель Легионов
+EVENT_PALE_MAIDEN_TITLE,Pale Maiden,Бледная дева
+EVENT_WHITE_FOG_TITLE,White Fog,Белый туман
+EVENT_HUMAN_ECHO_TITLE,Human Echo,Человеческое эхо
+EVENT_ROBOT_STATIC_TITLE,Robot Static,Роботический шум
+EVENT_CHIMERA_WHISPER_TITLE,Chimera Whisper,Шёпот химеры
+ITEM_EYE_OF_PALE_MAIDEN_NAME,Eye of the Pale Maiden,Глаз Бледной девы
+ITEM_EYE_OF_PALE_MAIDEN_DESC,"+1 AP on combat turn 1. If adjacent to any weapon, -1 AP instead.","+1 ОД в первый ход боя. Если рядом с оружием — вместо этого -1 ОД."
+ITEM_FANG_OF_THE_FORGOTTEN_NAME,Fang of the Forgotten,Клык Забытой
+ITEM_FANG_OF_THE_FORGOTTEN_DESC,"Deals 4-5 damage and applies 3 Poison. Once per turn.","Наносит 4-5 урона и накладывает 3 Яда. Раз в ход."
+TRAIT_EYE_OF_PALE_MAIDEN_NAME,Pale Eye,Бледный глаз
+TRAIT_EYE_OF_PALE_MAIDEN_DESC,"+1 AP on turn 1, or -1 AP if next to a weapon.","+1 ОД в ход 1, или -1 ОД рядом с оружием."
+TRAIT_FANG_POISON_NAME,Forgotten Venom,Яд Забытой
+TRAIT_FANG_POISON_DESC,On hit applies 3 Poison.,При ударе накладывает 3 Яда.
+ENEMY_FACELESS_LADY_NAME,Faceless Lady,Безликая дама
+ENEMY_FACELESS_LADY_DESC,"A stalker bound to the Pale Maiden's pact. Debuffs and bleeds the frame.","Сталкер, связанный с договором Бледной девы. Дебаффит каркас."
+ABILITY_FACELESS_TEETH_NAME,Tooth Clicking,Постукивание зубов
+ABILITY_FACELESS_TEETH_DESC,Applies Panic (-50% defense) and Bleed (3).,Накладывает Панику (-50% защиты) и Кровотечение (3).
+ABILITY_FACELESS_TEETH_TEXT,{name} clicks her teeth in an impossible rhythm.,{name} отбивает зубами невозможный ритм.
+ABILITY_FACELESS_GRIP_NAME,Dead Grip,Мёртвый хват
+ABILITY_FACELESS_GRIP_DESC,Moderate damage and halves healing received.,Умеренный урон и снижает эффективность лечения.
+ABILITY_FACELESS_GRIP_TEXT,{name} clamps down with a dead grip.,{name} стискивает мёртвым хватом.

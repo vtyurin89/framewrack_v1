@@ -7,7 +7,11 @@ signal rewards_session_cleared
 
 const MAX_PICKS := 3
 ## Starter loadout — never offered as combat loot.
-const EXCLUDED_LOOT_IDS: Array[String] = ["SCRAP_PIPE", "HEAVY_SCRAP_PLATE"]
+const EXCLUDED_LOOT_IDS: Array[String] = [
+	"SCRAP_PIPE",
+	"HEAVY_SCRAP_PLATE",
+	"EYE_OF_PALE_MAIDEN",
+]
 
 var initial_generated_items: Array[ItemData] = []
 var picked_new_items_count: int = 0

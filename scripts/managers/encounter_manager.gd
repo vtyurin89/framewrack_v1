@@ -13,7 +13,7 @@ signal item_selection_resolved(item: ItemData)
 signal request_post_combat_rewards(encounter: EncounterData)
 
 ## Explicit starting-god pool ids (directory scan also picks up any extra JSON).
-const STARTING_GOD_IDS: Array[String] = ["sleeper_god", "mol_vagrit"]
+const STARTING_GOD_IDS: Array[String] = ["sleeper_god", "mol_vagrit", "pale_maiden"]
 
 const UNKNOWN_RESOLVE_POOL: Array[EncounterData.EncounterType] = [
 	EncounterData.EncounterType.COMBAT_NORMAL,
@@ -156,6 +156,10 @@ func apply_dialog_outcome(outcome: DialogOutcomeData) -> void:
 	if outcome == null:
 		_finish_encounter(_pending_rewards)
 		return
+	## Compound story rewards (multi-stat / mixed) are fully applied here once.
+	var compound_applied := (
+		outcome.payload_effects is Array and not outcome.payload_effects.is_empty()
+	)
 	_apply_outcome_buff(outcome)
 	match outcome.kind:
 		DialogOutcomeData.OutcomeKind.END, DialogOutcomeData.OutcomeKind.SKIP:
@@ -181,7 +185,8 @@ func apply_dialog_outcome(outcome: DialogOutcomeData) -> void:
 			if outcome.next_node_id.is_empty():
 				_finish_encounter(_pending_rewards)
 		DialogOutcomeData.OutcomeKind.GRANT_ITEM:
-			_grant_item(outcome.item_id, outcome.item_amount)
+			if not compound_applied:
+				_grant_item(outcome.item_id, outcome.item_amount)
 			if not outcome.message_key.is_empty():
 				_pending_rewards["message_key"] = outcome.message_key
 			_pending_rewards["item_id"] = outcome.item_id
@@ -189,7 +194,8 @@ func apply_dialog_outcome(outcome: DialogOutcomeData) -> void:
 			if outcome.next_node_id.is_empty():
 				_finish_encounter(_pending_rewards)
 		DialogOutcomeData.OutcomeKind.GRANT_STAT:
-			_grant_stat(outcome.stat_name, outcome.stat_amount)
+			if not compound_applied:
+				_grant_stat(outcome.stat_name, outcome.stat_amount)
 			if not outcome.message_key.is_empty():
 				_pending_rewards["message_key"] = outcome.message_key
 			_pending_rewards["stat_name"] = outcome.stat_name
@@ -247,6 +253,9 @@ func _launch_by_type(data: EncounterData) -> void:
 		EncounterData.EncounterType.COMBAT_BOSS:
 			_start_combat_from_encounter(data)
 		EncounterData.EncounterType.EVENT:
+			var story_event_id := str(data.payload.get("story_event_id", data.id)).strip_edges()
+			if StoryEventManager != null:
+				StoryEventManager.notify_event_started(story_event_id)
 			var dialog := data.get_dialog_event()
 			if dialog != null:
 				request_show_dialog.emit(dialog, data)
@@ -365,6 +374,8 @@ func _start_combat_from_ids(
 		max_attackers = maxi(1, int(active_encounter.payload.get("max_attackers_per_turn", 2)))
 
 	datas = _apply_cripple_buff_to_enemies(datas)
+	if StoryEventManager != null:
+		datas = StoryEventManager.maybe_inject_faceless_lady(datas)
 	_awaiting_combat_resolution = true
 	if combat != null and combat.has_method("set_group_attack_cap"):
 		combat.call("set_group_attack_cap", max_attackers)
@@ -429,15 +440,43 @@ func _build_item_pool_from_outcome(outcome: DialogOutcomeData) -> Array:
 
 
 func _apply_outcome_buff(outcome: DialogOutcomeData) -> void:
-	if outcome == null or outcome.buff_id.is_empty():
+	if outcome == null:
+		return
+	## Compound story effects (Pale Maiden Option 1 multi-stat, etc.).
+	if outcome.payload_effects is Array and not outcome.payload_effects.is_empty():
+		_apply_payload_effects(outcome.payload_effects)
+	if outcome.buff_id.is_empty():
 		return
 	match outcome.buff_id.strip_edges().to_lower():
 		"enemies_start_1hp", "cripple_foes":
 			crippled_foe_battles_remaining = maxi(outcome.buff_amount, 1)
 			_pending_rewards["buff_id"] = outcome.buff_id
 			_pending_rewards["buff_amount"] = crippled_foe_battles_remaining
+		"pale_maiden_pact":
+			if StoryEventManager != null:
+				StoryEventManager.mark_pale_maiden_pact()
+			_pending_rewards["buff_id"] = outcome.buff_id
 		_:
 			pass
+
+
+func _apply_payload_effects(effects: Array) -> void:
+	for entry in effects:
+		if typeof(entry) != TYPE_DICTIONARY:
+			continue
+		var effect: Dictionary = entry
+		var effect_type := str(effect.get("type", "")).strip_edges().to_lower()
+		var amount := int(effect.get("amount", 0))
+		match effect_type:
+			"strength", "humanity", "endurance", "agility", "intelligence", "luck":
+				_grant_stat(effect_type, amount if amount != 0 else 1)
+			"item", "grant_item":
+				_grant_item(str(effect.get("item_id", "")), maxi(1, amount if amount > 0 else 1))
+			"pale_maiden_pact":
+				if StoryEventManager != null:
+					StoryEventManager.mark_pale_maiden_pact()
+			_:
+				pass
 
 
 func _grant_item_data(item: ItemData) -> void:

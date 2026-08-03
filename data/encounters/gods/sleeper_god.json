@@ -3,8 +3,8 @@
 	"title_key": "EVENT_SLEEPER_GOD_TITLE",
 	"god_name": "Sleeper God",
 	"god_name_ru": "Спящий бог",
-	"aliases": ["Ancient Machine God", "Pale Maiden", "The Decaying"],
-	"aliases_ru": ["Древний бог-машина", "Бледная дева", "Распадающийся"],
+	"aliases": ["Ancient Machine God", "The Decaying"],
+	"aliases_ru": ["Древний бог-машина", "Распадающийся"],
 	"image_path": "res://assets/sprites/gods/sleeping_god.png",
 	"dialogs": {
 		"start": {

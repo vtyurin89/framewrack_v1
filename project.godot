@@ -32,6 +32,7 @@ StatusEffectDatabase="*res://scripts/global/status_effect_database.gd"
 GamePalette="*res://scripts/global/game_palette.gd"
 DamagePopUpManager="*res://scripts/managers/damage_popup_manager.gd"
 RewardManager="*res://scripts/managers/reward_manager.gd"
+StoryEventManager="*res://scripts/managers/story_event_manager.gd"
 
 [display]
 

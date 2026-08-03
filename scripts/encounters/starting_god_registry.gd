@@ -190,15 +190,43 @@ static func _outcome_from_choice(choice_dict: Dictionary) -> DialogOutcomeData:
 		var reward: Dictionary = reward_raw
 		var reward_type := str(reward.get("type", "")).strip_edges().to_lower()
 		var amount := int(reward.get("amount", 0))
+
+		## Multi-effect bundles (Pale Maiden kiss: +STR / -Humanity + pact).
+		var effects_raw: Variant = reward.get("effects", null)
+		if effects_raw is Array and not (effects_raw as Array).is_empty():
+			o.payload_effects = []
+			for entry in effects_raw:
+				if typeof(entry) == TYPE_DICTIONARY:
+					o.payload_effects.append((entry as Dictionary).duplicate(true))
+			if o.payload_effects.size() > 0:
+				var first: Dictionary = o.payload_effects[0]
+				var ft := str(first.get("type", "")).strip_edges().to_lower()
+				if ft in ["item", "grant_item"]:
+					o.kind = DialogOutcomeData.OutcomeKind.GRANT_ITEM
+					o.item_id = str(first.get("item_id", "")).strip_edges()
+					o.item_amount = maxi(1, int(first.get("amount", 1)))
+				elif ft in ["strength", "humanity", "endurance", "agility", "intelligence", "luck"]:
+					o.kind = DialogOutcomeData.OutcomeKind.GRANT_STAT
+					o.stat_name = ft
+					o.stat_amount = int(first.get("amount", 0))
+			_apply_god_flags_from_reward(o, reward)
+			_preserve_branch_nav(o, next_id)
+			return o
+
 		match reward_type:
-			"humanity":
+			"humanity", "endurance", "strength", "agility", "intelligence", "luck":
 				o.kind = DialogOutcomeData.OutcomeKind.GRANT_STAT
-				o.stat_name = "humanity"
-				o.stat_amount = amount if amount != 0 else 1
-			"endurance":
-				o.kind = DialogOutcomeData.OutcomeKind.GRANT_STAT
-				o.stat_name = "endurance"
-				o.stat_amount = amount if amount != 0 else 2
+				o.stat_name = reward_type
+				if amount != 0:
+					o.stat_amount = amount
+				elif reward_type == "endurance":
+					o.stat_amount = 2
+				else:
+					o.stat_amount = 1
+			"item", "grant_item":
+				o.kind = DialogOutcomeData.OutcomeKind.GRANT_ITEM
+				o.item_id = str(reward.get("item_id", "")).strip_edges()
+				o.item_amount = amount if amount > 0 else 1
 			"neuro_chips", "neuro_chip", "neurochip":
 				o.kind = DialogOutcomeData.OutcomeKind.GRANT_ITEM
 				o.item_id = NeuroChipItem.ITEM_ID
@@ -218,14 +246,32 @@ static func _outcome_from_choice(choice_dict: Dictionary) -> DialogOutcomeData:
 					o.kind = DialogOutcomeData.OutcomeKind.CONTINUE
 				o.buff_id = "enemies_start_1hp"
 				o.buff_amount = int(reward.get("battles", amount if amount > 0 else 2))
+			"compound":
+				pass
 			_:
 				pass
-		## Keep branch navigation when a reward leads into another slide.
-		if next_id != END_ENCOUNTER_ID and not next_id.is_empty():
-			o.next_node_id = next_id
-		else:
-			o.next_node_id = ""
+		_apply_god_flags_from_reward(o, reward)
+		_preserve_branch_nav(o, next_id)
 	return o
+
+
+static func _preserve_branch_nav(o: DialogOutcomeData, next_id: String) -> void:
+	if next_id != END_ENCOUNTER_ID and not next_id.is_empty():
+		o.next_node_id = next_id
+	else:
+		o.next_node_id = ""
+
+
+static func _apply_god_flags_from_reward(o: DialogOutcomeData, reward: Dictionary) -> void:
+	if bool(reward.get("pale_maiden_pact", false)):
+		o.buff_id = "pale_maiden_pact"
+		o.buff_amount = 1
+	var flags_raw: Variant = reward.get("flags", [])
+	if flags_raw is Array:
+		for f in flags_raw:
+			if str(f).strip_edges().to_lower() == "pale_maiden_pact":
+				o.buff_id = "pale_maiden_pact"
+				o.buff_amount = 1
 
 
 static func _localized_text(entry: Dictionary) -> String:

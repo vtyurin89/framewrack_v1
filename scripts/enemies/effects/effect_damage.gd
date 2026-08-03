@@ -64,16 +64,17 @@ func _apply_status_riders(caster: EnemyInstance, target: Node, ability: EnemyAbi
 	if ability == null or target == null:
 		return
 	var csv := ability.get_effect_param_list()
+	## Whitelist known status riders so numeric / misc params are ignored.
+	var known := [
+		"slow", "bleed", "burn", "poison", "weakness", "vulnerability", "rust", "stun",
+		"panic", "healing_curse",
+	]
 	var i := 0
 	while i < csv.size():
 		var token := str(csv[i]).strip_edges().to_lower()
 		if token.is_empty() or token.is_valid_int():
 			i += 1
 			continue
-	## Whitelist known status riders so numeric / misc params are ignored.
-		var known := [
-			"slow", "bleed", "burn", "poison", "weakness", "vulnerability", "rust", "stun"
-		]
 		if token not in known:
 			i += 1
 			continue

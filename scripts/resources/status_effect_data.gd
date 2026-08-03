@@ -60,6 +60,10 @@ func get_ui_glyph() -> String:
 			return "💀"
 		"vulnerability":
 			return "💥"
+		"panic":
+			return "😱"
+		"healing_curse":
+			return "💔"
 		"rust":
 			return "⚙️"
 		"healing", "repair":

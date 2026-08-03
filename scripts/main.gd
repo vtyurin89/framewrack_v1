@@ -407,6 +407,8 @@ func _reset_run_to_startup() -> void:
 	## STARTUP_SETUP: full HP, clear grid, starter weapon/armor/consumable, reset map/combat.
 	if _combat.has_method("abort_combat"):
 		_combat.abort_combat()
+	if StoryEventManager != null:
+		StoryEventManager.reset_run()
 	_seed_starting_loadout()
 	_combat.setup(inventory, player_stats)
 	_encounters.setup(inventory, player_stats, _combat)

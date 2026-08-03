@@ -32,6 +32,8 @@ enum OutcomeKind {
 ## Optional run buff applied alongside the outcome (e.g. enemies_start_1hp).
 @export var buff_id: String = ""
 @export var buff_amount: int = 0
+## Optional compound reward list from story JSON (`reward.effects`).
+var payload_effects: Array = []
 
 
 static func make_end(message_key: String = "") -> DialogOutcomeData:
