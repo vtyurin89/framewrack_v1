@@ -6,6 +6,8 @@ signal pick_limit_reached
 signal rewards_session_cleared
 
 const MAX_PICKS := 3
+## Starter loadout — never offered as combat loot.
+const EXCLUDED_LOOT_IDS: Array[String] = ["SCRAP_PIPE", "HEAVY_SCRAP_PLATE"]
 
 var initial_generated_items: Array[ItemData] = []
 var picked_new_items_count: int = 0
@@ -30,24 +32,23 @@ func begin_session(items: Array[ItemData]) -> void:
 
 func generate_rewards(encounter_type: String, act_depth: int) -> Array[ItemData]:
 	var kind := encounter_type.strip_edges().to_upper()
-	var count := 3
+	## Count is fixed for all encounters; only rarity weights differ.
+	var count := randi_range(5, 6)
+	var consumable_count := randi_range(1, 2)
 	var w_common := 0.70
 	var w_uncommon := 0.25
 	var w_rare := 0.05
 	match kind:
 		"ELITE", "COMBAT_ELITE":
-			count = randi_range(4, 5)
 			w_common = 0.30
 			w_uncommon = 0.50
 			w_rare = 0.20
 		"BOSS", "COMBAT_BOSS":
-			count = randi_range(5, 6)
 			w_common = 0.0
 			w_uncommon = 0.60
 			w_rare = 0.40
 		_:
 			## NORMAL / COMBAT_NORMAL / default
-			count = randi_range(3, 4)
 			w_common = 0.70
 			w_uncommon = 0.25
 			w_rare = 0.05
@@ -61,12 +62,23 @@ func generate_rewards(encounter_type: String, act_depth: int) -> Array[ItemData]
 		w_uncommon += take * 0.5
 		w_rare += take * 0.5
 
+	consumable_count = mini(consumable_count, count)
+	var gear_count := count - consumable_count
+
 	var out: Array[ItemData] = []
-	for _i in count:
+	for _i in consumable_count:
 		var tier := _roll_tier(w_common, w_uncommon, w_rare)
-		var item := _pick_random_item_of_tier(tier)
+		var item := _pick_random_item_of_tier(tier, true)
 		if item != null:
 			out.append(item)
+	for _i in gear_count:
+		var tier := _roll_tier(w_common, w_uncommon, w_rare)
+		var item := _pick_random_item_of_tier(tier, false)
+		if item != null:
+			out.append(item)
+
+	## Shuffle so consumables aren't always first in the Space layout.
+	out.shuffle()
 	return out
 
 
@@ -125,24 +137,63 @@ func _roll_tier(w_common: float, w_uncommon: float, w_rare: float) -> ItemRarity
 	return ItemRarityData.Tier.RARE
 
 
-func _pick_random_item_of_tier(tier: ItemRarityData.Tier) -> ItemData:
+func _pick_random_item_of_tier(tier: ItemRarityData.Tier, want_consumable: bool) -> ItemData:
 	if ItemDatabase == null:
 		return null
 	var pool: Array[ItemData] = []
 	for proto: ItemData in ItemDatabase.get_all_items():
 		if proto == null or proto.rarity == null:
 			continue
-		## Skip pure currency from combat loot.
 		if proto.is_currency():
+			continue
+		if _is_excluded_loot(proto.id):
+			continue
+		if want_consumable != _is_consumable_proto(proto):
 			continue
 		if proto.rarity.get_tier() == tier:
 			pool.append(proto)
 	if pool.is_empty():
-		## Soft fallback down the rarity ladder.
+		## Soft fallback down the rarity ladder (same consumable/gear filter).
 		if tier == ItemRarityData.Tier.RARE:
-			return _pick_random_item_of_tier(ItemRarityData.Tier.UNCOMMON)
+			return _pick_random_item_of_tier(ItemRarityData.Tier.UNCOMMON, want_consumable)
 		if tier == ItemRarityData.Tier.UNCOMMON:
-			return _pick_random_item_of_tier(ItemRarityData.Tier.COMMON)
+			return _pick_random_item_of_tier(ItemRarityData.Tier.COMMON, want_consumable)
+		## Last resort: any matching category, ignore rarity.
+		return _pick_any_matching(want_consumable)
+	var pick: ItemData = pool[randi() % pool.size()]
+	return ItemDatabase.create_instance(pick.id)
+
+
+func _pick_any_matching(want_consumable: bool) -> ItemData:
+	if ItemDatabase == null:
+		return null
+	var pool: Array[ItemData] = []
+	for proto: ItemData in ItemDatabase.get_all_items():
+		if proto == null:
+			continue
+		if proto.is_currency():
+			continue
+		if _is_excluded_loot(proto.id):
+			continue
+		if want_consumable != _is_consumable_proto(proto):
+			continue
+		pool.append(proto)
+	if pool.is_empty():
 		return null
 	var pick: ItemData = pool[randi() % pool.size()]
 	return ItemDatabase.create_instance(pick.id)
+
+
+func _is_excluded_loot(item_id: String) -> bool:
+	var key := item_id.strip_edges().to_upper()
+	return EXCLUDED_LOOT_IDS.has(key)
+
+
+func _is_consumable_proto(proto: ItemData) -> bool:
+	if proto == null:
+		return false
+	if proto.consumable:
+		return true
+	if proto.item_type != null and proto.item_type.id.strip_edges().to_upper() == "CONSUMABLE":
+		return true
+	return false

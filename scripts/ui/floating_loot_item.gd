@@ -48,7 +48,7 @@ func _on_mouse_exited() -> void:
 
 
 func _gui_input(event: InputEvent) -> void:
-	## LMB drag is handled by `_get_drag_data` (viewport DnD). RMB = inspect.
+	## LMB drag is handled by `_get_drag_data` (viewport DnD). RMB = context menu.
 	if event is InputEventMouseButton:
 		var mb := event as InputEventMouseButton
 		if mb.button_index == MOUSE_BUTTON_RIGHT and mb.pressed:

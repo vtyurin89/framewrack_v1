@@ -516,7 +516,11 @@ func _on_slot_gui_input(event: InputEvent, cell: Vector2i) -> void:
 
 
 func _on_item_context_menu_requested(item: ItemData) -> void:
-	## RMB on a static item (ignored while a drag session is active).
+	open_item_context_menu(item)
+
+
+func open_item_context_menu(item: ItemData) -> void:
+	## RMB on a static inventory or floating reward item.
 	if level_up_mode or _level_up_busy:
 		return
 	if not _drag.is_empty():

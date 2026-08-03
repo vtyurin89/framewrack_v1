@@ -177,7 +177,9 @@ func _on_floating_drag_begun(wrap: Control, _item: ItemData) -> void:
 
 
 func _on_floating_context(item: ItemData) -> void:
-	if inventory_ui != null and inventory_ui.has_method("inspect_item"):
+	if inventory_ui != null and inventory_ui.has_method("open_item_context_menu"):
+		inventory_ui.open_item_context_menu(item)
+	elif inventory_ui != null and inventory_ui.has_method("inspect_item"):
 		inventory_ui.inspect_item(item)
 	else:
 		_on_floating_hover(item)
