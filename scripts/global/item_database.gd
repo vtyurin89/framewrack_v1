@@ -275,7 +275,10 @@ func _parse_item_row(row: PackedStringArray, col: Dictionary) -> ItemData:
 	## Keep legacy combat fields aligned for existing combat code paths.
 	item.damage = item.max_damage
 	item.block_amount = item.base_armor
-	item.droppable = _parse_bool(_cell(row, col, "droppable"), true)
+	item.dropable = _parse_bool(_cell(row, col, "dropable"), true)
+	## Legacy CSV spelling.
+	if _cell(row, col, "dropable").is_empty():
+		item.dropable = _parse_bool(_cell(row, col, "droppable"), true)
 
 	item.target_type = _parse_target_type(_cell(row, col, "target_type"))
 	item.uses_per_turn = _parse_int(_cell(row, col, "uses_per_turn"), -1)

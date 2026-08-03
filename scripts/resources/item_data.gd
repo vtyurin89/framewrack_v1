@@ -70,7 +70,7 @@ const FALLBACK_ICON_PATH := "res://assets/icons/fallback_item.png"
 @export var price: Variant = null
 
 ## If false, cannot be discarded into Space during post-combat rewards.
-@export var droppable: bool = true
+@export var dropable: bool = true
 
 ## Intrinsic combat values before active trait modifiers.
 ## Damaging modules roll between min_damage and max_damage on hit.
