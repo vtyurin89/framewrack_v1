@@ -369,7 +369,7 @@ func _resolve_self(placed: PlacedItem) -> void:
 
 func _calc_damage(placed: PlacedItem) -> int:
 	var adjacency_bonus: int = inventory.grid.get_adjacency_damage_bonus_for(placed)
-	var raw := placed.data.get_scaled_damage(player_stats) + adjacency_bonus
+	var raw: int = placed.data.roll_damage(player_stats) + adjacency_bonus
 	if player_statuses != null:
 		return player_statuses.modify_outgoing_damage(raw)
 	return raw
@@ -518,13 +518,16 @@ func _resolve_consumable_enemy(placed: PlacedItem, enemy_index: int) -> void:
 	var data := placed.data
 	var dealt := 0
 	if TraitManager.has_trait(data, "TRAIT_BURN_DAMAGE"):
-		var burn_hit := TraitManager.get_trait_value(data, "TRAIT_BURN_DAMAGE", 18)
+		## Damage comes from the item roll; the trait only applies Burn.
+		var burn_hit: int = data.roll_damage(player_stats)
+		if burn_hit <= 0:
+			burn_hit = TraitManager.get_trait_value(data, "TRAIT_BURN_DAMAGE", 9)
 		_deal_damage_to(enemy_index, burn_hit, data.get_localized_name(), true, "burn")
 		dealt = burn_hit
 		if enemy_index >= 0 and enemy_index < enemies.size():
 			apply_status_to_enemy(enemy_index, "burn", TraitManager.BURN_APPLY_STACKS)
 	if dealt == 0:
-		_deal_damage_to(enemy_index, data.base_damage, data.get_localized_name())
+		_deal_damage_to(enemy_index, data.roll_damage(player_stats), data.get_localized_name())
 
 
 func _reset_all_item_turn_uses() -> void:

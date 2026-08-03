@@ -21,5 +21,5 @@ TRAIT_LEG_LOW,TRAIT_LEG_LOW_NAME,TRAIT_LEG_LOW_DESC,,0,Passive: +0.5 armor per c
 TRAIT_LEG_HIGH,TRAIT_LEG_HIGH_NAME,TRAIT_LEG_HIGH_DESC,,0,Passive: +1 armor per cell above; row crowding penalty applies.
 TRAIT_BIO_GEL_HEAL,TRAIT_BIO_GEL_HEAL_NAME,TRAIT_BIO_GEL_HEAL_DESC,,8,Heals 8 HP instantly when consumed.
 TRAIT_GIVE_AP,TRAIT_GIVE_AP_NAME,TRAIT_GIVE_AP_DESC,,2,Instantly restores 2 AP for the current turn.
-TRAIT_BURN_DAMAGE,TRAIT_BURN_DAMAGE_NAME,TRAIT_BURN_DAMAGE_DESC,DAMAGE,18,Deals 18 damage and applies 3 Burn to selected enemy.
+TRAIT_BURN_DAMAGE,TRAIT_BURN_DAMAGE_NAME,TRAIT_BURN_DAMAGE_DESC,,0,Hit damage comes from item min/max; applies 3 Burn to selected enemy.
 TRAIT_CLEANSE_DEBUFFS,TRAIT_CLEANSE_DEBUFFS_NAME,TRAIT_CLEANSE_DEBUFFS_DESC,,0,Cleanses active debuffs/corruption pressure.

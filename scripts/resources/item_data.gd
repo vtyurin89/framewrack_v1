@@ -69,8 +69,13 @@ const FALLBACK_ICON_PATH := "res://assets/icons/fallback_item.png"
 ## Merchant value in Scrap. `null` = cannot be bought or sold.
 @export var price: Variant = null
 
+## If false, cannot be discarded into Space during post-combat rewards.
+@export var droppable: bool = true
+
 ## Intrinsic combat values before active trait modifiers.
-@export var base_damage: int = 0
+## Damaging modules roll between min_damage and max_damage on hit.
+@export var min_damage: int = 0
+@export var max_damage: int = 0
 @export var base_armor: int = 0
 
 ## Which player ActorStats field scales this module when activated.
@@ -228,8 +233,29 @@ func get_active_trait_bonus(effect_target: String) -> int:
 	return total
 
 
+func get_damage_roll_bounds() -> Vector2i:
+	## Inclusive roll window after normalizing min/max.
+	if min_damage <= 0 and max_damage <= 0:
+		return Vector2i.ZERO
+	var lo := mini(min_damage, max_damage)
+	var hi := maxi(min_damage, max_damage)
+	return Vector2i(lo, hi)
+
+
+func get_effective_damage_bounds() -> Vector2i:
+	var bounds := get_damage_roll_bounds()
+	if bounds == Vector2i.ZERO:
+		return Vector2i.ZERO
+	var bonus := get_active_trait_bonus("DAMAGE")
+	return Vector2i(bounds.x + bonus, bounds.y + bonus)
+
+
 func get_effective_damage() -> int:
-	return base_damage + get_active_trait_bonus("DAMAGE")
+	## Midpoint of the rolled window (UI / legacy callers).
+	var bounds := get_effective_damage_bounds()
+	if bounds == Vector2i.ZERO:
+		return 0
+	return int(round((float(bounds.x) + float(bounds.y)) * 0.5))
 
 
 func get_effective_armor() -> int:
@@ -273,8 +299,30 @@ func get_armor_stat_bonus(stats: ActorStats = null) -> int:
 			return 0
 
 
+func get_scaled_damage_bounds(stats: ActorStats = null) -> Vector2i:
+	var bounds := get_effective_damage_bounds()
+	if bounds == Vector2i.ZERO:
+		return Vector2i.ZERO
+	var stat_bonus := get_damage_stat_bonus(stats)
+	return Vector2i(bounds.x + stat_bonus, bounds.y + stat_bonus)
+
+
+func roll_damage(stats: ActorStats = null) -> int:
+	## Combat hit: random roll in [min, max] plus trait / stat bonuses.
+	var bounds := get_scaled_damage_bounds(stats)
+	if bounds == Vector2i.ZERO:
+		return 0
+	var lo := mini(bounds.x, bounds.y)
+	var hi := maxi(bounds.x, bounds.y)
+	return randi_range(lo, hi)
+
+
 func get_scaled_damage(stats: ActorStats = null) -> int:
-	return get_effective_damage() + get_damage_stat_bonus(stats)
+	## Midpoint of scaled bounds (tooltips / non-combat). Combat uses roll_damage().
+	var bounds := get_scaled_damage_bounds(stats)
+	if bounds == Vector2i.ZERO:
+		return 0
+	return int(round((float(bounds.x) + float(bounds.y)) * 0.5))
 
 
 func get_scaled_armor(stats: ActorStats = null) -> int:
@@ -283,22 +331,28 @@ func get_scaled_armor(stats: ActorStats = null) -> int:
 
 func format_damage_display(use_bbcode: bool = true, stats: ActorStats = null) -> String:
 	## Weapons / damaging modules only — never show on pure armor.
-	if base_damage <= 0:
+	var base_bounds := get_damage_roll_bounds()
+	if base_bounds == Vector2i.ZERO:
 		return ""
 	var trait_bonus := get_active_trait_bonus("DAMAGE")
 	var stat_bonus := get_damage_stat_bonus(stats)
-	var effective := base_damage + trait_bonus + stat_bonus
+	var lo := base_bounds.x + trait_bonus + stat_bonus
+	var hi := base_bounds.y + trait_bonus + stat_bonus
+	var range_text := str(lo) if lo == hi else "%d-%d" % [lo, hi]
 	var parts: PackedStringArray = []
-	parts.append(str(base_damage))
+	if base_bounds.x == base_bounds.y:
+		parts.append(str(base_bounds.x))
+	else:
+		parts.append("%d-%d" % [base_bounds.x, base_bounds.y])
 	if trait_bonus != 0:
 		parts.append("%+d" % trait_bonus)
 	if stat_bonus != 0:
 		parts.append("%+d" % stat_bonus)
 	if parts.size() > 1:
 		if use_bbcode:
-			return "⚔️ %d ([color=#7dcea0]%s[/color])" % [effective, " ".join(parts)]
-		return "⚔️ %d (%s)" % [effective, " ".join(parts)]
-	return "⚔️ %d %s" % [effective, tr("KEY_DAMAGE")]
+			return "⚔️ %s ([color=#7dcea0]%s[/color])" % [range_text, " ".join(parts)]
+		return "⚔️ %s (%s)" % [range_text, " ".join(parts)]
+	return "⚔️ %s %s" % [range_text, tr("KEY_DAMAGE")]
 
 
 func format_armor_display(use_bbcode: bool = true, stats: ActorStats = null) -> String:
@@ -327,7 +381,7 @@ func is_sellable() -> bool:
 
 
 func is_weapon() -> bool:
-	return (base_damage > 0 or damage > 0) and ap_cost > 0
+	return (max_damage > 0 or min_damage > 0 or damage > 0) and ap_cost > 0
 
 
 func is_armor() -> bool:

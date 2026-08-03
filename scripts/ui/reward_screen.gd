@@ -206,6 +206,10 @@ func _drop_data(at_position: Vector2, data: Variant) -> void:
 	var item: ItemData = data.get("item")
 	if item == null:
 		return
+	## Inventory → Space discard respects droppable (reject without commit → snap back).
+	if str(data.get("source", "")) == "grid" and not item.droppable:
+		_show_notice(tr("KEY_REWARD_NOT_DROPPABLE"))
+		return
 	if inventory_ui != null and inventory_ui.has_method("commit_external_drop"):
 		inventory_ui.commit_external_drop()
 	var global_pos := _space.get_global_transform() * at_position

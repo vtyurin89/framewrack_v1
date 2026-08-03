@@ -74,7 +74,7 @@ func build_choice_pool(pool_id: String) -> Array:
 				if item.item_type.id.strip_edges().to_upper() != "CONSUMABLE":
 					continue
 				## Explosives / thrown charges: damaging consumables aimed at enemies.
-				if item.target_type == ItemData.TargetType.SINGLE_ENEMY and item.base_damage > 0:
+				if item.target_type == ItemData.TargetType.SINGLE_ENEMY and item.max_damage > 0:
 					result.append(item)
 			if result.is_empty():
 				var thermite := get_item("THERMITE_CHARGE")
@@ -120,7 +120,7 @@ func _parse_stat_scaling(raw: String, item: ItemData) -> ItemData.StatScaling:
 			return ItemData.StatScaling.NONE
 		"":
 			## Infer defaults when CSV omits the column.
-			if item != null and item.base_damage > 0 and item.is_weapon():
+			if item != null and item.max_damage > 0 and item.is_weapon():
 				return ItemData.StatScaling.STRENGTH
 			if item != null and item.base_armor > 0 and item.is_armor():
 				return ItemData.StatScaling.AGILITY
@@ -256,12 +256,26 @@ func _parse_item_row(row: PackedStringArray, col: Dictionary) -> ItemData:
 
 	item.usable = _parse_bool(_cell(row, col, "usable"), true)
 	item.ap_cost = _parse_int(_cell(row, col, "ap_cost"), 0)
-	item.base_damage = _parse_int(_cell(row, col, "base_damage"), 0)
+	## Prefer min/max columns; legacy base_damage → [base-1, base+1].
+	var min_dmg_raw := _cell(row, col, "min_damage")
+	var max_dmg_raw := _cell(row, col, "max_damage")
+	var legacy_dmg := _parse_int(_cell(row, col, "base_damage"), 0)
+	if min_dmg_raw.is_empty() and max_dmg_raw.is_empty() and legacy_dmg > 0:
+		item.min_damage = maxi(0, legacy_dmg - 1)
+		item.max_damage = legacy_dmg + 1
+	else:
+		item.min_damage = _parse_int(min_dmg_raw, 0)
+		item.max_damage = _parse_int(max_dmg_raw, 0)
+	if item.max_damage < item.min_damage:
+		var swap: int = item.min_damage
+		item.min_damage = item.max_damage
+		item.max_damage = swap
 	item.base_armor = _parse_int(_cell(row, col, "base_armor"), 0)
 	item.scaling_stat = _parse_stat_scaling(_cell(row, col, "scaling_stat"), item)
 	## Keep legacy combat fields aligned for existing combat code paths.
-	item.damage = item.base_damage
+	item.damage = item.max_damage
 	item.block_amount = item.base_armor
+	item.droppable = _parse_bool(_cell(row, col, "droppable"), true)
 
 	item.target_type = _parse_target_type(_cell(row, col, "target_type"))
 	item.uses_per_turn = _parse_int(_cell(row, col, "uses_per_turn"), -1)

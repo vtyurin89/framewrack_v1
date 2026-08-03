@@ -47,6 +47,6 @@ TRAIT_BIO_GEL_HEAL_DESC,Instantly restores 8 HP.,Мгновенно восста
 TRAIT_GIVE_AP_NAME,Adrenal Salt,Адреналиновая соль
 TRAIT_GIVE_AP_DESC,Instantly restores 2 AP for the current turn.,Мгновенно восстанавливает 2 ОД на текущий ход.
 TRAIT_BURN_DAMAGE_NAME,Thermite Burn,Термитный прожиг
-TRAIT_BURN_DAMAGE_DESC,Deals 18 damage to selected enemy and applies 3 Burn.,Наносит 18 урона выбранному врагу и накладывает 3 Горения.
+TRAIT_BURN_DAMAGE_DESC,Deals 9-10 damage to selected enemy and applies 3 Burn.,Наносит 9-10 урона выбранному врагу и накладывает 3 Горения.
 TRAIT_CLEANSE_DEBUFFS_NAME,Purge Cycle,Цикл очистки
 TRAIT_CLEANSE_DEBUFFS_DESC,Cleanses all negative status effects (Poison, Rust, Burn).,Снимает все негативные эффекты (Яд, Ржавчина, Горение).

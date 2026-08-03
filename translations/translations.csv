@@ -67,6 +67,7 @@ KEY_RARITY_UNCOMMON,Uncommon,Необычный
 KEY_RARITY_RARE,Rare,Редкий
 KEY_REWARD_SELECT_UP_TO_3,Select up to 3 new items,Выберите до 3 новых предметов
 KEY_REWARD_PICK_LIMIT,Cannot pick more than 3 new items!,Нельзя взять больше 3 новых предметов!
+KEY_REWARD_NOT_DROPPABLE,This item cannot be discarded!,Этот предмет нельзя выбросить!
 KEY_TYPE_STAIRS,STAIRS,ЛЕСТНИЦА
 KEY_MAIN_STORY_BADGE,STORY / GOD,СЮЖЕТ / БОГ
 KEY_ATK,ATK,АТК
@@ -320,7 +321,7 @@ ITEM_BIO_GEL_DESC,Heals 8 HP. Produced from flesh. You don't want to know what f
 ITEM_SALT_INJECTOR_NAME,Salt Injector,Солевой инжектор
 ITEM_SALT_INJECTOR_DESC,Instantly restores 2 AP for the current turn.,Мгновенно восстанавливает 2 ОД на текущий ход.
 ITEM_THERMITE_NAME,Thermite Charge,Термитный заряд
-ITEM_THERMITE_DESC,Deals 18 damage to selected enemy and applies 3 Burn.,Наносит 18 урона выбранному врагу и накладывает 3 Горения.
+ITEM_THERMITE_DESC,Deals 9-10 damage to selected enemy and applies 3 Burn.,Наносит 9-10 урона выбранному врагу и накладывает 3 Горения.
 ITEM_PURGE_SOLVENT_NAME,Purge Solvent,Очищающий раствор
 ITEM_PURGE_SOLVENT_DESC,Cleanses all negative status effects (Poison, Rust, Burn).,Снимает все негативные эффекты (Яд, Ржавчина, Горение).
 TRAIT_ARMOR_EDGE_NAME,Edge Anchor,Краевой якорь
