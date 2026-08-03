@@ -19,6 +19,7 @@ func _init(combat: Node = null) -> void:
 		"steal_chips": EffectStealChips.new(),
 		"flee": EffectFlee.new(),
 		"ally_buff": EffectAllyBuff.new(),
+		"force_insert": EffectForceInsert.new(),
 	}
 
 

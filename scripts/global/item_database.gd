@@ -279,6 +279,9 @@ func _parse_item_row(row: PackedStringArray, col: Dictionary) -> ItemData:
 	## Legacy CSV spelling.
 	if _cell(row, col, "dropable").is_empty():
 		item.dropable = _parse_bool(_cell(row, col, "droppable"), true)
+	item.is_harmful = _parse_bool(_cell(row, col, "is_harmful"), false)
+	if item.is_harmful:
+		item.enforce_harmful_constraints()
 
 	item.target_type = _parse_target_type(_cell(row, col, "target_type"))
 	item.uses_per_turn = _parse_int(_cell(row, col, "uses_per_turn"), -1)

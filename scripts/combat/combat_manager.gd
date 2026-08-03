@@ -11,6 +11,12 @@ enum CombatState {
 }
 
 signal state_changed(new_state: CombatState)
+signal forced_insertion_requested(item_id: String)
+signal forced_insertion_completed
+
+const SLIMY_PARASITE_ID := "SLIMY_PARASITE"
+const PARASITE_TURN_DAMAGE := 3
+const PARASITE_AP_CAP := 3
 
 var inventory: InventoryController
 var player_stats: PlayerStats
@@ -31,6 +37,8 @@ var max_attackers_per_turn: int = 2
 var _attacker_slots_used: int = 0
 ## Counts completed player turn starts this combat (1 = first turn).
 var player_turn_index: int = 0
+## Mid-enemy-turn pause while ForcedItemScreen is open.
+var awaiting_forced_insertion: bool = false
 
 
 func setup(p_inventory: InventoryController, p_stats: PlayerStats = null) -> void:
@@ -119,6 +127,8 @@ func _set_state(next: CombatState) -> void:
 func _begin_player_turn() -> void:
 	## Strict player turn pipeline.
 	_reset_player_resources()
+	if not _apply_slimy_parasite_turn_damage():
+		return
 	if not _player_pre_turn_phase():
 		return
 	_player_start_turn_phase()
@@ -142,8 +152,46 @@ func _reset_player_resources() -> void:
 	if player_turn_index == 1:
 		current_ap += _eye_of_pale_maiden_turn1_ap_mod()
 		current_ap = maxi(0, current_ap)
+	_apply_slimy_parasite_ap_cap()
 	_reset_all_item_turn_uses()
 	TraitManager.apply_passive_armor_from_spatial_traits(inventory.grid, Callable(self, "_gain_block"))
+
+
+func _apply_slimy_parasite_ap_cap() -> void:
+	if not _has_item_in_grid(SLIMY_PARASITE_ID):
+		return
+	max_ap = mini(max_ap, PARASITE_AP_CAP)
+	current_ap = mini(current_ap, PARASITE_AP_CAP)
+
+
+func has_item_in_grid(item_id: String) -> bool:
+	if inventory == null or inventory.grid == null:
+		return false
+	var needle := item_id.strip_edges().to_upper()
+	for placed: PlacedItem in inventory.grid.items:
+		if placed != null and placed.data != null and placed.data.id.strip_edges().to_upper() == needle:
+			return true
+	return false
+
+
+func _has_item_in_grid(item_id: String) -> bool:
+	return has_item_in_grid(item_id)
+
+
+func _apply_slimy_parasite_turn_damage() -> bool:
+	## Returns false if the player dies from parasite damage.
+	if not _has_item_in_grid(SLIMY_PARASITE_ID) or inventory == null:
+		return true
+	var dealt := inventory.apply_damage(PARASITE_TURN_DAMAGE, 0)
+	_request_player_popup(dealt if dealt > 0 else PARASITE_TURN_DAMAGE, "poison")
+	EventBus.combat_log_message.emit(
+		tr("KEY_LOG_PARASITE_DAMAGE") % PARASITE_TURN_DAMAGE
+	)
+	EventBus.player_hp_changed.emit(inventory.current_hp, inventory.max_hp)
+	if inventory.is_dead():
+		_lose()
+		return false
+	return true
 
 
 func _eye_of_pale_maiden_turn1_ap_mod() -> int:
@@ -379,6 +427,10 @@ func _resolve_all_enemies(placed: PlacedItem) -> void:
 
 
 func _resolve_self(placed: PlacedItem) -> void:
+	if placed != null and placed.data != null and placed.data.is_harmful:
+		_perform_harmful_surgery(placed)
+		return
+
 	if TraitManager.has_trait(placed.data, "TRAIT_ARMOR_CORE_TRIGGER"):
 		TraitManager.activate_armor_core(
 			placed,
@@ -402,6 +454,21 @@ func _resolve_self(placed: PlacedItem) -> void:
 		EventBus.combat_log_message.emit(tr("KEY_LOG_ACTIVATED") % data.get_localized_name())
 
 	_apply_self_use_traits(placed)
+
+
+func _perform_harmful_surgery(placed: PlacedItem) -> void:
+	## Spend AP (already deducted) to cut a harmful module out of the frame.
+	if placed == null or placed.data == null or inventory == null or inventory.grid == null:
+		return
+	var item_name := placed.data.get_localized_name()
+	inventory.grid.remove_item(placed, true)
+	EventBus.combat_log_message.emit(tr("KEY_LOG_HARMFUL_SURGERY") % item_name)
+	EventBus.inventory_changed.emit()
+	EventBus.combat_item_availability_changed.emit()
+	## Recalc AP cap after parasite removal mid-turn (does not refund AP).
+	if not _has_item_in_grid(SLIMY_PARASITE_ID):
+		max_ap = inventory.get_max_ap()
+		EventBus.ap_changed.emit(current_ap, max_ap)
 
 
 func _calc_damage(placed: PlacedItem) -> int:
@@ -581,7 +648,7 @@ func _begin_enemy_turn() -> void:
 	EventBus.combat_log_message.emit(tr("KEY_LOG_ENEMY_TURN"))
 	## Re-open attacker budget for the act phase (matches telegraphed plans).
 	reset_attacker_slots()
-	_run_enemy_actions()
+	await _run_enemy_actions()
 
 
 func _run_enemy_actions() -> void:
@@ -596,6 +663,8 @@ func _run_enemy_actions() -> void:
 			continue
 		_enemy_pre_action_phase(i, enemy)
 		_enemy_main_action_phase(i, enemy)
+		if awaiting_forced_insertion:
+			await forced_insertion_completed
 		if inventory.is_dead():
 			_lose()
 			return
@@ -607,6 +676,22 @@ func _run_enemy_actions() -> void:
 		_win()
 	else:
 		_begin_player_turn()
+
+
+func request_forced_item_insertion(item_id: String) -> void:
+	## Called by EffectForceInsert mid-enemy-turn; Main opens ForcedItemScreen.
+	var id := item_id.strip_edges()
+	if id.is_empty():
+		id = SLIMY_PARASITE_ID
+	awaiting_forced_insertion = true
+	forced_insertion_requested.emit(id)
+
+
+func complete_forced_item_insertion() -> void:
+	if not awaiting_forced_insertion:
+		return
+	awaiting_forced_insertion = false
+	forced_insertion_completed.emit()
 
 
 func _enemy_pre_turn_phase(index: int, enemy: EnemyInstance) -> bool:

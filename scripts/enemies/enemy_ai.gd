@@ -68,7 +68,10 @@ static func resolve_main_action(enemy: EnemyInstance, combat: Node = null) -> Di
 		var forced := _pick_scripted_main(enemy, combat)
 		if forced != null and forced != enemy.planned_ability:
 			## Aim→snipe and flee prep must not be blocked by stale plans.
-			if forced.id in [ID_DESERTER_SNIPE, ID_THIEF_SCOUT, ID_THIEF_FLEE, ID_SLAVER_SUMMON]:
+			if forced.id in [
+				ID_DESERTER_SNIPE, ID_THIEF_SCOUT, ID_THIEF_FLEE, ID_SLAVER_SUMMON,
+				FacelessLady.ID_INJECT,
+			]:
 				if is_offensive_ability(forced) and not _can_commit_offensive(combat, forced):
 					var alt := _pick_non_offensive(enemy)
 					if alt != null:
@@ -217,6 +220,8 @@ static func _pick_scripted_main(enemy: EnemyInstance, combat: Node) -> EnemyAbil
 			return _ai_pocket_thief(enemy, combat)
 		"scrapper_tank":
 			return _ai_scrapper_tank(enemy, combat)
+		"faceless_lady":
+			return FacelessLady.pick_scripted_ability(enemy, combat)
 		_:
 			return null
 

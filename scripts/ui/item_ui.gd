@@ -62,6 +62,11 @@ func _build_visual() -> void:
 	style.border_color = col.lightened(0.25)
 	style.set_corner_radius_all(3)
 	_panel.add_theme_stylebox_override("panel", style)
+	if item != null and item.is_harmful:
+		modulate = Color("#E74C3C")
+		style.border_color = Color("#D35400")
+		style.set_border_width_all(3)
+		_panel.add_theme_stylebox_override("panel", style)
 
 	if item and item.get_texture():
 		_icon = TextureRect.new()
@@ -127,6 +132,13 @@ func set_combat_visual(usable: bool) -> void:
 	if style == null:
 		return
 	var col := item.placeholder_color if item else Color(0.7, 0.7, 0.7)
+	if item != null and item.is_harmful:
+		## Organic reddish/pink tint for parasites / broken slots.
+		modulate = Color("#E74C3C")
+		style.border_color = Color("#D35400")
+		style.set_border_width_all(3 if combat_click_mode and usable else 2)
+		_panel.add_theme_stylebox_override("panel", style)
+		return
 	if combat_click_mode and usable:
 		style.border_color = Color(0.45, 0.95, 0.55)
 		style.set_border_width_all(3)

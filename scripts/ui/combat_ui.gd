@@ -51,6 +51,7 @@ var _block_juice_tween: Tween
 @onready var _stats_row: HBoxContainer = $VBox/StatsRow
 
 var _reward_phase: bool = false
+var _harmful_insertion_phase: bool = false
 
 
 func _ready() -> void:
@@ -709,6 +710,31 @@ func _scroll_log_to_end() -> void:
 func set_reward_phase(active: bool) -> void:
 	## Swap the enemy stage for floating loot; keep the existing Continue button.
 	_reward_phase = active
+	if active:
+		_harmful_insertion_phase = false
+	_apply_space_stage_layout(active, tr("KEY_REWARD_SELECT_UP_TO_3"))
+
+
+func set_harmful_insertion_phase(active: bool) -> void:
+	## Mid-combat forced placement of a harmful item into the Body Grid.
+	_harmful_insertion_phase = active
+	if active:
+		_reward_phase = false
+	_apply_space_stage_layout(active, tr("KEY_FORCED_INSERT_BANNER"))
+	if _continue_btn:
+		_continue_btn.disabled = active  ## Enabled by ForcedItemScreen when placed.
+
+
+func set_continue_enabled(enabled: bool) -> void:
+	if _continue_btn:
+		_continue_btn.disabled = not enabled
+
+
+func is_harmful_insertion_phase() -> bool:
+	return _harmful_insertion_phase
+
+
+func _apply_space_stage_layout(active: bool, hint_text: String) -> void:
 	if _loot_stage:
 		_loot_stage.visible = active
 		if active:
@@ -718,7 +744,6 @@ func set_reward_phase(active: bool) -> void:
 	if _stats_enemy_gap:
 		_stats_enemy_gap.visible = not active
 	if _enemy_actions_gap:
-		## Keep a small spacer above actions during rewards.
 		_enemy_actions_gap.visible = true
 		_enemy_actions_gap.custom_minimum_size = Vector2(0, 8 if active else 24)
 		_enemy_actions_gap.size_flags_vertical = (
@@ -730,10 +755,12 @@ func set_reward_phase(active: bool) -> void:
 			_end_turn_btn.disabled = true
 	if _continue_btn:
 		_continue_btn.visible = true if active else _continue_btn.visible
+		if not active and not _reward_phase and not _harmful_insertion_phase:
+			_continue_btn.disabled = false
 	if _hint_label:
 		if active:
 			_hint_label.visible = true
-			_hint_label.text = tr("KEY_REWARD_SELECT_UP_TO_3")
+			_hint_label.text = hint_text
 			_hint_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 		else:
 			_hint_label.visible = false

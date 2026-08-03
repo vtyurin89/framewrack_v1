@@ -411,3 +411,16 @@ ABILITY_FACELESS_TEETH_TEXT,{name} clicks her teeth in an impossible rhythm.,{na
 ABILITY_FACELESS_GRIP_NAME,Dead Grip,Мёртвый хват
 ABILITY_FACELESS_GRIP_DESC,Moderate damage and halves healing received.,Умеренный урон и снижает эффективность лечения.
 ABILITY_FACELESS_GRIP_TEXT,{name} clamps down with a dead grip.,{name} стискивает мёртвым хватом.
+ITEM_SLIMY_PARASITE_NAME,Slimy Parasite,Склизкий паразит
+ITEM_SLIMY_PARASITE_DESC,"Deals 3 HP at the start of each turn and caps usable AP to 3. Spend 1 AP to cut it out.","Наносит 3 HP в начале хода и ограничивает ОД до 3. Потратьте 1 ОД, чтобы вырезать его."
+ITEM_BROKEN_SLOT_NAME,Broken Slot,Сломанный слот
+ITEM_BROKEN_SLOT_DESC,Spend 1 AP to clear this ruined body-grid mass.,Потратьте 1 ОД, чтобы очистить это разрушенное место на сетке.
+KEY_FORCED_INSERT_BANNER,"An entity has penetrated your frame! You must place the parasite into your body grid.","Сущность проникла в ваш каркас! Вы должны поместить паразита в сетку тела."
+KEY_FORCED_INSERT_MUST_PLACE,Place the harmful item into your Body Grid first!,Сначала поместите вредоносный предмет в сетку тела!
+KEY_LOG_PARASITE_DAMAGE,Slimy Parasite drains %d HP.,Склизкий паразит высасывает %d HP.
+KEY_LOG_HARMFUL_SURGERY,You cut out %s.,Вы вырезаете: %s.
+KEY_LOG_PARASITE_INJECT,%s forces a parasite into your frame!,%s вживляет паразита в ваш каркас!
+KEY_LOG_PARASITE_ALREADY,%s finds a parasite already lodged in the frame.,%s обнаруживает, что паразит уже сидит в каркасе.
+ABILITY_FACELESS_INJECT_NAME,Parasite Injection,Инъекция паразита
+ABILITY_FACELESS_INJECT_DESC,Forces a Slimy Parasite into the Body Grid.,Вживляет Склизкого паразита в сетку тела.
+ABILITY_FACELESS_INJECT_TEXT,{name} opens a wet seam in the frame.,{name} разрывает влажный шов в каркасе.

@@ -72,6 +72,9 @@ const FALLBACK_ICON_PATH := "res://assets/icons/fallback_item.png"
 ## If false, cannot be discarded into Space during post-combat rewards.
 @export var dropable: bool = true
 
+## Harmful / parasitic modules forced into the Body Grid (cannot be discarded).
+@export var is_harmful: bool = false
+
 ## Intrinsic combat values before active trait modifiers.
 ## Damaging modules roll between min_damage and max_damage on hit.
 @export var min_damage: int = 0
@@ -382,6 +385,19 @@ func is_sellable() -> bool:
 
 func is_weapon() -> bool:
 	return (max_damage > 0 or min_damage > 0 or damage > 0) and ap_cost > 0
+
+
+func is_harmful_item() -> bool:
+	return is_harmful
+
+
+func enforce_harmful_constraints() -> void:
+	## Harmful modules cannot stack, cannot be discarded, and must be activatable.
+	if not is_harmful:
+		return
+	dropable = false
+	is_stackable = false
+	usable = true
 
 
 func is_armor() -> bool:

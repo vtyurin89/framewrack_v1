@@ -15,6 +15,7 @@ const SETTINGS_SCENE := preload("res://scenes/UI/settings_modal.tscn")
 const DIALOG_EVENT_SCENE := preload("res://scenes/UI/dialog_event_ui.tscn")
 const SELECT_ITEM_SCENE := preload("res://scenes/UI/select_item_ui.tscn")
 const REWARD_SCREEN_SCENE := preload("res://scenes/UI/reward_screen.tscn")
+const FORCED_ITEM_SCREEN_SCENE := preload("res://scenes/UI/forced_item_screen.tscn")
 
 @onready var _map_ui: Control = %MapUI
 @onready var _inventory_ui: Control = %InventoryUI
@@ -48,7 +49,9 @@ var _inventory_combat_docked: bool = false
 var _dialog_event_ui: DialogEventUI
 var _select_item_ui: SelectItemUI
 var _reward_screen: RewardScreen
+var _forced_item_screen: ForcedItemScreen
 var _post_combat_reward_active: bool = false
+var _forced_insertion_active: bool = false
 var _encounter_combat_active: bool = false
 
 
@@ -86,6 +89,8 @@ func _ready() -> void:
 	_combat_ui.target_selected.connect(_on_target)
 	_combat_ui.continue_pressed.connect(_on_combat_continue)
 	_combat.state_changed.connect(_on_combat_state)
+	if _combat.has_signal("forced_insertion_requested"):
+		_combat.forced_insertion_requested.connect(_on_forced_insertion_requested)
 	EventBus.combat_ended.connect(_on_combat_ended_bus)
 	EventBus.player_died.connect(_on_player_died)
 	if _inventory_ui.has_signal("item_activated"):
@@ -745,6 +750,12 @@ func _on_combat_state(_s: int) -> void:
 		if _inventory_ui.has_method("set_combat_mode"):
 			_inventory_ui.set_combat_mode(false)
 		return
+	if _forced_insertion_active:
+		## Keep drag enabled while the parasite must be placed.
+		if _inventory_ui.has_method("set_combat_mode"):
+			_inventory_ui.set_combat_mode(false)
+		_inventory_ui.refresh()
+		return
 	if _inventory_ui.has_method("set_combat_mode"):
 		var in_combat: bool = (
 			_combat.state == _combat.CombatState.PLAYER_TURN
@@ -794,6 +805,9 @@ func _on_pending_level_ups_changed(count: int) -> void:
 func _on_combat_continue() -> void:
 	if GameManager.is_game_over():
 		return
+	if _forced_insertion_active and _forced_item_screen != null and _forced_item_screen.is_active():
+		_forced_item_screen.confirm_and_finish()
+		return
 	## Reward phase: the same Continue discards leftover Space loot and returns to map.
 	if _post_combat_reward_active and _reward_screen != null and _reward_screen.is_active():
 		_reward_screen.confirm_and_finish()
@@ -808,3 +822,61 @@ func _on_combat_continue() -> void:
 			_encounters.notify_combat_finished(false)
 		_show_exploring()
 		_status_banner.text = tr("KEY_STATUS_WRECKAGE")
+
+
+func _on_forced_insertion_requested(item_id: String) -> void:
+	var instance: ItemData = null
+	if ItemDatabase != null:
+		instance = ItemDatabase.create_instance(item_id)
+	if instance == null:
+		push_warning("Main: forced insertion missing item '%s'" % item_id)
+		if _combat.has_method("complete_forced_item_insertion"):
+			_combat.complete_forced_item_insertion()
+		return
+	instance.enforce_harmful_constraints()
+	_ensure_forced_item_screen()
+	if _inventory_ui.has_method("set_combat_mode"):
+		_inventory_ui.set_combat_mode(false)
+	if _combat_ui.has_method("set_harmful_insertion_phase"):
+		_combat_ui.set_harmful_insertion_phase(true)
+	_forced_insertion_active = true
+	_forced_item_screen.open_session(instance, inventory, _inventory_ui)
+
+
+func _ensure_forced_item_screen() -> void:
+	var host: Control = null
+	if _combat_ui != null and _combat_ui.has_method("get_loot_stage"):
+		host = _combat_ui.get_loot_stage()
+	if _forced_item_screen != null and is_instance_valid(_forced_item_screen):
+		if _forced_item_screen.get_parent() != host and host != null:
+			_forced_item_screen.reparent(host)
+			_forced_item_screen.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+		return
+	_forced_item_screen = FORCED_ITEM_SCREEN_SCENE.instantiate() as ForcedItemScreen
+	_forced_item_screen.name = "ForcedItemScreen"
+	if host != null:
+		host.add_child(_forced_item_screen)
+	else:
+		add_child(_forced_item_screen)
+	_forced_item_screen.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+	_forced_item_screen.finished.connect(_on_forced_insertion_finished)
+	_forced_item_screen.notice_requested.connect(_on_reward_notice)
+	_forced_item_screen.continue_availability_changed.connect(_on_forced_continue_availability)
+
+
+func _on_forced_continue_availability(can_continue: bool) -> void:
+	if _combat_ui != null and _combat_ui.has_method("set_continue_enabled"):
+		_combat_ui.set_continue_enabled(can_continue)
+
+
+func _on_forced_insertion_finished() -> void:
+	_forced_insertion_active = false
+	if _combat_ui != null and _combat_ui.has_method("set_harmful_insertion_phase"):
+		_combat_ui.set_harmful_insertion_phase(false)
+	if _inventory_ui != null and _inventory_ui.has_method("set_combat_mode"):
+		## Stay in non-click mode until player turn resumes; enemy turn still active.
+		_inventory_ui.set_combat_mode(false)
+	if _inventory_ui != null:
+		_inventory_ui.refresh()
+	if _combat != null and _combat.has_method("complete_forced_item_insertion"):
+		_combat.complete_forced_item_insertion()

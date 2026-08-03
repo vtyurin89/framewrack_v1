@@ -11,6 +11,8 @@ const EXCLUDED_LOOT_IDS: Array[String] = [
 	"SCRAP_PIPE",
 	"HEAVY_SCRAP_PLATE",
 	"EYE_OF_PALE_MAIDEN",
+	"SLIMY_PARASITE",
+	"BROKEN_SLOT",
 ]
 
 var initial_generated_items: Array[ItemData] = []

@@ -10,8 +10,8 @@
 	"story_act": 1,
 	"dialogs": {
 		"start": {
-			"narrator_text_en": "The Pale Maiden stands motionless among stone statues whose faces have been worn down to nothing. She is silent, and her face almost looks human — but something about it is distinctly wrong. Her teeth click softly, keeping an unknown tempo.\n\nYou do not know whether you should accept gifts from this creature. Marauders and raiders who worship the Pale Maiden do not realize she only pretends to be a god of humans.",
-			"narrator_text_ru": "Бледная дева стоит неподвижно в окружении каменных статуй, чьи лица стёрты до основания. Дева безмолвна, а её лицо почти напоминает человеческое, но есть в нём что-то отчётливо неправильное. Её зубы тихонько постукивают, отбивая неизвестный такт.\n\nВы не знаете, стоит ли принимать дары от этого существа. Мародёры и рейдеры, которые поклоняются Бледной деве, не знают, что она только притворяется божеством людей.",
+			"narrator_text_en": "The Pale Maiden stands motionless among the old stone statues whose faces have been worn down to nothing. She is silent, and her face almost looks human — but something about it is distinctly wrong. Her teeth click softly keeping time to some unknown rhythm.\n\nYou do not know whether you should accept offerings from this creature. Marauders and raiders who worship the Pale Maiden do not realize she only pretends to be a god of men.",
+			"narrator_text_ru": "Бледная дева стоит неподвижно в окружении каменных статуй, чьи лица стёрты до основания. Дева безмолвна, а её лицо почти напоминает человеческое, но есть в нём что-то отчётливо неправильное. Её зубы тихонько постукивают, отбивая неизвестный ритм.\n\nВы не знаете, стоит ли принимать дары от этого существа. Мародёры и рейдеры, которые поклоняются Бледной деве, не знают, что она только притворяется божеством людей.",
 			"speech_text_en": "",
 			"speech_text_ru": "",
 			"choices": [
@@ -57,7 +57,7 @@
 			]
 		},
 		"branch_kiss": {
-			"narrator_text_en": "She leans toward you with unnatural smoothness. Her lips are cold as metal.\n\nFrom now on you are bound to her, and she will never leave you alone.",
+			"narrator_text_en": "She leans toward you with unnatural smoothness. Her lips are cold like metal.\n\nFrom now on you are bound to her, and she will never leave you alone.",
 			"narrator_text_ru": "Она наклоняется к вам неестественно плавно. Её губы холодны, как металл.\n\nОтныне вы с ней неразрывно связаны, и она никогда не оставит вас в покое.",
 			"speech_text_en": "",
 			"speech_text_ru": "",
@@ -70,7 +70,7 @@
 			]
 		},
 		"branch_eye": {
-			"narrator_text_en": "With a quiet wet click the Pale Maiden pulls her right eye from its socket. She offers it on an open palm while blood runs down her cheek.\n\nFrom now on you are bound to her, and she will never leave you alone.",
+			"narrator_text_en": "With a quiet wet click, the Pale Maiden plucks her right eye from its socket. She offers it in an open palm while blood runs down her cheek.\n\nFrom now on you are bound to her, and she will never leave you alone.",
 			"narrator_text_ru": "С негромким влажным щелчком Бледная дева извлекает правый глаз из своей глазницы. Она протягивает его вам на раскрытой ладони, пока кровь стекает по её щеке.\n\nОтныне вы с ней неразрывно связаны, и она никогда не оставит вас в покое.",
 			"speech_text_en": "",
 			"speech_text_ru": "",
@@ -83,7 +83,7 @@
 			]
 		},
 		"branch_fang": {
-			"narrator_text_en": "The Pale Maiden holds out a bone — long, white, and unnaturally sharp. It trembles in her fingers as if it still remembers being part of something alive.\n\nFrom now on you are bound to the Pale Maiden, and she will never leave you alone.",
+			"narrator_text_en": "The Pale Maiden holds out a bone — long, white, and unnaturally sharp. It trembles in her fingers as if it still remembers being part of something alive.\n\nFrom now on you are bound to her, and she will never leave you alone.",
 			"narrator_text_ru": "Бледная дева протягивает вам кость — длинную и белую, необычайно острую. Кость подрагивает в её пальцах, точно всё ещё помнит, что когда-то была частью чего-то живого.\n\nОтныне вы с Бледной девой неразрывно связаны, и она никогда не оставит вас в покое.",
 			"speech_text_en": "",
 			"speech_text_ru": "",
@@ -96,7 +96,7 @@
 			]
 		},
 		"branch_flee": {
-			"narrator_text_en": "The Pale Maiden tilts her head and smiles quietly as you back away before fleeing. She has far too many teeth for a human mouth.\n\nThen you run wherever your eyes lead, while she stands motionless until the dark around the statues swallows her.",
+			"narrator_text_en": "The Pale Maiden tilts her head and smiles quietly as you back away, before you flee. She has far too many teeth for a human mouth.\n\nThen you run as fast as you can, while she stands there motionless until the darkness swallows her.",
 			"narrator_text_ru": "Бледная дева наклоняет голову и тихо улыбается, глядя, как вы пятитесь назад, прежде чем убежать. Зубов у неё необычно много для человеческого рта.\n\nПотом вы мчитесь от неё куда глаза глядят, а она стоит всё там же неподвижно, пока темнота вокруг статуй не поглощает её.",
 			"speech_text_en": "",
 			"speech_text_ru": "",
