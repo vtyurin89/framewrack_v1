@@ -14,6 +14,7 @@ const GAME_OVER_SCENE := preload("res://scenes/UI/game_over_ui.tscn")
 const SETTINGS_SCENE := preload("res://scenes/UI/settings_modal.tscn")
 const DIALOG_EVENT_SCENE := preload("res://scenes/UI/dialog_event_ui.tscn")
 const SELECT_ITEM_SCENE := preload("res://scenes/UI/select_item_ui.tscn")
+const REWARD_SCREEN_SCENE := preload("res://scenes/UI/reward_screen.tscn")
 
 @onready var _map_ui: Control = %MapUI
 @onready var _inventory_ui: Control = %InventoryUI
@@ -46,6 +47,8 @@ var _inventory_combat_docked: bool = false
 
 var _dialog_event_ui: DialogEventUI
 var _select_item_ui: SelectItemUI
+var _reward_screen: RewardScreen
+var _post_combat_reward_active: bool = false
 var _encounter_combat_active: bool = false
 
 
@@ -63,6 +66,7 @@ func _ready() -> void:
 	_encounters.request_show_dialog.connect(_on_encounter_request_dialog)
 	_encounters.request_show_placeholder.connect(_on_encounter_placeholder)
 	_encounters.request_item_selection.connect(_on_encounter_request_item_selection)
+	_encounters.request_post_combat_rewards.connect(_on_encounter_request_post_combat_rewards)
 	_style_body_grid_pane()
 	_style_inventory_modal_panel()
 	_ensure_overlays()
@@ -626,6 +630,74 @@ func _on_select_item_chosen(item: ItemData) -> void:
 		_inventory_ui.refresh()
 
 
+func _on_encounter_request_post_combat_rewards(encounter: EncounterData) -> void:
+	_ensure_reward_screen()
+	var encounter_kind := "NORMAL"
+	if encounter != null:
+		match encounter.type:
+			EncounterData.EncounterType.COMBAT_ELITE:
+				encounter_kind = "ELITE"
+			EncounterData.EncounterType.COMBAT_BOSS:
+				encounter_kind = "BOSS"
+			_:
+				encounter_kind = "NORMAL"
+	var act_depth := 1
+	if _run_flow != null:
+		act_depth = maxi(_run_flow.current_act, 1)
+		if _run_flow.current_map_data != null:
+			var cur := _run_flow.current_map_data.get_node(_run_flow.current_map_data.current_node_id)
+			if cur != null:
+				act_depth = maxi(cur.layer, 0)
+	var loot := RewardManager.generate_rewards(encounter_kind, act_depth)
+	## Stay in the combat window: loot fills the enemy stage, Body Grid stays docked.
+	_combat_ui.visible = true
+	if not _inventory_combat_docked:
+		_mount_inventory_combat_dock()
+	_hide_inventory_overlay()
+	if _inventory_ui.has_method("set_combat_mode"):
+		_inventory_ui.set_combat_mode(false)
+	if _combat_ui.has_method("set_reward_phase"):
+		_combat_ui.set_reward_phase(true)
+	_post_combat_reward_active = true
+	_reward_screen.open_session(loot, inventory, _inventory_ui)
+	_status_banner.text = tr("KEY_REWARD_SELECT_UP_TO_3")
+
+
+func _ensure_reward_screen() -> void:
+	var host: Control = null
+	if _combat_ui != null and _combat_ui.has_method("get_loot_stage"):
+		host = _combat_ui.get_loot_stage()
+	if host == null:
+		host = _combat_ui
+	if _reward_screen != null and is_instance_valid(_reward_screen):
+		if _reward_screen.get_parent() != host and host != null:
+			_reward_screen.reparent(host)
+			_reward_screen.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+		return
+	_reward_screen = REWARD_SCREEN_SCENE.instantiate() as RewardScreen
+	_reward_screen.name = "RewardScreen"
+	if host != null:
+		host.add_child(_reward_screen)
+	else:
+		add_child(_reward_screen)
+	_reward_screen.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+	_reward_screen.finished.connect(_on_reward_screen_finished)
+	_reward_screen.notice_requested.connect(_on_reward_notice)
+
+
+func _on_reward_notice(message: String) -> void:
+	if not message.is_empty():
+		_status_banner.text = message
+
+
+func _on_reward_screen_finished() -> void:
+	_post_combat_reward_active = false
+	_encounter_combat_active = false
+	if _combat_ui != null and _combat_ui.has_method("set_reward_phase"):
+		_combat_ui.set_reward_phase(false)
+	_encounters.complete_post_combat_rewards()
+
+
 func _ensure_dialog_event_ui() -> void:
 	if _dialog_event_ui != null and is_instance_valid(_dialog_event_ui):
 		return
@@ -692,6 +764,9 @@ func _on_combat_ended_bus(victory: bool) -> void:
 		if player_stats != null:
 			player_stats.add_exp(gained_xp)
 		_status_banner.text = tr("KEY_STATUS_COMBAT_WIN")
+		## Open loot in the combat stage immediately (same window / Continue button).
+		if _encounter_combat_active:
+			_encounters.notify_combat_finished(true)
 	else:
 		_status_banner.text = tr("KEY_STATUS_COMBAT_LOSE")
 	_pending_combat_exp_reward = 0
@@ -717,15 +792,17 @@ func _on_pending_level_ups_changed(count: int) -> void:
 func _on_combat_continue() -> void:
 	if GameManager.is_game_over():
 		return
+	## Reward phase: the same Continue discards leftover Space loot and returns to map.
+	if _post_combat_reward_active and _reward_screen != null and _reward_screen.is_active():
+		_reward_screen.confirm_and_finish()
+		return
 	if _combat.state == _combat.CombatState.VICTORY:
 		if _encounter_combat_active:
 			_encounter_combat_active = false
-			## EncounterManager emits encounter_completed → map advance / prologue exit.
 			_encounters.notify_combat_finished(true)
 	elif _combat.state == _combat.CombatState.DEFEAT:
 		if _encounter_combat_active:
 			_encounter_combat_active = false
 			_encounters.notify_combat_finished(false)
-		## Defeat is handled by Game Over modal; keep explore fallback if needed.
 		_show_exploring()
 		_status_banner.text = tr("KEY_STATUS_WRECKAGE")

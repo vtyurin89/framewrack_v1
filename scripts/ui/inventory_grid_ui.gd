@@ -37,6 +37,8 @@ var combat_manager: Node
 var combat_click_mode: bool = false
 ## Blocks inventory interaction until the player confirms each pending level-up.
 var level_up_mode: bool = false
+## Optional RewardScreen hook for post-combat floating loot validation.
+var reward_handler: Node
 
 ## Active drag session (shared Dictionary mutated for rotation).
 var _drag: Dictionary = {}
@@ -529,6 +531,10 @@ func _on_item_context_menu_requested(item: ItemData) -> void:
 func _on_context_inspect_pressed(item: ItemData) -> void:
 	_close_context_menu()
 	_hide_hover_tooltip()
+	inspect_item(item)
+
+
+func inspect_item(item: ItemData) -> void:
 	if item == null:
 		return
 	if inventory != null:
@@ -591,6 +597,41 @@ func _on_item_mouse_exited(item_ui: ItemUI) -> void:
 # Drag session — grid only; invalid drop restores previous grid position
 # ---------------------------------------------------------------------------
 
+func set_reward_handler(handler: Node) -> void:
+	reward_handler = handler
+
+
+func commit_external_drop() -> void:
+	## Mark current drag as successfully consumed outside the grid (e.g. Space).
+	_drop_committed = true
+
+
+func begin_reward_space_drag(item: ItemData) -> Dictionary:
+	if combat_click_mode or level_up_mode or _level_up_busy:
+		return {}
+	if inventory == null or item == null:
+		return {}
+	if not _drag.is_empty():
+		return {}
+	_hide_hover_tooltip()
+	_close_context_menu()
+	_suppress_refresh = true
+	_drop_committed = false
+	_hover_origin = Vector2i(-1, -1)
+	_drag = {
+		"type": DRAG_TYPE,
+		"item": item,
+		"footprint": item.size,
+		"original_size": item.size,
+		"source": "space",
+		"original_origin": Vector2i(-1, -1),
+		"preview": null,
+	}
+	_set_item_uis_pass_through(true)
+	item_drag_started.emit(item, "space")
+	return _drag
+
+
 func begin_item_drag(item_ui: ItemUI) -> Dictionary:
 	if combat_click_mode or level_up_mode or _level_up_busy:
 		return {}
@@ -640,10 +681,14 @@ func end_item_drag(_success: bool) -> void:
 		return
 
 	var item: ItemData = _drag["item"]
+	var source := str(_drag.get("source", "grid"))
 	var committed := _drop_committed
-	## Any failed / off-grid drop cancels and snaps back to the previous cell.
+	## Any failed / off-grid drop cancels and snaps back.
 	if not committed:
-		_restore_drag_item()
+		if source == "space" and reward_handler != null and reward_handler.has_method("on_item_extracted_to_space"):
+			reward_handler.on_item_extracted_to_space(item, get_global_mouse_position())
+		else:
+			_restore_drag_item()
 	item_drag_ended.emit(item, committed)
 
 	_clear_highlights()
@@ -695,6 +740,7 @@ func can_drop_on_cell(cell: Vector2i, data: Variant) -> bool:
 		return false
 	var item: ItemData = data["item"]
 	var footprint: Vector2i = data["footprint"]
+	## Pick-limit is enforced in drop_on_cell (so a notice can fire). Grid fit only here.
 	return inventory.grid.can_place_item(item, cell, footprint)
 
 
@@ -703,11 +749,16 @@ func drop_on_cell(cell: Vector2i, data: Variant) -> void:
 		return
 	var item: ItemData = data["item"]
 	var footprint: Vector2i = data["footprint"]
+	if reward_handler != null and reward_handler.has_method("can_accept_item_to_inventory"):
+		if not reward_handler.can_accept_item_to_inventory(item, true):
+			return
 	if not inventory.place_dragged(item, cell, footprint):
 		## Invalid cell — leave uncommitted so end_item_drag snaps back.
 		return
 
 	_drop_committed = true
+	if reward_handler != null and reward_handler.has_method("on_item_placed_in_inventory"):
+		reward_handler.on_item_placed_in_inventory(item)
 	var from_origin: Vector2i = data.get("original_origin", Vector2i(-1, -1))
 	if from_origin.x >= 0:
 		item_moved.emit(item, from_origin, cell)
@@ -721,6 +772,9 @@ func _update_footprint_highlights(origin: Vector2i, data: Variant) -> void:
 	var item: ItemData = data["item"]
 	var footprint: Vector2i = data["footprint"]
 	var valid := inventory.grid.can_place_item(item, origin, footprint)
+	if valid and reward_handler != null and reward_handler.has_method("can_accept_item_to_inventory"):
+		if not reward_handler.can_accept_item_to_inventory(item, false):
+			valid = false
 	var cells: Array[Vector2i] = item.footprint_for(footprint, origin)
 	var mode := (
 		InventorySlotUI.Highlight.VALID if valid else InventorySlotUI.Highlight.INVALID

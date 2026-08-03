@@ -43,10 +43,12 @@ func show_item(item: ItemData) -> void:
 
 	if item.rarity != null:
 		_rarity.text = item.rarity.get_localized_name()
-		_rarity.modulate = item.rarity.tint
+		_rarity.modulate = Color.WHITE
+		_rarity.add_theme_color_override("font_color", item.rarity.tint)
 	else:
 		_rarity.text = ""
 		_rarity.modulate = Color.WHITE
+		_rarity.remove_theme_color_override("font_color")
 
 	if item.item_type != null:
 		_type.text = item.item_type.get_localized_name()

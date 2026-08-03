@@ -1,0 +1,148 @@
+extends Node
+## Post-combat loot generation and pick tracking (autoload).
+
+signal rewards_generated(items: Array)
+signal pick_limit_reached
+signal rewards_session_cleared
+
+const MAX_PICKS := 3
+
+var initial_generated_items: Array[ItemData] = []
+var picked_new_items_count: int = 0
+## Instance ids of new loot currently sitting in the inventory.
+var _picked_instance_ids: Dictionary = {}
+
+
+func clear_session() -> void:
+	initial_generated_items.clear()
+	picked_new_items_count = 0
+	_picked_instance_ids.clear()
+	rewards_session_cleared.emit()
+
+
+func begin_session(items: Array[ItemData]) -> void:
+	clear_session()
+	for item in items:
+		if item != null:
+			initial_generated_items.append(item)
+	rewards_generated.emit(initial_generated_items)
+
+
+func generate_rewards(encounter_type: String, act_depth: int) -> Array[ItemData]:
+	var kind := encounter_type.strip_edges().to_upper()
+	var count := 3
+	var w_common := 0.70
+	var w_uncommon := 0.25
+	var w_rare := 0.05
+	match kind:
+		"ELITE", "COMBAT_ELITE":
+			count = randi_range(4, 5)
+			w_common = 0.30
+			w_uncommon = 0.50
+			w_rare = 0.20
+		"BOSS", "COMBAT_BOSS":
+			count = randi_range(5, 6)
+			w_common = 0.0
+			w_uncommon = 0.60
+			w_rare = 0.40
+		_:
+			## NORMAL / COMBAT_NORMAL / default
+			count = randi_range(3, 4)
+			w_common = 0.70
+			w_uncommon = 0.25
+			w_rare = 0.05
+
+	## Act depth: +2% uncommon and +2% rare per layer, taken from common.
+	var depth := maxi(act_depth, 0)
+	var shift := 0.02 * float(depth)
+	var take := mini(shift * 2.0, w_common)
+	if take > 0.0:
+		w_common -= take
+		w_uncommon += take * 0.5
+		w_rare += take * 0.5
+
+	var out: Array[ItemData] = []
+	for _i in count:
+		var tier := _roll_tier(w_common, w_uncommon, w_rare)
+		var item := _pick_random_item_of_tier(tier)
+		if item != null:
+			out.append(item)
+	return out
+
+
+func is_new_loot(item: ItemData) -> bool:
+	if item == null:
+		return false
+	for offered in initial_generated_items:
+		if offered == item:
+			return true
+	return false
+
+
+func can_pick_new_item(item: ItemData) -> bool:
+	if not is_new_loot(item):
+		return true
+	var id := item.get_instance_id()
+	if _picked_instance_ids.has(id):
+		return true
+	return picked_new_items_count < MAX_PICKS
+
+
+func notify_new_item_picked(item: ItemData) -> bool:
+	if item == null or not is_new_loot(item):
+		return true
+	var id := item.get_instance_id()
+	if _picked_instance_ids.has(id):
+		return true
+	if picked_new_items_count >= MAX_PICKS:
+		pick_limit_reached.emit()
+		return false
+	_picked_instance_ids[id] = true
+	picked_new_items_count += 1
+	return true
+
+
+func notify_new_item_unpicked(item: ItemData) -> void:
+	if item == null or not is_new_loot(item):
+		return
+	var id := item.get_instance_id()
+	if not _picked_instance_ids.has(id):
+		return
+	_picked_instance_ids.erase(id)
+	picked_new_items_count = maxi(0, picked_new_items_count - 1)
+
+
+func _roll_tier(w_common: float, w_uncommon: float, w_rare: float) -> ItemRarityData.Tier:
+	var total := w_common + w_uncommon + w_rare
+	if total <= 0.0:
+		return ItemRarityData.Tier.COMMON
+	var roll := randf() * total
+	if roll < w_common:
+		return ItemRarityData.Tier.COMMON
+	roll -= w_common
+	if roll < w_uncommon:
+		return ItemRarityData.Tier.UNCOMMON
+	return ItemRarityData.Tier.RARE
+
+
+func _pick_random_item_of_tier(tier: ItemRarityData.Tier) -> ItemData:
+	if ItemDatabase == null:
+		return null
+	var pool: Array[ItemData] = []
+	for proto: ItemData in ItemDatabase.get_all_items():
+		if proto == null or proto.rarity == null:
+			continue
+		## Skip pure currency from combat loot.
+		if proto.is_currency():
+			continue
+		if proto.rarity.get_tier() == tier:
+			pool.append(proto)
+	if pool.is_empty():
+		## Soft fallback down the rarity ladder.
+		if tier == ItemRarityData.Tier.RARE:
+			return _pick_random_item_of_tier(ItemRarityData.Tier.UNCOMMON)
+		if tier == ItemRarityData.Tier.UNCOMMON:
+			return _pick_random_item_of_tier(ItemRarityData.Tier.COMMON)
+		return null
+	var pick: ItemData = pool[randi() % pool.size()]
+	return ItemDatabase.create_instance(pick.id)

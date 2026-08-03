@@ -15,7 +15,7 @@ const TRAIT_INACTIVE_COLOR := Color(0.45, 0.45, 0.48)
 
 var _name_label: Label
 var _ap_label: Label
-var _meta_label: Label
+var _meta_label: RichTextLabel
 var _combat_label: RichTextLabel
 var _desc_label: RichTextLabel
 var _traits_box: VBoxContainer
@@ -192,9 +192,13 @@ func _build_layout() -> void:
 	_ap_label.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	header.add_child(_ap_label)
 
-	_meta_label = Label.new()
-	_meta_label.add_theme_font_size_override("font_size", 11)
-	_meta_label.add_theme_color_override("font_color", META_COLOR)
+	_meta_label = RichTextLabel.new()
+	_meta_label.bbcode_enabled = true
+	_meta_label.fit_content = true
+	_meta_label.scroll_active = false
+	_meta_label.autowrap_mode = TextServer.AUTOWRAP_OFF
+	_meta_label.add_theme_font_size_override("normal_font_size", 11)
+	_meta_label.add_theme_color_override("default_color", META_COLOR)
 	_meta_label.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	root.add_child(_meta_label)
 
@@ -281,7 +285,11 @@ func _populate_text(title: String, body: String) -> void:
 func _build_meta_line(item: ItemData) -> String:
 	var parts: PackedStringArray = []
 	if item.rarity != null:
-		parts.append(item.rarity.get_localized_name())
+		var rarity_name := item.rarity.get_localized_name()
+		var rarity_color := item.rarity.tint
+		parts.append(
+			"[color=#%s]%s[/color]" % [rarity_color.to_html(false), rarity_name]
+		)
 	if item.item_type != null:
 		parts.append(item.item_type.get_localized_name())
 	return " • ".join(parts)

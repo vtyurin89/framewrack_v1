@@ -10,6 +10,7 @@ signal request_show_dialog(dialog: DialogEventData, encounter: EncounterData)
 signal request_show_placeholder(encounter: EncounterData, message_key: String)
 signal request_item_selection(item_pool: Array, title: String)
 signal item_selection_resolved(item: ItemData)
+signal request_post_combat_rewards(encounter: EncounterData)
 
 ## Explicit starting-god pool ids (directory scan also picks up any extra JSON).
 const STARTING_GOD_IDS: Array[String] = ["sleeper_god", "mol_vagrit"]
@@ -136,8 +137,17 @@ func notify_combat_finished(victory: bool) -> void:
 		_pending_rewards["failed"] = true
 		_finish_encounter(_pending_rewards)
 		return
-	## Victory: route loot choice through SelectItemUI stub before completing.
-	_offer_post_combat_item_choice()
+	## Victory: open floating loot reward screen before completing the encounter.
+	_pending_post_combat_finish = true
+	request_post_combat_rewards.emit(active_encounter)
+
+
+func complete_post_combat_rewards() -> void:
+	## Called by Main after RewardScreen Continue.
+	if not _pending_post_combat_finish:
+		return
+	_pending_post_combat_finish = false
+	_finish_encounter(_pending_rewards)
 
 
 func apply_dialog_outcome(outcome: DialogOutcomeData) -> void:
@@ -404,11 +414,6 @@ func _begin_item_selection(outcome: DialogOutcomeData, post_combat: bool) -> voi
 	if post_combat:
 		title = "Награда за бой"
 	request_item_selection.emit(pool, title)
-
-
-func _offer_post_combat_item_choice() -> void:
-	var outcome := DialogOutcomeData.make_select_item("combat_loot")
-	_begin_item_selection(outcome, true)
 
 
 func _build_item_pool_from_outcome(outcome: DialogOutcomeData) -> Array:

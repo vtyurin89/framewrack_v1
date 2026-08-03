@@ -31,6 +31,9 @@ var _ap_juice_tween: Tween
 var _block_juice_tween: Tween
 
 @onready var _enemy_row: HBoxContainer = %EnemyRow
+@onready var _loot_stage: Control = %LootStage
+@onready var _stats_enemy_gap: Control = %StatsEnemyGap
+@onready var _enemy_actions_gap: Control = %EnemyActionsGap
 @onready var _hp_label: Label = %HPLabel
 @onready var _ap_label: Label = %APLabel
 @onready var _block_label: Label = %BlockLabel
@@ -46,6 +49,8 @@ var _block_juice_tween: Tween
 @onready var _player_status_host: HBoxContainer = %PlayerStatuses
 @onready var _player_hp_bar: GhostProgressBar = %PlayerHPBar
 @onready var _stats_row: HBoxContainer = $VBox/StatsRow
+
+var _reward_phase: bool = false
 
 
 func _ready() -> void:
@@ -85,7 +90,11 @@ func setup(p_combat: Node, p_inventory: InventoryController) -> void:
 	combat = p_combat
 	inventory = p_inventory
 	_log.clear()
+	_reward_phase = false
+	if _loot_stage:
+		_loot_stage.visible = false
 	_continue_btn.visible = false
+	_end_turn_btn.visible = true
 	_end_turn_btn.disabled = false
 	_dying_indices.clear()
 	_player_hp_initialized = false
@@ -697,11 +706,57 @@ func _scroll_log_to_end() -> void:
 		_log.scroll_to_line(_log.get_line_count())
 
 
+func set_reward_phase(active: bool) -> void:
+	## Swap the enemy stage for floating loot; keep the existing Continue button.
+	_reward_phase = active
+	if _loot_stage:
+		_loot_stage.visible = active
+		if active:
+			_loot_stage.size_flags_vertical = Control.SIZE_EXPAND_FILL
+	if _enemy_row:
+		_enemy_row.visible = not active
+	if _stats_enemy_gap:
+		_stats_enemy_gap.visible = not active
+	if _enemy_actions_gap:
+		## Keep a small spacer above actions during rewards.
+		_enemy_actions_gap.visible = true
+		_enemy_actions_gap.custom_minimum_size = Vector2(0, 8 if active else 24)
+		_enemy_actions_gap.size_flags_vertical = (
+			Control.SIZE_SHRINK_BEGIN if active else Control.SIZE_EXPAND_FILL
+		)
+	if _end_turn_btn:
+		_end_turn_btn.visible = not active
+		if active:
+			_end_turn_btn.disabled = true
+	if _continue_btn:
+		_continue_btn.visible = true if active else _continue_btn.visible
+	if _hint_label:
+		if active:
+			_hint_label.visible = true
+			_hint_label.text = tr("KEY_REWARD_SELECT_UP_TO_3")
+			_hint_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+		else:
+			_hint_label.visible = false
+			_hint_label.text = tr("KEY_COMBAT_CLICK_HINT")
+			_hint_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_LEFT
+
+
+func get_loot_stage() -> Control:
+	return _loot_stage
+
+
+func is_reward_phase() -> bool:
+	return _reward_phase
+
+
 func _on_combat_ended(victory: bool) -> void:
 	if _enemy_context_menu and _enemy_context_menu.is_open():
 		_enemy_context_menu.close()
 	_end_turn_btn.disabled = true
-	_continue_btn.visible = true
+	## During reward phase Continue stays visible from set_reward_phase; otherwise show it now.
+	if not _reward_phase:
+		_continue_btn.visible = true
+		_end_turn_btn.visible = true
 	_continue_btn.text = tr("KEY_CONTINUE") if victory else tr("KEY_RETURN_TO_MAP")
 	_turn_label.text = tr("KEY_VICTORY") if victory else tr("KEY_FRAME_FAILURE")
 	_intention_reveal_token += 1

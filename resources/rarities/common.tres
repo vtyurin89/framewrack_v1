@@ -5,7 +5,7 @@
 [resource]
 script = ExtResource("1")
 id = "common"
-rarity_name_key = ""
+rarity_name_key = "KEY_RARITY_COMMON"
 display_name = "Common"
-tint = Color(0.75, 0.75, 0.75, 1)
+tint = Color(0.741176, 0.764706, 0.780392, 1)
 sort_order = 0

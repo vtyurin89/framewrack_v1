@@ -62,6 +62,11 @@ KEY_TYPE_BOSS,BOSS,БОСС
 KEY_TYPE_MAIN_STORY,MAIN STORY,СЮЖЕТ
 KEY_TYPE_SHOP,SHOP,МАГАЗИН
 KEY_TYPE_ELITE,ELITE,ЭЛИТА
+KEY_RARITY_COMMON,Common,Обычный
+KEY_RARITY_UNCOMMON,Uncommon,Необычный
+KEY_RARITY_RARE,Rare,Редкий
+KEY_REWARD_SELECT_UP_TO_3,Select up to 3 new items,Выберите до 3 новых предметов
+KEY_REWARD_PICK_LIMIT,Cannot pick more than 3 new items!,Нельзя взять больше 3 новых предметов!
 KEY_TYPE_STAIRS,STAIRS,ЛЕСТНИЦА
 KEY_MAIN_STORY_BADGE,STORY / GOD,СЮЖЕТ / БОГ
 KEY_ATK,ATK,АТК

@@ -10,7 +10,7 @@ var _preview: TextureRect
 var _preview_fallback: ColorRect
 var _name_label: Label
 var _ap_label: Label
-var _meta_label: Label
+var _meta_label: RichTextLabel
 var _combat_label: RichTextLabel
 var _desc_label: RichTextLabel
 var _traits_box: VBoxContainer
@@ -97,9 +97,13 @@ func _ensure_content() -> void:
 	_ap_label.add_theme_color_override("font_color", Color(0.75, 0.82, 0.9))
 	header.add_child(_ap_label)
 
-	_meta_label = Label.new()
-	_meta_label.add_theme_font_size_override("font_size", 13)
-	_meta_label.add_theme_color_override("font_color", Color(0.65, 0.65, 0.7))
+	_meta_label = RichTextLabel.new()
+	_meta_label.bbcode_enabled = true
+	_meta_label.fit_content = true
+	_meta_label.scroll_active = false
+	_meta_label.autowrap_mode = TextServer.AUTOWRAP_OFF
+	_meta_label.add_theme_font_size_override("normal_font_size", 13)
+	_meta_label.add_theme_color_override("default_color", Color(0.65, 0.65, 0.7))
 	right.add_child(_meta_label)
 
 	_combat_label = RichTextLabel.new()
@@ -152,7 +156,10 @@ func _populate(item: ItemData) -> void:
 
 	var meta_parts: PackedStringArray = []
 	if item.rarity != null:
-		meta_parts.append(item.rarity.get_localized_name())
+		var rarity_hex := item.rarity.tint.to_html(false)
+		meta_parts.append(
+			"[color=#%s]%s[/color]" % [rarity_hex, item.rarity.get_localized_name()]
+		)
 	if item.item_type != null:
 		meta_parts.append(item.item_type.get_localized_name())
 	_meta_label.text = " • ".join(meta_parts)

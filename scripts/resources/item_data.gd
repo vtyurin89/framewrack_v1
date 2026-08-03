@@ -23,6 +23,7 @@ const FALLBACK_ICON_PATH := "res://assets/icons/fallback_item.png"
 @export_multiline var description: String = ""
 
 ## Classification / rarity used by adjacency rules and UI.
+## Rarity uses the 3-tier system: COMMON / UNCOMMON / RARE (see ItemRarityData.Tier).
 @export var item_type: ItemTypeData
 @export var rarity: ItemRarityData
 @export var sub_type: String = ""  ## HELMET / LEG_ARMOR / CORE / STANDARD / ...
