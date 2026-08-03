@@ -4,6 +4,10 @@ extends ActorStats
 
 const CRIT_DAMAGE_MULT := 1.4
 const MIN_STAT := 1
+## TODO: Remove this temporary DEV HP cap and rebalance enemy HP from data/CSV
+## (base_hp + endurance scaling + difficulty multiplier) before release.
+## Caps enemies above this value; enemies with ≤ this HP are unchanged.
+const DEV_FORCE_ENEMY_HP := 20
 
 var data: EnemyData
 var max_hp: int = 1
@@ -60,6 +64,10 @@ func setup(blueprint: EnemyData) -> void:
 	## ActorStats formula: base_hp + (endurance * 5), then difficulty mult.
 	var raw_hp := float(get_max_hp(data.get_effective_base_hp()))
 	max_hp = maxi(1, int(round(raw_hp * hp_mult)))
+	## TODO: Remove DEV_FORCE_ENEMY_HP — temporary HP cap for development balance testing.
+	## Only clamps enemies that would exceed the cap; lower HP values stay as-is.
+	if DEV_FORCE_ENEMY_HP > 0:
+		max_hp = mini(max_hp, DEV_FORCE_ENEMY_HP)
 	current_hp = max_hp
 	current_block = 0
 	is_selected = false
