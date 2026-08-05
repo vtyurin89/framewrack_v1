@@ -151,7 +151,7 @@ ABILITY_SIGNAL_SPIKE_DESC,A spike of corrupted current.,Всплеск иска�
 ABILITY_REPAIR_PULSE_NAME,Repair Pulse,Ремонтный пульс
 ABILITY_REPAIR_PULSE_DESC,Heals self and all living allies for 3-4 + INT (2-turn cooldown).,Лечит себя и всех живых союзников на 3–4 + INT (перезарядка 2 хода).
 ABILITY_ENEMY_STUDY_NAME,Enemy Study,Изучение врага
-ABILITY_ENEMY_STUDY_DESC,Studies your frame every other turn and permanently gains Luck.,Каждый второй ход изучает ваш фрейм и навсегда повышает свою Удачу.
+ABILITY_ENEMY_STUDY_DESC,Studies your frame every other turn and permanently gains stacking Luck.,Каждый второй ход изучает ваш фрейм и навсегда стакает Удачу.
 ABILITY_ENEMY_STUDY_TEXT,Enemy Study,Изучение врага
 ABILITY_DESPERATE_ATTACK_NAME,Desperate Attack,Отчаянная атака
 ABILITY_DESPERATE_ATTACK_DESC,Below 40% HP: three strikes adding half Strength (1-turn cooldown).,Ниже 40% ОЗ: три удара с половиной Силы (перезарядка 1 ход).
@@ -176,7 +176,7 @@ ABILITY_SLAVER_DOUBLE_NAME,Double Strike,Двойной удар
 ABILITY_SLAVER_DOUBLE_DESC,Two moderate physical strikes.,Два средних физических удара.
 ABILITY_SLAVER_DOUBLE_TEXT,Double Strike,Двойной удар
 ABILITY_SLAVER_STIMS_NAME,Combat Stimulants,Боевые стимуляторы
-ABILITY_SLAVER_STIMS_DESC,Every 3 turns: +2 Strength to self and living minions.,Каждые 3 хода: +2 Силы себе и живым миньонам.
+ABILITY_SLAVER_STIMS_DESC,Every 3 turns: stacking +2 Strength to self and living minions.,Каждые 3 хода: стакающееся +2 Силы себе и живым миньонам.
 ABILITY_SLAVER_STIMS_TEXT,Combat Stimulants,Боевые стимуляторы
 ABILITY_SLAVER_ARMOR_NAME,Armor Up,Броня
 ABILITY_SLAVER_ARMOR_DESC,Raises a heavy personal shield.,Поднимает тяжёлый личный щит.
@@ -209,13 +209,16 @@ ABILITY_THIEF_FLEE_NAME,Escape!,Побег!
 ABILITY_THIEF_FLEE_DESC,Leaves combat with all stolen Neuro-Chips.,Покидает бой со всеми украденными нейро-чипами.
 ABILITY_THIEF_FLEE_TEXT,Escape!,Побег!
 ABILITY_SCRAPPER_PREBUFF_NAME,Hydraulic Surge,Гидравлический рывок
-ABILITY_SCRAPPER_PREBUFF_DESC,Every 3 turns: permanent +2 Strength before attacking.,Каждые 3 хода: постоянно +2 Силы перед атакой.
+ABILITY_SCRAPPER_PREBUFF_DESC,Every 3 turns: stacking permanent +2 Strength before attacking.,Каждые 3 хода: стакающееся постоянное +2 Силы перед атакой.
 ABILITY_SCRAPPER_PREBUFF_TEXT,Hydraulic Surge,Гидравлический рывок
+ABILITY_PREPARE_SLAM_NAME,Prepare Slam,Замах бампером
+ABILITY_PREPARE_SLAM_DESC,Stacking +1 Strength and readies Bumper Slam for the next action.,Стакающееся +1 к Силе и готовит Удар бампером на следующее действие.
+ABILITY_PREPARE_SLAM_TEXT,Prepare Slam,Замах бампером
 ABILITY_SCRAPPER_SHIELD_NAME,Bulkhead,Заслон
 ABILITY_SCRAPPER_SHIELD_DESC,Heavy personal shield.,Тяжёлый личный щит.
 ABILITY_SCRAPPER_SHIELD_TEXT,Bulkhead,Заслон
 ABILITY_SCRAPPER_BUMPER_NAME,Bumper Slam,Удар бампером
-ABILITY_SCRAPPER_BUMPER_DESC,Heavy physical hit (14–18) and Slow.,Тяжёлый удар (14–18) и Замедление.
+ABILITY_SCRAPPER_BUMPER_DESC,Requires Prepare Slam. Heavy physical hit (9–12) and Slow.,Нужен Замах бампером. Тяжёлый удар (9–12) и Замедление.
 ABILITY_SCRAPPER_BUMPER_TEXT,Bumper Slam,Удар бампером
 ABILITY_SCRAPPER_EXHAUST_NAME,Exhaust Dump,Выхлопной сброс
 ABILITY_SCRAPPER_EXHAUST_DESC,Weak damage and Burn ×2.,Слабый урон и Горение ×2.

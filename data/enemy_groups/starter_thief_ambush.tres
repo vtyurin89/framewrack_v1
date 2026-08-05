@@ -6,7 +6,7 @@
 script = ExtResource("1")
 group_id = "starter_thief_ambush"
 group_name = "Thief Ambush"
-enemy_ids = Array[String](["scrapper_tank", "pocket_thief"])
+enemy_ids = Array[String](["pocket_thief", "desperate_rebel"])
 min_layer = 1
 max_layer = 2
 is_starter_group = true

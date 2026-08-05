@@ -262,6 +262,7 @@ func _parse_ability_row(row: PackedStringArray, col: Dictionary) -> EnemyAbility
 	ability.max_charges = _parse_int(_cell(row, col, "max_charges"), -1)
 	ability.trigger_interval = maxi(0, _parse_int(_cell(row, col, "trigger_interval"), 0))
 	ability.available_from_turn = maxi(1, _parse_int(_cell(row, col, "available_from_turn"), 1))
+	ability.requires_prepare = _parse_bool(_cell(row, col, "requires_prepare"), false)
 	if ability.type == EnemyAbility.AbilityType.PRE_ACTION:
 		ability.base_ai_weight = 0.0
 		if ability.trigger_interval <= 0:
@@ -417,6 +418,19 @@ func _parse_float(raw: String, default_value: float = 0.0) -> float:
 	if cell.is_empty() or not cell.is_valid_float():
 		return default_value
 	return float(cell)
+
+
+func _parse_bool(raw: String, default_value: bool = false) -> bool:
+	var cell := raw.strip_edges().to_lower()
+	if cell.is_empty():
+		return default_value
+	match cell:
+		"1", "true", "yes", "y":
+			return true
+		"0", "false", "no", "n":
+			return false
+		_:
+			return default_value
 
 
 func _normalize_faction(raw: String, enemy_id: String) -> String:

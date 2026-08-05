@@ -4,6 +4,8 @@ extends RefCounted
 ## Enemy blueprints still resolve through EnemyDatabase (CSV).
 
 const GROUPS_DIR := "res://data/enemy_groups/"
+## Layers that may only draw from is_starter_group packs (normal combat).
+const STARTER_LAYER_MAX := 2
 
 const HUMAN_CORE_IDS: Array[String] = [
 	"desperate_rebel",
@@ -46,42 +48,72 @@ static func get_group_by_id(group_id: String) -> EnemyGroup:
 
 
 static func get_encounter_for_node(node_layer: int, is_elite: bool) -> EnemyGroup:
-	## Starter layers 1–2: starter groups. Layer 3+: mid packs. Elite: elite packs.
+	## Starter layers 1–2: starter groups only. Layer 3+: mid packs. Elite: elite packs.
+	## Soft fallbacks never promote mid/elite packs onto starter layers.
 	_ensure_groups_loaded()
 	var layer := maxi(node_layer, 0)
-	var pool: Array[EnemyGroup] = []
+	var pool: Array[EnemyGroup] = _build_pool(layer, is_elite)
 
+	if pool.is_empty():
+		pool = _build_fallback_pool(layer, is_elite)
+	if pool.is_empty():
+		push_warning(
+			"EnemyManager: no EnemyGroup for layer=%d elite=%s" % [layer, str(is_elite)]
+		)
+		return null
+	return pool[randi() % pool.size()]
+
+
+static func _build_pool(layer: int, is_elite: bool) -> Array[EnemyGroup]:
+	var pool: Array[EnemyGroup] = []
 	if is_elite:
 		for group: EnemyGroup in _groups_cache:
 			if group == null or not group.is_elite:
 				continue
 			if group.matches_layer(layer):
 				pool.append(group)
-	elif layer <= 2:
+		return pool
+
+	if layer <= STARTER_LAYER_MAX:
 		for group: EnemyGroup in _groups_cache:
 			if group == null or not group.is_starter_group or group.is_elite:
 				continue
 			if group.matches_layer(layer):
 				pool.append(group)
-	else:
-		for group: EnemyGroup in _groups_cache:
-			if group == null or group.is_starter_group or group.is_elite:
-				continue
-			if group.matches_layer(layer):
-				pool.append(group)
+		return pool
 
-	if pool.is_empty():
-		## Soft fallback: any non-elite group that matches the layer.
+	for group: EnemyGroup in _groups_cache:
+		if group == null or group.is_starter_group or group.is_elite:
+			continue
+		if group.matches_layer(layer):
+			pool.append(group)
+	return pool
+
+
+static func _build_fallback_pool(layer: int, is_elite: bool) -> Array[EnemyGroup]:
+	var pool: Array[EnemyGroup] = []
+	if is_elite:
+		## Any elite pack; prefer ones that match a nearby deeper layer.
 		for group: EnemyGroup in _groups_cache:
-			if group == null or group.is_elite:
+			if group == null or not group.is_elite:
 				continue
-			if group.matches_layer(maxi(layer, 1)):
+			if group.matches_layer(maxi(layer, group.min_layer)):
 				pool.append(group)
-	if pool.is_empty() and not _groups_cache.is_empty():
-		pool.append(_groups_cache[0])
-	if pool.is_empty():
-		return null
-	return pool[randi() % pool.size()]
+		return pool
+
+	if layer <= STARTER_LAYER_MAX:
+		## Starter layers must stay on starter packs even if layer tags mismatch.
+		for group: EnemyGroup in _groups_cache:
+			if group != null and group.is_starter_group and not group.is_elite:
+				pool.append(group)
+		return pool
+
+	## Mid layers: any non-elite non-starter pack.
+	for group: EnemyGroup in _groups_cache:
+		if group == null or group.is_starter_group or group.is_elite:
+			continue
+		pool.append(group)
+	return pool
 
 
 static func create_pack(pack_ids: Array) -> Array[EnemyData]:
@@ -112,8 +144,32 @@ static func _ensure_groups_loaded() -> void:
 	while file_name != "":
 		if not dir.current_is_dir() and file_name.ends_with(".tres"):
 			var path := GROUPS_DIR.path_join(file_name)
-			var loaded := load(path)
+			var loaded = load(path)
 			if loaded is EnemyGroup:
-				_groups_cache.append(loaded as EnemyGroup)
+				var group: EnemyGroup = loaded
+				_groups_cache.append(group)
+				_validate_group(group)
 		file_name = dir.get_next()
 	dir.list_dir_end()
+
+
+static func _validate_group(group: EnemyGroup) -> void:
+	if group == null or not group.is_starter_group or group.is_elite:
+		return
+	if EnemyDatabase == null:
+		return
+	for eid in group.enemy_ids:
+		var id_str := str(eid).strip_edges()
+		if id_str.is_empty() or not EnemyDatabase.has_enemy(id_str):
+			continue
+		var data: EnemyData = EnemyDatabase.get_enemy(id_str)
+		if data == null:
+			continue
+		var cost: int = data.threat_level
+		if data.power_rating > 0:
+			cost = data.power_rating
+		if cost >= 8:
+			push_warning(
+				"EnemyManager: starter group '%s' includes heavy enemy '%s' (power %d)"
+				% [group.group_id, id_str, cost]
+			)

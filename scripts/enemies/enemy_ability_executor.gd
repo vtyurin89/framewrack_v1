@@ -96,6 +96,9 @@ func execute(caster: EnemyInstance, enemy_index: int, ability: EnemyAbility) -> 
 	params.append_array(ability.get_effect_param_list())
 	handler.apply(caster, _combat, params)
 
+	if ability.requires_prepare:
+		caster.consume_prepared_ability(ability.id)
+
 	## Healing / defensive skills always share a 1-turn cooldown floor.
 	if ability.requires_defensive_cooldown():
 		var cd := maxi(1, ability.cooldown_turns)

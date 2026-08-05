@@ -23,6 +23,7 @@ const ID_THIEF_FLEE := "ABILITY_THIEF_FLEE"
 const ID_SCRAPPER_SHIELD := "ABILITY_SCRAPPER_SHIELD"
 const ID_SCRAPPER_BUMPER := "ABILITY_SCRAPPER_BUMPER"
 const ID_SCRAPPER_EXHAUST := "ABILITY_SCRAPPER_EXHAUST"
+const ID_PREPARE_SLAM := "ABILITY_PREPARE_SLAM"
 const ID_MEDIC_SWING := "ABILITY_MEDIC_SWING"
 
 
@@ -52,6 +53,19 @@ static func resolve_main_action(enemy: EnemyInstance, combat: Node = null) -> Di
 		"ability": null,
 	}
 	if enemy == null or not enemy.is_alive():
+		return result
+
+	## Prepare→followup charges must resolve even if a stale plan exists.
+	var followup := _pick_forced_followup(enemy)
+	if followup != null:
+		if is_offensive_ability(followup) and not _can_commit_offensive(combat, followup):
+			var defensive := _pick_non_offensive(enemy)
+			if defensive != null:
+				enemy.planned_ability = defensive
+				result["ability"] = defensive
+				return result
+		enemy.planned_ability = followup
+		result["ability"] = followup
 		return result
 
 	if enemy.planned_ability != null and _is_ability_still_usable(enemy, enemy.planned_ability):
@@ -111,6 +125,16 @@ static func commit_main_action(
 		enemy.mark_fleeing_next_turn()
 		result["ability"] = enemy.planned_ability
 		return result
+
+	var forced_followup := _pick_forced_followup(enemy)
+	if forced_followup != null:
+		if is_offensive_ability(forced_followup) and not _can_commit_offensive(combat, forced_followup):
+			## Keep the charge; fall through to a non-offensive act this turn.
+			pass
+		else:
+			enemy.planned_ability = forced_followup
+			result["ability"] = forced_followup
+			return result
 
 	var desperate := _get_desperate_if_ready(enemy)
 	if desperate != null and _can_commit_offensive(combat, desperate):
@@ -301,17 +325,35 @@ static func _ai_pocket_thief(enemy: EnemyInstance, combat: Node) -> EnemyAbility
 
 
 static func _ai_scrapper_tank(enemy: EnemyInstance, combat: Node) -> EnemyAbility:
+	## Bumper charge from Prepare Slam always wins when usable.
+	var forced := _pick_forced_followup(enemy)
+	if forced != null:
+		return forced
+
 	var allies := _count_living_allies(combat, enemy)
+	var prepare := enemy.find_ability(ID_PREPARE_SLAM)
+	if prepare != null and enemy.can_use_ability(prepare):
+		## Wind up slam fairly often; even more when alone.
+		var prepare_chance := 0.55 if allies > 0 else 0.75
+		if randf() < prepare_chance:
+			return prepare
+
 	if allies <= 0:
-		## Alone: stay aggressive — bumper / exhaust, almost never shield.
+		## Alone without a slam charge: exhaust dump instead of shield spam.
 		if randf() < 0.85:
-			var bumper := enemy.find_ability(ID_SCRAPPER_BUMPER)
-			if bumper != null and enemy.can_use_ability(bumper):
-				return bumper
 			var exhaust := enemy.find_ability(ID_SCRAPPER_EXHAUST)
 			if exhaust != null and enemy.can_use_ability(exhaust):
 				return exhaust
 		return null
+	return null
+
+
+static func _pick_forced_followup(enemy: EnemyInstance) -> EnemyAbility:
+	if enemy == null or enemy.forced_next_ability_id.strip_edges().is_empty():
+		return null
+	var ability := enemy.find_ability(enemy.forced_next_ability_id)
+	if ability != null and enemy.can_use_ability(ability):
+		return ability
 	return null
 
 

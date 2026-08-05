@@ -25,13 +25,13 @@ func apply(caster: EnemyInstance, target: Node, params: Array) -> void:
 				subjects.append(enemy)
 
 	for subject in subjects:
-		_apply_stat(subject, stat_key, delta)
+		var new_value := subject.apply_stackable_stat_buff(stat_key, delta)
 		EventBus.combat_log_message.emit(
 			tr("KEY_LOG_ENEMY_STAT_MOD") % [
 				subject.get_localized_name(),
 				stat_key.to_upper(),
 				delta,
-				subject.get_stat(EnemyAbility.parse_stat_scaling(stat_key)),
+				new_value,
 			]
 		)
 
@@ -48,19 +48,3 @@ func _resolve_delta(caster: EnemyInstance, ability: EnemyAbility, raw: String) -
 	if ability != null and ability.stat_scaling != EnemyAbility.StatScaling.NONE:
 		return maxi(1, caster.get_stat(ability.stat_scaling))
 	return 2
-
-
-func _apply_stat(subject: EnemyInstance, stat_key: String, delta: int) -> void:
-	match EnemyAbility.parse_stat_scaling(stat_key):
-		EnemyAbility.StatScaling.STRENGTH:
-			subject.strength = maxi(EnemyInstance.MIN_STAT, subject.strength + delta)
-		EnemyAbility.StatScaling.AGILITY:
-			subject.agility = maxi(EnemyInstance.MIN_STAT, subject.agility + delta)
-		EnemyAbility.StatScaling.ENDURANCE:
-			subject.endurance = maxi(EnemyInstance.MIN_STAT, subject.endurance + delta)
-		EnemyAbility.StatScaling.INTELLIGENCE:
-			subject.intelligence = maxi(EnemyInstance.MIN_STAT, subject.intelligence + delta)
-		EnemyAbility.StatScaling.LUCK:
-			subject.luck = maxi(EnemyInstance.MIN_STAT, subject.luck + delta)
-		_:
-			subject.strength = maxi(EnemyInstance.MIN_STAT, subject.strength + delta)

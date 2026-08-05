@@ -48,6 +48,8 @@ enum WeightClass {
 @export var trigger_interval: int = 0
 ## First combat act (1-based) when this ability may be chosen. Default 1 = always.
 @export var available_from_turn: int = 1
+## If true, usable only after another ability armed this id via prepare/followup.
+@export var requires_prepare: bool = false
 @export var combat_text: String = ""
 
 

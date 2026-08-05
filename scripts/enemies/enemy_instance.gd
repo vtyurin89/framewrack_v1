@@ -25,6 +25,12 @@ var stolen_chips: int = 0
 var turns_taken: int = 0
 ## Remaining cooldown turns keyed by ability id.
 var _ability_cooldowns: Dictionary = {}
+## Prepared / charged ability ids (for requires_prepare skills like Bumper Slam).
+var _prepared_ability_ids: Dictionary = {}
+## Next main ability the AI must attempt when usable (set by prepare skills).
+var forced_next_ability_id: String = ""
+## Stacking permanent combat buff totals keyed by stat id (strength, luck, …).
+var _stat_buff_stacks: Dictionary = {}
 ## Committed next main ability (matches the telegraphed CombatIntention).
 var planned_ability: EnemyAbility = null
 var current_intention: CombatIntention = null
@@ -39,6 +45,9 @@ func setup(blueprint: EnemyData) -> void:
 	stolen_chips = 0
 	summoner_ref = null
 	_ability_cooldowns.clear()
+	_prepared_ability_ids.clear()
+	_stat_buff_stacks.clear()
+	forced_next_ability_id = ""
 	if data == null:
 		reset_combat_stats(MIN_STAT, MIN_STAT, MIN_STAT, MIN_STAT, MIN_STAT)
 		max_hp = 1
@@ -138,7 +147,67 @@ func is_ability_unlocked(ability: EnemyAbility) -> bool:
 
 
 func can_use_ability(ability: EnemyAbility) -> bool:
-	return is_ability_unlocked(ability) and not is_ability_on_cooldown(ability)
+	if ability == null:
+		return false
+	if not is_ability_unlocked(ability):
+		return false
+	if is_ability_on_cooldown(ability):
+		return false
+	if ability.requires_prepare and not is_ability_prepared(ability.id):
+		return false
+	return true
+
+
+func arm_prepared_ability(ability_id: String) -> void:
+	var needle := ability_id.strip_edges()
+	if needle.is_empty():
+		return
+	_prepared_ability_ids[needle] = true
+	forced_next_ability_id = needle
+
+
+func is_ability_prepared(ability_id: String) -> bool:
+	return bool(_prepared_ability_ids.get(ability_id.strip_edges(), false))
+
+
+func consume_prepared_ability(ability_id: String) -> void:
+	var needle := ability_id.strip_edges()
+	if needle.is_empty():
+		return
+	_prepared_ability_ids.erase(needle)
+	if forced_next_ability_id == needle:
+		forced_next_ability_id = ""
+
+
+func apply_stackable_stat_buff(stat_key: String, delta: int) -> int:
+	## All enemy combat stat buffs stack additively for the rest of the fight.
+	if delta == 0:
+		return get_stat(EnemyAbility.parse_stat_scaling(stat_key))
+	var key := stat_key.strip_edges().to_lower()
+	_stat_buff_stacks[key] = int(_stat_buff_stacks.get(key, 0)) + delta
+	match EnemyAbility.parse_stat_scaling(key):
+		EnemyAbility.StatScaling.STRENGTH:
+			strength = maxi(MIN_STAT, strength + delta)
+			return strength
+		EnemyAbility.StatScaling.AGILITY:
+			agility = maxi(MIN_STAT, agility + delta)
+			return agility
+		EnemyAbility.StatScaling.ENDURANCE:
+			endurance = maxi(MIN_STAT, endurance + delta)
+			return endurance
+		EnemyAbility.StatScaling.INTELLIGENCE:
+			intelligence = maxi(MIN_STAT, intelligence + delta)
+			return intelligence
+		EnemyAbility.StatScaling.LUCK:
+			luck = maxi(MIN_STAT, luck + delta)
+			return luck
+		_:
+			luck = maxi(MIN_STAT, luck + delta)
+			return luck
+
+
+func get_stat_buff_stacks(stat_key: String) -> int:
+	return int(_stat_buff_stacks.get(stat_key.strip_edges().to_lower(), 0))
 
 
 func find_ability(ability_id: String) -> EnemyAbility:
