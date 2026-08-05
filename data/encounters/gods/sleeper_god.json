@@ -29,7 +29,7 @@
 					"text_en": "«If you want to persuade me, pay first!» [Accept gift — Neuro-Chips]",
 					"text_ru": "«Если хочешь убедить меня, сперва заплати!» [Принять дар — Нейро-чипы]",
 					"next_dialog_id": "branch_3",
-					"reward": { "type": "neuro_chips", "amount": 10 }
+					"reward": { "type": "neuro_chips", "amount": 50 }
 				},
 				{
 					"text_en": "«Go back to the Abyss! You do not exist...» [Refuse the gift]",

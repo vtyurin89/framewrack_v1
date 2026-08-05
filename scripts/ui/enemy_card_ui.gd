@@ -4,6 +4,7 @@ extends PanelContainer
 
 signal card_gui_input(event: InputEvent, enemy_index: int)
 signal death_fade_finished(card: EnemyCardUI)
+signal attack_impact
 
 const SELECT_COLOR := Color(0.95, 0.8, 0.25)
 const BAR_HEIGHT := 20.0
@@ -15,6 +16,12 @@ const BRACKET_THICKNESS := 2.5
 const BRACKET_SPAN := 0.5
 const BRACKET_PAD := 8.0
 const DEATH_FADE_DURATION := 0.45
+const ATTACK_LUNGE_DURATION := 0.15
+const ATTACK_RETURN_DURATION := 0.2
+const ATTACK_LUNGE_SCALE := 1.25
+const ATTACK_LUNGE_Y := 18.0
+const FLEE_DURATION := 0.5
+const FLEE_SLIDE_X := 300.0
 const INTENTION_SCENE := preload("res://scenes/UI/enemy_intention_ui.tscn")
 const STATUS_EFFECTS_SCENE := preload("res://scenes/UI/status_effects_ui.tscn")
 
@@ -22,10 +29,12 @@ var enemy_index: int = -1
 var _enemy: EnemyInstance
 var _is_selected: bool = false
 var _is_dying: bool = false
+var _has_fled: bool = false
 
 @onready var _combat_text_host: Control = %CombatTextHost
 @onready var _intention_host: Control = %IntentionHost
 @onready var _placeholder: ColorRect = %Placeholder
+@onready var _sprite_host: Control = %SpriteHost
 @onready var _sprite: TextureRect = %Sprite
 @onready var _hit_fx: TextureRect = %HitFx
 @onready var _ghost_hp: GhostProgressBar = %GhostHPBar
@@ -35,6 +44,7 @@ var _is_dying: bool = false
 var _intention_ui: EnemyIntentionUI
 var _statuses_ui: StatusEffectsUI
 var _hit_fx_tween: Tween
+var _action_tween: Tween
 var _filtered_texture_cache: Dictionary = {}
 
 
@@ -139,6 +149,105 @@ func play_intention_pop() -> void:
 		await _intention_ui.play_pop_in()
 
 
+func play_attack_animation() -> void:
+	## First-person lunge: only the portrait scales/shifts, card chrome stays put.
+	if _is_dying or _has_fled:
+		return
+	var visual := _get_attack_visual()
+	if visual == null:
+		attack_impact.emit()
+		return
+	if _action_tween != null and _action_tween.is_valid():
+		_action_tween.kill()
+
+	if _sprite_host:
+		_sprite_host.clip_contents = false
+	var start_scale := visual.scale
+	var start_off_top := visual.offset_top
+	var start_off_bottom := visual.offset_bottom
+	visual.pivot_offset = visual.size * 0.5
+	visual.scale = Vector2.ONE
+	visual.z_index = 8
+
+	_action_tween = create_tween()
+	## Step 1: lunge forward (scale up + nudge toward camera).
+	_action_tween.set_parallel(true)
+	_action_tween.tween_property(visual, "scale", Vector2(ATTACK_LUNGE_SCALE, ATTACK_LUNGE_SCALE), ATTACK_LUNGE_DURATION).set_trans(
+		Tween.TRANS_QUAD
+	).set_ease(Tween.EASE_OUT)
+	_action_tween.tween_property(visual, "offset_top", start_off_top + ATTACK_LUNGE_Y, ATTACK_LUNGE_DURATION).set_trans(
+		Tween.TRANS_QUAD
+	).set_ease(Tween.EASE_OUT)
+	_action_tween.tween_property(visual, "offset_bottom", start_off_bottom + ATTACK_LUNGE_Y, ATTACK_LUNGE_DURATION).set_trans(
+		Tween.TRANS_QUAD
+	).set_ease(Tween.EASE_OUT)
+	## Step 2: impact cue at peak.
+	_action_tween.chain().tween_callback(func() -> void: attack_impact.emit())
+	## Step 3: return to rest pose.
+	_action_tween.set_parallel(true)
+	_action_tween.tween_property(visual, "scale", Vector2.ONE, ATTACK_RETURN_DURATION).set_trans(
+		Tween.TRANS_QUAD
+	).set_ease(Tween.EASE_IN_OUT)
+	_action_tween.tween_property(visual, "offset_top", start_off_top, ATTACK_RETURN_DURATION).set_trans(
+		Tween.TRANS_QUAD
+	).set_ease(Tween.EASE_IN_OUT)
+	_action_tween.tween_property(visual, "offset_bottom", start_off_bottom, ATTACK_RETURN_DURATION).set_trans(
+		Tween.TRANS_QUAD
+	).set_ease(Tween.EASE_IN_OUT)
+	await _action_tween.finished
+
+	if not is_instance_valid(self) or not is_instance_valid(visual):
+		return
+	visual.scale = start_scale
+	visual.offset_top = start_off_top
+	visual.offset_bottom = start_off_bottom
+	visual.z_index = 0
+
+
+func _get_attack_visual() -> Control:
+	if _sprite != null and _sprite.visible and _sprite.texture != null:
+		return _sprite
+	if _placeholder != null and _placeholder.visible:
+		return _placeholder
+	return _sprite
+
+
+func play_flee_animation() -> void:
+	## Slide off-screen to the right while fading out.
+	if _has_fled or _is_dying:
+		return
+	_has_fled = true
+	_is_dying = true
+	_is_selected = false
+	mouse_filter = Control.MOUSE_FILTER_IGNORE
+	if _selection_overlay:
+		_selection_overlay.queue_redraw()
+	if _intention_ui:
+		_intention_ui.hide_instant()
+	if _action_tween != null and _action_tween.is_valid():
+		_action_tween.kill()
+
+	var start_global := global_position
+	var start_size := size
+	top_level = true
+	global_position = start_global
+	size = start_size
+	_action_tween = create_tween().set_parallel(true)
+	_action_tween.tween_property(
+		self, "global_position:x", start_global.x + FLEE_SLIDE_X, FLEE_DURATION
+	).set_trans(Tween.TRANS_CUBIC).set_ease(Tween.EASE_IN)
+	_action_tween.tween_property(self, "modulate:a", 0.0, FLEE_DURATION).set_trans(
+		Tween.TRANS_SINE
+	).set_ease(Tween.EASE_IN)
+	await _action_tween.finished
+	if is_instance_valid(self):
+		## Keep empty slot so remaining cards do not recenter.
+		top_level = false
+		modulate.a = 0.0
+		if get_parent() is Container:
+			(get_parent() as Container).queue_sort()
+
+
 func play_hit_fx(is_crit: bool = false) -> void:
 	## Brief slash overlay when this enemy is struck.
 	if _is_dying or _hit_fx == null:
@@ -184,6 +293,10 @@ func play_intention_reevaluate(intention: CombatIntention) -> void:
 
 
 func play_death_fade() -> void:
+	if _has_fled:
+		## Flee already hid the card; still notify so the corpse can be purged.
+		death_fade_finished.emit(self)
+		return
 	if _is_dying:
 		return
 	_is_dying = true

@@ -14,6 +14,10 @@ const INTENTION_STAGGER_DELAY := 0.15
 const AP_FLASH_SPEND := Color(0.75, 0.95, 1.0)
 const AP_FLASH_DENY := Color(1.0, 0.25, 0.25)
 const BLOCK_FLASH_GAIN := Color("3498db")
+const PLAYER_HIT_FLASH := Color(1.0, 0.35, 0.35, 1.0)
+const HUD_SHAKE_DURATION := 0.15
+const HUD_SHAKE_PIXELS := 5.0
+const HP_FLASH_DURATION := 0.1
 
 var combat: Node  # CombatManager
 var inventory: InventoryController
@@ -30,6 +34,10 @@ var _block_base_color: Color = Color(0.88, 0.88, 0.92)
 var _ap_juice_tween: Tween
 var _block_juice_tween: Tween
 var _last_passive_armor: int = 0
+var _hud_shake_tween: Tween
+var _hp_flash_tween: Tween
+var _stats_row_base_position: Vector2 = Vector2.ZERO
+var _hp_bar_base_modulate: Color = Color.WHITE
 
 @onready var _enemy_row: HBoxContainer = %EnemyRow
 @onready var _loot_stage: Control = %LootStage
@@ -109,7 +117,77 @@ func setup(p_combat: Node, p_inventory: InventoryController) -> void:
 	_on_hp_changed(inventory.current_hp, inventory.max_hp)
 	_ensure_player_statuses_ui()
 	_bind_damage_popup_manager()
+	_bind_combat_presentation()
 	_rebuild_enemies()
+
+
+func _bind_combat_presentation() -> void:
+	if combat == null:
+		return
+	if combat.has_method("bind_presentation"):
+		combat.bind_presentation(
+			Callable(self, "play_enemy_attack_animation"),
+			Callable(self, "play_enemy_flee_animation"),
+			Callable(self, "play_player_hit_feedback")
+		)
+
+
+func play_enemy_attack_animation(enemy_index: int) -> void:
+	var card := _find_card_by_index(enemy_index)
+	if card == null or not is_instance_valid(card):
+		return
+	if card.has_method("play_attack_animation"):
+		await card.play_attack_animation()
+
+
+func play_enemy_flee_animation(enemy_index: int) -> void:
+	var card := _find_card_by_index(enemy_index)
+	if card == null or not is_instance_valid(card):
+		return
+	if card.has_method("play_flee_animation"):
+		await card.play_flee_animation()
+
+
+func play_player_hit_feedback(_dealt: int = 0) -> void:
+	shake_hud()
+	_flash_player_hp_bar()
+
+
+func shake_hud() -> void:
+	## Small shake on the top status row (FRAME HP / AP / BLOCK).
+	if _stats_row == null:
+		return
+	if _hud_shake_tween != null and _hud_shake_tween.is_valid():
+		_hud_shake_tween.kill()
+	if _stats_row_base_position == Vector2.ZERO:
+		_stats_row_base_position = _stats_row.position
+	_stats_row.position = _stats_row_base_position
+	_hud_shake_tween = create_tween()
+	var offsets: Array[Vector2] = [
+		Vector2(-HUD_SHAKE_PIXELS, 0.0),
+		Vector2(HUD_SHAKE_PIXELS, 1.0),
+		Vector2(-HUD_SHAKE_PIXELS * 0.6, -1.0),
+		Vector2(HUD_SHAKE_PIXELS * 0.4, 0.0),
+		Vector2.ZERO,
+	]
+	var step := HUD_SHAKE_DURATION / float(offsets.size())
+	for offset in offsets:
+		_hud_shake_tween.tween_property(
+			_stats_row, "position", _stats_row_base_position + offset, step
+		).set_trans(Tween.TRANS_SINE)
+
+
+func _flash_player_hp_bar() -> void:
+	if _player_hp_bar == null:
+		return
+	if _hp_flash_tween != null and _hp_flash_tween.is_valid():
+		_hp_flash_tween.kill()
+	_hp_bar_base_modulate = Color.WHITE
+	_player_hp_bar.modulate = PLAYER_HIT_FLASH
+	_hp_flash_tween = create_tween()
+	_hp_flash_tween.tween_property(_player_hp_bar, "modulate", _hp_bar_base_modulate, HP_FLASH_DURATION).set_trans(
+		Tween.TRANS_SINE
+	).set_ease(Tween.EASE_OUT)
 
 
 func _bind_damage_popup_manager() -> void:
@@ -484,6 +562,12 @@ func _prepare_stat_juice_hosts() -> void:
 		_block_base_color = _block_label.get_theme_color("font_color")
 		_block_label.pivot_offset = _block_label.size * 0.5
 		_block_label.modulate.a = 1.0 if _last_block > 0 else 0.7
+	call_deferred("_cache_stats_row_origin")
+
+
+func _cache_stats_row_origin() -> void:
+	if _stats_row != null:
+		_stats_row_base_position = _stats_row.position
 
 
 func _kill_tween(tween: Tween) -> void:

@@ -41,6 +41,11 @@ var player_turn_index: int = 0
 var _parasite_at_combat_start: bool = false
 ## Mid-enemy-turn pause while ForcedItemScreen is open.
 var awaiting_forced_insertion: bool = false
+## Presentation hooks bound by CombatUI (async Callables).
+var _play_enemy_attack_fx: Callable
+var _play_enemy_flee_fx: Callable
+var _play_player_hit_fx: Callable
+const ENEMY_ACTION_GAP := 0.25
 
 
 func setup(p_inventory: InventoryController, p_stats: PlayerStats = null) -> void:
@@ -48,6 +53,12 @@ func setup(p_inventory: InventoryController, p_stats: PlayerStats = null) -> voi
 	if p_stats != null:
 		player_stats = p_stats
 	_ensure_ability_executor()
+
+
+func bind_presentation(attack_fx: Callable, flee_fx: Callable, player_hit_fx: Callable) -> void:
+	_play_enemy_attack_fx = attack_fx
+	_play_enemy_flee_fx = flee_fx
+	_play_player_hit_fx = player_hit_fx
 
 
 func _ensure_ability_executor() -> void:
@@ -658,25 +669,38 @@ func _begin_enemy_turn() -> void:
 
 
 func _run_enemy_actions() -> void:
+	## Sequential enemy acts with awaited attack/flee presentation.
 	for i in enemies.size():
 		var enemy: EnemyInstance = enemies[i]
 		if enemy == null or not enemy.is_alive():
 			continue
-		if not _enemy_pre_turn_phase(i, enemy):
+		## 1. Pre-turn (DoT / Stun / Flee check)
+		var pre := await _enemy_pre_turn_phase_async(i, enemy)
+		if not pre:
+			if inventory != null and inventory.is_dead():
+				_lose()
+				return
+			await get_tree().create_timer(ENEMY_ACTION_GAP).timeout
 			continue
 		_enemy_start_turn_phase(i, enemy)
 		if not enemy.is_alive():
+			await get_tree().create_timer(ENEMY_ACTION_GAP).timeout
 			continue
 		_enemy_pre_action_phase(i, enemy)
-		_enemy_main_action_phase(i, enemy)
+		## 2-3. Attack presentation (if offensive), then resolve intent/effects.
+		await _enemy_main_action_phase_async(i, enemy)
 		if awaiting_forced_insertion:
 			await forced_insertion_completed
-		if inventory.is_dead():
+		if inventory != null and inventory.is_dead():
 			_lose()
 			return
 		_enemy_post_turn_phase(i, enemy)
+		## 4. Short pause between enemy turns.
+		await get_tree().create_timer(ENEMY_ACTION_GAP).timeout
 
-	inventory.grid.tick_corruption()
+	## 5. End of enemy turn checks & corruption tick.
+	if inventory != null and inventory.grid != null:
+		inventory.grid.tick_corruption()
 
 	if _all_enemies_dead():
 		_win()
@@ -684,24 +708,8 @@ func _run_enemy_actions() -> void:
 		_begin_player_turn()
 
 
-func request_forced_item_insertion(item_id: String) -> void:
-	## Called by EffectForceInsert mid-enemy-turn; Main opens ForcedItemScreen.
-	var id := item_id.strip_edges()
-	if id.is_empty():
-		id = SLIMY_PARASITE_ID
-	awaiting_forced_insertion = true
-	forced_insertion_requested.emit(id)
-
-
-func complete_forced_item_insertion() -> void:
-	if not awaiting_forced_insertion:
-		return
-	awaiting_forced_insertion = false
-	forced_insertion_completed.emit()
-
-
-func _enemy_pre_turn_phase(index: int, enemy: EnemyInstance) -> bool:
-	## Returns false if enemy dies or is stunned (skip rest of act).
+func _enemy_pre_turn_phase_async(index: int, enemy: EnemyInstance) -> bool:
+	## Returns false if enemy dies, is stunned, or flees (skip rest of act).
 	if enemy.statuses == null:
 		enemy.statuses = StatusController.new()
 	var result: Dictionary = enemy.statuses.tick_negative_statuses()
@@ -730,11 +738,135 @@ func _enemy_pre_turn_phase(index: int, enemy: EnemyInstance) -> bool:
 		EventBus.enemy_intention_changed.emit(index, enemy.current_intention)
 		enemy.end_enemy_turn()
 		return false
-	## FLEEING: escape at the start of this turn before acting.
+	## FLEEING: play flee animation, then mark escaped.
+	if enemy.statuses != null and enemy.statuses.has_status("fleeing"):
+		await _await_enemy_flee_fx(index)
+		EffectFlee.new().apply(enemy, self, [])
+		return false
+	return true
+
+
+func _enemy_main_action_phase_async(index: int, enemy: EnemyInstance) -> void:
+	var action: Dictionary = EnemyAI.resolve_main_action(enemy, self)
+	var ability: EnemyAbility = action.get("ability") as EnemyAbility
+	enemy.consume_planned_ability()
+	enemy.clear_intention()
+	EventBus.enemy_intention_changed.emit(index, enemy.current_intention)
+
+	## Rust miss: skip damaging effects (still show a brief telegraph lunge if offensive).
+	var offensive := _ability_is_offensive(ability)
+	if offensive:
+		await _await_enemy_attack_fx(index)
+
+	if enemy.statuses != null and enemy.statuses.roll_rust_fail():
+		EventBus.combat_log_message.emit(
+			tr("KEY_LOG_RUST_MISS") % enemy.get_localized_name()
+		)
+		_request_player_popup(0, "rust", false, true)
+		return
+
+	if ability != null:
+		_ability_executor.execute(enemy, index, ability)
+	else:
+		_enemy_act_legacy_fallback(index, enemy)
+
+
+func _ability_is_offensive(ability: EnemyAbility) -> bool:
+	if ability == null:
+		## Legacy fallback strike.
+		return true
+	var effect := ability.main_effect.strip_edges().to_lower()
+	if effect in ["damage", "multi_hit", "steal_chips", "force_insert"]:
+		return true
+	match ability.type:
+		EnemyAbility.AbilityType.DAMAGE, EnemyAbility.AbilityType.MULTI_HIT:
+			return true
+		_:
+			return ability.target_type.strip_edges().to_lower() == "player" and effect == "status"
+
+
+func _await_enemy_attack_fx(index: int) -> void:
+	if _play_enemy_attack_fx.is_valid():
+		await _play_enemy_attack_fx.call(index)
+
+
+func _await_enemy_flee_fx(index: int) -> void:
+	if _play_enemy_flee_fx.is_valid():
+		await _play_enemy_flee_fx.call(index)
+
+
+func _enemy_pre_turn_phase(index: int, enemy: EnemyInstance) -> bool:
+	## Sync wrapper kept for legacy callers; prefer async path in enemy turn.
+	## FLEEING without animation (legacy).
+	if enemy.statuses == null:
+		enemy.statuses = StatusController.new()
+	var result: Dictionary = enemy.statuses.tick_negative_statuses()
+	var dmg: int = int(result.get("damage", 0))
+	if dmg > 0:
+		var hp_before := enemy.current_hp
+		enemy.apply_incoming_damage(dmg)
+		var dealt := maxi(0, hp_before - enemy.current_hp)
+		var dtype := _infer_status_dot_type(result)
+		_request_enemy_popup(index, dealt if dealt > 0 else dmg, dtype)
+		EventBus.combat_log_message.emit(
+			tr("KEY_LOG_ENEMY_STATUS_DOT") % [enemy.get_localized_name(), dmg]
+		)
+		EventBus.enemy_hp_changed.emit(index, enemy.current_hp, enemy.max_hp)
+		if not enemy.is_alive():
+			enemy.clear_intention()
+			EventBus.enemy_intention_changed.emit(index, enemy.current_intention)
+			_on_enemy_defeated(enemy, index)
+			EventBus.enemy_died.emit(index)
+			return false
+	if bool(result.get("skip_turn", false)):
+		EventBus.combat_log_message.emit(
+			tr("KEY_LOG_ENEMY_STUNNED") % enemy.get_localized_name()
+		)
+		enemy.clear_intention()
+		EventBus.enemy_intention_changed.emit(index, enemy.current_intention)
+		enemy.end_enemy_turn()
+		return false
 	if enemy.statuses != null and enemy.statuses.has_status("fleeing"):
 		EffectFlee.new().apply(enemy, self, [])
 		return false
 	return true
+
+
+func _enemy_main_action_phase(index: int, enemy: EnemyInstance) -> void:
+	## Sync legacy path (no presentation waits).
+	var action: Dictionary = EnemyAI.resolve_main_action(enemy, self)
+	var ability: EnemyAbility = action.get("ability") as EnemyAbility
+	enemy.consume_planned_ability()
+	enemy.clear_intention()
+	EventBus.enemy_intention_changed.emit(index, enemy.current_intention)
+
+	if enemy.statuses != null and enemy.statuses.roll_rust_fail():
+		EventBus.combat_log_message.emit(
+			tr("KEY_LOG_RUST_MISS") % enemy.get_localized_name()
+		)
+		_request_player_popup(0, "rust", false, true)
+		return
+
+	if ability != null:
+		_ability_executor.execute(enemy, index, ability)
+	else:
+		_enemy_act_legacy_fallback(index, enemy)
+
+
+func request_forced_item_insertion(item_id: String) -> void:
+	## Called by EffectForceInsert mid-enemy-turn; Main opens ForcedItemScreen.
+	var id := item_id.strip_edges()
+	if id.is_empty():
+		id = SLIMY_PARASITE_ID
+	awaiting_forced_insertion = true
+	forced_insertion_requested.emit(id)
+
+
+func complete_forced_item_insertion() -> void:
+	if not awaiting_forced_insertion:
+		return
+	awaiting_forced_insertion = false
+	forced_insertion_completed.emit()
 
 
 func _enemy_start_turn_phase(index: int, enemy: EnemyInstance) -> void:
@@ -758,27 +890,6 @@ func _enemy_pre_action_phase(index: int, enemy: EnemyInstance) -> void:
 		var pre_ability: EnemyAbility = pre.get("ability") as EnemyAbility
 		if pre_ability != null:
 			_ability_executor.execute(enemy, index, pre_ability)
-
-
-func _enemy_main_action_phase(index: int, enemy: EnemyInstance) -> void:
-	var action: Dictionary = EnemyAI.resolve_main_action(enemy, self)
-	var ability: EnemyAbility = action.get("ability") as EnemyAbility
-	enemy.consume_planned_ability()
-	enemy.clear_intention()
-	EventBus.enemy_intention_changed.emit(index, enemy.current_intention)
-
-	## Rust miss: skip damaging effects.
-	if enemy.statuses != null and enemy.statuses.roll_rust_fail():
-		EventBus.combat_log_message.emit(
-			tr("KEY_LOG_RUST_MISS") % enemy.get_localized_name()
-		)
-		_request_player_popup(0, "rust", false, true)
-		return
-
-	if ability != null:
-		_ability_executor.execute(enemy, index, ability)
-	else:
-		_enemy_act_legacy_fallback(index, enemy)
 
 
 func _enemy_post_turn_phase(_index: int, enemy: EnemyInstance) -> void:
@@ -848,7 +959,13 @@ func apply_enemy_damage_to_player(damage: int) -> int:
 	EventBus.block_changed.emit(current_block)
 	if dealt > 0:
 		_request_player_popup(dealt, "physical")
+		_trigger_player_hit_feedback(dealt)
 	return dealt
+
+
+func _trigger_player_hit_feedback(dealt: int) -> void:
+	if _play_player_hit_fx.is_valid():
+		_play_player_hit_fx.call(dealt)
 
 
 func is_player_defeated() -> bool:

@@ -33,6 +33,7 @@ custom_minimum_size = Vector2(170, 190)
 layout_mode = 2
 size_flags_vertical = 0
 mouse_filter = 2
+clip_contents = false
 
 [node name="Placeholder" type="ColorRect" parent="VBox/SpriteHost"]
 unique_name_in_owner = true
