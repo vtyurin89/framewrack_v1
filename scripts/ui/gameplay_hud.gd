@@ -12,7 +12,7 @@ const CHIP_ICON := preload("res://assets/icons/ui/neuro_chip.png")
 
 @onready var _hp_label: Label = %HpLabel
 @onready var _heart_icon: TextureRect = %HeartIcon
-@onready var _chip_label: Label = %ChipLabel
+@onready var _chip_label: SmoothCounter = %ChipLabel
 @onready var _chip_icon: TextureRect = %ChipIcon
 @onready var _btn_body: Button = %ToggleInventoryButton
 @onready var _btn_combat_log: Button = %CombatLogButton
@@ -22,6 +22,7 @@ const CHIP_ICON := preload("res://assets/icons/ui/neuro_chip.png")
 @onready var _xp_bar: ProgressBar = %XPBar
 
 var _player_stats: PlayerStats
+var _chips_initialized: bool = false
 
 
 func _ready() -> void:
@@ -131,7 +132,12 @@ func _on_hp_changed(current: int, maximum: int) -> void:
 func _on_chips_changed(amount: int) -> void:
 	if _chip_label == null:
 		return
-	_chip_label.text = str(maxi(amount, 0))
+	var target := maxi(amount, 0)
+	if not _chips_initialized:
+		_chip_label.set_value_instant(target)
+		_chips_initialized = true
+		return
+	_chip_label.set_value_animated(target)
 
 
 func _on_exp_changed(

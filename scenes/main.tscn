@@ -1,4 +1,4 @@
-[gd_scene load_steps=13 format=3 uid="uid://bw_main"]
+[gd_scene load_steps=14 format=3 uid="uid://bw_main"]
 
 [ext_resource type="Script" path="res://scripts/main.gd" id="1"]
 [ext_resource type="PackedScene" path="res://scenes/UI/map_ui.tscn" id="2"]
@@ -13,6 +13,7 @@
 [ext_resource type="Texture2D" path="res://assets/icons/ui/heart.png" id="11"]
 [ext_resource type="Texture2D" path="res://assets/icons/ui/gear.png" id="12"]
 [ext_resource type="Texture2D" path="res://assets/icons/ui/neuro_chip.png" id="13"]
+[ext_resource type="Script" path="res://scripts/ui/smooth_counter.gd" id="14"]
 
 [node name="Main" type="Control"]
 layout_mode = 3
@@ -112,6 +113,10 @@ theme_override_colors/font_color = Color(0.82, 0.88, 0.9, 1)
 theme_override_font_sizes/font_size = 16
 text = "0"
 vertical_alignment = 1
+script = ExtResource("14")
+show_plus_sign = false
+wrap_in_parentheses = false
+use_value_colors = false
 
 [node name="TopBarSpacer" type="Control" parent="RootLayout/TopBar"]
 layout_mode = 2

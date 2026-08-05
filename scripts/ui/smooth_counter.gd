@@ -7,6 +7,7 @@ extends Label
 @export var count_duration: float = 0.45
 @export var punch_out_duration: float = 0.18
 @export var show_plus_sign: bool = true
+@export var wrap_in_parentheses: bool = true
 @export var hide_when_zero: bool = false
 @export var positive_color: Color = Color(0.88, 0.88, 0.92, 1)
 @export var negative_color: Color = Color(0.92, 0.28, 0.28, 1)
@@ -53,7 +54,7 @@ func set_value_animated(target_value: int) -> void:
 	visible = true
 	scale = Vector2.ONE
 	if current_displayed_value == 0 and hide_when_zero:
-		text = "(+0)" if target_value >= 0 else "(0)"
+		text = _format_value(0)
 		if use_value_colors:
 			add_theme_color_override(
 				"font_color",
@@ -115,6 +116,18 @@ func _on_counter_step(value: float) -> void:
 	pivot_offset = size * 0.5
 
 
+func _format_value(val: int) -> String:
+	if not wrap_in_parentheses:
+		if val > 0 and show_plus_sign:
+			return "+%d" % val
+		return str(val)
+	if val > 0 and show_plus_sign:
+		return "(+%d)" % val
+	if val < 0:
+		return "(%d)" % val
+	return "(0)"
+
+
 func _update_label_text(val: int) -> void:
 	if hide_when_zero and val == 0:
 		text = ""
@@ -124,12 +137,7 @@ func _update_label_text(val: int) -> void:
 		return
 
 	visible = true
-	if val > 0 and show_plus_sign:
-		text = "(+%d)" % val
-	elif val < 0:
-		text = "(%d)" % val
-	else:
-		text = "(0)"
+	text = _format_value(val)
 
 	if use_value_colors:
 		var color := negative_color if val < 0 else positive_color

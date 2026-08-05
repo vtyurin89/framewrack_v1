@@ -61,7 +61,7 @@ static func apply_passive_armor_from_spatial_traits(
 	grid: BodyGrid,
 	gain_block: Callable
 ) -> void:
-	## Helmets / leg armor passives grant armor at player turn start.
+	## Helmets / leg armor passives grant armor when committed (enemy turn start).
 	if grid == null or not gain_block.is_valid():
 		return
 	for placed: PlacedItem in grid.items:

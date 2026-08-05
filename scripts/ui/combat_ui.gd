@@ -36,6 +36,8 @@ var _block_base_color: Color = Color(0.88, 0.88, 0.92)
 var _ap_juice_tween: Tween
 var _block_juice_tween: Tween
 var _last_passive_armor: int = 0
+## While true, (+N) preview is shown; false after passive is folded into Block.
+var _passive_preview_visible: bool = true
 var _hud_shake_tween: Tween
 var _hp_flash_tween: Tween
 var _stats_row_base_position: Vector2 = Vector2.ZERO
@@ -564,6 +566,10 @@ func _on_block_changed(amount: int) -> void:
 func _refresh_block_passive_hint(animated: bool = true) -> void:
 	if _block_passive_label == null:
 		return
+	if not _passive_preview_visible:
+		_block_passive_label.set_value_instant(0)
+		_last_passive_armor = 0
+		return
 	var passive := _calc_current_passive_armor()
 	if animated:
 		## Always drive SmoothCounter; it no-ops visually only when value is unchanged.
@@ -763,7 +769,8 @@ func _on_turn_started(is_player: bool) -> void:
 		_rebuild_enemies()
 	_sync_card_indices()
 	if is_player:
-		## Animate passive armor reveal each player turn start (block was just rebuilt).
+		## Preview passive armor as (+N) during the player turn (not yet in Block).
+		_passive_preview_visible = true
 		if _block_passive_label:
 			_block_passive_label.set_value_instant(0)
 		_last_passive_armor = 0
@@ -779,7 +786,11 @@ func _on_turn_started(is_player: bool) -> void:
 					card.set_intention(enemy.current_intention)
 		_play_staggered_intention_reveal()
 	else:
-		_refresh_block_passive_hint(false)
+		## Passive was just committed into Block — hide the (+N) preview.
+		_passive_preview_visible = false
+		if _block_passive_label:
+			_block_passive_label.set_value_instant(0)
+		_last_passive_armor = 0
 		_intention_reveal_token += 1
 		for child in _enemy_row.get_children():
 			var card: EnemyCardUI = child as EnemyCardUI

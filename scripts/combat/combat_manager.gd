@@ -176,7 +176,8 @@ func _reset_player_resources() -> void:
 		current_ap = maxi(0, current_ap)
 	_apply_slimy_parasite_ap_cap()
 	_reset_all_item_turn_uses()
-	TraitManager.apply_passive_armor_from_spatial_traits(inventory.grid, Callable(self, "_gain_block"))
+	## Passive spatial armor is previewed as (+N) during the player turn and
+	## committed into real Block at the start of the enemy turn.
 
 
 func _apply_slimy_parasite_ap_cap() -> void:
@@ -672,11 +673,29 @@ func _reset_all_item_turn_uses() -> void:
 
 
 func _begin_enemy_turn() -> void:
+	## Hide (+N) preview first, then fold it into Block for a single number.
 	_set_state(CombatState.ENEMY_TURN)
+	_commit_passive_armor_into_block()
 	EventBus.combat_log_message.emit(tr("KEY_LOG_ENEMY_TURN"))
 	## Re-open attacker budget for the act phase (matches telegraphed plans).
 	reset_attacker_slots()
 	await _run_enemy_actions()
+
+
+func _commit_passive_armor_into_block() -> void:
+	if inventory == null or inventory.grid == null:
+		return
+	var passive := TraitManager.calc_total_spatial_passive_armor(inventory.grid, false)
+	if passive > 0:
+		_gain_block(passive, tr("KEY_PASSIVE"))
+	elif passive < 0:
+		var before := current_block
+		current_block = maxi(0, current_block + passive)
+		if current_block != before:
+			EventBus.block_changed.emit(current_block)
+			EventBus.combat_log_message.emit(
+				tr("KEY_LOG_BLOCK") % [tr("KEY_PASSIVE"), passive, current_block]
+			)
 
 
 func _run_enemy_actions() -> void:
