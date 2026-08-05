@@ -160,8 +160,10 @@ func set_highlight(mode: Highlight) -> void:
 			style.border_color = Color(0, 0, 0, 0)
 			style.set_border_width_all(0)
 		_:
-			style.bg_color = Color(0.22, 0.22, 0.22, 1)
-			style.border_color = Color(0.08, 0.08, 0.08)
+			## Empty unlocked cell — dark blueprint plate.
+			var empty := InventoryTheme.make_empty_cell_stylebox()
+			style.bg_color = empty.bg_color
+			style.border_color = empty.border_color
 	_base_panel.add_theme_stylebox_override("panel", style)
 
 

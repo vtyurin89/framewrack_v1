@@ -54,26 +54,21 @@ func _build_visual() -> void:
 	_panel.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
 	_panel.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	add_child(_panel)
+	InventoryTheme.apply_item_panel(_panel, item, 1)
+	modulate = Color.WHITE
 
-	var style := StyleBoxFlat.new()
-	var col := item.placeholder_color if item else Color(0.7, 0.7, 0.7)
-	style.bg_color = col
-	style.set_border_width_all(2)
-	style.border_color = col.lightened(0.25)
-	style.set_corner_radius_all(3)
-	_panel.add_theme_stylebox_override("panel", style)
-	if item != null and item.is_harmful:
-		modulate = Color("#E74C3C")
-		style.border_color = Color("#D35400")
-		style.set_border_width_all(3)
-		_panel.add_theme_stylebox_override("panel", style)
+	var has_icon := _item_has_custom_icon(item)
 
-	if item and item.get_texture():
+	if has_icon:
 		_icon = TextureRect.new()
 		_icon.texture = item.get_texture()
 		_icon.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
 		_icon.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
 		_icon.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+		_icon.offset_left = 3.0
+		_icon.offset_top = 3.0
+		_icon.offset_right = -3.0
+		_icon.offset_bottom = -3.0
 		_icon.mouse_filter = Control.MOUSE_FILTER_IGNORE
 		add_child(_icon)
 
@@ -82,8 +77,13 @@ func _build_visual() -> void:
 	_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	_label.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
 	_label.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	_label.add_theme_color_override("font_color", Color(0.08, 0.08, 0.08))
-	_label.text = _display_label(item)
+	var text_col := InventoryTheme.text_color_for_item(item)
+	_label.add_theme_color_override("font_color", text_col)
+	_label.add_theme_color_override("font_outline_color", Color(0, 0, 0, 0.85))
+	_label.add_theme_constant_override("outline_size", 3)
+	## Icon tiles stay text-free; item name lives in tooltip/inspect UI.
+	_label.text = ""
+	_label.visible = false
 	add_child(_label)
 
 	if item != null and item.is_stackable and item.current_stack > 1:
@@ -96,10 +96,22 @@ func _build_visual() -> void:
 		stack.offset_right = -3.0
 		stack.offset_bottom = -2.0
 		stack.add_theme_font_size_override("font_size", 12)
-		stack.add_theme_color_override("font_color", Color(1, 1, 1))
+		stack.add_theme_color_override("font_color", text_col)
 		stack.add_theme_color_override("font_outline_color", Color(0, 0, 0))
 		stack.add_theme_constant_override("outline_size", 4)
 		add_child(stack)
+
+
+func _item_has_custom_icon(p_item: ItemData) -> bool:
+	if p_item == null:
+		return false
+	var tex := p_item.get_texture()
+	if tex == null:
+		return false
+	var path := tex.resource_path
+	if path.is_empty():
+		return true
+	return path != ItemData.FALLBACK_ICON_PATH
 
 
 func _apply_footprint_size(footprint: Vector2i) -> void:
@@ -128,28 +140,22 @@ func set_combat_visual(usable: bool) -> void:
 	combat_usable_glow = usable
 	if _panel == null:
 		return
+	## Rebuild base palette, then layer combat usability cues on the border only.
+	var border_w := 1
+	if combat_click_mode and usable:
+		border_w = 3
+	elif combat_click_mode:
+		border_w = 2
+	InventoryTheme.apply_item_panel(_panel, item, border_w)
 	var style := _panel.get_theme_stylebox("panel") as StyleBoxFlat
 	if style == null:
 		return
-	var col := item.placeholder_color if item else Color(0.7, 0.7, 0.7)
-	if item != null and item.is_harmful:
-		## Organic reddish/pink tint for parasites / broken slots.
-		modulate = Color("#E74C3C")
-		style.border_color = Color("#D35400")
-		style.set_border_width_all(3 if combat_click_mode and usable else 2)
-		_panel.add_theme_stylebox_override("panel", style)
-		return
 	if combat_click_mode and usable:
 		style.border_color = Color(0.45, 0.95, 0.55)
-		style.set_border_width_all(3)
 		modulate = Color(1, 1, 1, 1)
 	elif combat_click_mode:
-		style.border_color = col.darkened(0.35)
-		style.set_border_width_all(2)
-		modulate = Color(0.55, 0.55, 0.55, 1)
+		modulate = Color(0.62, 0.62, 0.62, 1)
 	else:
-		style.border_color = col.lightened(0.25)
-		style.set_border_width_all(2)
 		modulate = Color(1, 1, 1, 1)
 	_panel.add_theme_stylebox_override("panel", style)
 
@@ -211,31 +217,26 @@ static func build_drag_preview(
 	var h := footprint.y * p_cell_size + maxi(footprint.y - 1, 0) * p_cell_gap
 	root.custom_minimum_size = Vector2(w, h)
 	root.size = Vector2(w, h)
-	root.modulate = Color(1, 1, 1, 0.55)
+	root.modulate = Color(1, 1, 1, 0.7)
 
-	for y in footprint.y:
-		for x in footprint.x:
-			var cell := Panel.new()
-			cell.position = Vector2(
-				x * (p_cell_size + p_cell_gap),
-				y * (p_cell_size + p_cell_gap),
-			)
-			cell.size = Vector2(p_cell_size, p_cell_size)
-			var style := StyleBoxFlat.new()
-			var col := p_item.placeholder_color if p_item else Color(0.7, 0.7, 0.7)
-			style.bg_color = col
-			style.set_border_width_all(1)
-			style.border_color = Color(1, 1, 1, 0.7)
-			style.set_corner_radius_all(2)
-			cell.add_theme_stylebox_override("panel", style)
-			cell.mouse_filter = Control.MOUSE_FILTER_IGNORE
-			root.add_child(cell)
+	var panel := Panel.new()
+	panel.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+	panel.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	InventoryTheme.apply_item_panel(panel, p_item, 1)
+	root.add_child(panel)
 
-	var caption := Label.new()
-	caption.text = p_item.get_localized_name() if p_item else ""
-	caption.position = Vector2(4, 4)
-	caption.add_theme_color_override("font_color", Color(0.05, 0.05, 0.05))
-	caption.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	root.add_child(caption)
+	if p_item != null and p_item.get_texture() != null:
+		var icon := TextureRect.new()
+		icon.texture = p_item.get_texture()
+		icon.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
+		icon.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
+		icon.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+		icon.offset_left = 4.0
+		icon.offset_top = 4.0
+		icon.offset_right = -4.0
+		icon.offset_bottom = -4.0
+		icon.mouse_filter = Control.MOUSE_FILTER_IGNORE
+		root.add_child(icon)
+
 	root.pivot_offset = Vector2.ZERO
 	return root
