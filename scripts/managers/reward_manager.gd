@@ -72,16 +72,19 @@ func generate_rewards(encounter_type: String, act_depth: int) -> Array[ItemData]
 	var gear_count := count - consumable_count
 
 	var out: Array[ItemData] = []
+	var used_ids: Dictionary = {}
 	for _i in consumable_count:
 		var tier := _roll_tier(w_common, w_uncommon, w_rare)
-		var item := _pick_random_item_of_tier(tier, true)
+		var item := _pick_random_item_of_tier(tier, true, used_ids)
 		if item != null:
 			out.append(item)
+			used_ids[item.id.strip_edges().to_upper()] = true
 	for _i in gear_count:
 		var tier := _roll_tier(w_common, w_uncommon, w_rare)
-		var item := _pick_random_item_of_tier(tier, false)
+		var item := _pick_random_item_of_tier(tier, false, used_ids)
 		if item != null:
 			out.append(item)
+			used_ids[item.id.strip_edges().to_upper()] = true
 
 	## Shuffle so consumables aren't always first in the Space layout.
 	out.shuffle()
@@ -143,7 +146,11 @@ func _roll_tier(w_common: float, w_uncommon: float, w_rare: float) -> ItemRarity
 	return ItemRarityData.Tier.RARE
 
 
-func _pick_random_item_of_tier(tier: ItemRarityData.Tier, want_consumable: bool) -> ItemData:
+func _pick_random_item_of_tier(
+	tier: ItemRarityData.Tier,
+	want_consumable: bool,
+	used_ids: Dictionary = {}
+) -> ItemData:
 	if ItemDatabase == null:
 		return null
 	var pool: Array[ItemData] = []
@@ -154,6 +161,8 @@ func _pick_random_item_of_tier(tier: ItemRarityData.Tier, want_consumable: bool)
 			continue
 		if _is_excluded_loot(proto.id):
 			continue
+		if used_ids.has(proto.id.strip_edges().to_upper()):
+			continue
 		if want_consumable != _is_consumable_proto(proto):
 			continue
 		if proto.rarity.get_tier() == tier:
@@ -161,16 +170,16 @@ func _pick_random_item_of_tier(tier: ItemRarityData.Tier, want_consumable: bool)
 	if pool.is_empty():
 		## Soft fallback down the rarity ladder (same consumable/gear filter).
 		if tier == ItemRarityData.Tier.RARE:
-			return _pick_random_item_of_tier(ItemRarityData.Tier.UNCOMMON, want_consumable)
+			return _pick_random_item_of_tier(ItemRarityData.Tier.UNCOMMON, want_consumable, used_ids)
 		if tier == ItemRarityData.Tier.UNCOMMON:
-			return _pick_random_item_of_tier(ItemRarityData.Tier.COMMON, want_consumable)
+			return _pick_random_item_of_tier(ItemRarityData.Tier.COMMON, want_consumable, used_ids)
 		## Last resort: any matching category, ignore rarity.
-		return _pick_any_matching(want_consumable)
+		return _pick_any_matching(want_consumable, used_ids)
 	var pick: ItemData = pool[randi() % pool.size()]
 	return ItemDatabase.create_instance(pick.id)
 
 
-func _pick_any_matching(want_consumable: bool) -> ItemData:
+func _pick_any_matching(want_consumable: bool, used_ids: Dictionary = {}) -> ItemData:
 	if ItemDatabase == null:
 		return null
 	var pool: Array[ItemData] = []
@@ -180,6 +189,8 @@ func _pick_any_matching(want_consumable: bool) -> ItemData:
 		if proto.is_currency():
 			continue
 		if _is_excluded_loot(proto.id):
+			continue
+		if used_ids.has(proto.id.strip_edges().to_upper()):
 			continue
 		if want_consumable != _is_consumable_proto(proto):
 			continue
