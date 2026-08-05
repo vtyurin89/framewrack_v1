@@ -35,6 +35,7 @@ var _is_dying: bool = false
 var _intention_ui: EnemyIntentionUI
 var _statuses_ui: StatusEffectsUI
 var _hit_fx_tween: Tween
+var _filtered_texture_cache: Dictionary = {}
 
 
 func _ready() -> void:
@@ -50,6 +51,7 @@ func _ready() -> void:
 		_sprite.mouse_filter = Control.MOUSE_FILTER_IGNORE
 		_sprite.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
 		_sprite.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
+		_sprite.texture_filter = CanvasItem.TEXTURE_FILTER_LINEAR_WITH_MIPMAPS
 	if _hit_fx:
 		_hit_fx.texture = HIT_FX_TEXTURE
 		_hit_fx.visible = false
@@ -57,6 +59,7 @@ func _ready() -> void:
 		_hit_fx.mouse_filter = Control.MOUSE_FILTER_IGNORE
 		_hit_fx.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
 		_hit_fx.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
+		_hit_fx.texture_filter = CanvasItem.TEXTURE_FILTER_LINEAR_WITH_MIPMAPS
 	if _placeholder:
 		_placeholder.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	if _selection_overlay:
@@ -283,10 +286,28 @@ func _resolve_enemy_texture() -> Texture2D:
 		candidates.append("%s%s.png" % [SPRITE_DIR, enemy_id])
 	for path in candidates:
 		if ResourceLoader.exists(path):
-			var loaded: Resource = load(path)
-			if loaded is Texture2D:
-				return loaded as Texture2D
+			var filtered := _load_texture_with_mipmaps(path)
+			if filtered != null:
+				return filtered
 	return null
+
+
+func _load_texture_with_mipmaps(path: String) -> Texture2D:
+	if _filtered_texture_cache.has(path):
+		return _filtered_texture_cache[path] as Texture2D
+	var loaded: Resource = load(path)
+	if loaded == null or not (loaded is Texture2D):
+		return null
+	var tex := loaded as Texture2D
+	var image := tex.get_image()
+	if image == null:
+		_filtered_texture_cache[path] = tex
+		return tex
+	if not image.has_mipmaps():
+		image.generate_mipmaps()
+	var filtered := ImageTexture.create_from_image(image)
+	_filtered_texture_cache[path] = filtered
+	return filtered
 
 
 func _apply_panel_style() -> void:

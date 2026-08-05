@@ -14,6 +14,7 @@ var _desc_label: RichTextLabel
 var _abilities_box: VBoxContainer
 var _traits_box: VBoxContainer
 var _built: bool = false
+var _filtered_texture_cache: Dictionary = {}
 
 
 func _ready() -> void:
@@ -70,6 +71,7 @@ func _ensure_content() -> void:
 	_preview.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
 	_preview.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
 	_preview.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
+	_preview.texture_filter = CanvasItem.TEXTURE_FILTER_LINEAR_WITH_MIPMAPS
 	preview_host.add_child(_preview)
 
 	var right := VBoxContainer.new()
@@ -142,7 +144,7 @@ func _populate(enemy: EnemyInstance) -> void:
 	_preview.texture = null
 	_preview.visible = false
 	if enemy.data != null and not enemy.data.sprite_path.is_empty() and ResourceLoader.exists(enemy.data.sprite_path):
-		var tex := load(enemy.data.sprite_path) as Texture2D
+		var tex := _load_texture_with_mipmaps(enemy.data.sprite_path)
 		if tex != null:
 			_preview.texture = tex
 			_preview.visible = true
@@ -231,3 +233,21 @@ func _populate_traits(enemy: EnemyInstance) -> void:
 		row.add_theme_font_size_override("font_size", 13)
 		row.add_theme_color_override("font_color", Color(0.8, 0.8, 0.85))
 		_traits_box.add_child(row)
+
+
+func _load_texture_with_mipmaps(path: String) -> Texture2D:
+	if _filtered_texture_cache.has(path):
+		return _filtered_texture_cache[path] as Texture2D
+	var loaded: Resource = load(path)
+	if loaded == null or not (loaded is Texture2D):
+		return null
+	var tex := loaded as Texture2D
+	var image := tex.get_image()
+	if image == null:
+		_filtered_texture_cache[path] = tex
+		return tex
+	if not image.has_mipmaps():
+		image.generate_mipmaps()
+	var filtered := ImageTexture.create_from_image(image)
+	_filtered_texture_cache[path] = filtered
+	return filtered
