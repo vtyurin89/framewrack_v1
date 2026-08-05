@@ -890,9 +890,11 @@ func remove_enemy_instance(enemy: EnemyInstance, emit_roster: bool = true) -> vo
 func _on_enemy_defeated(enemy: EnemyInstance, _index: int) -> void:
 	if enemy == null:
 		return
-	## Pocket thief: return stolen Neuro-Chips on death.
+	## Pocket thief: return stolen Neuro-Chips on death (raw restore, no bonus).
 	if enemy.stolen_chips > 0:
-		var refunded := NeuroChipItem.grant_to_inventory(inventory, enemy.stolen_chips)
+		var refunded: int = 0
+		if GameManager != null:
+			refunded = GameManager.restore_chips(enemy.stolen_chips)
 		if refunded > 0:
 			EventBus.combat_log_message.emit(
 				tr("KEY_LOG_CHIPS_RECOVERED") % [enemy.get_localized_name(), refunded]

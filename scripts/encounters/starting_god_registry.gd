@@ -228,8 +228,9 @@ static func _outcome_from_choice(choice_dict: Dictionary) -> DialogOutcomeData:
 				o.item_id = str(reward.get("item_id", "")).strip_edges()
 				o.item_amount = amount if amount > 0 else 1
 			"neuro_chips", "neuro_chip", "neurochip":
+				## Global currency — applied by EncounterManager via GameManager.
 				o.kind = DialogOutcomeData.OutcomeKind.GRANT_ITEM
-				o.item_id = NeuroChipItem.ITEM_ID
+				o.item_id = "NEURO_CHIP"
 				o.item_amount = amount if amount > 0 else 10
 			"item_choice", "select_item":
 				o.kind = DialogOutcomeData.OutcomeKind.SELECT_ITEM

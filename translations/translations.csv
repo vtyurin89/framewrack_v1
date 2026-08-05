@@ -135,6 +135,8 @@ KEY_LOG_BRAND_STIM_FAIL,%s has no minions to brand.,%s некого клейми
 KEY_LOG_CHIP_THEFT,%s steals %d Neuro-Chips (%d dmg; you take %d).,%s крадёт %d нейро-чипов (%d урона; вы получаете %d).
 KEY_LOG_ENEMY_FLED,%s flees with %d Neuro-Chips!,%s сбегает с %d нейро-чипами!
 KEY_LOG_CHIPS_RECOVERED,%s: recovered %d Neuro-Chips.,%s: возвращено %d нейро-чипов.
+KEY_LOG_CHIPS_GAINED,Gained %d Neuro-Chips.,Получено нейро-чипов: %d.
+KEY_NEURO_CHIPS,Neuro-Chips,Нейро-чипы
 KEY_LOG_SUMMON_FLED,%s flees as %s falls.,%s бежит — %s пал.
 KEY_LOG_EVASION_NEGATE,Evasion! The hit is negated.,Уклонение! Удар поглощён.
 KEY_LOG_EVASION_NEGATE_ENEMY,%s evades the hit!,%s уклоняется от удара!
@@ -189,7 +191,7 @@ ABILITY_DESERTER_SHIELD_NAME,Hard Cover,Укрытие
 ABILITY_DESERTER_SHIELD_DESC,Generates a personal shield.,Создаёт личный щит.
 ABILITY_DESERTER_SHIELD_TEXT,Hard Cover,Укрытие
 ABILITY_THIEF_STEAL_NAME,Pocket Lift,Карманная кража
-ABILITY_THIEF_STEAL_DESC,Minor damage and steals Intellect×4 Neuro-Chips.,Небольшой урон и кража Интеллект×4 нейро-чипов.
+ABILITY_THIEF_STEAL_DESC,Minor damage and steals Intellect×4 Neuro-Chips from wallet.,Небольшой урон и кража Интеллект×4 нейро-чипов из кошелька.
 ABILITY_THIEF_STEAL_TEXT,Pocket Lift,Карманная кража
 ABILITY_THIEF_STAB_NAME,Rib Shiv,Заточка в ребро
 ABILITY_THIEF_STAB_DESC,When the target has no chips: attack and apply Bleed.,Если у цели нет чипов: удар и Кровотечение.

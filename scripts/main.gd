@@ -267,6 +267,8 @@ func _mount_inventory_modal_host() -> void:
 
 func _seed_starting_loadout() -> void:
 	inventory.reset_run()
+	if GameManager != null:
+		GameManager.reset_currency()
 	if player_stats != null:
 		player_stats.reset_run()
 		inventory.apply_actor_stats(player_stats)
@@ -672,6 +674,10 @@ func _on_encounter_request_post_combat_rewards(encounter: EncounterData) -> void
 			if cur != null:
 				act_depth = maxi(cur.layer, 0)
 	var loot := RewardManager.generate_rewards(encounter_kind, act_depth)
+	if GameManager != null:
+		var chips_gained: int = GameManager.award_combat_chips(encounter_kind, act_depth)
+		if chips_gained > 0:
+			EventBus.combat_log_message.emit(tr("KEY_LOG_CHIPS_GAINED") % chips_gained)
 	## Stay in the combat window: loot fills the enemy stage, Body Grid stays docked.
 	_combat_ui.visible = true
 	if not _inventory_combat_docked:

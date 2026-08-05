@@ -1,4 +1,4 @@
-[gd_scene load_steps=12 format=3 uid="uid://bw_main"]
+[gd_scene load_steps=13 format=3 uid="uid://bw_main"]
 
 [ext_resource type="Script" path="res://scripts/main.gd" id="1"]
 [ext_resource type="PackedScene" path="res://scenes/UI/map_ui.tscn" id="2"]
@@ -12,6 +12,7 @@
 [ext_resource type="Script" path="res://scripts/managers/run_flow_manager.gd" id="10"]
 [ext_resource type="Texture2D" path="res://assets/icons/ui/heart.png" id="11"]
 [ext_resource type="Texture2D" path="res://assets/icons/ui/gear.png" id="12"]
+[ext_resource type="Texture2D" path="res://assets/icons/ui/neuro_chip.png" id="13"]
 
 [node name="Main" type="Control"]
 layout_mode = 3
@@ -69,6 +70,7 @@ layout_mode = 2
 size_flags_horizontal = 3
 size_flags_vertical = 4
 theme_override_constants/separation = 6
+alignment = 1
 
 [node name="HeartIcon" type="TextureRect" parent="RootLayout/TopBar/HpBox"]
 unique_name_in_owner = true
@@ -86,6 +88,29 @@ size_flags_vertical = 4
 theme_override_colors/font_color = Color(0.95, 0.95, 0.97, 1)
 theme_override_font_sizes/font_size = 16
 text = "40/40"
+vertical_alignment = 1
+
+[node name="ChipGap" type="Control" parent="RootLayout/TopBar/HpBox"]
+custom_minimum_size = Vector2(12, 0)
+layout_mode = 2
+mouse_filter = 2
+
+[node name="ChipIcon" type="TextureRect" parent="RootLayout/TopBar/HpBox"]
+unique_name_in_owner = true
+custom_minimum_size = Vector2(22, 22)
+layout_mode = 2
+size_flags_vertical = 4
+texture = ExtResource("13")
+expand_mode = 1
+stretch_mode = 5
+
+[node name="ChipLabel" type="Label" parent="RootLayout/TopBar/HpBox"]
+unique_name_in_owner = true
+layout_mode = 2
+size_flags_vertical = 4
+theme_override_colors/font_color = Color(0.82, 0.88, 0.9, 1)
+theme_override_font_sizes/font_size = 16
+text = "0"
 vertical_alignment = 1
 
 [node name="LevelLabel" type="Label" parent="RootLayout/TopBar"]

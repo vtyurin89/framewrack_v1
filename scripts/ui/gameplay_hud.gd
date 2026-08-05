@@ -1,6 +1,6 @@
 class_name GameplayHUD
 extends HBoxContainer
-## In-game top bar: HP · Experience · Body Grid · Combat Log · Menu.
+## In-game top bar: HP · Neuro-Chips · Experience · Body Grid · Combat Log · Menu.
 
 signal menu_pressed
 signal body_grid_pressed
@@ -8,9 +8,12 @@ signal combat_log_pressed
 
 const HEART_ICON := preload("res://assets/icons/ui/heart.png")
 const GEAR_ICON := preload("res://assets/icons/ui/gear.png")
+const CHIP_ICON := preload("res://assets/icons/ui/neuro_chip.png")
 
 @onready var _hp_label: Label = %HpLabel
 @onready var _heart_icon: TextureRect = %HeartIcon
+@onready var _chip_label: Label = %ChipLabel
+@onready var _chip_icon: TextureRect = %ChipIcon
 @onready var _btn_body: Button = %ToggleInventoryButton
 @onready var _btn_combat_log: Button = %CombatLogButton
 @onready var _btn_debug_level_up: Button = %DebugLevelUpButton
@@ -27,6 +30,19 @@ func _ready() -> void:
 		_heart_icon.texture = HEART_ICON
 		_heart_icon.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
 		_heart_icon.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
+		_heart_icon.size_flags_vertical = Control.SIZE_SHRINK_CENTER
+	if _chip_icon:
+		_chip_icon.texture = CHIP_ICON
+		_chip_icon.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
+		_chip_icon.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
+		_chip_icon.size_flags_vertical = Control.SIZE_SHRINK_CENTER
+		_chip_icon.custom_minimum_size = Vector2(22, 22)
+	if _chip_label:
+		_chip_label.size_flags_vertical = Control.SIZE_SHRINK_CENTER
+		_chip_label.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
+	if _hp_label:
+		_hp_label.size_flags_vertical = Control.SIZE_SHRINK_CENTER
+		_hp_label.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
 	if _btn_body:
 		_btn_body.pressed.connect(func() -> void: body_grid_pressed.emit())
 	if _btn_combat_log:
@@ -44,6 +60,9 @@ func _ready() -> void:
 		LocalizationManager.language_changed.connect(_apply_locale)
 	if not EventBus.player_hp_changed.is_connected(_on_hp_changed):
 		EventBus.player_hp_changed.connect(_on_hp_changed)
+	if GameManager != null and not GameManager.chips_changed.is_connected(_on_chips_changed):
+		GameManager.chips_changed.connect(_on_chips_changed)
+		_on_chips_changed(GameManager.get_chips())
 	_apply_locale()
 	_refresh_level_xp()
 
@@ -70,6 +89,8 @@ func bind_inventory(inventory: InventoryController) -> void:
 		_on_hp_changed(0, 0)
 		return
 	_on_hp_changed(inventory.current_hp, inventory.max_hp)
+	if GameManager != null:
+		_on_chips_changed(GameManager.get_chips())
 
 
 func _configure_menu_button() -> void:
@@ -94,6 +115,10 @@ func _apply_locale(_locale: String = "") -> void:
 		_btn_menu.tooltip_text = tr("KEY_MENU")
 	if _btn_debug_level_up:
 		_btn_debug_level_up.text = tr("KEY_DEBUG_LEVEL_UP")
+	if _chip_label:
+		_chip_label.tooltip_text = tr("KEY_NEURO_CHIPS")
+	if _chip_icon:
+		_chip_icon.tooltip_text = tr("KEY_NEURO_CHIPS")
 	_refresh_level_xp()
 
 
@@ -101,6 +126,12 @@ func _on_hp_changed(current: int, maximum: int) -> void:
 	if _hp_label == null:
 		return
 	_hp_label.text = "%d/%d" % [maxi(current, 0), maxi(maximum, 0)]
+
+
+func _on_chips_changed(amount: int) -> void:
+	if _chip_label == null:
+		return
+	_chip_label.text = str(maxi(amount, 0))
 
 
 func _on_exp_changed(

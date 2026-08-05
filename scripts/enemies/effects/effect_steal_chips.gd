@@ -8,14 +8,14 @@ func apply(caster: EnemyInstance, target: Node, params: Array) -> void:
 	if caster == null or target == null:
 		return
 	var ability := AbilityEffect.ability_from_params(params)
-	var enemy_index := AbilityEffect.enemy_index_from_params(params)
 	var csv := AbilityEffect.csv_params(params)
 	var chip_mult := 4
 	if csv.size() >= 1 and str(csv[0]).is_valid_int():
 		chip_mult = maxi(1, int(csv[0]))
 
-	var inventory: InventoryController = target.get("inventory") as InventoryController
-	var available := NeuroChipItem.count_in_inventory(inventory)
+	var available: int = 0
+	if GameManager != null:
+		available = GameManager.get_chips()
 	if available <= 0:
 		## Fallback stab + bleed.
 		EffectDamage.new().apply(caster, target, params)
@@ -28,7 +28,9 @@ func apply(caster: EnemyInstance, target: Node, params: Array) -> void:
 
 	var steal_amount := maxi(1, caster.intelligence * chip_mult)
 	steal_amount = mini(steal_amount, available)
-	var stolen := NeuroChipItem.try_spend(inventory, steal_amount)
+	var stolen: int = 0
+	if GameManager != null:
+		stolen = GameManager.take_chips(steal_amount)
 	caster.stolen_chips += stolen
 
 	## Minor chip-theft damage.

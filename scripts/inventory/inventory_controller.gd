@@ -109,8 +109,6 @@ func add_stackable_item(item_id: String, amount: int) -> int:
 		push_warning("InventoryController: unknown item '%s'" % item_id)
 		return 0
 	var max_stack := maxi(prototype.max_stack, 1) if prototype.is_stackable else 1
-	if item_id == NeuroChipItem.ITEM_ID:
-		max_stack = maxi(max_stack, NeuroChipItem.DEFAULT_MAX_STACK)
 	var remaining := amount
 	## Fill existing stacks first.
 	if grid != null:

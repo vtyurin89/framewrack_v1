@@ -469,6 +469,8 @@ func _apply_payload_effects(effects: Array) -> void:
 				_grant_stat(effect_type, amount if amount != 0 else 1)
 			"item", "grant_item":
 				_grant_item(str(effect.get("item_id", "")), maxi(1, amount if amount > 0 else 1))
+			"neuro_chips", "neuro_chip", "neurochip":
+				_grant_item("NEURO_CHIP", amount if amount > 0 else 10)
 			"pale_maiden_pact":
 				if StoryEventManager != null:
 					StoryEventManager.mark_pale_maiden_pact()
@@ -576,10 +578,18 @@ func _apply_damage(amount: int) -> void:
 
 func _grant_item(item_id: String, amount: int = 1) -> void:
 	var id_str := item_id.strip_edges()
-	if inventory == null or id_str.is_empty() or ItemDatabase == null:
+	if id_str.is_empty():
+		return
+	## Neuro-Chips are global currency, not body-grid stacks.
+	if id_str.to_upper() == "NEURO_CHIP":
+		if GameManager != null:
+			var gained: int = GameManager.add_chips(maxi(amount, 1))
+			_pending_rewards["neuro_chips"] = gained
+		return
+	if inventory == null or ItemDatabase == null:
 		return
 	var qty := maxi(amount, 1)
-	## Stackable currency (Neuro-Chips) merges into a single cell when possible.
+	## Stackable currency (legacy) merges into a single cell when possible.
 	var prototype: ItemData = ItemDatabase.get_item(id_str)
 	if prototype != null and prototype.is_stackable:
 		inventory.add_stackable_item(id_str, qty)

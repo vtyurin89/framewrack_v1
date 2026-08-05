@@ -418,8 +418,7 @@ static func _player_has_status(combat: Node, status_id: String) -> bool:
 	return false
 
 
-static func _player_chip_count(combat: Node) -> int:
-	if combat == null:
+static func _player_chip_count(_combat: Node) -> int:
+	if GameManager == null:
 		return 0
-	var inventory = combat.get("inventory")
-	return NeuroChipItem.count_in_inventory(inventory as InventoryController)
+	return GameManager.get_chips()
