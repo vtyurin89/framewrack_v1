@@ -23,6 +23,7 @@ const ID_THIEF_FLEE := "ABILITY_THIEF_FLEE"
 const ID_SCRAPPER_SHIELD := "ABILITY_SCRAPPER_SHIELD"
 const ID_SCRAPPER_BUMPER := "ABILITY_SCRAPPER_BUMPER"
 const ID_SCRAPPER_EXHAUST := "ABILITY_SCRAPPER_EXHAUST"
+const ID_MEDIC_SWING := "ABILITY_MEDIC_SWING"
 
 
 static func trigger_pre_action_phase(enemy: EnemyInstance) -> Dictionary:
@@ -174,7 +175,7 @@ static func _pick_non_offensive(enemy: EnemyInstance) -> EnemyAbility:
 	for ability: EnemyAbility in enemy.abilities:
 		if ability == null or not ability.is_main_deck_ability():
 			continue
-		if enemy.is_ability_on_cooldown(ability):
+		if not enemy.can_use_ability(ability):
 			continue
 		if is_offensive_ability(ability):
 			continue
@@ -195,14 +196,14 @@ static func _pick_ready_pre_action(enemy: EnemyInstance) -> EnemyAbility:
 	for ability: EnemyAbility in enemy.abilities:
 		if ability == null or ability.type != EnemyAbility.AbilityType.PRE_ACTION:
 			continue
-		if enemy.is_ability_on_cooldown(ability):
+		if not enemy.can_use_ability(ability):
 			continue
 		var interval := ability.trigger_interval if ability.trigger_interval > 0 else DEFAULT_STUDY_INTERVAL
 		if interval <= 0:
 			continue
 		## turns_taken = completed acts; current act number is turns_taken + 1.
 		## Interval 2 => acts 2, 4, 6… (same as the old start-of-turn counter).
-		if (enemy.turns_taken + 1) % interval != 0:
+		if enemy.get_current_act_number() % interval != 0:
 			continue
 		candidates.append(ability)
 	if candidates.is_empty():
@@ -226,6 +227,8 @@ static func _pick_scripted_main(enemy: EnemyInstance, combat: Node) -> EnemyAbil
 			return _ai_pocket_thief(enemy, combat)
 		"scrapper_tank":
 			return _ai_scrapper_tank(enemy, combat)
+		"field_medic":
+			return _ai_field_medic(enemy, combat)
 		"faceless_lady":
 			return FacelessLady.pick_scripted_ability(enemy, combat)
 		_:
@@ -236,11 +239,11 @@ static func _ai_slaver_master(enemy: EnemyInstance, combat: Node) -> EnemyAbilit
 	var living_minions := _count_living_minions(combat, enemy, "slaver_minion")
 	if living_minions < 2:
 		var summon := enemy.find_ability(ID_SLAVER_SUMMON)
-		if summon != null and not enemy.is_ability_on_cooldown(summon):
+		if summon != null and enemy.can_use_ability(summon):
 			return summon
 	if living_minions > 0:
 		var brand := enemy.find_ability(ID_SLAVER_BRAND)
-		if brand != null and not enemy.is_ability_on_cooldown(brand) and randf() < 0.45:
+		if brand != null and enemy.can_use_ability(brand) and randf() < 0.45:
 			return brand
 	return null
 
@@ -250,13 +253,13 @@ static func _ai_corp_deserter(enemy: EnemyInstance, combat: Node) -> EnemyAbilit
 	## Aim → Snipe lock: while the mark is fresh (first snipe window), always shoot.
 	if player_vuln and enemy.turns_taken <= 1:
 		var snipe := enemy.find_ability(ID_DESERTER_SNIPE)
-		if snipe != null and not enemy.is_ability_on_cooldown(snipe):
+		if snipe != null and enemy.can_use_ability(snipe):
 			return snipe
 
 	## First act: always aim.
 	if enemy.turns_taken <= 0:
 		var aim := enemy.find_ability(ID_DESERTER_AIM)
-		if aim != null and not enemy.is_ability_on_cooldown(aim):
+		if aim != null and enemy.can_use_ability(aim):
 			return aim
 
 	## After the snipe window, low HP prefers defense.
@@ -277,7 +280,7 @@ static func _ai_pocket_thief(enemy: EnemyInstance, combat: Node) -> EnemyAbility
 
 	if enemy.turns_taken == 2:
 		var scout := enemy.find_ability(ID_THIEF_SCOUT)
-		if scout != null and not enemy.is_ability_on_cooldown(scout):
+		if scout != null and enemy.can_use_ability(scout):
 			return scout
 
 	if enemy.turns_taken >= 3:
@@ -288,11 +291,11 @@ static func _ai_pocket_thief(enemy: EnemyInstance, combat: Node) -> EnemyAbility
 	var chips := _player_chip_count(combat)
 	if chips <= 0:
 		var stab := enemy.find_ability(ID_THIEF_STAB)
-		if stab != null and not enemy.is_ability_on_cooldown(stab):
+		if stab != null and enemy.can_use_ability(stab):
 			return stab
 	else:
 		var steal := enemy.find_ability(ID_THIEF_STEAL)
-		if steal != null and not enemy.is_ability_on_cooldown(steal):
+		if steal != null and enemy.can_use_ability(steal):
 			return steal
 	return null
 
@@ -303,12 +306,22 @@ static func _ai_scrapper_tank(enemy: EnemyInstance, combat: Node) -> EnemyAbilit
 		## Alone: stay aggressive — bumper / exhaust, almost never shield.
 		if randf() < 0.85:
 			var bumper := enemy.find_ability(ID_SCRAPPER_BUMPER)
-			if bumper != null and not enemy.is_ability_on_cooldown(bumper):
+			if bumper != null and enemy.can_use_ability(bumper):
 				return bumper
 			var exhaust := enemy.find_ability(ID_SCRAPPER_EXHAUST)
-			if exhaust != null and not enemy.is_ability_on_cooldown(exhaust):
+			if exhaust != null and enemy.can_use_ability(exhaust):
 				return exhaust
 		return null
+	return null
+
+
+static func _ai_field_medic(enemy: EnemyInstance, combat: Node) -> EnemyAbility:
+	## Alone: lean hard into the weak pipe swing.
+	if _count_living_allies(combat, enemy) <= 0:
+		if randf() < 0.8:
+			var swing := enemy.find_ability(ID_MEDIC_SWING)
+			if swing != null and enemy.can_use_ability(swing):
+				return swing
 	return null
 
 
@@ -322,7 +335,7 @@ static func _choose_weighted(enemy: EnemyInstance, combat: Node) -> EnemyAbility
 	for ability: EnemyAbility in enemy.abilities:
 		if ability == null or not ability.is_main_deck_ability():
 			continue
-		if enemy.is_ability_on_cooldown(ability):
+		if not enemy.can_use_ability(ability):
 			continue
 		var w := ability.base_ai_weight
 		if GameSettings != null:
@@ -331,6 +344,12 @@ static func _choose_weighted(enemy: EnemyInstance, combat: Node) -> EnemyAbility
 		## Scrapper alone: heavily downrank shield.
 		if alone and enemy_id == "scrapper_tank" and ability.id == ID_SCRAPPER_SHIELD:
 			w *= 0.15
+		## Field medic alone: prefer the weak attack over support.
+		if alone and enemy_id == "field_medic":
+			if ability.id == ID_MEDIC_SWING:
+				w *= 2.8
+			elif ability.infer_main_effect() in ["heal", "shield", "ally_buff"]:
+				w *= 0.3
 		## Deserter low HP: prefer defense in the weighted pool too.
 		if enemy_id == "corp_deserter" and enemy.get_hp_ratio() < 0.5:
 			if ability.id in [ID_DESERTER_SHIELD, ID_DESERTER_EVASION]:
@@ -367,7 +386,7 @@ static func _is_ability_still_usable(enemy: EnemyInstance, ability: EnemyAbility
 		return false
 	if enemy.find_ability(ability.id) == null:
 		return false
-	if enemy.is_ability_on_cooldown(ability):
+	if not enemy.can_use_ability(ability):
 		return false
 	if ability.type == EnemyAbility.AbilityType.MULTI_HIT:
 		return _can_use_desperate_attack(enemy, ability)
@@ -375,7 +394,7 @@ static func _is_ability_still_usable(enemy: EnemyInstance, ability: EnemyAbility
 
 
 static func _can_use_desperate_attack(enemy: EnemyInstance, ability: EnemyAbility) -> bool:
-	if enemy.is_ability_on_cooldown(ability):
+	if not enemy.can_use_ability(ability):
 		return false
 	var threshold := ability.hp_threshold if ability.hp_threshold > 0.0 else DEFAULT_DESPERATE_HP_RATIO
 	return enemy.get_hp_ratio() <= threshold
@@ -384,7 +403,7 @@ static func _can_use_desperate_attack(enemy: EnemyInstance, ability: EnemyAbilit
 static func _pick_first_usable(enemy: EnemyInstance, ids: Array) -> EnemyAbility:
 	for id_variant in ids:
 		var ability := enemy.find_ability(str(id_variant))
-		if ability != null and not enemy.is_ability_on_cooldown(ability):
+		if ability != null and enemy.can_use_ability(ability):
 			return ability
 	return null
 

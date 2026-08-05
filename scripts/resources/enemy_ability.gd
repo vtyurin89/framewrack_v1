@@ -46,7 +46,13 @@ enum WeightClass {
 @export var cooldown_turns: int = 0
 @export var max_charges: int = -1
 @export var trigger_interval: int = 0
+## First combat act (1-based) when this ability may be chosen. Default 1 = always.
+@export var available_from_turn: int = 1
 @export var combat_text: String = ""
+
+
+func is_unlocked_for_act(act_number: int) -> bool:
+	return act_number >= maxi(1, available_from_turn)
 
 
 func get_localized_name() -> String:

@@ -126,6 +126,21 @@ func is_ability_on_cooldown(ability: EnemyAbility) -> bool:
 	return int(_ability_cooldowns.get(ability.id, 0)) > 0
 
 
+func get_current_act_number() -> int:
+	## 1-based act index; matches available_from_turn in abilities CSV.
+	return turns_taken + 1
+
+
+func is_ability_unlocked(ability: EnemyAbility) -> bool:
+	if ability == null:
+		return false
+	return ability.is_unlocked_for_act(get_current_act_number())
+
+
+func can_use_ability(ability: EnemyAbility) -> bool:
+	return is_ability_unlocked(ability) and not is_ability_on_cooldown(ability)
+
+
 func find_ability(ability_id: String) -> EnemyAbility:
 	var needle := ability_id.strip_edges()
 	if needle.is_empty():
@@ -253,7 +268,7 @@ func choose_ability() -> EnemyAbility:
 	for ability: EnemyAbility in abilities:
 		if ability == null or not ability.is_main_deck_ability():
 			continue
-		if is_ability_on_cooldown(ability):
+		if not can_use_ability(ability):
 			continue
 		deck.append(ability)
 	if deck.is_empty():

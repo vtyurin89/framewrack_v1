@@ -149,7 +149,7 @@ ABILITY_GUARD_DESC,Raises a makeshift guard.,Поднимает импровиз
 ABILITY_SIGNAL_SPIKE_NAME,Signal Spike,Сигнальный всплеск
 ABILITY_SIGNAL_SPIKE_DESC,A spike of corrupted current.,Всплеск искажённого потока.
 ABILITY_REPAIR_PULSE_NAME,Repair Pulse,Ремонтный пульс
-ABILITY_REPAIR_PULSE_DESC,Emergency self-suture protocols.,Аварийный саморемонт.
+ABILITY_REPAIR_PULSE_DESC,Heals self and all living allies for 3-4 + INT (2-turn cooldown).,Лечит себя и всех живых союзников на 3–4 + INT (перезарядка 2 хода).
 ABILITY_ENEMY_STUDY_NAME,Enemy Study,Изучение врага
 ABILITY_ENEMY_STUDY_DESC,Studies your frame every other turn and permanently gains Luck.,Каждый второй ход изучает ваш фрейм и навсегда повышает свою Удачу.
 ABILITY_ENEMY_STUDY_TEXT,Enemy Study,Изучение врага
@@ -160,6 +160,12 @@ ABILITY_PIPE_SWING_TEXT,Pipe Swing,Удар трубой
 ABILITY_GUARD_TEXT,Scrap Guard,Блок щитом из мусора
 ABILITY_SIGNAL_SPIKE_TEXT,Signal Spike,Сигнальный всплеск
 ABILITY_REPAIR_PULSE_TEXT,Repair Pulse,Ремонтный пульс
+ABILITY_MEDIC_SWING_NAME,Pipe Swing,Удар трубой
+ABILITY_MEDIC_SWING_DESC,A weak overhead smash with scrap pipe.,Слабый удар сверху хламовой трубой.
+ABILITY_MEDIC_SWING_TEXT,Pipe Swing,Удар трубой
+ABILITY_BUFF_STRENGTH_NAME,Combat Rally,Боевой подъём
+ABILITY_BUFF_STRENGTH_DESC,From turn 3: grants stacking +INT Strength to self and all living allies (3-turn cooldown).,С 3 хода: даёт стакающийся +INT к Силе себе и всем живым союзникам (перезарядка 3 хода).
+ABILITY_BUFF_STRENGTH_TEXT,Combat Rally,Боевой подъём
 ABILITY_SLAVER_SUMMON_NAME,Into the Fray!,В бой; шваль!
 ABILITY_SLAVER_SUMMON_DESC,Summons 1–2 branded slaves to fill the master's retinue.,Призывает 1–2 клеймённых рабов; добивая свиту хозяина.
 ABILITY_SLAVER_SUMMON_TEXT,Into the Fray!,В бой; шваль!

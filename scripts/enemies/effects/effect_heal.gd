@@ -1,6 +1,6 @@
 class_name EffectHeal
 extends AbilityEffect
-## Restores HP to the caster (self) or a living ally when target_type is ally.
+## Restores HP. target_type: self (default) | ally (random) | all_allies (self + living allies).
 
 
 func apply(caster: EnemyInstance, target: Node, params: Array) -> void:
@@ -17,15 +17,28 @@ func apply(caster: EnemyInstance, target: Node, params: Array) -> void:
 		caster.emit_crit_notice(enemy_index)
 	amount = maxi(0, amount)
 
-	var heal_target := caster
-	if ability.target_type.strip_edges().to_lower() == "ally" and target != null and target.has_method("get_random_living_ally"):
-		var ally: EnemyInstance = target.call("get_random_living_ally", caster)
-		if ally != null:
-			heal_target = ally
+	var subjects: Array[EnemyInstance] = []
+	match ability.target_type.strip_edges().to_lower():
+		"ally":
+			if target != null and target.has_method("get_random_living_ally"):
+				var ally: EnemyInstance = target.call("get_random_living_ally", caster)
+				if ally != null:
+					subjects.append(ally)
+			if subjects.is_empty():
+				subjects.append(caster)
+		"all_allies":
+			subjects.append(caster)
+			if target != null and target.get("enemies") is Array:
+				for enemy: EnemyInstance in target.enemies:
+					if enemy != null and enemy.is_alive() and enemy != caster:
+						subjects.append(enemy)
+		_:
+			subjects.append(caster)
 
-	var healed := heal_target.heal(amount)
-	EventBus.combat_log_message.emit(
-		tr("KEY_LOG_ENEMY_HEAL") % [heal_target.get_localized_name(), healed]
-	)
-	if target != null and target.has_method("emit_enemy_hp_for"):
-		target.call("emit_enemy_hp_for", heal_target)
+	for heal_target in subjects:
+		var healed := heal_target.heal(amount)
+		EventBus.combat_log_message.emit(
+			tr("KEY_LOG_ENEMY_HEAL") % [heal_target.get_localized_name(), healed]
+		)
+		if target != null and target.has_method("emit_enemy_hp_for"):
+			target.call("emit_enemy_hp_for", heal_target)

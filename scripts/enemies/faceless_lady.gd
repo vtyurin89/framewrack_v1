@@ -9,16 +9,13 @@ const PARASITE_ITEM_ID := "SLIMY_PARASITE"
 
 
 static func pick_scripted_ability(enemy: EnemyInstance, combat: Node) -> EnemyAbility:
-	## Parasite Injection from the enemy's 2nd act onward.
-	## turns_taken = completed acts (end_enemy_turn), so act 1 => 0; inject from >= 1.
+	## Parasite Injection once unlocked (available_from_turn on the ability CSV).
 	if enemy == null or enemy.data == null:
-		return null
-	if enemy.turns_taken < 1:
 		return null
 	if _player_has_parasite(combat):
 		return null
 	var inject := enemy.find_ability(ID_INJECT)
-	if inject != null and not enemy.is_ability_on_cooldown(inject):
+	if inject != null and enemy.can_use_ability(inject):
 		return inject
 	return null
 

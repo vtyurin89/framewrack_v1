@@ -261,6 +261,7 @@ func _parse_ability_row(row: PackedStringArray, col: Dictionary) -> EnemyAbility
 	ability.cooldown_turns = maxi(0, _parse_int(_cell(row, col, "cooldown_turns"), 0))
 	ability.max_charges = _parse_int(_cell(row, col, "max_charges"), -1)
 	ability.trigger_interval = maxi(0, _parse_int(_cell(row, col, "trigger_interval"), 0))
+	ability.available_from_turn = maxi(1, _parse_int(_cell(row, col, "available_from_turn"), 1))
 	if ability.type == EnemyAbility.AbilityType.PRE_ACTION:
 		ability.base_ai_weight = 0.0
 		if ability.trigger_interval <= 0:
