@@ -852,7 +852,9 @@ func _on_combat_ended_bus(victory: bool) -> void:
 		if player_stats != null:
 			player_stats.add_exp(gained_xp)
 		_status_banner.text = tr("KEY_STATUS_COMBAT_WIN")
-		## Open loot in the combat stage immediately (same window / Continue button).
+		## Let the final enemy finish fading before the loot stage swaps in.
+		if _combat_ui != null and _combat_ui.has_method("await_pending_death_fades"):
+			await _combat_ui.await_pending_death_fades()
 		if _encounter_combat_active:
 			_encounters.notify_combat_finished(true)
 	else:

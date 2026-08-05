@@ -61,16 +61,16 @@ theme_override_constants/separation = 8
 [node name="TopBar" type="HBoxContainer" parent="RootLayout"]
 unique_name_in_owner = true
 layout_mode = 2
-alignment = 1
+alignment = 0
 theme_override_constants/separation = 12
 script = ExtResource("8")
 
 [node name="HpBox" type="HBoxContainer" parent="RootLayout/TopBar"]
 layout_mode = 2
-size_flags_horizontal = 3
+size_flags_horizontal = 0
 size_flags_vertical = 4
 theme_override_constants/separation = 6
-alignment = 1
+alignment = 0
 
 [node name="HeartIcon" type="TextureRect" parent="RootLayout/TopBar/HpBox"]
 unique_name_in_owner = true
@@ -113,6 +113,11 @@ theme_override_font_sizes/font_size = 16
 text = "0"
 vertical_alignment = 1
 
+[node name="TopBarSpacer" type="Control" parent="RootLayout/TopBar"]
+layout_mode = 2
+size_flags_horizontal = 3
+mouse_filter = 2
+
 [node name="LevelLabel" type="Label" parent="RootLayout/TopBar"]
 unique_name_in_owner = true
 layout_mode = 2
@@ -121,7 +126,6 @@ theme_override_colors/font_color = Color(0.82, 0.82, 0.84, 1)
 theme_override_font_sizes/font_size = 13
 text = "Experience: 0/30"
 vertical_alignment = 1
-
 [node name="XPBar" type="ProgressBar" parent="RootLayout/TopBar"]
 unique_name_in_owner = true
 visible = false

@@ -40,5 +40,7 @@ func apply(caster: EnemyInstance, target: Node, params: Array) -> void:
 		EventBus.combat_log_message.emit(
 			tr("KEY_LOG_ENEMY_HEAL") % [heal_target.get_localized_name(), healed]
 		)
-		if target != null and target.has_method("emit_enemy_hp_for"):
+		if target != null and target.has_method("notify_enemy_healed"):
+			target.call("notify_enemy_healed", heal_target, healed)
+		elif target != null and target.has_method("emit_enemy_hp_for"):
 			target.call("emit_enemy_hp_for", heal_target)

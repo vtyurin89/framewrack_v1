@@ -25,7 +25,7 @@ var _player_stats: PlayerStats
 
 
 func _ready() -> void:
-	alignment = BoxContainer.ALIGNMENT_CENTER
+	alignment = BoxContainer.ALIGNMENT_BEGIN
 	if _heart_icon:
 		_heart_icon.texture = HEART_ICON
 		_heart_icon.expand_mode = TextureRect.EXPAND_IGNORE_SIZE

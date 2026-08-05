@@ -26,6 +26,7 @@ var _enemy_inspect: EnemyInspectUI
 var _enemy_context_menu: EnemyContextMenuUI
 var _intention_reveal_token: int = 0
 var _dying_indices: Dictionary = {}  # index -> true while fade in progress
+var _pending_death_fades: int = 0
 var _player_statuses_ui: StatusEffectsUI
 var _player_hp_initialized: bool = false
 var _last_ap: int = -1
@@ -84,6 +85,7 @@ func _ready() -> void:
 	EventBus.block_changed.connect(_on_block_changed)
 	EventBus.combat_log_message.connect(_on_log)
 	EventBus.enemy_hp_changed.connect(_on_enemy_hp)
+	EventBus.enemy_healed.connect(_on_enemy_healed)
 	EventBus.enemy_selected.connect(_on_enemy_selected)
 	EventBus.enemy_roster_changed.connect(_rebuild_enemies)
 	EventBus.combat_started.connect(_on_combat_started)
@@ -114,6 +116,7 @@ func setup(p_combat: Node, p_inventory: InventoryController) -> void:
 	_end_turn_btn.visible = true
 	_end_turn_btn.disabled = false
 	_dying_indices.clear()
+	_pending_death_fades = 0
 	_player_hp_initialized = false
 	_apply_static_locale()
 	_on_hp_changed(inventory.current_hp, inventory.max_hp)
@@ -130,7 +133,8 @@ func _bind_combat_presentation() -> void:
 		combat.bind_presentation(
 			Callable(self, "play_enemy_attack_animation"),
 			Callable(self, "play_enemy_flee_animation"),
-			Callable(self, "play_player_hit_feedback")
+			Callable(self, "play_player_hit_feedback"),
+			Callable(self, "play_enemy_cast_animation")
 		)
 
 
@@ -148,6 +152,14 @@ func play_enemy_flee_animation(enemy_index: int) -> void:
 		return
 	if card.has_method("play_flee_animation"):
 		await card.play_flee_animation()
+
+
+func play_enemy_cast_animation(enemy_index: int) -> void:
+	var card := _find_card_by_index(enemy_index)
+	if card == null or not is_instance_valid(card):
+		return
+	if card.has_method("play_cast_animation"):
+		await card.play_cast_animation()
 
 
 func play_player_hit_feedback(_dealt: int = 0) -> void:
@@ -389,6 +401,7 @@ func _ensure_enemy_inspect() -> void:
 func _rebuild_enemies() -> void:
 	_intention_reveal_token += 1
 	_dying_indices.clear()
+	_pending_death_fades = 0
 	for child in _enemy_row.get_children():
 		child.queue_free()
 	if combat == null:
@@ -715,6 +728,7 @@ func _spawn_block_float_text(text: String) -> void:
 
 func _on_combat_started(_enemy_ids: Array) -> void:
 	_dying_indices.clear()
+	_pending_death_fades = 0
 	_player_hp_initialized = false
 	_last_ap = -1
 	_last_block = -1
@@ -818,6 +832,7 @@ func _on_enemy_died(index: int) -> void:
 	if card == null:
 		return
 	_dying_indices[index] = true
+	_pending_death_fades += 1
 	card.play_death_fade()
 
 
@@ -827,7 +842,8 @@ func _on_card_death_fade_finished(card: EnemyCardUI) -> void:
 	var enemy := card.get_enemy()
 	var old_index := card.enemy_index
 	_dying_indices.erase(old_index)
-	## Quiet remove — card already queue_free's itself; avoid full roster rebuild.
+	_pending_death_fades = maxi(0, _pending_death_fades - 1)
+	## Quiet remove — keep empty slot; avoid full roster rebuild.
 	if enemy != null and combat.has_method("remove_enemy_instance"):
 		combat.remove_enemy_instance(enemy, false)
 	elif combat.has_method("remove_enemy_at"):
@@ -837,6 +853,16 @@ func _on_card_death_fade_finished(card: EnemyCardUI) -> void:
 		_on_enemy_selected(combat.target_index)
 
 
+func await_pending_death_fades() -> void:
+	## Used after last-kill victory so the reward screen waits for the fade-out.
+	## enemy_died is emitted before combat_ended, so pending fades should already be tracked.
+	if _pending_death_fades <= 0 and _dying_indices.is_empty():
+		await get_tree().process_frame
+	while _pending_death_fades > 0 or not _dying_indices.is_empty():
+		await get_tree().process_frame
+
+
+
 func _on_enemy_hp(index: int, current: int, maximum: int) -> void:
 	if _dying_indices.get(index, false):
 		return
@@ -844,6 +870,16 @@ func _on_enemy_hp(index: int, current: int, maximum: int) -> void:
 	if card == null:
 		return
 	card.set_hp(current, maximum)
+
+
+func _on_enemy_healed(index: int, amount: int) -> void:
+	if amount <= 0 or _dying_indices.get(index, false):
+		return
+	var card := _find_card_by_index(index)
+	if card == null or not is_instance_valid(card):
+		return
+	if card.has_method("play_heal_effect"):
+		card.play_heal_effect(amount)
 
 
 func _on_log(text: String) -> void:
@@ -991,6 +1027,8 @@ func _spawn_floating_combat_text(host: Control, text: String, kind: String) -> v
 			label.add_theme_color_override("font_color", Color(1.0, 0.55, 0.35))
 		"block":
 			label.add_theme_color_override("font_color", BLOCK_FLASH_GAIN)
+		"heal":
+			label.add_theme_color_override("font_color", Color(0.45, 1.0, 0.55))
 		_:
 			label.add_theme_color_override("font_color", Color(0.92, 0.94, 1.0))
 	host.add_child(label)

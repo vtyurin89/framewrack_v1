@@ -45,7 +45,9 @@ var awaiting_forced_insertion: bool = false
 var _play_enemy_attack_fx: Callable
 var _play_enemy_flee_fx: Callable
 var _play_player_hit_fx: Callable
+var _play_enemy_cast_fx: Callable
 const ENEMY_ACTION_GAP := 0.25
+const ENEMY_HEAL_BEAT := 0.4
 
 
 func setup(p_inventory: InventoryController, p_stats: PlayerStats = null) -> void:
@@ -55,10 +57,16 @@ func setup(p_inventory: InventoryController, p_stats: PlayerStats = null) -> voi
 	_ensure_ability_executor()
 
 
-func bind_presentation(attack_fx: Callable, flee_fx: Callable, player_hit_fx: Callable) -> void:
+func bind_presentation(
+	attack_fx: Callable,
+	flee_fx: Callable,
+	player_hit_fx: Callable,
+	cast_fx: Callable = Callable()
+) -> void:
 	_play_enemy_attack_fx = attack_fx
 	_play_enemy_flee_fx = flee_fx
 	_play_player_hit_fx = player_hit_fx
+	_play_enemy_cast_fx = cast_fx
 
 
 func _ensure_ability_executor() -> void:
@@ -756,8 +764,24 @@ func _enemy_main_action_phase_async(index: int, enemy: EnemyInstance) -> void:
 	enemy.clear_intention()
 	EventBus.enemy_intention_changed.emit(index, enemy.current_intention)
 
-	## Rust miss: skip damaging effects (still show a brief telegraph lunge if offensive).
+	var is_heal := _ability_is_heal(ability)
 	var offensive := _ability_is_offensive(ability)
+
+	## Support / mass heal: cast pulse, then resolve (heal FX via notify_enemy_healed).
+	if is_heal:
+		await _await_enemy_cast_fx(index)
+		if enemy.statuses != null and enemy.statuses.roll_rust_fail():
+			EventBus.combat_log_message.emit(
+				tr("KEY_LOG_RUST_MISS") % enemy.get_localized_name()
+			)
+			_request_player_popup(0, "rust", false, true)
+			return
+		if ability != null:
+			_ability_executor.execute(enemy, index, ability)
+		await get_tree().create_timer(ENEMY_HEAL_BEAT).timeout
+		return
+
+	## Offensive: telegraph lunge, then resolve damage / hit feedback.
 	if offensive:
 		await _await_enemy_attack_fx(index)
 
@@ -772,6 +796,14 @@ func _enemy_main_action_phase_async(index: int, enemy: EnemyInstance) -> void:
 		_ability_executor.execute(enemy, index, ability)
 	else:
 		_enemy_act_legacy_fallback(index, enemy)
+
+
+func _ability_is_heal(ability: EnemyAbility) -> bool:
+	if ability == null:
+		return false
+	if ability.type == EnemyAbility.AbilityType.HEAL:
+		return true
+	return ability.infer_main_effect() == "heal"
 
 
 func _ability_is_offensive(ability: EnemyAbility) -> bool:
@@ -796,6 +828,11 @@ func _await_enemy_attack_fx(index: int) -> void:
 func _await_enemy_flee_fx(index: int) -> void:
 	if _play_enemy_flee_fx.is_valid():
 		await _play_enemy_flee_fx.call(index)
+
+
+func _await_enemy_cast_fx(index: int) -> void:
+	if _play_enemy_cast_fx.is_valid():
+		await _play_enemy_cast_fx.call(index)
 
 
 func _enemy_pre_turn_phase(index: int, enemy: EnemyInstance) -> bool:
@@ -878,11 +915,10 @@ func _enemy_start_turn_phase(index: int, enemy: EnemyInstance) -> void:
 	var result: Dictionary = enemy.statuses.tick_positive_statuses()
 	var heal_amt: int = int(result.get("heal", 0))
 	if heal_amt > 0:
-		enemy.heal(heal_amt)
-		EventBus.enemy_hp_changed.emit(index, enemy.current_hp, enemy.max_hp)
-		_request_enemy_popup(index, heal_amt, "heal")
+		var healed := enemy.heal(heal_amt)
+		notify_enemy_healed(enemy, healed)
 		EventBus.combat_log_message.emit(
-			tr("KEY_LOG_ENEMY_HEAL") % [enemy.get_localized_name(), heal_amt]
+			tr("KEY_LOG_ENEMY_HEAL") % [enemy.get_localized_name(), healed]
 		)
 
 
@@ -990,6 +1026,17 @@ func emit_enemy_hp_for(enemy: EnemyInstance) -> void:
 	if idx < 0:
 		return
 	EventBus.enemy_hp_changed.emit(idx, enemy.current_hp, enemy.max_hp)
+
+
+func notify_enemy_healed(enemy: EnemyInstance, amount: int) -> void:
+	## Called from EffectHeal after each healed subject (self / ally / mass heal).
+	var idx := enemies.find(enemy)
+	if idx < 0:
+		return
+	EventBus.enemy_hp_changed.emit(idx, enemy.current_hp, enemy.max_hp)
+	EventBus.enemy_healed.emit(idx, maxi(amount, 0))
+	if amount > 0:
+		_request_enemy_popup(idx, amount, "heal")
 
 
 func add_summoned_enemy(instance: EnemyInstance) -> void:

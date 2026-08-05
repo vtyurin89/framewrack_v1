@@ -1,9 +1,10 @@
 class_name GhostProgressBar
 extends Control
-## StS-style dual HP bar: instant red main + delayed yellow ghost drain.
+## StS-style dual HP bar: smooth main fill (damage + heal) + delayed yellow ghost drain.
 
 const GHOST_HOLD := 0.2
 const GHOST_TWEEN_DURATION := 0.45
+const MAIN_TWEEN_DURATION := 0.4
 
 @export var bar_min_size: Vector2 = Vector2(170, 20)
 @export var show_label: bool = true
@@ -12,6 +13,7 @@ var _ghost: ProgressBar
 var _main: ProgressBar
 var _label: Label
 var _ghost_tween: Tween
+var _main_tween: Tween
 var _hold_timer: SceneTreeTimer
 var _current: float = 0.0
 var _maximum: float = 1.0
@@ -89,24 +91,47 @@ func _apply_styles() -> void:
 	_main.add_theme_stylebox_override("fill", main_fill)
 
 
-func set_hp(current_hp: int, max_hp: int, animate: bool = true) -> void:
+func set_hp_animated(new_hp: int, max_hp: int, duration: float = MAIN_TWEEN_DURATION) -> void:
+	set_hp(new_hp, max_hp, true, duration)
+
+
+func set_hp(
+	current_hp: int, max_hp: int, animate: bool = true, duration: float = MAIN_TWEEN_DURATION
+) -> void:
 	_ensure_built()
 	var maximum := float(maxi(max_hp, 1))
 	var current := float(clampi(current_hp, 0, int(maximum)))
 	var previous_main := _main.value if _main.max_value > 0.0 else current
+	var is_heal := current > previous_main + 0.01
+	var is_damage := current < previous_main - 0.01
 
 	_maximum = maximum
 	_current = current
 	_main.max_value = maximum
 	_ghost.max_value = maximum
-	_main.value = current
 	if _label:
 		_label.text = "%d/%d" % [int(current), int(maximum)]
 
-	if not animate or current >= previous_main:
-		## Heal / init — snap ghost up with main.
+	if not animate:
+		_kill_main_tween()
 		_kill_ghost_tween()
+		_main.value = current
 		_ghost.value = current
+		return
+
+	## Smooth main fill in both directions.
+	_tween_main_to(current, duration)
+
+	if is_heal or not is_damage:
+		## Heal / init — bring ghost up with the main fill.
+		_kill_ghost_tween()
+		if is_heal:
+			_ghost_tween = create_tween()
+			_ghost_tween.set_trans(Tween.TRANS_SINE)
+			_ghost_tween.set_ease(Tween.EASE_OUT)
+			_ghost_tween.tween_property(_ghost, "value", current, duration)
+		else:
+			_ghost.value = current
 		return
 
 	## Damage: keep ghost high briefly, then ease down to main.
@@ -127,6 +152,14 @@ func get_maximum() -> int:
 	return int(_maximum)
 
 
+func _tween_main_to(target: float, duration: float) -> void:
+	_kill_main_tween()
+	_main_tween = create_tween()
+	_main_tween.tween_property(_main, "value", target, maxf(0.01, duration)).set_trans(
+		Tween.TRANS_SINE
+	).set_ease(Tween.EASE_OUT)
+
+
 func _schedule_ghost_drain() -> void:
 	_kill_ghost_tween()
 	var tree := get_tree()
@@ -145,6 +178,12 @@ func _tween_ghost_to_main() -> void:
 	_ghost_tween.set_trans(Tween.TRANS_QUAD)
 	_ghost_tween.set_ease(Tween.EASE_OUT)
 	_ghost_tween.tween_property(_ghost, "value", _current, GHOST_TWEEN_DURATION)
+
+
+func _kill_main_tween() -> void:
+	if _main_tween != null and _main_tween.is_valid():
+		_main_tween.kill()
+	_main_tween = null
 
 
 func _kill_ghost_tween() -> void:

@@ -22,6 +22,10 @@ const ATTACK_LUNGE_SCALE := 1.25
 const ATTACK_LUNGE_Y := 18.0
 const FLEE_DURATION := 0.5
 const FLEE_SLIDE_X := 300.0
+const HEAL_FLASH_DURATION := 0.4
+const HEAL_FLASH_COLOR := Color(0.4, 1.3, 0.4, 1.0)
+const CAST_PULSE_DURATION := 0.28
+const CAST_PULSE_SCALE := 1.08
 const INTENTION_SCENE := preload("res://scenes/UI/enemy_intention_ui.tscn")
 const STATUS_EFFECTS_SCENE := preload("res://scenes/UI/status_effects_ui.tscn")
 
@@ -45,6 +49,7 @@ var _intention_ui: EnemyIntentionUI
 var _statuses_ui: StatusEffectsUI
 var _hit_fx_tween: Tween
 var _action_tween: Tween
+var _heal_tween: Tween
 var _filtered_texture_cache: Dictionary = {}
 
 
@@ -119,12 +124,84 @@ func set_hp(current: int, maximum: int, animate: bool = true) -> void:
 	var max_hp := maxi(maximum, 1)
 	var cur := clampi(current, 0, max_hp)
 	if _ghost_hp:
-		_ghost_hp.set_hp(cur, max_hp, animate)
+		if animate:
+			_ghost_hp.set_hp_animated(cur, max_hp)
+		else:
+			_ghost_hp.snap_hp(cur, max_hp)
 	if cur <= 0:
 		mouse_filter = Control.MOUSE_FILTER_IGNORE
 	else:
-		modulate = Color.WHITE
+		if not (_heal_tween != null and _heal_tween.is_valid()):
+			modulate = Color.WHITE
 		mouse_filter = Control.MOUSE_FILTER_STOP
+
+
+func play_heal_effect(amount: int) -> void:
+	## Green flash + floating +N for heals / mass repair.
+	if _is_dying or _has_fled:
+		return
+	if _heal_tween != null and _heal_tween.is_valid():
+		_heal_tween.kill()
+	modulate = HEAL_FLASH_COLOR
+	_heal_tween = create_tween()
+	_heal_tween.tween_property(self, "modulate", Color.WHITE, HEAL_FLASH_DURATION).set_trans(
+		Tween.TRANS_SINE
+	).set_ease(Tween.EASE_OUT)
+	_spawn_heal_float(amount)
+
+
+func play_cast_animation() -> void:
+	## Soft support cast pulse (mass heal / buff wind-up).
+	if _is_dying or _has_fled:
+		return
+	var visual := _get_attack_visual()
+	if visual == null:
+		return
+	if _action_tween != null and _action_tween.is_valid():
+		_action_tween.kill()
+	var start_scale := visual.scale
+	visual.pivot_offset = visual.size * 0.5
+	visual.scale = Vector2.ONE
+	_action_tween = create_tween()
+	_action_tween.tween_property(
+		visual, "scale", Vector2(CAST_PULSE_SCALE, CAST_PULSE_SCALE), CAST_PULSE_DURATION * 0.45
+	).set_trans(Tween.TRANS_SINE).set_ease(Tween.EASE_OUT)
+	_action_tween.tween_property(visual, "scale", Vector2.ONE, CAST_PULSE_DURATION * 0.55).set_trans(
+		Tween.TRANS_SINE
+	).set_ease(Tween.EASE_IN_OUT)
+	await _action_tween.finished
+	if is_instance_valid(visual):
+		visual.scale = start_scale
+
+
+func _spawn_heal_float(amount: int) -> void:
+	var host := get_combat_text_host()
+	if host == null:
+		host = self
+	var label := Label.new()
+	label.text = "+%d" % maxi(amount, 0)
+	label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	label.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	label.z_index = 90
+	label.add_theme_font_size_override("font_size", 16)
+	label.add_theme_color_override("font_color", Color(0.45, 1.0, 0.55))
+	label.add_theme_color_override("font_outline_color", Color(0, 0, 0, 0.85))
+	label.add_theme_constant_override("outline_size", 4)
+	host.add_child(label)
+	await get_tree().process_frame
+	if not is_instance_valid(label):
+		return
+	var host_w := maxf(host.size.x, 80.0)
+	var label_w := label.get_minimum_size().x
+	label.position = Vector2((host_w - label_w) * 0.5, host.size.y * 0.35)
+	var start_y := label.position.y
+	var tween := host.create_tween()
+	tween.set_parallel(true)
+	tween.tween_property(label, "position:y", start_y - 42.0, 0.85).set_trans(Tween.TRANS_SINE).set_ease(
+		Tween.EASE_OUT
+	)
+	tween.tween_property(label, "modulate:a", 0.0, 0.85).set_delay(0.2)
+	tween.chain().tween_callback(label.queue_free)
 
 
 func set_intention(intention: CombatIntention, animate_transition: bool = false) -> void:
