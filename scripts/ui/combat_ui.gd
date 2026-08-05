@@ -9,6 +9,7 @@ signal continue_pressed
 const ENEMY_INSPECT_SCENE := preload("res://scenes/UI/enemy_inspect_ui.tscn")
 const ENEMY_CARD_SCENE := preload("res://scenes/UI/enemy_card_ui.tscn")
 const STATUS_EFFECTS_SCENE := preload("res://scenes/UI/status_effects_ui.tscn")
+const DAMAGE_VIGNETTE_SCENE := preload("res://scenes/UI/damage_vignette.tscn")
 const INTENTION_STAGGER_DELAY := 0.15
 
 const AP_FLASH_SPEND := Color(0.75, 0.95, 1.0)
@@ -38,6 +39,7 @@ var _hud_shake_tween: Tween
 var _hp_flash_tween: Tween
 var _stats_row_base_position: Vector2 = Vector2.ZERO
 var _hp_bar_base_modulate: Color = Color.WHITE
+var _damage_vignette: DamageVignette
 
 @onready var _enemy_row: HBoxContainer = %EnemyRow
 @onready var _loot_stage: Control = %LootStage
@@ -151,6 +153,25 @@ func play_enemy_flee_animation(enemy_index: int) -> void:
 func play_player_hit_feedback(_dealt: int = 0) -> void:
 	shake_hud()
 	_flash_player_hp_bar()
+	_flash_damage_vignette()
+
+
+func _ensure_damage_vignette() -> void:
+	if _damage_vignette != null and is_instance_valid(_damage_vignette):
+		return
+	_damage_vignette = DAMAGE_VIGNETTE_SCENE.instantiate() as DamageVignette
+	_damage_vignette.name = "DamageVignette"
+	## Attach to the scene root so CanvasLayer covers the whole viewport.
+	var host: Node = get_tree().current_scene
+	if host == null:
+		host = self
+	host.add_child(_damage_vignette)
+
+
+func _flash_damage_vignette() -> void:
+	_ensure_damage_vignette()
+	if _damage_vignette:
+		_damage_vignette.flash()
 
 
 func shake_hud() -> void:

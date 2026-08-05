@@ -201,6 +201,8 @@ func _apply_slimy_parasite_turn_damage() -> bool:
 		return true
 	var dealt := inventory.apply_damage(PARASITE_TURN_DAMAGE, 0)
 	_request_player_popup(dealt if dealt > 0 else PARASITE_TURN_DAMAGE, "poison")
+	if dealt > 0 or PARASITE_TURN_DAMAGE > 0:
+		_trigger_player_hit_feedback(maxi(dealt, PARASITE_TURN_DAMAGE))
 	EventBus.combat_log_message.emit(
 		tr("KEY_LOG_PARASITE_DAMAGE") % PARASITE_TURN_DAMAGE
 	)
@@ -238,6 +240,7 @@ func _player_pre_turn_phase() -> bool:
 		var dealt := inventory.apply_damage(dmg, 0)
 		var dtype := _infer_status_dot_type(result)
 		_request_player_popup(dealt if dealt > 0 else dmg, dtype)
+		_trigger_player_hit_feedback(maxi(dealt, dmg))
 		EventBus.combat_log_message.emit(tr("KEY_LOG_STATUS_DOT") % [tr("KEY_STATUS_DOT"), dmg, dealt])
 		EventBus.player_hp_changed.emit(inventory.current_hp, inventory.max_hp)
 		if inventory.is_dead():
