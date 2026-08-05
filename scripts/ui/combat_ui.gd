@@ -14,8 +14,6 @@ const INTENTION_STAGGER_DELAY := 0.15
 const AP_FLASH_SPEND := Color(0.75, 0.95, 1.0)
 const AP_FLASH_DENY := Color(1.0, 0.25, 0.25)
 const BLOCK_FLASH_GAIN := Color("3498db")
-const BLOCK_PASSIVE_POS := Color(0.88, 0.88, 0.92, 1)
-const BLOCK_PASSIVE_NEG := Color(0.92, 0.28, 0.28, 1)
 
 var combat: Node  # CombatManager
 var inventory: InventoryController
@@ -31,6 +29,7 @@ var _ap_base_color: Color = Color(0.95, 0.95, 0.97)
 var _block_base_color: Color = Color(0.88, 0.88, 0.92)
 var _ap_juice_tween: Tween
 var _block_juice_tween: Tween
+var _last_passive_armor: int = 0
 
 @onready var _enemy_row: HBoxContainer = %EnemyRow
 @onready var _loot_stage: Control = %LootStage
@@ -39,7 +38,7 @@ var _block_juice_tween: Tween
 @onready var _hp_label: Label = %HPLabel
 @onready var _ap_label: Label = %APLabel
 @onready var _block_label: Label = %BlockLabel
-@onready var _block_passive_label: Label = %BlockPassiveLabel
+@onready var _block_passive_label: SmoothCounter = %BlockPassiveLabel
 @onready var _turn_label: Label = %TurnLabel
 @onready var _log: RichTextLabel = %CombatLog
 @onready var _log_modal: Control = %CombatLogModal
@@ -447,30 +446,34 @@ func _on_block_changed(amount: int) -> void:
 		_reset_block_visuals(0)
 
 
-func _refresh_block_passive_hint() -> void:
+func _refresh_block_passive_hint(animated: bool = true) -> void:
 	if _block_passive_label == null:
 		return
-	var passive := 0
-	if combat != null and combat.get("inventory") != null:
-		var inv: InventoryController = combat.inventory as InventoryController
-		if inv != null and inv.grid != null:
-			## Unclamped so crowded same-row layouts can surface as a red penalty.
-			passive = TraitManager.calc_total_spatial_passive_armor(inv.grid, false)
-	if passive == 0:
-		_block_passive_label.visible = false
-		_block_passive_label.text = ""
-		return
-	_block_passive_label.visible = true
-	if passive > 0:
-		_block_passive_label.text = "(+%d)" % passive
-		_block_passive_label.add_theme_color_override("font_color", BLOCK_PASSIVE_POS)
+	var passive := _calc_current_passive_armor()
+	if animated:
+		## Always drive SmoothCounter; it no-ops visually only when value is unchanged.
+		_block_passive_label.set_value_animated(passive)
 	else:
-		_block_passive_label.text = "(%d)" % passive
-		_block_passive_label.add_theme_color_override("font_color", BLOCK_PASSIVE_NEG)
+		_block_passive_label.set_value_instant(passive)
+	_last_passive_armor = passive
+
+
+func _calc_current_passive_armor() -> int:
+	var grid: BodyGrid = null
+	if combat != null and combat.get("inventory") != null:
+		var combat_inv: InventoryController = combat.inventory as InventoryController
+		if combat_inv != null:
+			grid = combat_inv.grid
+	if grid == null and inventory != null:
+		grid = inventory.grid
+	if grid == null:
+		return 0
+	## Unclamped so crowded same-row layouts can surface as a red penalty.
+	return TraitManager.calc_total_spatial_passive_armor(grid, false)
 
 
 func _on_inventory_changed_for_block() -> void:
-	_refresh_block_passive_hint()
+	_refresh_block_passive_hint(true)
 
 
 func _prepare_stat_juice_hosts() -> void:
@@ -610,10 +613,13 @@ func _on_combat_started(_enemy_ids: Array) -> void:
 	_player_hp_initialized = false
 	_last_ap = -1
 	_last_block = -1
+	_last_passive_armor = 0
 	_kill_tween(_ap_juice_tween)
 	_kill_tween(_block_juice_tween)
 	_reset_ap_visuals()
 	_reset_block_visuals(0)
+	if _block_passive_label:
+		_block_passive_label.set_value_instant(0)
 	if _log:
 		_log.clear()
 	hide_combat_log()
@@ -624,6 +630,7 @@ func _on_combat_started(_enemy_ids: Array) -> void:
 	if inventory:
 		_on_hp_changed(inventory.current_hp, inventory.max_hp)
 	_rebuild_enemies()
+	## Keep counter at 0 here; first turn / block update animates 0 -> passive.
 
 
 func _on_turn_started(is_player: bool) -> void:
@@ -633,8 +640,12 @@ func _on_turn_started(is_player: bool) -> void:
 	if combat != null and _enemy_row.get_child_count() == 0 and not combat.enemies.is_empty():
 		_rebuild_enemies()
 	_sync_card_indices()
-	_refresh_block_passive_hint()
 	if is_player:
+		## Animate passive armor reveal each player turn start (block was just rebuilt).
+		if _block_passive_label:
+			_block_passive_label.set_value_instant(0)
+		_last_passive_armor = 0
+		_refresh_block_passive_hint(true)
 		for child in _enemy_row.get_children():
 			var card: EnemyCardUI = child as EnemyCardUI
 			if card == null:
@@ -646,6 +657,7 @@ func _on_turn_started(is_player: bool) -> void:
 					card.set_intention(enemy.current_intention)
 		_play_staggered_intention_reveal()
 	else:
+		_refresh_block_passive_hint(false)
 		_intention_reveal_token += 1
 		for child in _enemy_row.get_children():
 			var card: EnemyCardUI = child as EnemyCardUI

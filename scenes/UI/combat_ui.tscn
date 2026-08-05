@@ -1,7 +1,8 @@
-[gd_scene load_steps=3 format=3 uid="uid://bw_combat_ui"]
+[gd_scene load_steps=4 format=3 uid="uid://bw_combat_ui"]
 
 [ext_resource type="Script" path="res://scripts/ui/combat_ui.gd" id="1"]
 [ext_resource type="PackedScene" path="res://scenes/UI/ghost_progress_bar.tscn" id="2"]
+[ext_resource type="Script" path="res://scripts/ui/smooth_counter.gd" id="3"]
 
 [node name="CombatUI" type="Control"]
 layout_mode = 3
@@ -76,6 +77,10 @@ layout_mode = 2
 theme_override_colors/font_color = Color(0.88, 0.88, 0.92, 1)
 theme_override_font_sizes/font_size = 18
 text = ""
+script = ExtResource("3")
+hide_when_zero = true
+positive_color = Color(0.88, 0.88, 0.92, 1)
+negative_color = Color(0.92, 0.28, 0.28, 1)
 
 [node name="PlayerHPBar" parent="VBox" instance=ExtResource("2")]
 unique_name_in_owner = true
