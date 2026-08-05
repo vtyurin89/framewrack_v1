@@ -1,0 +1,74 @@
+{
+	"id": "raim_hollow_windows",
+	"title_key": "EVENT_RAIM_HOLLOW_WINDOWS_TITLE",
+	"god_name": "Hollow Windows",
+	"god_name_ru": "Пустые окна",
+	"image_path": "res://assets/sprites/story/raim_city.png",
+	"dialogs": {
+		"start": {
+			"narrator_text_en": "Night finds you on a narrow terrace of Ra'im. Across the void, hundreds of arched windows stare back — black mouths in beige stone, identical and wrong.\n\nSomething moves in one of them. Or your optics invent a silhouette because the silence asks for it.",
+			"narrator_text_ru": "Ночь застаёт вас на узкой террасе Ра'има. Через пустоту смотрят сотни арочных окон — чёрные рты в бежевом камне, одинаковые и неправильные.\n\nВ одном из них что-то шевелится. Или оптика сама рисует силуэт, потому что тишина этого требует.",
+			"speech_text_en": "",
+			"speech_text_ru": "",
+			"choices": [
+				{
+					"text_en": "Call out across the gap. [Humanity]",
+					"text_ru": "Окликнуть через пропасть. [Человечность]",
+					"next_dialog_id": "call_out",
+					"reward": { "type": "humanity", "amount": 1 }
+				},
+				{
+					"text_en": "Cross the thin bridge toward the light. [Neuro-Chips]",
+					"text_ru": "Перейти по тонкому мосту к свету. [Нейро-чипы]",
+					"next_dialog_id": "cross_bridge",
+					"reward": { "type": "neuro_chips", "amount": 50 }
+				},
+				{
+					"text_en": "Keep your lamps low and walk on.",
+					"text_ru": "Приглушить лампы и идти дальше.",
+					"next_dialog_id": "ignore",
+					"reward": null
+				}
+			]
+		},
+		"call_out": {
+			"narrator_text_en": "Your voice dies in the stone. A cough answers — human, raw, then gone. On the ledge below lies a folded scrap of cloth with a hand-drawn map of the lower tiers and a note: «Still people here. Don't become a window.»",
+			"narrator_text_ru": "Голос тонет в камне. В ответ — кашель: человеческий, сорванный, и снова тишина. На уступе ниже лежит сложенный лоскут с нарисованной картой нижних ярусов и запиской: «Люди ещё есть. Не становись окном.»",
+			"speech_text_en": "",
+			"speech_text_ru": "",
+			"choices": [
+				{
+					"text_en": "Pocket the map and move on",
+					"text_ru": "Забрать карту и идти дальше",
+					"next_dialog_id": "end_encounter"
+				}
+			]
+		},
+		"cross_bridge": {
+			"narrator_text_en": "The bridge sings under your weight. In the lit chamber beyond: an abandoned scavenger nest, still warm, and a cup of neuro-chips sorted by size. Whoever fled left the door ajar — and a clear view of your terrace from theirs.",
+			"narrator_text_ru": "Мост поёт под весом. В освещённой комнате за ним: брошенное гнездо мародёра, ещё тёплое, и чашка нейро-чипов, разложенных по размеру. Кто бежал, оставил дверь приоткрытой — и прямой обзор вашей террасы со своей.",
+			"speech_text_en": "",
+			"speech_text_ru": "",
+			"choices": [
+				{
+					"text_en": "Take the chips and leave",
+					"text_ru": "Взять чипы и уйти",
+					"next_dialog_id": "end_encounter"
+				}
+			]
+		},
+		"ignore": {
+			"narrator_text_en": "You do not look up again. Behind you, stone settles with a sound like distant applause. Ra'im keeps its secrets in hollow rooms — and sometimes that is a kindness.",
+			"narrator_text_ru": "Вы больше не поднимаете взгляд. Позади камень оседает звуком, похожим на далёкие аплодисменты. Ра'им хранит секреты в пустых комнатах — и иногда это милость.",
+			"speech_text_en": "",
+			"speech_text_ru": "",
+			"choices": [
+				{
+					"text_en": "Continue through Ra'im",
+					"text_ru": "Идти дальше по Ра'иму",
+					"next_dialog_id": "end_encounter"
+				}
+			]
+		}
+	}
+}

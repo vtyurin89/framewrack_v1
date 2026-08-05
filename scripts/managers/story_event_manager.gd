@@ -95,6 +95,10 @@ func get_next_event_for_act(act_index: int) -> StoryEvent:
 		var pulled: StoryEvent = queue.pop_back()
 		if pulled == null:
 			continue
+		if pulled.id == WHITE_FOG_ID and act_index < 2:
+			## Should not be in Act 1 queues; cycle past if present.
+			queue.push_front(pulled)
+			continue
 		if pulled.id == WHITE_FOG_ID and white_fog_event_triggered:
 			## Cycle past spent one-shot without re-queueing at front as "active".
 			queue.push_front(pulled)
@@ -157,13 +161,9 @@ func _rebuild_catalog() -> void:
 	_catalog.clear()
 	## Pale Maiden is a starting god (data/encounters/gods/), not a map event.
 	_register_event(WHITE_FOG_ID, StoryEvent.Faction.HUMAN, WHITE_FOG_ID, true)
-	## Lightweight faction fillers so act weight tables have material to draw from.
-	_register_event("human_echo_a", StoryEvent.Faction.HUMAN, "human_echo", false)
-	_register_event("human_echo_b", StoryEvent.Faction.HUMAN, "human_echo", false)
-	_register_event("robot_static_a", StoryEvent.Faction.ROBOT, "robot_static", false)
-	_register_event("robot_static_b", StoryEvent.Faction.ROBOT, "robot_static", false)
-	_register_event("chimera_whisper_a", StoryEvent.Faction.CHIMERA, "chimera_whisper", false)
-	_register_event("chimera_whisper_b", StoryEvent.Faction.CHIMERA, "chimera_whisper", false)
+	## Act 1 city beats — travel through the ruins of Ra'im.
+	_register_event("raim_great_ascent", StoryEvent.Faction.HUMAN, "raim_great_ascent", false)
+	_register_event("raim_hollow_windows", StoryEvent.Faction.HUMAN, "raim_hollow_windows", false)
 
 
 func _register_event(
@@ -188,6 +188,9 @@ func _build_queue_for_act(act_index: int) -> Array[StoryEvent]:
 		var ev: StoryEvent = _catalog[key]
 		if ev == null:
 			continue
+		## White Fog is Act 2+ only (post-Ra'im narrative beat).
+		if ev.id == WHITE_FOG_ID and act_index < 2:
+			continue
 		by_faction[ev.get_faction_key()].append(ev)
 
 	var queue: Array[StoryEvent] = []
@@ -196,8 +199,15 @@ func _build_queue_for_act(act_index: int) -> Array[StoryEvent]:
 		var faction_key := _roll_faction(weights)
 		var pool: Array = by_faction.get(faction_key, [])
 		if pool.is_empty():
-			## Fallback any catalog entry.
-			var all_keys: Array = _catalog.keys()
+			## Fallback any catalog entry allowed for this act.
+			var all_keys: Array = []
+			for catalog_key in _catalog.keys():
+				var candidate: StoryEvent = _catalog[catalog_key]
+				if candidate == null:
+					continue
+				if candidate.id == WHITE_FOG_ID and act_index < 2:
+					continue
+				all_keys.append(catalog_key)
 			if all_keys.is_empty():
 				break
 			var pick_id: String = str(all_keys[randi() % all_keys.size()])

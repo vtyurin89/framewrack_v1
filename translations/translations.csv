@@ -414,9 +414,8 @@ EVENT_SLEEPER_GOD_TITLE,Sleeper God,Спящий Бог
 EVENT_MOL_VAGRIT_TITLE,Mol-Vagrit — Eater of Legions,Мол-Вагрит — Пожиратель Легионов
 EVENT_PALE_MAIDEN_TITLE,Pale Maiden,Бледная дева
 EVENT_WHITE_FOG_TITLE,White Fog,Белый туман
-EVENT_HUMAN_ECHO_TITLE,Human Echo,Человеческое эхо
-EVENT_ROBOT_STATIC_TITLE,Robot Static,Роботический шум
-EVENT_CHIMERA_WHISPER_TITLE,Chimera Whisper,Шёпот химеры
+EVENT_RAIM_GREAT_ASCENT_TITLE,The Great Ascent,Великий подъём
+EVENT_RAIM_HOLLOW_WINDOWS_TITLE,Hollow Windows,Пустые окна
 ITEM_EYE_OF_PALE_MAIDEN_NAME,Eye of the Pale Maiden,Глаз Бледной девы
 ITEM_EYE_OF_PALE_MAIDEN_DESC,"+1 AP on combat turn 1. If adjacent to any weapon, -1 AP instead.","+1 ОД в первый ход боя. Если рядом с оружием — вместо этого -1 ОД."
 ITEM_FANG_OF_THE_FORGOTTEN_NAME,Fang of the Forgotten,Клык Забытой

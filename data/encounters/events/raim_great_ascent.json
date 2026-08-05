@@ -1,0 +1,74 @@
+{
+	"id": "raim_great_ascent",
+	"title_key": "EVENT_RAIM_GREAT_ASCENT_TITLE",
+	"god_name": "The Great Ascent",
+	"god_name_ru": "Великий подъём",
+	"image_path": "res://assets/sprites/story/raim_city.png",
+	"dialogs": {
+		"start": {
+			"narrator_text_en": "Ra'im rises ahead like a mountain carved into streets. A wide stone stair cuts the city in half — cracked, wind-scoured, still climbing toward a domed summit that no longer flies any banner.\n\nPilgrims once walked these steps. Now only dust and distant scrap-fires keep them company.",
+			"narrator_text_ru": "Ра'им встаёт впереди, будто гора, вырезанная в улицы. Широкая каменная лестница рассекает город пополам — треснувшая, выветренная, всё ещё ведущая к куполу на вершине, над которым давно не летает ни один стяг.\n\nКогда-то по этим ступеням шли паломники. Теперь им составляют компанию только пыль и далёкие костры из хлама.",
+			"speech_text_en": "",
+			"speech_text_ru": "",
+			"choices": [
+				{
+					"text_en": "Climb without rest. [Endurance]",
+					"text_ru": "Подниматься без остановок. [Выносливость]",
+					"next_dialog_id": "climb_hard",
+					"reward": { "type": "endurance", "amount": 1 }
+				},
+				{
+					"text_en": "Search niches along the stair. [Neuro-Chips]",
+					"text_ru": "Обыскать ниши вдоль лестницы. [Нейро-чипы]",
+					"next_dialog_id": "scavenge",
+					"reward": { "type": "neuro_chips", "amount": 15 }
+				},
+				{
+					"text_en": "Take a lower road around the climb.",
+					"text_ru": "Обойти подъём нижней дорогой.",
+					"next_dialog_id": "bypass",
+					"reward": null
+				}
+			]
+		},
+		"climb_hard": {
+			"narrator_text_en": "Your servos burn. Halfway up, the city opens beneath you — tier upon tier of empty arches, bridges thinner than hope. The effort settles into your frame like a quiet vow: keep going.",
+			"narrator_text_ru": "Сервоприводы горят. На середине подъёма город раскрывается под вами — ярус за ярусом пустых арок, мосты тоньше надежды. Усилие оседает в каркасе тихим обетом: идти дальше.",
+			"speech_text_en": "",
+			"speech_text_ru": "",
+			"choices": [
+				{
+					"text_en": "Continue through Ra'im",
+					"text_ru": "Идти дальше по Ра'иму",
+					"next_dialog_id": "end_encounter"
+				}
+			]
+		},
+		"scavenge": {
+			"narrator_text_en": "In a prayer alcove someone left a tin of neuro-chips and a child's shoe filled with sand. You take the chips. The shoe you leave facing the summit — old Ra'im superstition, or muscle memory.",
+			"narrator_text_ru": "В молитвенной нише кто-то оставил жестяную банку нейро-чипов и детский башмак, полный песка. Чипы вы берёте. Башмак оставляете носком к вершине — старое суеверие Ра'има или мышечная память.",
+			"speech_text_en": "",
+			"speech_text_ru": "",
+			"choices": [
+				{
+					"text_en": "Continue through Ra'im",
+					"text_ru": "Идти дальше по Ра'иму",
+					"next_dialog_id": "end_encounter"
+				}
+			]
+		},
+		"bypass": {
+			"narrator_text_en": "The lower road snakes through collapsed colonnades. You never see the dome again — only shadow and the soft grind of stone settling. Safer. Smaller. Still Ra'im.",
+			"narrator_text_ru": "Нижняя дорога вьётся сквозь рухнувшие колоннады. Купол вы больше не видите — только тень и тихий скрежет оседающего камня. Безопаснее. Мельче. Всё ещё Ра'им.",
+			"speech_text_en": "",
+			"speech_text_ru": "",
+			"choices": [
+				{
+					"text_en": "Continue through Ra'im",
+					"text_ru": "Идти дальше по Ра'иму",
+					"next_dialog_id": "end_encounter"
+				}
+			]
+		}
+	}
+}
