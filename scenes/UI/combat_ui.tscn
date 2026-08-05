@@ -58,12 +58,24 @@ theme_override_colors/font_color = Color(0.95, 0.95, 0.97, 1)
 theme_override_font_sizes/font_size = 18
 text = "AP 3 / 3"
 
-[node name="BlockLabel" type="Label" parent="VBox/StatsRow"]
+[node name="BlockCluster" type="HBoxContainer" parent="VBox/StatsRow"]
+layout_mode = 2
+theme_override_constants/separation = 4
+
+[node name="BlockLabel" type="Label" parent="VBox/StatsRow/BlockCluster"]
 unique_name_in_owner = true
 layout_mode = 2
 theme_override_colors/font_color = Color(0.88, 0.88, 0.92, 1)
 theme_override_font_sizes/font_size = 18
 text = "BLOCK 0"
+
+[node name="BlockPassiveLabel" type="Label" parent="VBox/StatsRow/BlockCluster"]
+unique_name_in_owner = true
+visible = false
+layout_mode = 2
+theme_override_colors/font_color = Color(0.88, 0.88, 0.92, 1)
+theme_override_font_sizes/font_size = 18
+text = ""
 
 [node name="PlayerHPBar" parent="VBox" instance=ExtResource("2")]
 unique_name_in_owner = true

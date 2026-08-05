@@ -69,9 +69,23 @@ static func apply_passive_armor_from_spatial_traits(
 			continue
 		if not grid.is_item_functional(placed):
 			continue
-		var trait_bonus := _calc_spatial_passive_armor(placed, grid)
+		var trait_bonus := _calc_spatial_passive_armor(placed, grid, true)
 		if trait_bonus > 0:
 			gain_block.call(trait_bonus, placed.data.get_localized_name())
+
+
+static func calc_total_spatial_passive_armor(grid: BodyGrid, clamp_non_negative: bool = true) -> int:
+	## Sum helmet/leg spatial bonuses. UI may pass clamp_non_negative=false to surface penalties.
+	if grid == null:
+		return 0
+	var total := 0
+	for placed: PlacedItem in grid.items:
+		if placed == null or placed.data == null:
+			continue
+		if not grid.is_item_functional(placed):
+			continue
+		total += _calc_spatial_passive_armor(placed, grid, clamp_non_negative)
+	return total
 
 
 static func _effective_armor(item: ItemData) -> int:
@@ -83,7 +97,11 @@ static func _effective_armor(item: ItemData) -> int:
 	return maxi(0, armor)
 
 
-static func _calc_spatial_passive_armor(placed: PlacedItem, grid: BodyGrid) -> int:
+static func _calc_spatial_passive_armor(
+	placed: PlacedItem,
+	grid: BodyGrid,
+	clamp_non_negative: bool = true
+) -> int:
 	var data := placed.data
 	var low_helmet := has_trait(data, "TRAIT_HELMET_LOW")
 	var high_helmet := has_trait(data, "TRAIT_HELMET_HIGH")
@@ -119,18 +137,25 @@ static func _calc_spatial_passive_armor(placed: PlacedItem, grid: BodyGrid) -> i
 
 	var base := int(floor(total_cells * factor))
 	var row_penalty := _count_same_row_penalty(placed, grid)
-	return maxi(0, base - row_penalty)
+	var result := base - row_penalty
+	if clamp_non_negative:
+		return maxi(0, result)
+	return result
 
 
 static func _count_same_row_penalty(origin_item: PlacedItem, grid: BodyGrid) -> int:
+	## Count same-type armor strictly to the right in this row (no mutual penalties).
 	var penalty := 0
 	var row := origin_item.origin.y
+	var origin_x := origin_item.origin.x
 	var is_helmet := origin_item.data.sub_type == "HELMET"
 	var is_leg := origin_item.data.sub_type == "LEG_ARMOR"
 	for other: PlacedItem in grid.items:
 		if other == null or other == origin_item or other.data == null:
 			continue
 		if other.origin.y != row:
+			continue
+		if other.origin.x <= origin_x:
 			continue
 		if is_helmet and other.data.sub_type == "HELMET":
 			penalty += 1

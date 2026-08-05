@@ -14,6 +14,8 @@ const INTENTION_STAGGER_DELAY := 0.15
 const AP_FLASH_SPEND := Color(0.75, 0.95, 1.0)
 const AP_FLASH_DENY := Color(1.0, 0.25, 0.25)
 const BLOCK_FLASH_GAIN := Color("3498db")
+const BLOCK_PASSIVE_POS := Color(0.88, 0.88, 0.92, 1)
+const BLOCK_PASSIVE_NEG := Color(0.92, 0.28, 0.28, 1)
 
 var combat: Node  # CombatManager
 var inventory: InventoryController
@@ -37,6 +39,7 @@ var _block_juice_tween: Tween
 @onready var _hp_label: Label = %HPLabel
 @onready var _ap_label: Label = %APLabel
 @onready var _block_label: Label = %BlockLabel
+@onready var _block_passive_label: Label = %BlockPassiveLabel
 @onready var _turn_label: Label = %TurnLabel
 @onready var _log: RichTextLabel = %CombatLog
 @onready var _log_modal: Control = %CombatLogModal
@@ -81,6 +84,7 @@ func _ready() -> void:
 	EventBus.enemy_intention_changed.connect(_on_enemy_intention_changed)
 	EventBus.enemy_died.connect(_on_enemy_died)
 	EventBus.damage_popup_requested.connect(_on_damage_popup_requested)
+	EventBus.inventory_changed.connect(_on_inventory_changed_for_block)
 	LocalizationManager.language_changed.connect(_on_language_changed)
 	_apply_static_locale()
 	_bind_damage_popup_manager()
@@ -427,6 +431,7 @@ func _on_hp_changed(current: int, maximum: int) -> void:
 
 func _on_block_changed(amount: int) -> void:
 	_block_label.text = tr("KEY_BLOCK_FMT") % [tr("KEY_BLOCK"), amount]
+	_refresh_block_passive_hint()
 	var previous := _last_block
 	_last_block = amount
 	if previous < 0:
@@ -440,6 +445,32 @@ func _on_block_changed(amount: int) -> void:
 			_play_block_expire_juice()
 	elif amount <= 0:
 		_reset_block_visuals(0)
+
+
+func _refresh_block_passive_hint() -> void:
+	if _block_passive_label == null:
+		return
+	var passive := 0
+	if combat != null and combat.get("inventory") != null:
+		var inv: InventoryController = combat.inventory as InventoryController
+		if inv != null and inv.grid != null:
+			## Unclamped so crowded same-row layouts can surface as a red penalty.
+			passive = TraitManager.calc_total_spatial_passive_armor(inv.grid, false)
+	if passive == 0:
+		_block_passive_label.visible = false
+		_block_passive_label.text = ""
+		return
+	_block_passive_label.visible = true
+	if passive > 0:
+		_block_passive_label.text = "(+%d)" % passive
+		_block_passive_label.add_theme_color_override("font_color", BLOCK_PASSIVE_POS)
+	else:
+		_block_passive_label.text = "(%d)" % passive
+		_block_passive_label.add_theme_color_override("font_color", BLOCK_PASSIVE_NEG)
+
+
+func _on_inventory_changed_for_block() -> void:
+	_refresh_block_passive_hint()
 
 
 func _prepare_stat_juice_hosts() -> void:
@@ -602,6 +633,7 @@ func _on_turn_started(is_player: bool) -> void:
 	if combat != null and _enemy_row.get_child_count() == 0 and not combat.enemies.is_empty():
 		_rebuild_enemies()
 	_sync_card_indices()
+	_refresh_block_passive_hint()
 	if is_player:
 		for child in _enemy_row.get_children():
 			var card: EnemyCardUI = child as EnemyCardUI

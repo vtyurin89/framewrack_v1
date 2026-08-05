@@ -586,7 +586,10 @@ func _try_announce_act_one() -> void:
 	if _run_flow == null or _run_flow.current_act != 1:
 		return
 	_act1_announced = true
-	var act_text := "Глава 1\nРазвалины Ра'има, города людей"
+	var act_text := "%s\n%s" % [
+		tr("KEY_ACT1_ANNOUNCE_TITLE"),
+		tr("KEY_ACT1_ANNOUNCE_SUBTITLE"),
+	]
 	_announcer_ui.announce_chapter(act_text)
 
 

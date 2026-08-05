@@ -346,13 +346,17 @@ TRAIT_REACTIVE_CLEANSE_DESC,Reactive weave dampens lingering corruption stress.,
 TRAIT_ARMOR_CORE_TRIGGER_NAME,Core Trigger,Триггер ядра
 TRAIT_ARMOR_CORE_TRIGGER_DESC,Activating this core triggers adjacent usable armor for free.,Активация ядра бесплатно активирует соседние активируемые элементы брони.
 TRAIT_HELMET_LOW_NAME,Lower Profile Helmet,Скрытный шлем
-TRAIT_HELMET_LOW_DESC,Passive armor scales with cells below (+0.5 each), penalty for same-row helmets.,Бонус к броне за каждую клетку снизу (+0.5), штраф за шлемы в том же ряду.
+TRAIT_HELMET_LOW_DESC,Passive armor scales with cells below (+0.5 each).,Бонус к броне за каждую клетку снизу (+0.5).
 TRAIT_HELMET_HIGH_NAME,Lower Profile Helmet+,Нижний профиль шлема+
-TRAIT_HELMET_HIGH_DESC,Passive armor scales with cells below (+1 each), penalty for same-row helmets.,Бонус к броне за каждую клетку снизу (+1), штраф за шлемы в том же ряду.
+TRAIT_HELMET_HIGH_DESC,Passive armor scales with cells below (+1 each).,Бонус к броне за каждую клетку снизу (+1).
 TRAIT_LEG_LOW_NAME,Upper Support Greaves,Поножи верхней опоры
-TRAIT_LEG_LOW_DESC,Passive armor scales with cells above (+0.5 each), penalty for same-row legs.,Бонус к броне за каждую клетку сверху (+0.5), штраф за броню для ног в том же ряду.
+TRAIT_LEG_LOW_DESC,Passive armor scales with cells above (+0.5 each).,Бонус к броне за каждую клетку сверху (+0.5).
 TRAIT_LEG_HIGH_NAME,Upper Support Greaves+,Поножи верхней опоры+
-TRAIT_LEG_HIGH_DESC,Passive armor scales with cells above (+1 each), penalty for same-row legs.,Бонус к броне за каждую клетку сверху (+1), штраф за броню для ног в том же ряду.
+TRAIT_LEG_HIGH_DESC,Passive armor scales with cells above (+1 each).,Бонус к броне за каждую клетку сверху (+1).
+TRAIT_HELMET_ROW_PENALTY_NAME,Crowded Helmet Row,Скученный ряд шлемов
+TRAIT_HELMET_ROW_PENALTY_DESC,"-1 passive armor for each other helmet to the right in the same row.","-1 к пассивной броне за каждый другой шлем справа в том же ряду."
+TRAIT_LEG_ROW_PENALTY_NAME,Crowded Greaves Row,Скученный ряд поножей
+TRAIT_LEG_ROW_PENALTY_DESC,"-1 passive armor for each other leg armor to the right in the same row.","-1 к пассивной броне за каждую другую броню ног справа в том же ряду."
 TRAIT_BIO_GEL_HEAL_NAME,Bio Gel Patch,Био-гелевая заплатка
 TRAIT_BIO_GEL_HEAL_DESC,Restore frame HP when consumed.,Восстанавливает ОЗ каркаса при применении.
 TRAIT_GIVE_AP_NAME,Adrenal Salt,Адреналиновая соль
@@ -433,3 +437,5 @@ KEY_LOG_PARASITE_ALREADY,%s finds a parasite already lodged in the frame.,%s о�
 ABILITY_FACELESS_INJECT_NAME,Parasite Injection,Инъекция паразита
 ABILITY_FACELESS_INJECT_DESC,Forces a Slimy Parasite into the Body Grid.,Вживляет Склизкого паразита в сетку тела.
 ABILITY_FACELESS_INJECT_TEXT,{name} opens a wet seam in the frame.,{name} разрывает влажный шов в каркасе.
+KEY_ACT1_ANNOUNCE_TITLE,Chapter 1,Глава 1
+KEY_ACT1_ANNOUNCE_SUBTITLE,"Ruins of Ra'im, City of Humans","Развалины Ра'има, города людей"

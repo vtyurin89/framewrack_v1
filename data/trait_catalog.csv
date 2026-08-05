@@ -15,10 +15,12 @@ TRAIT_SPIKES_OUTER,TRAIT_SPIKES_OUTER_NAME,TRAIT_SPIKES_OUTER_DESC,DAMAGE,2,Refl
 TRAIT_HEAT_DISSIPATION,TRAIT_HEAT_DISSIPATION_NAME,TRAIT_HEAT_DISSIPATION_DESC,ARMOR,2,Cooling loops improve armor output.
 TRAIT_REACTIVE_CLEANSE,TRAIT_REACTIVE_CLEANSE_NAME,TRAIT_REACTIVE_CLEANSE_DESC,ARMOR,1,Reactive weave shrugs off corruption residue.
 TRAIT_ARMOR_CORE_TRIGGER,TRAIT_ARMOR_CORE_TRIGGER_NAME,TRAIT_ARMOR_CORE_TRIGGER_DESC,,0,Activating core chains nearby usable armor.
-TRAIT_HELMET_LOW,TRAIT_HELMET_LOW_NAME,TRAIT_HELMET_LOW_DESC,,0,Passive: +0.5 armor per cell below; row crowding penalty applies.
-TRAIT_HELMET_HIGH,TRAIT_HELMET_HIGH_NAME,TRAIT_HELMET_HIGH_DESC,,0,Passive: +1 armor per cell below; row crowding penalty applies.
-TRAIT_LEG_LOW,TRAIT_LEG_LOW_NAME,TRAIT_LEG_LOW_DESC,,0,Passive: +0.5 armor per cell above; row crowding penalty applies.
-TRAIT_LEG_HIGH,TRAIT_LEG_HIGH_NAME,TRAIT_LEG_HIGH_DESC,,0,Passive: +1 armor per cell above; row crowding penalty applies.
+TRAIT_HELMET_LOW,TRAIT_HELMET_LOW_NAME,TRAIT_HELMET_LOW_DESC,,0,Passive: +0.5 armor per cell below.
+TRAIT_HELMET_HIGH,TRAIT_HELMET_HIGH_NAME,TRAIT_HELMET_HIGH_DESC,,0,Passive: +1 armor per cell below.
+TRAIT_LEG_LOW,TRAIT_LEG_LOW_NAME,TRAIT_LEG_LOW_DESC,,0,Passive: +0.5 armor per cell above.
+TRAIT_LEG_HIGH,TRAIT_LEG_HIGH_NAME,TRAIT_LEG_HIGH_DESC,,0,Passive: +1 armor per cell above.
+TRAIT_HELMET_ROW_PENALTY,TRAIT_HELMET_ROW_PENALTY_NAME,TRAIT_HELMET_ROW_PENALTY_DESC,,0,-1 passive armor per other helmet to the right in the same row.
+TRAIT_LEG_ROW_PENALTY,TRAIT_LEG_ROW_PENALTY_NAME,TRAIT_LEG_ROW_PENALTY_DESC,,0,-1 passive armor per other leg armor to the right in the same row.
 TRAIT_BIO_GEL_HEAL,TRAIT_BIO_GEL_HEAL_NAME,TRAIT_BIO_GEL_HEAL_DESC,,8,Heals 8 HP instantly when consumed.
 TRAIT_GIVE_AP,TRAIT_GIVE_AP_NAME,TRAIT_GIVE_AP_DESC,,2,Instantly restores 2 AP for the current turn.
 TRAIT_BURN_DAMAGE,TRAIT_BURN_DAMAGE_NAME,TRAIT_BURN_DAMAGE_DESC,,0,Hit damage comes from item min/max; applies 3 Burn to selected enemy.
