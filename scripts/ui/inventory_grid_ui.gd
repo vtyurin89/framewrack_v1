@@ -677,22 +677,28 @@ func begin_item_drag(item_ui: ItemUI) -> Dictionary:
 	return _drag
 
 
-func end_item_drag(_success: bool) -> void:
+func end_item_drag(_success: bool) -> bool:
 	if _drag.is_empty():
 		_suppress_refresh = false
 		_set_item_uis_pass_through(false)
 		_hide_hover_tooltip()
-		return
+		return false
 
 	var item: ItemData = _drag["item"]
 	var source := str(_drag.get("source", "grid"))
 	var committed := _drop_committed
 	## Any failed / off-grid drop cancels and snaps back.
 	if not committed:
-		if source == "space" and reward_handler != null and reward_handler.has_method("on_item_extracted_to_space"):
-			reward_handler.on_item_extracted_to_space(item, get_global_mouse_position())
+		if source == "space" and reward_handler != null:
+			if reward_handler.has_method("return_floating_to_space"):
+				reward_handler.return_floating_to_space(item, get_global_mouse_position())
+			elif reward_handler.has_method("on_item_extracted_to_space"):
+				reward_handler.on_item_extracted_to_space(item, get_global_mouse_position())
 		else:
 			_restore_drag_item()
+	elif source == "space" and reward_handler != null and reward_handler.has_method("recover_space_item_if_lost"):
+		## Catch rare lost-loot cases (committed without a grid placement).
+		reward_handler.recover_space_item_if_lost(item, get_global_mouse_position())
 	item_drag_ended.emit(item, committed)
 
 	_clear_highlights()
@@ -704,6 +710,7 @@ func end_item_drag(_success: bool) -> void:
 	_hide_hover_tooltip()
 	EventBus.inventory_changed.emit()
 	refresh()
+	return committed
 
 
 func _restore_drag_item() -> void:

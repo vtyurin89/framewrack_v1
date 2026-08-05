@@ -15,6 +15,8 @@ var inventory_ui: Node
 var _dragging: bool = false
 var _cell: float = CELL
 var _gap: float = GAP
+## Rest position in Space local coords (bob tween oscillates around this).
+var home_local: Vector2 = Vector2.ZERO
 
 
 func setup(p_item: ItemData, p_inventory_ui: Node, cell: float, gap: float) -> void:
@@ -76,9 +78,17 @@ func _get_drag_data(_at_position: Vector2) -> Variant:
 func _notification(what: int) -> void:
 	if what == NOTIFICATION_DRAG_END and _dragging:
 		_dragging = false
+		var committed := false
 		if inventory_ui != null and inventory_ui.has_method("end_item_drag"):
-			inventory_ui.end_item_drag(get_viewport().gui_is_drag_successful())
-		queue_free()
+			var result: Variant = inventory_ui.end_item_drag(
+				get_viewport().gui_is_drag_successful()
+			)
+			if typeof(result) == TYPE_BOOL:
+				committed = bool(result)
+		if committed:
+			## Inventory accepted the item — Space chip can go away.
+			queue_free()
+		## else: RewardScreen/ForcedItemScreen animates this wrap back home.
 
 
 func _can_drop_data(at_position: Vector2, data: Variant) -> bool:
