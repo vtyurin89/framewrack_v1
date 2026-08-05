@@ -17,6 +17,7 @@ const REST_SITE_SCENE := preload("res://scenes/UI/rest_site_ui.tscn")
 const SELECT_ITEM_SCENE := preload("res://scenes/UI/select_item_ui.tscn")
 const REWARD_SCREEN_SCENE := preload("res://scenes/UI/reward_screen.tscn")
 const FORCED_ITEM_SCREEN_SCENE := preload("res://scenes/UI/forced_item_screen.tscn")
+const ANNOUNCER_SCENE := preload("res://scenes/UI/announcer_ui.tscn")
 
 @onready var _map_ui: Control = %MapUI
 @onready var _inventory_ui: Control = %InventoryUI
@@ -52,9 +53,11 @@ var _rest_site_ui: RestSiteUI
 var _select_item_ui: SelectItemUI
 var _reward_screen: RewardScreen
 var _forced_item_screen: ForcedItemScreen
+var _announcer_ui: AnnouncerUI
 var _post_combat_reward_active: bool = false
 var _forced_insertion_active: bool = false
 var _encounter_combat_active: bool = false
+var _act1_announced: bool = false
 
 
 func _ready() -> void:
@@ -184,6 +187,10 @@ func _ensure_overlays() -> void:
 	if _settings == null:
 		_settings = SETTINGS_SCENE.instantiate() as SettingsModal
 		add_child(_settings)
+	if _announcer_ui == null:
+		_announcer_ui = ANNOUNCER_SCENE.instantiate() as AnnouncerUI
+		_announcer_ui.name = "AnnouncerUI"
+		add_child(_announcer_ui)
 
 
 func _on_language_changed(_locale: String) -> void:
@@ -417,6 +424,7 @@ func _reset_run_to_startup() -> void:
 	## STARTUP_SETUP: full HP, clear grid, starter weapon/armor/consumable, reset map/combat.
 	if _combat.has_method("abort_combat"):
 		_combat.abort_combat()
+	_act1_announced = false
 	if StoryEventManager != null:
 		StoryEventManager.reset_run()
 	_seed_starting_loadout()
@@ -563,9 +571,23 @@ func _on_run_map_changed(map_data: MapData) -> void:
 func _on_run_state_changed(_prev: RunFlowManager.RunState, new_state: RunFlowManager.RunState) -> void:
 	if new_state == RunFlowManager.RunState.MAP_VIEW:
 		_show_exploring()
+	elif new_state == RunFlowManager.RunState.ACT_INTRO:
+		_try_announce_act_one()
 	elif new_state == RunFlowManager.RunState.VICTORY:
 		_status_banner.text = tr("KEY_STATUS_RUN_COMPLETE")
 		_set_flow(GameFlowState.State.VICTORY)
+
+
+func _try_announce_act_one() -> void:
+	if _announcer_ui == null:
+		return
+	if _act1_announced:
+		return
+	if _run_flow == null or _run_flow.current_act != 1:
+		return
+	_act1_announced = true
+	var act_text := "Глава 1\nРазвалины Ра'има, города людей"
+	_announcer_ui.announce_chapter(act_text)
 
 
 func _on_encounter_started(data: EncounterData) -> void:

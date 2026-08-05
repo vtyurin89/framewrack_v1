@@ -7,6 +7,7 @@ signal placeholder_continue_pressed
 @export var scroll_damping: float = 0.2
 @export var canvas_min_y: float = -1900.0
 @export var canvas_max_y: float = 120.0
+@export var focus_scroll_time: float = 1.25
 
 @onready var _map_canvas: MapCanvas = $MapCanvas
 @onready var _placeholder_dialog: AcceptDialog = $PlaceholderDialog
@@ -14,6 +15,7 @@ signal placeholder_continue_pressed
 var _dragging: bool = false
 var _last_mouse_y: float = 0.0
 var _target_y: float = 0.0
+var _focus_tween: Tween
 
 
 func _ready() -> void:
@@ -36,6 +38,18 @@ func focus_layer(layer: int) -> void:
 	var focus_y := MapGenerator.CANVAS_HEIGHT - MapGenerator.BOTTOM_PADDING - float(layer) * MapGenerator.Y_SPACING
 	var target := size.y * 0.55 - focus_y
 	_target_y = clampf(target, canvas_min_y, canvas_max_y)
+	_play_focus_scroll()
+
+
+func _play_focus_scroll() -> void:
+	if _map_canvas == null:
+		return
+	if _focus_tween != null and _focus_tween.is_valid():
+		_focus_tween.kill()
+	_focus_tween = create_tween()
+	_focus_tween.tween_property(_map_canvas, "position:y", _target_y, maxf(0.01, focus_scroll_time)).set_trans(
+		Tween.TRANS_SINE
+	).set_ease(Tween.EASE_OUT)
 
 
 func show_placeholder(title: String, message: String) -> void:
@@ -46,6 +60,8 @@ func show_placeholder(title: String, message: String) -> void:
 
 
 func _process(_delta: float) -> void:
+	if _focus_tween != null and _focus_tween.is_valid():
+		return
 	var current := _map_canvas.position.y
 	var next := lerpf(current, _target_y, scroll_damping)
 	_map_canvas.position.y = clampf(next, canvas_min_y, canvas_max_y)
@@ -64,6 +80,8 @@ func _on_gui_input(event: InputEvent) -> void:
 			_dragging = mb.pressed
 			_last_mouse_y = mb.position.y
 	if event is InputEventMouseMotion and _dragging:
+		if _focus_tween != null and _focus_tween.is_valid():
+			_focus_tween.kill()
 		var mm := event as InputEventMouseMotion
 		var delta_y := mm.position.y - _last_mouse_y
 		_last_mouse_y = mm.position.y
