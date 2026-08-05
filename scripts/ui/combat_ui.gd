@@ -249,7 +249,10 @@ func _on_damage_popup_requested(
 	is_crit: bool,
 	is_miss: bool
 ) -> void:
-	if target_kind == "enemy" and not is_miss:
+	## Slash FX is for hits only — never on heals / repair popups.
+	var dtype := damage_type.strip_edges().to_lower()
+	var is_heal_popup := dtype in ["heal", "healing", "repair"]
+	if target_kind == "enemy" and not is_miss and not is_heal_popup:
 		var card := _find_card_by_index(enemy_index)
 		if card != null and card.has_method("play_hit_fx"):
 			card.play_hit_fx(is_crit)
