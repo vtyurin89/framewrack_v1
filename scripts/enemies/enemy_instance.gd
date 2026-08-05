@@ -92,12 +92,14 @@ func setup(blueprint: EnemyData) -> void:
 
 
 func begin_enemy_turn() -> void:
-	## Called once at the start of this enemy's act (pre-action phase).
-	turns_taken += 1
+	## Hook at act start. `turns_taken` counts completed acts (see end_enemy_turn).
+	pass
 
 
 func end_enemy_turn() -> void:
+	## Count this act as completed so planning and resolve share the same clock.
 	## Tick cooldowns after the main action so a 1-turn CD skips the next act.
+	turns_taken += 1
 	_tick_ability_cooldowns()
 
 
@@ -436,6 +438,20 @@ func clear_intention() -> void:
 	if current_intention == null:
 		current_intention = CombatIntention.new()
 	current_intention.clear()
+
+
+func mark_fleeing_next_turn() -> void:
+	## Apply fleeing status and lock the telegraph to flee (escape on next act start).
+	if statuses == null:
+		statuses = StatusController.new()
+	statuses.apply_status_by_id(StatusEffect.FLEEING, 1)
+	var flee_ability := find_ability("ABILITY_THIEF_FLEE")
+	if flee_ability != null:
+		planned_ability = flee_ability
+		current_intention = CombatIntention.from_ability(self, flee_ability)
+	else:
+		planned_ability = null
+		current_intention = CombatIntention.make_flee()
 
 
 func consume_planned_ability() -> EnemyAbility:

@@ -92,9 +92,12 @@ func setup(p_combat: Node, p_inventory: InventoryController) -> void:
 	inventory = p_inventory
 	_log.clear()
 	_reward_phase = false
+	_harmful_insertion_phase = false
 	if _loot_stage:
 		_loot_stage.visible = false
 	_continue_btn.visible = false
+	_continue_btn.disabled = false
+	_continue_btn.text = tr("KEY_CONTINUE")
 	_end_turn_btn.visible = true
 	_end_turn_btn.disabled = false
 	_dying_indices.clear()
@@ -722,7 +725,25 @@ func set_harmful_insertion_phase(active: bool) -> void:
 		_reward_phase = false
 	_apply_space_stage_layout(active, tr("KEY_FORCED_INSERT_BANNER"))
 	if _continue_btn:
-		_continue_btn.disabled = active  ## Enabled by ForcedItemScreen when placed.
+		if active:
+			_continue_btn.text = tr("KEY_CONTINUE")
+			_continue_btn.visible = true
+			_continue_btn.disabled = true  ## Enabled by ForcedItemScreen when placed.
+		else:
+			## Resume enemy/player turn — Continue belongs only to end-of-combat / rewards.
+			_continue_btn.visible = _reward_phase or _is_combat_ended()
+			if not _continue_btn.visible:
+				_continue_btn.disabled = false
+
+
+func _is_combat_ended() -> bool:
+	if combat == null:
+		return false
+	var s: Variant = combat.get("state")
+	if s == null:
+		return false
+	## CombatManager.CombatState.VICTORY / DEFEAT
+	return int(s) == 3 or int(s) == 4
 
 
 func set_continue_enabled(enabled: bool) -> void:
@@ -753,10 +774,10 @@ func _apply_space_stage_layout(active: bool, hint_text: String) -> void:
 		_end_turn_btn.visible = not active
 		if active:
 			_end_turn_btn.disabled = true
-	if _continue_btn:
-		_continue_btn.visible = true if active else _continue_btn.visible
-		if not active and not _reward_phase and not _harmful_insertion_phase:
-			_continue_btn.disabled = false
+	## Continue visibility is owned by set_reward_phase / set_harmful_insertion_phase /
+	## _on_combat_ended — only force-show while a space-stage overlay is active.
+	if _continue_btn and active:
+		_continue_btn.visible = true
 	if _hint_label:
 		if active:
 			_hint_label.visible = true

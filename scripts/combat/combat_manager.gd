@@ -37,6 +37,8 @@ var max_attackers_per_turn: int = 2
 var _attacker_slots_used: int = 0
 ## Counts completed player turn starts this combat (1 = first turn).
 var player_turn_index: int = 0
+## Slimy parasite already in the grid when combat began — skip DoT on turn 1.
+var _parasite_at_combat_start: bool = false
 ## Mid-enemy-turn pause while ForcedItemScreen is open.
 var awaiting_forced_insertion: bool = false
 
@@ -79,6 +81,7 @@ func start_combat(enemy_datas: Array[EnemyData], max_attackers: int = -1) -> voi
 		ids.append(data.id)
 	current_block = 0
 	player_turn_index = 0
+	_parasite_at_combat_start = _has_item_in_grid(SLIMY_PARASITE_ID)
 	_select_first_living_enemy()
 	EventBus.combat_started.emit(ids)
 	_begin_player_turn()
@@ -181,6 +184,9 @@ func _has_item_in_grid(item_id: String) -> bool:
 func _apply_slimy_parasite_turn_damage() -> bool:
 	## Returns false if the player dies from parasite damage.
 	if not _has_item_in_grid(SLIMY_PARASITE_ID) or inventory == null:
+		return true
+	## Parasite already lodged at combat start: first tick is turn 2 (grace on turn 1).
+	if _parasite_at_combat_start and player_turn_index <= 1:
 		return true
 	var dealt := inventory.apply_damage(PARASITE_TURN_DAMAGE, 0)
 	_request_player_popup(dealt if dealt > 0 else PARASITE_TURN_DAMAGE, "poison")
@@ -720,7 +726,6 @@ func _enemy_pre_turn_phase(index: int, enemy: EnemyInstance) -> bool:
 		EventBus.combat_log_message.emit(
 			tr("KEY_LOG_ENEMY_STUNNED") % enemy.get_localized_name()
 		)
-		enemy.begin_enemy_turn()
 		enemy.clear_intention()
 		EventBus.enemy_intention_changed.emit(index, enemy.current_intention)
 		enemy.end_enemy_turn()
@@ -904,8 +909,8 @@ func _on_enemy_defeated(enemy: EnemyInstance, _index: int) -> void:
 	if enemy.data != null and enemy.data.id.strip_edges().to_lower() == "faceless_lady":
 		if StoryEventManager != null:
 			StoryEventManager.mark_faceless_lady_defeated()
-	## Summoned creatures flee immediately when their master dies.
-	_flee_summons_of(enemy)
+	## Summoned creatures break and prepare to flee when their master dies.
+	_break_summons_of(enemy)
 
 
 func _apply_on_hit_weapon_statuses(placed: PlacedItem, enemy_index: int) -> void:
@@ -916,32 +921,28 @@ func _apply_on_hit_weapon_statuses(placed: PlacedItem, enemy_index: int) -> void
 		apply_status_to_enemy(enemy_index, "poison", maxi(1, stacks))
 
 
-func _flee_summons_of(master: EnemyInstance) -> void:
+func _break_summons_of(master: EnemyInstance) -> void:
+	## Master down → minions get fleeing + flee intention; escape on their next act start.
 	if master == null:
 		return
-	var fleeing: Array[EnemyInstance] = []
 	for other: EnemyInstance in enemies:
 		if other == null or not other.is_alive() or other == master:
 			continue
 		if not other.is_summoned_creature():
 			continue
-		if other.get_summoner() == master or (
+		if other.get_summoner() != master and not (
 			other.get_summoner() == null and master.data != null and master.data.id == "slaver_master"
 		):
-			fleeing.append(other)
-	for minion in fleeing:
-		EventBus.combat_log_message.emit(
-			tr("KEY_LOG_SUMMON_FLED") % [minion.get_localized_name(), master.get_localized_name()]
-		)
-		minion.stolen_chips = 0
-		if minion.statuses != null:
-			minion.statuses.clear_combat_statuses()
-		minion.current_hp = 0
-		var idx := enemies.find(minion)
+			continue
+		if other.statuses != null and other.statuses.has_status(StatusEffect.FLEEING):
+			continue
+		other.mark_fleeing_next_turn()
+		var idx := enemies.find(other)
 		if idx >= 0:
-			minion.clear_intention()
-			EventBus.enemy_intention_changed.emit(idx, minion.current_intention)
-			EventBus.enemy_died.emit(idx)
+			EventBus.enemy_intention_changed.emit(idx, other.current_intention)
+		EventBus.combat_log_message.emit(
+			tr("KEY_LOG_SUMMON_FLED") % [other.get_localized_name(), master.get_localized_name()]
+		)
 
 
 func apply_player_status(status_id: String, potency: int) -> void:

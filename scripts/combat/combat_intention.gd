@@ -21,6 +21,8 @@ var heal_value: int = 0
 ## Entries: { "type": String, "stacks": int }
 var applied_debuffs: Array[Dictionary] = []
 var is_secret: bool = false
+## Telegraph-only flee (e.g. broken summons without a flee ability row).
+var is_flee: bool = false
 var source_ability: EnemyAbility = null
 
 
@@ -52,6 +54,7 @@ func clear() -> void:
 	heal_value = 0
 	applied_debuffs.clear()
 	is_secret = false
+	is_flee = false
 	source_ability = null
 
 
@@ -89,6 +92,8 @@ func get_damage_text() -> String:
 func get_icon_glyph() -> String:
 	if is_secret:
 		return "?"
+	if is_flee:
+		return "👢"
 	if source_ability != null:
 		var effect := source_ability.infer_main_effect()
 		if effect == "flee":
@@ -170,6 +175,7 @@ static func from_ability(enemy: EnemyInstance, ability: EnemyAbility) -> CombatI
 			intent.is_secret = true
 		"flee":
 			intent.primary_type = Type.BUFF
+			intent.is_flee = true
 		"steal_chips":
 			intent.primary_type = Type.ATTACK
 			intent.damage_range = _apply_damage_mult(scaled)
@@ -194,6 +200,13 @@ static func make_secret() -> CombatIntention:
 	var intent := CombatIntention.new()
 	intent.primary_type = Type.SECRET
 	intent.is_secret = true
+	return intent
+
+
+static func make_flee() -> CombatIntention:
+	var intent := CombatIntention.new()
+	intent.primary_type = Type.BUFF
+	intent.is_flee = true
 	return intent
 
 

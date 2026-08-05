@@ -372,7 +372,10 @@ func _start_combat_from_ids(
 
 	datas = _apply_cripple_buff_to_enemies(datas)
 	if StoryEventManager != null:
-		datas = StoryEventManager.maybe_inject_faceless_lady(datas)
+		var act_index := 1
+		if active_encounter != null:
+			act_index = maxi(1, int(active_encounter.payload.get("act", 1)))
+		datas = StoryEventManager.maybe_inject_faceless_lady(datas, act_index)
 	_awaiting_combat_resolution = true
 	if combat != null and combat.has_method("set_group_attack_cap"):
 		combat.call("set_group_attack_cap", max_attackers)

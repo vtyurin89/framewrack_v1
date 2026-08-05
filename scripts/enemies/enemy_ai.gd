@@ -35,8 +35,6 @@ static func trigger_pre_action_phase(enemy: EnemyInstance) -> Dictionary:
 	if enemy == null or not enemy.is_alive():
 		return result
 
-	enemy.begin_enemy_turn()
-
 	var pre: EnemyAbility = _pick_ready_pre_action(enemy)
 	if pre == null:
 		return result
@@ -105,6 +103,12 @@ static func commit_main_action(
 	if enemy == null or not enemy.is_alive():
 		if enemy != null:
 			enemy.planned_ability = null
+		return result
+
+	## Broken summons / pocket thief scout: keep flee telegraph while fleeing.
+	if enemy.statuses != null and enemy.statuses.has_status("fleeing"):
+		enemy.mark_fleeing_next_turn()
+		result["ability"] = enemy.planned_ability
 		return result
 
 	var desperate := _get_desperate_if_ready(enemy)
@@ -196,7 +200,9 @@ static func _pick_ready_pre_action(enemy: EnemyInstance) -> EnemyAbility:
 		var interval := ability.trigger_interval if ability.trigger_interval > 0 else DEFAULT_STUDY_INTERVAL
 		if interval <= 0:
 			continue
-		if enemy.turns_taken % interval != 0:
+		## turns_taken = completed acts; current act number is turns_taken + 1.
+		## Interval 2 => acts 2, 4, 6… (same as the old start-of-turn counter).
+		if (enemy.turns_taken + 1) % interval != 0:
 			continue
 		candidates.append(ability)
 	if candidates.is_empty():
@@ -262,8 +268,8 @@ static func _ai_corp_deserter(enemy: EnemyInstance, combat: Node) -> EnemyAbilit
 
 
 static func _ai_pocket_thief(enemy: EnemyInstance, combat: Node) -> EnemyAbility:
-	## turns_taken is the count of turns already started. Planning before turn N means
-	## turns_taken == N-1. Turn 3 = scout (fleeing). Turn 4+ = flee ability fallback.
+	## turns_taken = completed acts (incremented in end_enemy_turn).
+	## Act 3 = scout (fleeing). Act 4+ = flee (or immediate flee while fleeing).
 	if enemy.statuses != null and enemy.statuses.has_status("fleeing"):
 		var flee := enemy.find_ability(ID_THIEF_FLEE)
 		if flee != null:

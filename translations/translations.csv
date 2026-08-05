@@ -137,7 +137,7 @@ KEY_LOG_ENEMY_FLED,%s flees with %d Neuro-Chips!,%s сбегает с %d ней�
 KEY_LOG_CHIPS_RECOVERED,%s: recovered %d Neuro-Chips.,%s: возвращено %d нейро-чипов.
 KEY_LOG_CHIPS_GAINED,Gained %d Neuro-Chips.,Получено нейро-чипов: %d.
 KEY_NEURO_CHIPS,Neuro-Chips,Нейро-чипы
-KEY_LOG_SUMMON_FLED,%s flees as %s falls.,%s бежит — %s пал.
+KEY_LOG_SUMMON_FLED,%s panics as %s falls and prepares to flee.,%s впадает в панику — %s пал — и готовится бежать.
 KEY_LOG_EVASION_NEGATE,Evasion! The hit is negated.,Уклонение! Удар поглощён.
 KEY_LOG_EVASION_NEGATE_ENEMY,%s evades the hit!,%s уклоняется от удара!
 KEY_ABILITY_PRE_ACTION_FMT,Pre-action every %d turns (permanent +1 Luck).,Преддействие каждые %d хода (постоянно +1 Удача).

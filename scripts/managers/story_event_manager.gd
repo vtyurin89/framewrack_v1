@@ -39,12 +39,16 @@ func reset_run() -> void:
 
 func mark_pale_maiden_pact() -> void:
 	pale_maiden_pact_made = true
-	faceless_lady_spawned = true
 	flags_changed.emit()
 
 
 func mark_white_fog_triggered() -> void:
 	white_fog_event_triggered = true
+	flags_changed.emit()
+
+
+func mark_faceless_lady_spawned() -> void:
+	faceless_lady_spawned = true
 	flags_changed.emit()
 
 
@@ -122,8 +126,12 @@ func build_encounter_for_act(act_index: int) -> EncounterData:
 	return encounter
 
 
-func maybe_inject_faceless_lady(enemy_datas: Array[EnemyData]) -> Array[EnemyData]:
-	## Optionally append / replace with Faceless Lady when pact is active.
+func maybe_inject_faceless_lady(
+	enemy_datas: Array[EnemyData], act_index: int = 1
+) -> Array[EnemyData]:
+	## Optionally append / replace with Faceless Lady when pact is active (Act 2+ only).
+	if act_index < 2:
+		return enemy_datas
 	if not can_spawn_faceless_lady():
 		return enemy_datas
 	if EnemyDatabase == null or not EnemyDatabase.has_enemy(FACELESS_LADY_ID):
@@ -141,6 +149,7 @@ func maybe_inject_faceless_lady(enemy_datas: Array[EnemyData]) -> Array[EnemyDat
 		out[out.size() - 1] = lady
 	else:
 		out.append(lady)
+	mark_faceless_lady_spawned()
 	return out
 
 

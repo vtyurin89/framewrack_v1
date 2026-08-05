@@ -134,6 +134,9 @@ func generate_encounter(faction: String, budget: int) -> Array[EnemyData]:
 			continue
 		if EnemyManager.is_summon_only(enemy.id):
 			continue
+		## Story-only elite (Faceless Lady) is injected separately — never budget-packed.
+		if enemy.id.strip_edges().to_lower() == "faceless_lady":
+			continue
 		working.append(enemy)
 	if working.is_empty():
 		working = pool.duplicate()
