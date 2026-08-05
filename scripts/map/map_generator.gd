@@ -39,7 +39,7 @@ static func generate_for_act(act_data: ActData) -> MapData:
 	var prev_by_col: Dictionary = {}  ## int grid_x -> MapNodeData
 	var layer1_types: Dictionary = {}
 	for col in LAYER1_COLUMNS:
-		var node_type := _pick_middle_type(act_data, 1, layer1_types)
+		var node_type := _type_for_pre_boss_or_roll(act_data, 1, boss_layer, layer1_types)
 		layer1_types[node_type] = int(layer1_types.get(node_type, 0)) + 1
 		var node := _create_node(act_data, 1, col, node_type)
 		out.nodes[node.id] = node
@@ -53,7 +53,9 @@ static func generate_for_act(act_data: ActData) -> MapData:
 		var next_by_col: Dictionary = {}
 		var layer_type_counts: Dictionary = {}
 		for col in next_cols:
-			var node_type := _pick_middle_type(act_data, layer, layer_type_counts)
+			var node_type := _type_for_pre_boss_or_roll(
+				act_data, layer, boss_layer, layer_type_counts
+			)
 			layer_type_counts[node_type] = int(layer_type_counts.get(node_type, 0)) + 1
 			var node := _create_node(act_data, layer, col, node_type)
 			out.nodes[node.id] = node
@@ -516,6 +518,19 @@ static func _title_key_for_type(kind: EncounterData.EncounterType) -> String:
 			return "KEY_TYPE_STAIRS"
 		_:
 			return ""
+
+
+static func _type_for_pre_boss_or_roll(
+	act_data: ActData,
+	layer: int,
+	boss_layer: int,
+	layer_type_counts: Dictionary
+) -> MapNodeData.MapNodeType:
+	## Hard rule: every node that feeds the act boss is a repair site.
+	## Overrides weighted rolls / early-act REPAIR exclusions.
+	if layer == boss_layer - 1:
+		return MapNodeData.MapNodeType.REPAIR
+	return _pick_middle_type(act_data, layer, layer_type_counts)
 
 
 static func _pick_middle_type(

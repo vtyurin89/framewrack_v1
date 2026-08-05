@@ -8,6 +8,7 @@ signal encounter_completed(rewards: Dictionary)
 signal request_combat(enemy_datas: Array, encounter: EncounterData)
 signal request_show_dialog(dialog: DialogEventData, encounter: EncounterData)
 signal request_show_placeholder(encounter: EncounterData, message_key: String)
+signal request_show_rest_site(encounter: EncounterData)
 signal request_item_selection(item_pool: Array, title: String)
 signal item_selection_resolved(item: ItemData)
 signal request_post_combat_rewards(encounter: EncounterData)
@@ -281,11 +282,7 @@ func _launch_by_type(data: EncounterData) -> void:
 				else:
 					_finish_encounter(_pending_rewards)
 		EncounterData.EncounterType.REST_SITE:
-			if inventory:
-				inventory.grid.clear_all_corruption()
-				inventory.heal_full()
-			_pending_rewards["message_key"] = "KEY_STATUS_REPAIR"
-			_finish_encounter(_pending_rewards)
+			request_show_rest_site.emit(data)
 		EncounterData.EncounterType.CHEST:
 			_grant_item(str(data.payload.get("item_id", "BIO_GEL")))
 			_pending_rewards["message_key"] = "KEY_STATUS_CHEST"
@@ -524,6 +521,41 @@ func _apply_unknown_defaults(data: EncounterData) -> void:
 			data.payload["item_id"] = "BIO_GEL"
 		_:
 			pass
+
+
+func apply_rest_heal(fraction: float = 0.3) -> int:
+	## Rest-site option: restore a fraction of Max HP (clamped to full).
+	if inventory == null:
+		return 0
+	var gained := inventory.heal_percent(fraction)
+	_pending_rewards["message_key"] = "KEY_STATUS_REPAIR"
+	_pending_rewards["healed"] = gained
+	_pending_rewards["rest_choice"] = "heal"
+	return gained
+
+
+func apply_rest_remove_harmful() -> int:
+	## Rest-site option: cut every harmful / parasitic module out of the frame.
+	if inventory == null:
+		return 0
+	var removed := inventory.remove_all_harmful_items()
+	if removed > 0 and player_stats != null and inventory.grid != null:
+		player_stats.recalculate_from_equipment(inventory.grid)
+	_pending_rewards["message_key"] = "KEY_STATUS_REPAIR"
+	_pending_rewards["harmful_removed"] = removed
+	_pending_rewards["rest_choice"] = "extract"
+	return removed
+
+
+func complete_rest_site() -> void:
+	## Called by RestSiteUI after the player presses Continue.
+	if active_encounter == null:
+		return
+	if active_encounter.type != EncounterData.EncounterType.REST_SITE:
+		return
+	if not _pending_rewards.has("message_key"):
+		_pending_rewards["message_key"] = "KEY_STATUS_REPAIR"
+	_finish_encounter(_pending_rewards)
 
 
 func _apply_heal(amount: int) -> void:

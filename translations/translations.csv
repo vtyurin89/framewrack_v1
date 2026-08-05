@@ -225,7 +225,14 @@ KEY_DETAILS_EMPTY,Hover a grafted module to inspect it.,Наведите на в
 KEY_STASH_TOOLTIP_FMT,%s  [%dx%d]%s | %s,%s  [%dx%d]%s | %s
 KEY_STATUS_ONLINE,FRAMEWRACK — graft modules; then enter the sector.,FRAMEWRACK — встройте модули и войдите в сектор.
 KEY_STATUS_MUTATED,Body grid mutated — new cells grafted (placeholder flesh/bone).,Сетка тела мутировала — добавлены новые клетки (заглушка плоть/кость).
-KEY_STATUS_REPAIR,Repair bench: corruption cleared; frame restored.,Ремонтный верстак: разложение снято; фрейм восстановлен.
+KEY_STATUS_REPAIR,Repair bench used. Frame adjusted.,Ремонтный верстак использован. Фрейм подправлен.
+KEY_REST_SITE_PROMPT,"A working workbench remains here. What will I do?","Здесь остался рабочий верстак. Что я буду делать?"
+KEY_REST_OPTION_HEAL,Restore 30% HP,Восстановить 30% здоровья
+KEY_REST_OPTION_EXTRACT,Remove harmful modules,Удалить вредоносные модули
+KEY_REST_HOVER_HEAL,Restore 30% HP ({0}).,Восстановить 30% здоровья ({0}).
+KEY_REST_HOVER_EXTRACT,Remove harmful modules.,Удалить вредоносные модули.
+KEY_REST_RESULT_HEAL,Restored {0} HP.,Восстановлено ОЗ: {0}.
+KEY_REST_RESULT_EXTRACT,Removed {0} harmful module(s).,Удалено вредоносных модулей: {0}.
 KEY_STATUS_EVENT,Mutation Cache: scavenged Rebel Cleaver (+10 HP).,Кэш мутации: найден Тесак повстанца (+10 ОЗ).
 KEY_STATUS_ENGAGEMENT,ENGAGEMENT — %s,СТОЛКНОВЕНИЕ — %s
 KEY_STATUS_COMBAT_WIN,Combat resolved. Continue when ready.,Бой завершён. Продолжайте; когда будете готовы.

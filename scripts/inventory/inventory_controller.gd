@@ -188,6 +188,32 @@ func heal_full() -> void:
 	EventBus.player_hp_changed.emit(current_hp, max_hp)
 
 
+func heal_percent(fraction: float) -> int:
+	## Heal up to `fraction` of max HP, never past max. Returns actual HP gained.
+	if fraction <= 0.0:
+		return 0
+	var amount := maxi(1, int(floor(float(max_hp) * fraction)))
+	var before := current_hp
+	current_hp = mini(max_hp, current_hp + amount)
+	var gained := current_hp - before
+	if gained > 0:
+		EventBus.player_hp_changed.emit(current_hp, max_hp)
+	return gained
+
+
+func remove_all_harmful_items() -> int:
+	## Strip every is_harmful module from the body grid. Returns how many were removed.
+	if grid == null:
+		return 0
+	var to_remove: Array[PlacedItem] = []
+	for placed: PlacedItem in grid.items:
+		if placed != null and placed.data != null and placed.data.is_harmful:
+			to_remove.append(placed)
+	for placed in to_remove:
+		grid.remove_item(placed, true)
+	return to_remove.size()
+
+
 func is_dead() -> bool:
 	return current_hp <= 0
 

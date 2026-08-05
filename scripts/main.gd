@@ -13,6 +13,7 @@ const MAIN_MENU_SCENE := preload("res://scenes/UI/main_menu.tscn")
 const GAME_OVER_SCENE := preload("res://scenes/UI/game_over_ui.tscn")
 const SETTINGS_SCENE := preload("res://scenes/UI/settings_modal.tscn")
 const DIALOG_EVENT_SCENE := preload("res://scenes/UI/dialog_event_ui.tscn")
+const REST_SITE_SCENE := preload("res://scenes/UI/rest_site_ui.tscn")
 const SELECT_ITEM_SCENE := preload("res://scenes/UI/select_item_ui.tscn")
 const REWARD_SCREEN_SCENE := preload("res://scenes/UI/reward_screen.tscn")
 const FORCED_ITEM_SCREEN_SCENE := preload("res://scenes/UI/forced_item_screen.tscn")
@@ -47,6 +48,7 @@ var _inventory_combat_docked: bool = false
 @onready var _run_flow: RunFlowManager = $RunFlowManager
 
 var _dialog_event_ui: DialogEventUI
+var _rest_site_ui: RestSiteUI
 var _select_item_ui: SelectItemUI
 var _reward_screen: RewardScreen
 var _forced_item_screen: ForcedItemScreen
@@ -68,6 +70,7 @@ func _ready() -> void:
 	_encounters.request_combat.connect(_on_encounter_request_combat)
 	_encounters.request_show_dialog.connect(_on_encounter_request_dialog)
 	_encounters.request_show_placeholder.connect(_on_encounter_placeholder)
+	_encounters.request_show_rest_site.connect(_on_encounter_request_rest_site)
 	_encounters.request_item_selection.connect(_on_encounter_request_item_selection)
 	_encounters.request_post_combat_rewards.connect(_on_encounter_request_post_combat_rewards)
 	_style_body_grid_pane()
@@ -420,6 +423,8 @@ func _reset_run_to_startup() -> void:
 	_encounter_combat_active = false
 	if _dialog_event_ui != null and is_instance_valid(_dialog_event_ui):
 		_dialog_event_ui.close_dialog()
+	if _rest_site_ui != null and is_instance_valid(_rest_site_ui):
+		_rest_site_ui.close_rest_site()
 	_inventory_ui.setup(inventory)
 	if _inventory_ui.has_method("bind_player_stats"):
 		_inventory_ui.bind_player_stats(player_stats)
@@ -611,6 +616,17 @@ func _on_encounter_request_dialog(dialog: DialogEventData, encounter: EncounterD
 		_dialog_event_ui.start_event(dialog)
 
 
+func _on_encounter_request_rest_site(_encounter: EncounterData) -> void:
+	_ensure_rest_site_ui()
+	if _rest_site_ui == null:
+		_encounters.complete_rest_site()
+		return
+	_rest_site_ui.bind(inventory, _encounters)
+	await get_tree().process_frame
+	_layout_rest_site_under_top_bar()
+	_rest_site_ui.open_rest_site()
+
+
 func _on_encounter_placeholder(_encounter: EncounterData, message_key: String) -> void:
 	if not message_key.is_empty():
 		_status_banner.text = tr(message_key)
@@ -715,6 +731,17 @@ func _ensure_dialog_event_ui() -> void:
 		resized.connect(_on_main_resized_for_dialog)
 
 
+func _ensure_rest_site_ui() -> void:
+	if _rest_site_ui != null and is_instance_valid(_rest_site_ui):
+		return
+	_rest_site_ui = REST_SITE_SCENE.instantiate() as RestSiteUI
+	_rest_site_ui.name = "RestSiteUI"
+	add_child(_rest_site_ui)
+	_rest_site_ui.continue_pressed.connect(_on_rest_site_continue)
+	if not resized.is_connected(_on_main_resized_for_dialog):
+		resized.connect(_on_main_resized_for_dialog)
+
+
 func _layout_dialog_event_under_top_bar() -> void:
 	if _dialog_event_ui == null or not is_instance_valid(_dialog_event_ui):
 		return
@@ -725,9 +752,26 @@ func _layout_dialog_event_under_top_bar() -> void:
 	_dialog_event_ui.layout_below_top_bar(_gameplay_hud, pad)
 
 
+func _layout_rest_site_under_top_bar() -> void:
+	if _rest_site_ui == null or not is_instance_valid(_rest_site_ui):
+		return
+	var pad := 0.0
+	if _root_layout:
+		pad = float(_root_layout.get_theme_constant("separation"))
+	_rest_site_ui.layout_below_top_bar(_gameplay_hud, pad)
+
+
+func _on_rest_site_continue() -> void:
+	if _inventory_ui:
+		_inventory_ui.refresh()
+	_encounters.complete_rest_site()
+
+
 func _on_main_resized_for_dialog() -> void:
 	if _dialog_event_ui != null and _dialog_event_ui.visible:
 		_layout_dialog_event_under_top_bar()
+	if _rest_site_ui != null and _rest_site_ui.visible:
+		_layout_rest_site_under_top_bar()
 
 
 func _on_end_turn() -> void:
