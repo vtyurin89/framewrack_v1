@@ -1,17 +1,26 @@
 class_name ItemRarityData
 extends Resource
 ## Rarity tier used by adjacency rules and loot / UI tinting.
-## Framewrack uses exactly 3 tiers: COMMON / UNCOMMON / RARE.
+## Framewrack uses 4 tiers: COMMON / UNCOMMON / RARE / VERY_RARE.
 
 enum Tier {
 	COMMON,
 	UNCOMMON,
 	RARE,
+	VERY_RARE,
 }
 
 const COLOR_COMMON := Color("#BDC3C7")
 const COLOR_UNCOMMON := Color("#3498DB")
 const COLOR_RARE := Color("#F1C40F")
+const COLOR_VERY_RARE := Color("#9B59B6")
+
+const RARITY_COLORS := {
+	Tier.COMMON: COLOR_COMMON,
+	Tier.UNCOMMON: COLOR_UNCOMMON,
+	Tier.RARE: COLOR_RARE,
+	Tier.VERY_RARE: COLOR_VERY_RARE,
+}
 
 @export var id: String = ""
 @export var rarity_name_key: String = ""
@@ -30,28 +39,31 @@ func get_tier() -> Tier:
 	match id.strip_edges().to_lower():
 		"uncommon":
 			return Tier.UNCOMMON
-		"rare", "very_rare":
-			## Legacy very_rare maps into the 3-tier RARE bucket.
+		"rare":
 			return Tier.RARE
+		"very_rare":
+			return Tier.VERY_RARE
 		_:
 			return Tier.COMMON
 
 
+func get_tint_color() -> Color:
+	return color_for_tier(get_tier())
+
+
 static func color_for_tier(tier: Tier) -> Color:
-	match tier:
-		Tier.UNCOMMON:
-			return COLOR_UNCOMMON
-		Tier.RARE:
-			return COLOR_RARE
-		_:
-			return COLOR_COMMON
+	if RARITY_COLORS.has(tier):
+		return RARITY_COLORS[tier] as Color
+	return COLOR_COMMON
 
 
 static func color_for_id(rarity_id: String) -> Color:
 	match rarity_id.strip_edges().to_lower():
 		"uncommon":
 			return COLOR_UNCOMMON
-		"rare", "very_rare":
+		"rare":
 			return COLOR_RARE
+		"very_rare":
+			return COLOR_VERY_RARE
 		_:
 			return COLOR_COMMON

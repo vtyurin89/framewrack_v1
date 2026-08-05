@@ -49,7 +49,11 @@ TRAIT_LEG_ROW_PENALTY_DESC,"-1 passive armor for each other leg armor to the rig
 TRAIT_BIO_GEL_HEAL_NAME,Bio Gel Patch,Био-гелевая заплатка
 TRAIT_BIO_GEL_HEAL_DESC,Instantly restores 8 HP.,Мгновенно восстанавливает 8 ОЗ.
 TRAIT_GIVE_AP_NAME,Adrenal Salt,Адреналиновая соль
-TRAIT_GIVE_AP_DESC,Instantly restores 2 AP for the current turn.,Мгновенно восстанавливает 2 ОД на текущий ход.
+TRAIT_GIVE_AP_DESC,Instantly restores 1 AP for the current turn.,Мгновенно восстанавливает 1 ОД на текущий ход.
+TRAIT_NEURO_STIM_NAME,Neuro Surge,Нейро-импульс
+TRAIT_NEURO_STIM_DESC,"+2 AP in combat or +4d6 on a dialog check.","+2 ОД в бою или +4d6 к диалоговой проверке."
+TRAIT_SYNAPSE_BOOSTER_NAME,Synapse Override,Синаптический пробой
+TRAIT_SYNAPSE_BOOSTER_DESC,"+4 AP in combat or guarantees a dialog check.","+4 ОД в бою или гарантирует успех диалоговой проверки."
 TRAIT_BURN_DAMAGE_NAME,Thermite Burn,Термитный прожиг
 TRAIT_BURN_DAMAGE_DESC,Deals 9-10 damage to selected enemy and applies 3 Burn.,Наносит 9-10 урона выбранному врагу и накладывает 3 Горения.
 TRAIT_CLEANSE_DEBUFFS_NAME,Purge Cycle,Цикл очистки

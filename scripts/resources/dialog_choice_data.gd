@@ -8,6 +8,7 @@ extends Resource
 @export var text_ru: String = ""
 ## Optional stat gate: "" | STR | AGI | END | INT | LCK
 @export var stat_check: String = ""
+## Required number of 5–6 successes on the d6 pool (StatCheckManager).
 @export var check_dc: int = 0
 @export var success_outcome: DialogOutcomeData
 @export var failure_outcome: DialogOutcomeData
@@ -20,4 +21,8 @@ func get_display_text() -> String:
 
 
 func has_stat_check() -> bool:
-	return not stat_check.strip_edges().is_empty() and check_dc > 0
+	return not stat_check.strip_edges().is_empty()
+
+
+func get_required_successes() -> int:
+	return maxi(1, check_dc)

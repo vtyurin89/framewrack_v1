@@ -33,6 +33,7 @@ GamePalette="*res://scripts/global/game_palette.gd"
 DamagePopUpManager="*res://scripts/managers/damage_popup_manager.gd"
 RewardManager="*res://scripts/managers/reward_manager.gd"
 StoryEventManager="*res://scripts/managers/story_event_manager.gd"
+StatCheckManager="*res://scripts/managers/stat_check_manager.gd"
 
 [display]
 

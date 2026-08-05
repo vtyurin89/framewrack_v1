@@ -9,6 +9,7 @@ enum PaletteKind {
 	CONSUMABLE,
 	JUNK,
 	RARE,
+	VERY_RARE,
 	HARMFUL,
 }
 
@@ -39,8 +40,13 @@ const _PALETTES := {
 	},
 	PaletteKind.RARE: {
 		"bg": Color("#92702DB3"),
-		"border": Color("#D97706"),
+		"border": Color("#F1C40F"),
 		"text": Color("#FEF08A"),
+	},
+	PaletteKind.VERY_RARE: {
+		"bg": Color("#5B3A72B3"),
+		"border": Color("#9B59B6"),
+		"text": Color("#E9D5FF"),
 	},
 	PaletteKind.HARMFUL: {
 		"bg": Color("#702A30CC"),
@@ -55,8 +61,12 @@ static func palette_kind_for_item(item: ItemData) -> PaletteKind:
 		return PaletteKind.JUNK
 	if item.is_harmful:
 		return PaletteKind.HARMFUL
-	if item.rarity != null and item.rarity.get_tier() == ItemRarityData.Tier.RARE:
-		return PaletteKind.RARE
+	if item.rarity != null:
+		match item.rarity.get_tier():
+			ItemRarityData.Tier.VERY_RARE:
+				return PaletteKind.VERY_RARE
+			ItemRarityData.Tier.RARE:
+				return PaletteKind.RARE
 	var type_id := ""
 	if item.item_type != null:
 		type_id = item.item_type.id.strip_edges().to_upper()
@@ -80,7 +90,15 @@ static func colors_for_kind(kind: PaletteKind) -> Dictionary:
 
 
 static func colors_for_item(item: ItemData) -> Dictionary:
-	return colors_for_kind(palette_kind_for_item(item))
+	var colors: Dictionary = colors_for_kind(palette_kind_for_item(item)).duplicate()
+	## Dynamic rarity border / text tint for Rare+ items.
+	if item != null and item.rarity != null:
+		var tier := item.rarity.get_tier()
+		if tier == ItemRarityData.Tier.RARE or tier == ItemRarityData.Tier.VERY_RARE:
+			var rarity_col := item.get_rarity_color()
+			colors["border"] = rarity_col
+			colors["text"] = rarity_col.lightened(0.25)
+	return colors
 
 
 static func make_item_stylebox(item: ItemData, border_width: int = 1) -> StyleBoxFlat:

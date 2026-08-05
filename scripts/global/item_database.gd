@@ -360,9 +360,6 @@ func _resolve_rarity(rarity_id: String) -> ItemRarityData:
 	var key := rarity_id.strip_edges()
 	if key.is_empty():
 		return null
-	## 3-tier system: legacy VERY_RARE collapses into RARE.
-	if key.to_upper() == "VERY_RARE" or key.to_lower() == "very_rare":
-		key = "rare"
 	if _rarities_by_id.has(key):
 		return _rarities_by_id[key]
 	if _rarities_by_id.has(key.to_lower()):

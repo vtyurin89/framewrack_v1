@@ -46,7 +46,7 @@
 		},
 		"cross_bridge": {
 			"narrator_text_en": "The bridge sings under your weight. In the lit chamber beyond: an abandoned scavenger nest, still warm, and a cup of neuro-chips sorted by size. Whoever fled left the door ajar — and a clear view of your terrace from theirs.",
-			"narrator_text_ru": "Мост поёт под весом. В освещённой комнате за ним: брошенное гнездо мародёра, ещё тёплое, и чашка нейро-чипов, разложенных по размеру. Кто бежал, оставил дверь приоткрытой — и прямой обзор вашей террасы со своей.",
+			"narrator_text_ru": "Мост поёт под вашим весом. В освещённой комнате за ним - заброшенное убежище мародёра, ещё тёплое, и чашка нейро-чипов, разложенных по размеру. Владелец оставил дверь приоткрытой — и прямой обзор вашей террасы со своей.",
 			"speech_text_en": "",
 			"speech_text_ru": "",
 			"choices": [

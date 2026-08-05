@@ -238,13 +238,11 @@ func open_item_selection(item_pool: Array, title: String = "Выберите н�
 	request_item_selection.emit(item_pool, title)
 
 
-func resolve_stat_check(stat_name: String, dc: int) -> bool:
-	if player_stats == null or dc <= 0:
-		return true
+func resolve_stat_check(
+	stat_name: String, required_successes: int = 1, consumed_ap: int = 0
+) -> StatCheckManager.CheckResult:
 	var stat_value := _get_player_stat(stat_name)
-	## Simple roll: stat + d6 vs DC.
-	var roll := stat_value + randi_range(1, 6)
-	return roll >= dc
+	return StatCheckManager.perform_check(stat_value, required_successes, consumed_ap)
 
 
 func _launch_by_type(data: EncounterData) -> void:

@@ -65,6 +65,7 @@ KEY_TYPE_ELITE,ELITE,ЭЛИТА
 KEY_RARITY_COMMON,Common,Обычный
 KEY_RARITY_UNCOMMON,Uncommon,Необычный
 KEY_RARITY_RARE,Rare,Редкий
+KEY_RARITY_VERY_RARE,Very Rare,Очень редкий
 KEY_REWARD_SELECT_UP_TO_3,Select up to 3 new items,Выберите до 3 новых предметов
 KEY_REWARD_PICK_LIMIT,Cannot pick more than 3 new items!,Нельзя взять больше 3 новых предметов!
 KEY_REWARD_NOT_DROPPABLE,This item cannot be discarded!,Этот предмет нельзя выбросить!
@@ -337,7 +338,11 @@ ITEM_HYDRAULIC_BRACE_DESC,Tall hydraulic brace with powerful passive scaling.,В
 ITEM_BIO_GEL_NAME,Bio Gel,Био-гель
 ITEM_BIO_GEL_DESC,Heals 8 HP. Produced from flesh. You don't want to know what flesh.,Восстанавливает 8 ОЗ. Произведен из плоти. Лучше не знать, из чьей именно.
 ITEM_SALT_INJECTOR_NAME,Salt Injector,Солевой инжектор
-ITEM_SALT_INJECTOR_DESC,Instantly restores 2 AP for the current turn.,Мгновенно восстанавливает 2 ОД на текущий ход.
+ITEM_SALT_INJECTOR_DESC,Instantly restores 1 AP for the current turn.,Мгновенно восстанавливает 1 ОД на текущий ход.
+ITEM_NEURO_STIMULATOR_NAME,Neuro-Stimulator,Нейро-стимулятор
+ITEM_NEURO_STIMULATOR_DESC,"Temporarily accelerates reaction and neural links. Grants +2 AP in combat or +4d6 to a dialog check.","Временно ускоряет реакцию и нейронные связи. Даёт +2 AP в бою или +4d6 к диалоговой проверке."
+ITEM_SYNAPSE_BOOSTER_NAME,Synapse Booster,Синапс-бустер
+ITEM_SYNAPSE_BOOSTER_DESC,"Experimental top-tier stimulant. Grants +4 AP in combat or guarantees 100% success on a dialog check.","Экспериментальный стимулятор высшей категории. Даёт +4 AP в бою или полностью гарантирует 100% успех диалоговой проверки."
 ITEM_THERMITE_NAME,Thermite Charge,Термитный заряд
 ITEM_THERMITE_DESC,Deals 9-10 damage to selected enemy and applies 3 Burn.,Наносит 9-10 урона выбранному врагу и накладывает 3 Горения.
 ITEM_PURGE_SOLVENT_NAME,Purge Solvent,Очищающий раствор
@@ -370,6 +375,10 @@ TRAIT_BIO_GEL_HEAL_NAME,Bio Gel Patch,Био-гелевая заплатка
 TRAIT_BIO_GEL_HEAL_DESC,Restore frame HP when consumed.,Восстанавливает ОЗ каркаса при применении.
 TRAIT_GIVE_AP_NAME,Adrenal Salt,Адреналиновая соль
 TRAIT_GIVE_AP_DESC,Gain AP immediately on use.,Мгновенно дает дополнительные ОД.
+TRAIT_NEURO_STIM_NAME,Neuro Surge,Нейро-импульс
+TRAIT_NEURO_STIM_DESC,"+2 AP in combat or +4d6 on a dialog check.","+2 ОД в бою или +4d6 к диалоговой проверке."
+TRAIT_SYNAPSE_BOOSTER_NAME,Synapse Override,Синаптический пробой
+TRAIT_SYNAPSE_BOOSTER_DESC,"+4 AP in combat or guarantees a dialog check.","+4 ОД в бою или гарантирует успех диалоговой проверки."
 TRAIT_BURN_DAMAGE_NAME,Thermite Burn,Термитный прожиг
 TRAIT_BURN_DAMAGE_DESC,Adds burn damage to target hit.,Добавляет прожигающий урон по цели.
 TRAIT_CLEANSE_DEBUFFS_NAME,Purge Cycle,Цикл очистки
@@ -399,6 +408,12 @@ KEY_STATUS_SHOP,Shop stub — nothing for sale yet.,Магазин-заглуш�
 KEY_STATUS_STAIRS,Stairs to the next sector.,Лестница в следующий сектор.
 KEY_STAT_CHECK_SUCCESS,Check passed.,Проверка пройдена.
 KEY_STAT_CHECK_FAILURE,Check failed.,Проверка провалена.
+KEY_STAT_CHECK_GUARANTEED,[100% GUARANTEED SUCCESS],[100% ГАРАНТИРОВАННЫЙ УСПЕХ]
+KEY_STAT_CHECK_USE_NEURO,Use Neuro-Stimulator (+4d6),Использовать нейро-стимулятор (+4d6)
+KEY_STAT_CHECK_USE_SYNAPSE,Use Synapse Booster (100% success),Использовать синапс-бустер (100% успех)
+KEY_STAT_CHECK_ROLL,Roll check,Бросить проверку
+KEY_STAT_CHECK_CANCEL,Cancel,Отмена
+KEY_STAT_CHECK_PREPARE,Prepare check (%s),Подготовка проверки (%s)
 EVENT_OLD_MACHINE_GOD_TITLE,The Old Machine God,Старый Бог-Машина
 EVENT_OLD_MACHINE_GOD_BODY,"In the scrap dark, a half-buried frame still hums. Its optic flickers — not dead, not awake. Something waits for a command.","В мусорной тьме всё ещё гудит полузасыпанный каркас. Оптика мигает — не мёртв, не пробуждён. Кто-то ждёт команды."
 EVENT_OLD_MACHINE_GOD_CHOICE_COMMUNE,Commune with the machine (INT),Установить связь с машиной (ИНТ)

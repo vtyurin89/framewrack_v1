@@ -37,6 +37,10 @@ var _fade_tween: Tween
 var _is_closing: bool = false
 var _choices_locked: bool = false
 var _pending_select_outcome: DialogOutcomeData
+var _pending_stat_choice: DialogChoiceData
+var _check_boost_ap: int = 0
+var _pending_use_neuro: bool = false
+var _pending_use_synapse: bool = false
 
 
 func _ready() -> void:
@@ -270,15 +274,142 @@ func _clear_choices() -> void:
 func _on_choice_pressed(choice: DialogChoiceData) -> void:
 	if choice == null or _is_closing or _choices_locked:
 		return
-	var outcome: DialogOutcomeData = choice.success_outcome
-	if choice.has_stat_check() and _encounter_manager != null:
-		var passed := _encounter_manager.resolve_stat_check(choice.stat_check, choice.check_dc)
-		outcome = choice.success_outcome if passed else choice.failure_outcome
-		if _result_label:
-			_result_label.visible = true
+	if choice.has_stat_check():
+		_begin_stat_check_prepare(choice)
+		return
+	_resolve_choice_outcome(choice.success_outcome)
+
+
+func _begin_stat_check_prepare(choice: DialogChoiceData, preserve_boost: bool = false) -> void:
+	_pending_stat_choice = choice
+	if not preserve_boost:
+		_check_boost_ap = 0
+		_pending_use_neuro = false
+		_pending_use_synapse = false
+	_clear_choices()
+
+	var guaranteed := (
+		(StatCheckManager != null and StatCheckManager.force_guaranteed_success)
+		or _pending_use_synapse
+	)
+	if _result_label:
+		_result_label.visible = true
+		if guaranteed:
+			_result_label.text = tr("KEY_STAT_CHECK_GUARANTEED")
+		elif _check_boost_ap > 0:
+			_result_label.text = "%s  (+%dd6)" % [
+				tr("KEY_STAT_CHECK_PREPARE") % choice.stat_check.to_upper(),
+				_check_boost_ap * 2,
+			]
+		else:
+			_result_label.text = tr("KEY_STAT_CHECK_PREPARE") % choice.stat_check.to_upper()
+
+	var inventory := _get_inventory()
+	if (
+		StatCheckManager != null
+		and not _pending_use_neuro
+		and StatCheckManager.has_neuro_stimulator(inventory)
+	):
+		var neuro_btn := _make_choice_button(tr("KEY_STAT_CHECK_USE_NEURO"))
+		neuro_btn.pressed.connect(_on_use_neuro_for_check)
+		_choices_box.add_child(neuro_btn)
+	if (
+		StatCheckManager != null
+		and not _pending_use_synapse
+		and StatCheckManager.has_synapse_booster(inventory)
+	):
+		var syn_btn := _make_choice_button(tr("KEY_STAT_CHECK_USE_SYNAPSE"))
+		syn_btn.pressed.connect(_on_use_synapse_for_check)
+		_choices_box.add_child(syn_btn)
+
+	var roll_label := tr("KEY_STAT_CHECK_ROLL")
+	if guaranteed:
+		roll_label = tr("KEY_STAT_CHECK_GUARANTEED")
+	elif _check_boost_ap > 0:
+		roll_label = "%s (+%dd6)" % [tr("KEY_STAT_CHECK_ROLL"), _check_boost_ap * 2]
+	var roll_btn := _make_choice_button(roll_label)
+	roll_btn.pressed.connect(_on_confirm_stat_check)
+	_choices_box.add_child(roll_btn)
+
+	var cancel_btn := _make_choice_button(tr("KEY_STAT_CHECK_CANCEL"))
+	cancel_btn.pressed.connect(_on_cancel_stat_check)
+	_choices_box.add_child(cancel_btn)
+
+
+func _on_use_neuro_for_check() -> void:
+	if _pending_stat_choice == null or StatCheckManager == null:
+		return
+	if not StatCheckManager.has_neuro_stimulator(_get_inventory()):
+		return
+	## Stage consumption until the roll is confirmed (cancel keeps the item).
+	_pending_use_neuro = true
+	_check_boost_ap += StatCheckManager.NEURO_CHECK_AP_VALUE
+	_begin_stat_check_prepare(_pending_stat_choice, true)
+
+
+func _on_use_synapse_for_check() -> void:
+	if _pending_stat_choice == null or StatCheckManager == null:
+		return
+	if not StatCheckManager.has_synapse_booster(_get_inventory()):
+		return
+	_pending_use_synapse = true
+	_begin_stat_check_prepare(_pending_stat_choice, true)
+
+
+func _on_confirm_stat_check() -> void:
+	var choice := _pending_stat_choice
+	if choice == null:
+		return
+	var inventory := _get_inventory()
+	if _pending_use_neuro and StatCheckManager != null:
+		if StatCheckManager.try_consume_neuro_stimulator(inventory) <= 0:
+			_check_boost_ap = maxi(0, _check_boost_ap - StatCheckManager.NEURO_CHECK_AP_VALUE)
+		_pending_use_neuro = false
+	if _pending_use_synapse and StatCheckManager != null:
+		if not StatCheckManager.try_consume_synapse_booster(inventory):
+			_pending_use_synapse = false
+		else:
+			_pending_use_synapse = false
+	_pending_stat_choice = null
+	var required := choice.get_required_successes()
+	var result: StatCheckManager.CheckResult = null
+	if _encounter_manager != null:
+		result = _encounter_manager.resolve_stat_check(
+			choice.stat_check, required, _check_boost_ap
+		)
+	elif StatCheckManager != null:
+		result = StatCheckManager.perform_check(1, required, _check_boost_ap)
+	_check_boost_ap = 0
+	var passed := result != null and result.is_success
+	var outcome: DialogOutcomeData = choice.success_outcome if passed else choice.failure_outcome
+	if _result_label:
+		_result_label.visible = true
+		if result != null and result.is_guaranteed:
+			_result_label.text = tr("KEY_STAT_CHECK_GUARANTEED")
+		else:
 			_result_label.text = (
 				tr("KEY_STAT_CHECK_SUCCESS") if passed else tr("KEY_STAT_CHECK_FAILURE")
 			)
+	_resolve_choice_outcome(outcome)
+
+
+func _on_cancel_stat_check() -> void:
+	_pending_stat_choice = null
+	_check_boost_ap = 0
+	_pending_use_neuro = false
+	_pending_use_synapse = false
+	if _dialog == null:
+		return
+	_show_node(_current_node_id)
+
+
+func _get_inventory() -> InventoryController:
+	if _encounter_manager != null:
+		return _encounter_manager.inventory
+	return null
+
+
+func _resolve_choice_outcome(outcome: DialogOutcomeData) -> void:
 	if outcome == null:
 		outcome = DialogOutcomeData.make_end()
 

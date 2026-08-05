@@ -238,7 +238,7 @@ func _build_layout() -> void:
 func _populate(item: ItemData) -> void:
 	_name_label.text = item.get_localized_name()
 	if item.rarity != null:
-		_name_label.add_theme_color_override("font_color", item.rarity.tint)
+		_name_label.add_theme_color_override("font_color", item.get_rarity_color())
 	else:
 		_name_label.add_theme_color_override("font_color", DEFAULT_NAME_COLOR)
 
@@ -286,7 +286,7 @@ func _build_meta_line(item: ItemData) -> String:
 	var parts: PackedStringArray = []
 	if item.rarity != null:
 		var rarity_name := item.rarity.get_localized_name()
-		var rarity_color := item.rarity.tint
+		var rarity_color := item.get_rarity_color()
 		parts.append(
 			"[color=#%s]%s[/color]" % [rarity_color.to_html(false), rarity_name]
 		)

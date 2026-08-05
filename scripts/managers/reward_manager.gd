@@ -41,32 +41,37 @@ func generate_rewards(encounter_type: String, act_depth: int) -> Array[ItemData]
 	## Count is fixed for all encounters; only rarity weights differ.
 	var count := randi_range(5, 6)
 	var consumable_count := randi_range(1, 2)
-	var w_common := 0.70
-	var w_uncommon := 0.25
-	var w_rare := 0.05
+	var w_common := 0.68
+	var w_uncommon := 0.24
+	var w_rare := 0.07
+	var w_very_rare := 0.01
 	match kind:
 		"ELITE", "COMBAT_ELITE":
-			w_common = 0.30
-			w_uncommon = 0.50
+			w_common = 0.28
+			w_uncommon = 0.48
 			w_rare = 0.20
+			w_very_rare = 0.04
 		"BOSS", "COMBAT_BOSS":
 			w_common = 0.0
-			w_uncommon = 0.60
-			w_rare = 0.40
+			w_uncommon = 0.50
+			w_rare = 0.38
+			w_very_rare = 0.12
 		_:
 			## NORMAL / COMBAT_NORMAL / default
-			w_common = 0.70
-			w_uncommon = 0.25
-			w_rare = 0.05
+			w_common = 0.68
+			w_uncommon = 0.24
+			w_rare = 0.07
+			w_very_rare = 0.01
 
-	## Act depth: +2% uncommon and +2% rare per layer, taken from common.
+	## Act depth: +2% uncommon and +2% rare+ per layer, taken from common.
 	var depth := maxi(act_depth, 0)
 	var shift := 0.02 * float(depth)
 	var take := mini(shift * 2.0, w_common)
 	if take > 0.0:
 		w_common -= take
 		w_uncommon += take * 0.5
-		w_rare += take * 0.5
+		w_rare += take * 0.35
+		w_very_rare += take * 0.15
 
 	consumable_count = mini(consumable_count, count)
 	var gear_count := count - consumable_count
@@ -74,13 +79,13 @@ func generate_rewards(encounter_type: String, act_depth: int) -> Array[ItemData]
 	var out: Array[ItemData] = []
 	var used_ids: Dictionary = {}
 	for _i in consumable_count:
-		var tier := _roll_tier(w_common, w_uncommon, w_rare)
+		var tier := _roll_tier(w_common, w_uncommon, w_rare, w_very_rare)
 		var item := _pick_random_item_of_tier(tier, true, used_ids)
 		if item != null:
 			out.append(item)
 			used_ids[item.id.strip_edges().to_upper()] = true
 	for _i in gear_count:
-		var tier := _roll_tier(w_common, w_uncommon, w_rare)
+		var tier := _roll_tier(w_common, w_uncommon, w_rare, w_very_rare)
 		var item := _pick_random_item_of_tier(tier, false, used_ids)
 		if item != null:
 			out.append(item)
@@ -133,8 +138,10 @@ func notify_new_item_unpicked(item: ItemData) -> void:
 	picked_new_items_count = maxi(0, picked_new_items_count - 1)
 
 
-func _roll_tier(w_common: float, w_uncommon: float, w_rare: float) -> ItemRarityData.Tier:
-	var total := w_common + w_uncommon + w_rare
+func _roll_tier(
+	w_common: float, w_uncommon: float, w_rare: float, w_very_rare: float = 0.0
+) -> ItemRarityData.Tier:
+	var total := w_common + w_uncommon + w_rare + w_very_rare
 	if total <= 0.0:
 		return ItemRarityData.Tier.COMMON
 	var roll := randf() * total
@@ -143,7 +150,10 @@ func _roll_tier(w_common: float, w_uncommon: float, w_rare: float) -> ItemRarity
 	roll -= w_common
 	if roll < w_uncommon:
 		return ItemRarityData.Tier.UNCOMMON
-	return ItemRarityData.Tier.RARE
+	roll -= w_uncommon
+	if roll < w_rare:
+		return ItemRarityData.Tier.RARE
+	return ItemRarityData.Tier.VERY_RARE
 
 
 func _pick_random_item_of_tier(
@@ -169,6 +179,8 @@ func _pick_random_item_of_tier(
 			pool.append(proto)
 	if pool.is_empty():
 		## Soft fallback down the rarity ladder (same consumable/gear filter).
+		if tier == ItemRarityData.Tier.VERY_RARE:
+			return _pick_random_item_of_tier(ItemRarityData.Tier.RARE, want_consumable, used_ids)
 		if tier == ItemRarityData.Tier.RARE:
 			return _pick_random_item_of_tier(ItemRarityData.Tier.UNCOMMON, want_consumable, used_ids)
 		if tier == ItemRarityData.Tier.UNCOMMON:

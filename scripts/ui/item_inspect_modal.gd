@@ -140,7 +140,7 @@ func _ensure_content() -> void:
 func _populate(item: ItemData) -> void:
 	_name_label.text = item.get_localized_name()
 	if item.rarity != null:
-		_name_label.add_theme_color_override("font_color", item.rarity.tint)
+		_name_label.add_theme_color_override("font_color", item.get_rarity_color())
 	else:
 		_name_label.add_theme_color_override("font_color", DEFAULT_NAME_COLOR)
 
@@ -156,7 +156,7 @@ func _populate(item: ItemData) -> void:
 
 	var meta_parts: PackedStringArray = []
 	if item.rarity != null:
-		var rarity_hex := item.rarity.tint.to_html(false)
+		var rarity_hex := item.get_rarity_color().to_html(false)
 		meta_parts.append(
 			"[color=#%s]%s[/color]" % [rarity_hex, item.rarity.get_localized_name()]
 		)

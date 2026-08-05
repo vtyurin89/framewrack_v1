@@ -23,7 +23,7 @@ const FALLBACK_ICON_PATH := "res://assets/icons/fallback_item.png"
 @export_multiline var description: String = ""
 
 ## Classification / rarity used by adjacency rules and UI.
-## Rarity uses the 3-tier system: COMMON / UNCOMMON / RARE (see ItemRarityData.Tier).
+## Rarity tiers: COMMON / UNCOMMON / RARE / VERY_RARE (see ItemRarityData).
 @export var item_type: ItemTypeData
 @export var rarity: ItemRarityData
 @export var sub_type: String = ""  ## HELMET / LEG_ARMOR / CORE / STANDARD / ...
@@ -188,6 +188,12 @@ func get_localized_name() -> String:
 	if not item_name_key.is_empty():
 		return tr(item_name_key)
 	return display_name
+
+
+func get_rarity_color() -> Color:
+	if rarity != null:
+		return rarity.get_tint_color()
+	return ItemRarityData.COLOR_COMMON
 
 
 func get_localized_description() -> String:

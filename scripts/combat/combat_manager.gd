@@ -640,7 +640,13 @@ func _apply_self_use_traits(placed: PlacedItem) -> void:
 		inventory.current_hp = mini(inventory.max_hp, inventory.current_hp + heal_amt)
 		EventBus.player_hp_changed.emit(inventory.current_hp, inventory.max_hp)
 	if TraitManager.has_trait(data, "TRAIT_GIVE_AP"):
-		current_ap += 2
+		current_ap += TraitManager.get_trait_value(data, "TRAIT_GIVE_AP", 1)
+		EventBus.ap_changed.emit(current_ap, max_ap)
+	if TraitManager.has_trait(data, "TRAIT_NEURO_STIM"):
+		current_ap += TraitManager.get_trait_value(data, "TRAIT_NEURO_STIM", 2)
+		EventBus.ap_changed.emit(current_ap, max_ap)
+	if TraitManager.has_trait(data, "TRAIT_SYNAPSE_BOOSTER"):
+		current_ap += TraitManager.get_trait_value(data, "TRAIT_SYNAPSE_BOOSTER", 4)
 		EventBus.ap_changed.emit(current_ap, max_ap)
 	if TraitManager.has_trait(data, "TRAIT_CLEANSE_DEBUFFS"):
 		if player_statuses != null:

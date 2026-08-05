@@ -22,7 +22,9 @@ TRAIT_LEG_HIGH,TRAIT_LEG_HIGH_NAME,TRAIT_LEG_HIGH_DESC,,0,Passive: +1 armor per 
 TRAIT_HELMET_ROW_PENALTY,TRAIT_HELMET_ROW_PENALTY_NAME,TRAIT_HELMET_ROW_PENALTY_DESC,,0,-1 passive armor per other helmet to the right in the same row.
 TRAIT_LEG_ROW_PENALTY,TRAIT_LEG_ROW_PENALTY_NAME,TRAIT_LEG_ROW_PENALTY_DESC,,0,-1 passive armor per other leg armor to the right in the same row.
 TRAIT_BIO_GEL_HEAL,TRAIT_BIO_GEL_HEAL_NAME,TRAIT_BIO_GEL_HEAL_DESC,,8,Heals 8 HP instantly when consumed.
-TRAIT_GIVE_AP,TRAIT_GIVE_AP_NAME,TRAIT_GIVE_AP_DESC,,2,Instantly restores 2 AP for the current turn.
+TRAIT_GIVE_AP,TRAIT_GIVE_AP_NAME,TRAIT_GIVE_AP_DESC,,1,Instantly restores 1 AP for the current turn.
+TRAIT_NEURO_STIM,TRAIT_NEURO_STIM_NAME,TRAIT_NEURO_STIM_DESC,,2,+2 AP in combat or +4d6 on a dialog check.
+TRAIT_SYNAPSE_BOOSTER,TRAIT_SYNAPSE_BOOSTER_NAME,TRAIT_SYNAPSE_BOOSTER_DESC,,4,+4 AP in combat or guarantees a dialog check.
 TRAIT_BURN_DAMAGE,TRAIT_BURN_DAMAGE_NAME,TRAIT_BURN_DAMAGE_DESC,,0,Hit damage comes from item min/max; applies 3 Burn to selected enemy.
 TRAIT_CLEANSE_DEBUFFS,TRAIT_CLEANSE_DEBUFFS_NAME,TRAIT_CLEANSE_DEBUFFS_DESC,,0,Cleanses active debuffs/corruption pressure.
 TRAIT_EYE_OF_PALE_MAIDEN,TRAIT_EYE_OF_PALE_MAIDEN_NAME,TRAIT_EYE_OF_PALE_MAIDEN_DESC,,0,+1 AP on combat turn 1; -1 AP instead if adjacent to a weapon.
