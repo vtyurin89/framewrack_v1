@@ -198,8 +198,8 @@ func play_death_fade() -> void:
 		Tween.EASE_IN
 	)
 	await tween.finished
+	## Keep the card node as an empty slot so remaining cards do not shift in the centered row.
 	death_fade_finished.emit(self)
-	queue_free()
 
 
 func _ensure_intention_ui() -> void:
