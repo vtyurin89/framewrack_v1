@@ -52,6 +52,9 @@ const FALLBACK_ICON_PATH := "res://assets/icons/fallback_item.png"
 ## Max activations per player turn. -1 or 0 = unlimited (AP still required).
 @export var uses_per_turn: int = -1
 
+## Combat cooldown in player turns (0 = none). After use, current_cd = cooldown.
+@export var cooldown: int = 0
+
 ## If true, activating spends a charge (see max_charges / current_charges).
 @export var consumable: bool = false
 
@@ -111,6 +114,9 @@ enum StatScaling {
 ## Runtime: uses spent this player turn (reset on turn start).
 var current_turn_uses: int = 0
 
+## Runtime: remaining cooldown turns (decremented at player turn start).
+var current_cd: int = 0
+
 ## Runtime: remaining charges for exhaustable items (-1 = unlimited / not tracked).
 var current_charges: int = -1
 
@@ -157,6 +163,7 @@ var exhaustable: bool:
 func initialize_runtime_state() -> void:
 	## Call after duplicating a prototype for a placed / inventory instance.
 	current_turn_uses = 0
+	current_cd = 0
 	if consumable:
 		current_charges = maxi(max_charges, 0)
 	else:
@@ -168,11 +175,27 @@ func reset_turn_uses() -> void:
 	current_turn_uses = 0
 
 
+func tick_cooldown() -> void:
+	if current_cd > 0:
+		current_cd = maxi(0, current_cd - 1)
+
+
+func start_cooldown() -> void:
+	if cooldown > 0:
+		current_cd = cooldown
+
+
+func is_on_cooldown() -> bool:
+	return current_cd > 0
+
+
 func has_unlimited_turn_uses() -> bool:
 	return uses_per_turn <= 0
 
 
 func can_use_this_turn() -> bool:
+	if is_on_cooldown():
+		return false
 	if has_unlimited_turn_uses():
 		return true
 	return current_turn_uses < uses_per_turn

@@ -176,6 +176,7 @@ func _reset_player_resources() -> void:
 		current_ap = maxi(0, current_ap)
 	_apply_slimy_parasite_ap_cap()
 	_reset_all_item_turn_uses()
+	_tick_all_item_cooldowns()
 	## Passive spatial armor is previewed as (+N) during the player turn and
 	## committed into real Block at the start of the enemy turn.
 
@@ -371,6 +372,8 @@ func can_activate_item(placed: PlacedItem) -> bool:
 		return false
 	if not data.can_use_this_turn():
 		return false
+	if data.is_on_cooldown():
+		return false
 	if not data.has_charges_remaining():
 		return false
 	return true
@@ -392,6 +395,7 @@ func activate_item(placed: PlacedItem) -> bool:
 		EventBus.combat_log_message.emit(tr("KEY_LOG_RUST_JAM") % data.get_localized_name())
 		_request_player_popup(0, "rust", false, true)
 		_consume_charge_if_needed(placed)
+		data.start_cooldown()
 		EventBus.combat_item_availability_changed.emit()
 		return true
 
@@ -404,6 +408,7 @@ func activate_item(placed: PlacedItem) -> bool:
 			_resolve_single_enemy(placed)
 
 	_consume_charge_if_needed(placed)
+	data.start_cooldown()
 	EventBus.combat_item_availability_changed.emit()
 
 	if _all_enemies_dead():
@@ -425,7 +430,10 @@ func _log_activation_failure(placed: PlacedItem) -> void:
 		EventBus.combat_log_message.emit(tr("KEY_LOG_NOT_ENOUGH_AP"))
 		EventBus.ap_insufficient.emit()
 	elif not data.can_use_this_turn():
-		EventBus.combat_log_message.emit(tr("KEY_LOG_NO_USES"))
+		if data.is_on_cooldown():
+			EventBus.combat_log_message.emit(tr("KEY_LOG_ITEM_COOLDOWN") % data.get_localized_name())
+		else:
+			EventBus.combat_log_message.emit(tr("KEY_LOG_NO_USES"))
 	elif not data.has_charges_remaining():
 		EventBus.combat_log_message.emit(tr("KEY_LOG_NO_CHARGES"))
 
@@ -446,12 +454,14 @@ func _resolve_single_enemy(placed: PlacedItem) -> void:
 
 
 func _resolve_all_enemies(placed: PlacedItem) -> void:
+	var data := placed.data
 	var dmg := _calc_damage(placed)
 	var trait_bonus := _consume_attack_trait_bonus(placed)
 	dmg += trait_bonus
 	var living := _living_enemy_indices()
+	var damage_type := "burn" if _item_applies_burn(data) else "physical"
 	for idx: int in living:
-		_deal_damage_to(idx, dmg, placed.data.get_localized_name())
+		_deal_damage_to(idx, dmg, data.get_localized_name(), true, damage_type)
 		_apply_on_hit_weapon_statuses(placed, idx)
 
 
@@ -665,17 +675,26 @@ func _resolve_consumable_enemy(placed: PlacedItem, enemy_index: int) -> void:
 		_deal_damage_to(enemy_index, burn_hit, data.get_localized_name(), true, "burn")
 		dealt = burn_hit
 		if enemy_index >= 0 and enemy_index < enemies.size():
-			apply_status_to_enemy(enemy_index, "burn", TraitManager.BURN_APPLY_STACKS)
+			apply_status_to_enemy(enemy_index, BurnStatus.STATUS_ID, TraitManager.BURN_APPLY_STACKS)
 	if dealt == 0:
 		_deal_damage_to(enemy_index, data.roll_damage(player_stats), data.get_localized_name())
 
 
 func _reset_all_item_turn_uses() -> void:
-	if inventory == null:
+	if inventory == null or inventory.grid == null:
 		return
 	for placed: PlacedItem in inventory.grid.items:
 		if placed != null and placed.data != null:
 			placed.data.reset_turn_uses()
+
+
+func _tick_all_item_cooldowns() -> void:
+	if inventory == null or inventory.grid == null:
+		return
+	for placed: PlacedItem in inventory.grid.items:
+		if placed != null and placed.data != null:
+			placed.data.tick_cooldown()
+	EventBus.combat_item_availability_changed.emit()
 
 
 func _begin_enemy_turn() -> void:
@@ -1111,6 +1130,25 @@ func _apply_on_hit_weapon_statuses(placed: PlacedItem, enemy_index: int) -> void
 	if TraitManager.has_trait(placed.data, "TRAIT_FANG_POISON"):
 		var stacks := TraitManager.get_trait_value(placed.data, "TRAIT_FANG_POISON", 3)
 		apply_status_to_enemy(enemy_index, "poison", maxi(1, stacks))
+	var burn_stacks := _burn_stacks_from_item(placed.data)
+	if burn_stacks > 0:
+		apply_status_to_enemy(enemy_index, BurnStatus.STATUS_ID, burn_stacks)
+
+
+func _item_applies_burn(data: ItemData) -> bool:
+	return _burn_stacks_from_item(data) > 0
+
+
+func _burn_stacks_from_item(data: ItemData) -> int:
+	if data == null:
+		return 0
+	if TraitManager.has_trait(data, "TRAIT_FUEL_BURST"):
+		return maxi(1, TraitManager.get_trait_value(data, "TRAIT_FUEL_BURST", 2))
+	if TraitManager.has_trait(data, "TRAIT_APPLY_BURN"):
+		return maxi(1, TraitManager.get_trait_value(data, "TRAIT_APPLY_BURN", 2))
+	if TraitManager.has_trait(data, "TRAIT_BURN_DAMAGE"):
+		return TraitManager.BURN_APPLY_STACKS
+	return 0
 
 
 func _break_summons_of(master: EnemyInstance) -> void:

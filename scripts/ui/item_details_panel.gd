@@ -84,6 +84,8 @@ func _build_stats_line(item: ItemData) -> String:
 		parts.append(armor)
 	if item.consumable and item.max_charges > 0:
 		parts.append("%d charges" % item.max_charges)
+	if item.cooldown > 0:
+		parts.append(tr("KEY_COOLDOWN_FMT") % item.cooldown)
 	return " · ".join(parts)
 
 

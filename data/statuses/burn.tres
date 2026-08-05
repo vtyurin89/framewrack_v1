@@ -6,9 +6,9 @@
 script = ExtResource("1")
 id = "burn"
 title = "Burn"
-description = "At turn start deals damage equal to stacks, then clears completely."
+description = "Deals 2 fire damage at turn start, then loses 1 stack (1 stack = 1 turn)."
 is_debuff = true
 stack_type = 0
 trigger_phase = 0
-base_value = 1
+base_value = 2
 max_stacks = -1

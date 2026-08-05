@@ -106,11 +106,13 @@ func tick_negative_statuses() -> Dictionary:
 		logs.append("poison:%d" % poison.stacks)
 		poison.stacks = maxi(0, poison.stacks - 1)
 
-	var burn := get_instance("burn")
+	var burn := get_instance(BurnStatus.STATUS_ID)
 	if burn != null and burn.stacks > 0:
-		damage += burn.stacks
-		logs.append("burn:%d" % burn.stacks)
-		burn.stacks = 0
+		var burn_tick: Dictionary = BurnStatus.tick(burn.stacks)
+		var burn_dmg: int = int(burn_tick.get("damage", 0))
+		damage += burn_dmg
+		logs.append("burn:%d" % burn_dmg)
+		burn.stacks = int(burn_tick.get("stacks_after", 0))
 
 	var bleed := get_instance("bleed")
 	if bleed != null and bleed.stacks > 0:

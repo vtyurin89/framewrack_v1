@@ -285,6 +285,7 @@ func _parse_item_row(row: PackedStringArray, col: Dictionary) -> ItemData:
 
 	item.target_type = _parse_target_type(_cell(row, col, "target_type"))
 	item.uses_per_turn = _parse_int(_cell(row, col, "uses_per_turn"), -1)
+	item.cooldown = maxi(0, _parse_int(_cell(row, col, "cooldown"), 0))
 
 	var exhaust_raw := _cell(row, col, "exhaustable")
 	if exhaust_raw.is_empty():

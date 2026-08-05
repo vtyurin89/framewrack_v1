@@ -303,6 +303,8 @@ func _build_combat_line(item: ItemData) -> String:
 		parts.append(dmg)
 	if not armor.is_empty():
 		parts.append(armor)
+	if item.cooldown > 0:
+		parts.append(tr("KEY_COOLDOWN_FMT") % item.cooldown)
 	return "   ".join(parts)
 
 

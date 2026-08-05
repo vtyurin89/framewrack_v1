@@ -24,6 +24,7 @@ var _grid_ui: Node  # InventoryGridUI
 var _panel: Panel
 var _icon: TextureRect
 var _label: Label
+var _cd_label: Label
 var _dragging: bool = false
 
 
@@ -85,6 +86,18 @@ func _build_visual() -> void:
 	_label.text = ""
 	_label.visible = false
 	add_child(_label)
+
+	_cd_label = Label.new()
+	_cd_label.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	_cd_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	_cd_label.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
+	_cd_label.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+	_cd_label.add_theme_font_size_override("font_size", 18)
+	_cd_label.add_theme_color_override("font_color", Color(1.0, 0.85, 0.35, 1))
+	_cd_label.add_theme_color_override("font_outline_color", Color(0, 0, 0, 0.95))
+	_cd_label.add_theme_constant_override("outline_size", 5)
+	_cd_label.visible = false
+	add_child(_cd_label)
 
 	if item != null and item.is_stackable and item.current_stack > 1:
 		var stack := Label.new()
@@ -158,6 +171,18 @@ func set_combat_visual(usable: bool) -> void:
 	else:
 		modulate = Color(1, 1, 1, 1)
 	_panel.add_theme_stylebox_override("panel", style)
+	_refresh_cooldown_overlay()
+
+
+func _refresh_cooldown_overlay() -> void:
+	if _cd_label == null:
+		return
+	var on_cd := item != null and item.is_on_cooldown()
+	_cd_label.visible = on_cd and combat_click_mode
+	if on_cd:
+		_cd_label.text = str(item.current_cd)
+	else:
+		_cd_label.text = ""
 
 
 func _gui_input(event: InputEvent) -> void:

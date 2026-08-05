@@ -22,6 +22,7 @@ KEY_EXPERIENCE_FMT,Experience: %d/%d,Опыт: %d/%d
 KEY_EXPERIENCE_MAX,Experience: MAX,Опыт: МАКС
 KEY_AP_COST_FMT,%d %s,%d %s
 KEY_USE_COST_FMT,Use: %d %s,Использование: %d %s
+KEY_COOLDOWN_FMT,CD %d,КД %d
 KEY_HP,HP,ОЗ
 KEY_CORRUPTED,Corrupted,Искажено
 KEY_MUTATION_LEVEL,Mutation Level,Уровень мутации
@@ -255,6 +256,7 @@ KEY_STATUS_RUN_COMPLETE,FRAMEWRACK CORE silenced. Run complete.,ЯДРО FRAMEWR
 KEY_STATUS_NEW_RUN,New frame online. Graft. Advance. Mutate.,Новый фрейм в сети. Встраивай. Развивайся. Мутируй.
 KEY_COMBAT_CLICK_HINT,Click a body module to use it. LMB enemy to target; RMB to inspect.,Клик по модулю — использовать. ЛКМ по врагу — цель; ПКМ — осмотр.
 KEY_LOG_NO_USES,No uses left this turn.,Нет использований на этот ход.
+KEY_LOG_ITEM_COOLDOWN,%s is cooling down.,%s на перезарядке.
 KEY_LOG_NO_CHARGES,No charges remaining.,Заряды закончились.
 KEY_LOG_ITEM_DESTROYED,%s is spent and falls apart.,%s израсходован и разваливается.
 KEY_LOG_YOUR_TURN,— Your turn — (%d AP),— Ваш ход — (%d ОД)
@@ -345,6 +347,8 @@ ITEM_SYNAPSE_BOOSTER_NAME,Synapse Booster,Синапс-бустер
 ITEM_SYNAPSE_BOOSTER_DESC,"Experimental top-tier stimulant. Grants +4 AP in combat or guarantees 100% success on a dialog check.","Экспериментальный стимулятор высшей категории. Даёт +4 AP в бою или полностью гарантирует 100% успех диалоговой проверки."
 ITEM_THERMITE_NAME,Thermite Charge,Термитный заряд
 ITEM_THERMITE_DESC,Deals 9-10 damage to selected enemy and applies 3 Burn.,Наносит 9-10 урона выбранному врагу и накладывает 3 Горения.
+ITEM_MOLOTOV_NAME,Molotov Cocktail,Коктейль Молотова
+ITEM_MOLOTOV_DESC,"Simple but effective. Deals 4 AOE damage and applies 2 Burn to all enemies.","Простое, но эффективное средство. Наносит 4 урона по площади и поджигает всех врагов на 2 хода."
 ITEM_PURGE_SOLVENT_NAME,Purge Solvent,Очищающий раствор
 ITEM_PURGE_SOLVENT_DESC,Cleanses all negative status effects (Poison, Rust, Burn).,Снимает все негативные эффекты (Яд, Ржавчина, Горение).
 TRAIT_ARMOR_EDGE_NAME,Edge Anchor,Краевой якорь
@@ -375,6 +379,8 @@ TRAIT_BIO_GEL_HEAL_NAME,Bio Gel Patch,Био-гелевая заплатка
 TRAIT_BIO_GEL_HEAL_DESC,Restore frame HP when consumed.,Восстанавливает ОЗ каркаса при применении.
 TRAIT_GIVE_AP_NAME,Adrenal Salt,Адреналиновая соль
 TRAIT_GIVE_AP_DESC,Gain AP immediately on use.,Мгновенно дает дополнительные ОД.
+TRAIT_APPLY_BURN_NAME,Incendiary Splash,Зажигательный всплеск
+TRAIT_APPLY_BURN_DESC,"Applies 2 Burn to all hit enemies.","Накладывает 2 Горения на всех поражённых врагов."
 TRAIT_NEURO_STIM_NAME,Neuro Surge,Нейро-импульс
 TRAIT_NEURO_STIM_DESC,"+2 AP in combat or +4d6 on a dialog check.","+2 ОД в бою или +4d6 к диалоговой проверке."
 TRAIT_SYNAPSE_BOOSTER_NAME,Synapse Override,Синаптический пробой
@@ -398,7 +404,7 @@ ITEM_ARC_DISCHARGER_DESC,Coiled contacts that arc harder when a reactor shares a
 ITEM_SURGICAL_SAW_NAME,Surgical Saw,Хирургическая пила
 ITEM_SURGICAL_SAW_DESC,Precision bone saw. Compact 1x1 edge tool that pierces Block.,Точная костная пила. Компактный инструмент 1x1; должен располагаться на краю инвентаря; пробивает Блок.
 ITEM_FLAMETHROWER_NAME,Flamethrower,Огнемёт
-ITEM_FLAMETHROWER_DESC,Fuel-fed projector. Spends 2 AP for a fire burst against enemies only — your cells stay intact.,Мощный огнемёт. 2 ОД за атаку по врагам — ваши клетки целы.
+ITEM_FLAMETHROWER_DESC,"Burns everything ahead. Deals INT-scaling damage to all enemies and applies 2 Burn. Cooldown: 1 turn.","Выжигает всё перед собой. Наносит урон всем врагам (скалируется от INT) и поджигает их на 2 хода. Кулдаун: 1 ход."
 ITEM_REBAR_CUDGEL_NAME,Rebar Cudgel,Кусок арматуры
 ITEM_REBAR_CUDGEL_DESC,Heavy rebar length. Stronger when given room — no adjacent weapons.,Тяжёлая арматура. Бьет сильнее; когда не касается другого оружия.
 ITEM_CYBER_SPIKE_NAME,Cyber Spike,Кибершип
