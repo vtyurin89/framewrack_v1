@@ -378,6 +378,24 @@ func get_adjacent_dot_amplify_bonus(source: PlacedItem) -> int:
 	return bonus
 
 
+func get_adjacent_heal_on_hit_bonus(source: PlacedItem) -> int:
+	## +N healing from orthogonal amplifiers with TRAIT_HEAL_ON_HIT.
+	var bonus := 0
+	if source == null:
+		return 0
+	for neighbour: PlacedItem in get_adjacent_items(source):
+		if neighbour == null or neighbour.data == null:
+			continue
+		if not is_item_functional(neighbour):
+			continue
+		if not neighbour.data.is_amplifier():
+			continue
+		if not TraitManager.has_trait(neighbour.data, "TRAIT_HEAL_ON_HIT"):
+			continue
+		bonus += maxi(1, TraitManager.get_trait_value(neighbour.data, "TRAIT_HEAL_ON_HIT", 1))
+	return bonus
+
+
 func find_placed_by_data(item: ItemData) -> PlacedItem:
 	## Resolve a live grid placement from an ItemData instance reference.
 	if item == null:

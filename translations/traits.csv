@@ -72,3 +72,15 @@ TRAIT_DOT_AMPLIFY_NAME,DoT Catalyst,Катализатор DoT
 TRAIT_DOT_AMPLIFY_DESC,Adjacent weapons applying Burn or Poison gain +1 stack.,Смежное оружие при наложении Горения или Яда получает +1 стак.
 TRAIT_NEURON_AMP_NAME,Neuron Overclock,Нейронный разгон
 TRAIT_NEURON_AMP_DESC,"Pays dynamic HP for +1 AP in combat or +2d6 on a dialog check.","Тратит динамическое HP за +1 ОД в бою или +2d6 к диалоговой проверке."
+TRAIT_DEVOURER_STR_NAME,Devourer Tendons,Сухожилия пожирателя
+TRAIT_DEVOURER_STR_DESC,Passive +1 Strength while equipped.,Пассивно даёт +1 к Силе пока установлен.
+TRAIT_HEAL_ON_HIT_NAME,Vampiric Coupling,Вампирическая сцепка
+TRAIT_HEAL_ON_HIT_DESC,Adjacent weapon heals +1 HP on hit while no armor is equipped.,Смежное оружие лечит на +1 HP при ударе, пока на сетке нет брони.
+TRAIT_WAR_MODULE_NAME,Circuit Overload,Перегруз контуров
+TRAIT_WAR_MODULE_DESC,On activation grants adjacent weapons +2 temporary damage until end of turn.,При активации даёт смежному оружию +2 временного урона до конца хода.
+TRAIT_WAR_STR_NAME,War Graft,Боевая прививка
+TRAIT_WAR_STR_DESC,Passive +1 Strength while equipped.,Пассивно даёт +1 к Силе пока установлен.
+TRAIT_WAR_LUCK_NAME,Tactical Instinct,Тактический инстинкт
+TRAIT_WAR_LUCK_DESC,Passive +1 Luck while equipped.,Пассивно даёт +1 к Удаче пока установлен.
+TRAIT_DOT_MULTIPLIER_NAME,Catalytic Cascade,Каталитический каскад
+TRAIT_DOT_MULTIPLIER_DESC,Triples all current Burn/Poison/Bleed stacks on target.,Утраивает все текущие стаки Горения/Яда/Кровотечения на цели.

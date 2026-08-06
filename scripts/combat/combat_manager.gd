@@ -17,6 +17,7 @@ signal forced_insertion_completed
 const SLIMY_PARASITE_ID := "SLIMY_PARASITE"
 const PARASITE_TURN_DAMAGE := 3
 const PARASITE_AP_CAP := 3
+const WAR_MODULE_TEMP_DMG := 2
 
 var inventory: InventoryController
 var player_stats: PlayerStats
@@ -172,6 +173,7 @@ func _begin_player_turn() -> void:
 func _reset_player_resources() -> void:
 	current_block = 0
 	EventBus.block_changed.emit(current_block)
+	_clear_temporary_weapon_bonuses()
 	max_ap = inventory.get_max_ap()
 	current_ap = max_ap
 	player_turn_index += 1
@@ -290,6 +292,8 @@ func _modify_player_healing(amount: int) -> int:
 func _player_post_turn_phase() -> void:
 	## End-of-turn hooks (duration POST_TURN statuses, etc.).
 	player_statuses.tick_post_turn()
+	_clear_temporary_weapon_bonuses()
+	EventBus.inventory_changed.emit()
 
 
 func end_player_turn() -> void:
@@ -458,6 +462,7 @@ func _resolve_single_enemy(placed: PlacedItem) -> void:
 	dmg += trait_bonus
 	_deal_damage_to(target_index, dmg, data.get_localized_name())
 	_apply_on_hit_weapon_statuses(placed, target_index)
+	_apply_armorless_adjacent_heal_on_hit(placed)
 
 
 func _resolve_all_enemies(placed: PlacedItem) -> void:
@@ -470,6 +475,7 @@ func _resolve_all_enemies(placed: PlacedItem) -> void:
 	for idx: int in living:
 		_deal_damage_to(idx, dmg, data.get_localized_name(), true, damage_type)
 		_apply_on_hit_weapon_statuses(placed, idx)
+	_apply_armorless_adjacent_heal_on_hit(placed)
 
 
 func _resolve_self(placed: PlacedItem) -> void:
@@ -681,10 +687,20 @@ func _apply_self_use_traits(placed: PlacedItem) -> void:
 		EventBus.combat_log_message.emit(
 			tr("KEY_LOG_NEURON_AMP") % [data.get_localized_name(), cost, ap_gain]
 		)
+	if TraitManager.has_trait(data, "TRAIT_WAR_MODULE"):
+		var affected := _apply_war_module_adjacency_buff(placed)
+		if affected > 0:
+			EventBus.combat_log_message.emit(
+				tr("KEY_LOG_WAR_MODULE_BUFF") % [data.get_localized_name(), affected, WAR_MODULE_TEMP_DMG]
+			)
+			EventBus.inventory_changed.emit()
 
 
 func _resolve_consumable_enemy(placed: PlacedItem, enemy_index: int) -> void:
 	var data := placed.data
+	if TraitManager.has_trait(data, "TRAIT_DOT_MULTIPLIER"):
+		_apply_dot_multiplier_to_enemy(enemy_index, TraitManager.get_trait_value(data, "TRAIT_DOT_MULTIPLIER", 3))
+		return
 	var dealt := 0
 	if TraitManager.has_trait(data, "TRAIT_BURN_DAMAGE"):
 		## Damage comes from the item roll; the trait only applies Burn.
@@ -706,6 +722,17 @@ func _reset_all_item_turn_uses() -> void:
 	for placed: PlacedItem in inventory.grid.items:
 		if placed != null and placed.data != null:
 			placed.data.reset_turn_uses()
+
+
+func _clear_temporary_weapon_bonuses() -> void:
+	if inventory == null or inventory.grid == null:
+		return
+	for placed: PlacedItem in inventory.grid.items:
+		if placed == null or placed.data == null:
+			continue
+		if placed.data.temp_flat_damage_bonus == 0:
+			continue
+		placed.data.clear_temporary_combat_bonuses()
 
 
 func _tick_all_item_cooldowns() -> void:
@@ -1165,6 +1192,67 @@ func _dot_stacks_with_amplify(placed: PlacedItem, base_stacks: int) -> int:
 	if inventory != null and inventory.grid != null:
 		bonus = inventory.grid.get_adjacent_dot_amplify_bonus(placed)
 	return maxi(1, base_stacks) + bonus
+
+
+func _apply_armorless_adjacent_heal_on_hit(placed: PlacedItem) -> void:
+	## Devourer-style sustain works only if no armor exists in the body grid.
+	if placed == null or placed.data == null:
+		return
+	if not placed.data.is_weapon():
+		return
+	if inventory == null or inventory.grid == null:
+		return
+	if not inventory.get_equipped_items_by_type("armor").is_empty():
+		return
+	var heal_bonus := inventory.grid.get_adjacent_heal_on_hit_bonus(placed)
+	if heal_bonus <= 0:
+		return
+	var before := inventory.current_hp
+	inventory.current_hp = mini(inventory.max_hp, inventory.current_hp + heal_bonus)
+	var healed := inventory.current_hp - before
+	if healed <= 0:
+		return
+	EventBus.player_hp_changed.emit(inventory.current_hp, inventory.max_hp)
+	_request_player_popup(healed, "heal")
+	EventBus.combat_log_message.emit(
+		tr("KEY_LOG_ARMORLESS_HEAL_ON_HIT") % [placed.data.get_localized_name(), healed]
+	)
+
+
+func _apply_war_module_adjacency_buff(placed: PlacedItem) -> int:
+	## Apply +2 temporary damage to adjacent functional weapons for this turn.
+	if placed == null or placed.data == null or inventory == null or inventory.grid == null:
+		return 0
+	var count := 0
+	for neighbour: PlacedItem in inventory.grid.get_adjacent_items(placed):
+		if neighbour == null or neighbour.data == null:
+			continue
+		if not inventory.grid.is_item_functional(neighbour):
+			continue
+		if not neighbour.data.is_weapon():
+			continue
+		neighbour.data.temp_flat_damage_bonus += WAR_MODULE_TEMP_DMG
+		count += 1
+	return count
+
+
+func _apply_dot_multiplier_to_enemy(enemy_index: int, multiplier: int) -> void:
+	if enemy_index < 0 or enemy_index >= enemies.size():
+		return
+	var enemy := enemies[enemy_index]
+	if enemy == null or enemy.statuses == null:
+		return
+	var changed: Dictionary = enemy.statuses.multiply_dot_stacks(multiplier)
+	if changed.is_empty():
+		EventBus.combat_log_message.emit(tr("KEY_LOG_DOT_MULTIPLIER_NONE"))
+		return
+	var parts: PackedStringArray = []
+	for sid_variant in changed.keys():
+		var status_id := str(sid_variant)
+		parts.append("%s x%d" % [status_id.capitalize(), int(changed[status_id])])
+	EventBus.combat_log_message.emit(
+		tr("KEY_LOG_DOT_MULTIPLIER_APPLIED") % [enemy.get_localized_name(), ", ".join(parts)]
+	)
 
 
 func _item_applies_burn(data: ItemData) -> bool:

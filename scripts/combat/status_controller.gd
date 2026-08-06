@@ -18,6 +18,11 @@ const FEROCITY_CRIT_MULT := 1.7
 const RUST_FAIL_CHANCE_PER_STACK := 0.10
 
 var _statuses: Array[StatusInstance] = []
+const DOT_IDS := {
+	"burn": true,
+	"poison": true,
+	"bleed": true,
+}
 
 
 func get_active_statuses() -> Array[StatusInstance]:
@@ -49,6 +54,32 @@ func get_stacks(status_id: String) -> int:
 	if status.data.stack_type == StatusEffectData.StackType.DURATION:
 		return status.duration
 	return status.stacks
+
+
+func multiply_dot_stacks(multiplier: int) -> Dictionary:
+	## Multiplies active Burn/Poison/Bleed stacks (or duration) by N.
+	var mult := maxi(1, multiplier)
+	var changed: Dictionary = {}
+	if mult <= 1:
+		return changed
+	for status: StatusInstance in get_active_statuses():
+		if status == null or status.data == null:
+			continue
+		var sid := status.data.id.strip_edges().to_lower()
+		if not DOT_IDS.has(sid):
+			continue
+		var before := get_stacks(sid)
+		if before <= 0:
+			continue
+		if status.data.stack_type == StatusEffectData.StackType.DURATION:
+			status.duration = maxi(1, status.duration * mult)
+			changed[sid] = status.duration
+		else:
+			status.stacks = maxi(1, status.stacks * mult)
+			changed[sid] = status.stacks
+	if not changed.is_empty():
+		_emit_updated()
+	return changed
 
 
 func apply_status(data: StatusEffectData, amount: int = 1) -> StatusInstance:

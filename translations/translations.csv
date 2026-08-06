@@ -27,6 +27,8 @@ KEY_ADJ_DMG_BONUS_NOTE,"[color=#7dcea0]Adjacency: +%d damage from neighbouring m
 KEY_ADJ_DMG_BONUS_NOTE_PLAIN,Adjacency: +%d damage from neighbouring modules,Соседство: +%d урона от соседних модулей
 KEY_ADJ_DOT_BONUS_NOTE,"[color=#e67e22]Adjacency: +%d DoT stack from Amplifiers[/color]","[color=#e67e22]Соседство: +%d стак DoT от усилителей[/color]"
 KEY_ADJ_DOT_BONUS_NOTE_PLAIN,Adjacency: +%d DoT stack from Amplifiers,Соседство: +%d стак DoT от усилителей
+KEY_TEMP_DMG_BONUS_NOTE,"[color=#f5b041]Temporary: +%d damage until end of turn[/color]","[color=#f5b041]Временно: +%d урона до конца хода[/color]"
+KEY_TEMP_DMG_BONUS_NOTE_PLAIN,Temporary: +%d damage until end of turn,Временно: +%d урона до конца хода
 KEY_HP,HP,ОЗ
 KEY_CORRUPTED,Corrupted,Искажено
 KEY_MUTATION_LEVEL,Mutation Level,Уровень мутации
@@ -370,6 +372,12 @@ ITEM_AMPLIFIER_INJECTOR_NAME,Amplifier Injector,Усиленный Инжект�
 ITEM_AMPLIFIER_INJECTOR_DESC,"Catalyzes compounds. Grants +1 INT and makes adjacent weapons apply +1 additional DoT stack.","Катализирует составы. Даёт +1 к INT и заставляет смежное оружие накладывать +1 дополнительный стак DoT."
 ITEM_NEURON_AMPLIFIER_NAME,Neuron Amplifier,Усилитель Нейронов
 ITEM_NEURON_AMPLIFIER_DESC,"Forces neural links at the cost of health. Base cost: 4 HP (+1 HP per armor item on the grid). Available in combat and dialog checks.","Форсирует нейронные связи ценой здоровья. Базовая цена: 4 HP (+1 HP за каждый предмет брони в сетке). Доступен в бою и при проверках в диалогах."
+ITEM_DEVOURER_MODULE_NAME,Devourer Module,Модуль-пожиратель
+ITEM_DEVOURER_MODULE_DESC,"Feeds on enemy vitality through weapon interfaces. Grants +1 STR. Adjacent weapons heal 1 HP on hit (disabled if any armor is equipped).","Поглощает жизненные соки врагов через рукоять. Даёт +1 к Силе. Смежное оружие исцеляет на 1 HP при атаке (не работает, если надета броня)."
+ITEM_WAR_MODULE_NAME,War Module,Модуль войны
+ITEM_WAR_MODULE_DESC,"Temporary overload of weapon circuits. Grants +1 Luck and +1 Strength. On use gives +2 damage to adjacent weapons until end of turn.","Временный перегруз оружейных контуров. Даёт +1 к Удаче и +1 к Силе. При активации даёт +2 к урону всему смежному оружию до конца хода."
+ITEM_HKR137_NAME,HKR-137 Serum,Сыворотка «HKR-137»
+ITEM_HKR137_DESC,Catalytic aggressor. Triples current stacks of all DoT effects on the selected target.,Каталитический агрессор. Утраивает количество стаков всех DoT-эффектов на выбранной цели.
 ITEM_PURGE_SOLVENT_NAME,Purge Solvent,Очищающий раствор
 ITEM_PURGE_SOLVENT_DESC,Cleanses all negative status effects (Poison, Rust, Burn).,Снимает все негативные эффекты (Яд, Ржавчина, Горение).
 TRAIT_ARMOR_EDGE_NAME,Edge Anchor,Краевой якорь
@@ -443,6 +451,10 @@ KEY_NEURON_AMP_UNSAFE,"[color=#FF5555]Not enough HP for safe use![/color]","[col
 KEY_LOG_NEURON_AMP,%s burns %d HP for +%d AP.,%s сжигает %d HP за +%d ОД.
 KEY_LOG_COMBAT_END_HEAL,%s restores %d HP.,%s восстанавливает %d HP.
 KEY_LOG_COMBAT_END_CHIPS,%s salvages %d Neuro-Chips.,%s извлекает %d нейро-чипов.
+KEY_LOG_ARMORLESS_HEAL_ON_HIT,%s siphons vitality: +%d HP.,%s поглощает жизненную силу: +%d HP.
+KEY_LOG_WAR_MODULE_BUFF,%s overloads %d adjacent weapon(s): +%d damage this turn.,%s перегружает %d смежн. оруж.: +%d урона в этот ход.
+KEY_LOG_DOT_MULTIPLIER_APPLIED,HKR-137 destabilizes %s: %s.,HKR-137 дестабилизирует %s: %s.
+KEY_LOG_DOT_MULTIPLIER_NONE,HKR-137 finds no DoT stacks on target.,HKR-137 не находит DoT-стаков на цели.
 KEY_STAT_CHECK_ROLL,Roll check,Бросить проверку
 KEY_STAT_CHECK_CANCEL,Cancel,Отмена
 KEY_STAT_CHECK_PREPARE,Prepare check (%s),Подготовка проверки (%s)
@@ -483,6 +495,18 @@ TRAIT_DOT_AMPLIFY_NAME,DoT Catalyst,Катализатор DoT
 TRAIT_DOT_AMPLIFY_DESC,Adjacent weapons applying Burn or Poison gain +1 stack.,Смежное оружие при наложении Горения или Яда получает +1 стак.
 TRAIT_NEURON_AMP_NAME,Neuron Overclock,Нейронный разгон
 TRAIT_NEURON_AMP_DESC,"Pays dynamic HP for +1 AP in combat or +2d6 on a dialog check.","Тратит динамическое HP за +1 ОД в бою или +2d6 к диалоговой проверке."
+TRAIT_DEVOURER_STR_NAME,Devourer Tendons,Сухожилия пожирателя
+TRAIT_DEVOURER_STR_DESC,Passive +1 Strength while equipped.,Пассивно даёт +1 к Силе пока установлен.
+TRAIT_HEAL_ON_HIT_NAME,Vampiric Coupling,Вампирическая сцепка
+TRAIT_HEAL_ON_HIT_DESC,Adjacent weapon heals +1 HP on hit while no armor is equipped.,Смежное оружие лечит на +1 HP при ударе, пока на сетке нет брони.
+TRAIT_WAR_MODULE_NAME,Circuit Overload,Перегруз контуров
+TRAIT_WAR_MODULE_DESC,On activation grants adjacent weapons +2 temporary damage until end of turn.,При активации даёт смежному оружию +2 временного урона до конца хода.
+TRAIT_WAR_STR_NAME,War Graft,Боевая прививка
+TRAIT_WAR_STR_DESC,Passive +1 Strength while equipped.,Пассивно даёт +1 к Силе пока установлен.
+TRAIT_WAR_LUCK_NAME,Tactical Instinct,Тактический инстинкт
+TRAIT_WAR_LUCK_DESC,Passive +1 Luck while equipped.,Пассивно даёт +1 к Удаче пока установлен.
+TRAIT_DOT_MULTIPLIER_NAME,Catalytic Cascade,Каталитический каскад
+TRAIT_DOT_MULTIPLIER_DESC,Triples all current Burn/Poison/Bleed stacks on target.,Утраивает все текущие стаки Горения/Яда/Кровотечения на цели.
 ENEMY_FACELESS_LADY_NAME,Faceless Lady,Безликая дама
 ENEMY_FACELESS_LADY_DESC,"A stalker bound to the Pale Maiden's pact. Debuffs and bleeds the frame.","Сталкер, связанный с договором Бледной девы. Дебаффит каркас."
 ABILITY_FACELESS_TEETH_NAME,Tooth Clicking,Постукивание зубов

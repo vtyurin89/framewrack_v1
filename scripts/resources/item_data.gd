@@ -122,6 +122,8 @@ var current_cd: int = 0
 
 ## Runtime: remaining charges for exhaustable items (-1 = unlimited / not tracked).
 var current_charges: int = -1
+## Runtime: temporary flat damage for this turn only (e.g. War Module adjacency buff).
+var temp_flat_damage_bonus: int = 0
 
 static var _cached_fallback_icon: Texture2D
 
@@ -167,6 +169,7 @@ func initialize_runtime_state() -> void:
 	## Call after duplicating a prototype for a placed / inventory instance.
 	current_turn_uses = 0
 	current_cd = 0
+	temp_flat_damage_bonus = 0
 	if consumable:
 		current_charges = maxi(max_charges, 0)
 	else:
@@ -176,6 +179,10 @@ func initialize_runtime_state() -> void:
 
 func reset_turn_uses() -> void:
 	current_turn_uses = 0
+
+
+func clear_temporary_combat_bonuses() -> void:
+	temp_flat_damage_bonus = 0
 
 
 func tick_cooldown() -> void:
@@ -281,7 +288,7 @@ func get_effective_damage_bounds() -> Vector2i:
 	var bounds := get_damage_roll_bounds()
 	if bounds == Vector2i.ZERO:
 		return Vector2i.ZERO
-	var bonus := get_active_trait_bonus("DAMAGE")
+	var bonus := get_active_trait_bonus("DAMAGE") + temp_flat_damage_bonus
 	return Vector2i(bounds.x + bonus, bounds.y + bonus)
 
 
@@ -383,6 +390,8 @@ func format_damage_display(use_bbcode: bool = true, stats: ActorStats = null) ->
 		parts.append("%+d" % trait_bonus)
 	if stat_bonus != 0:
 		parts.append("%+d" % stat_bonus)
+	if temp_flat_damage_bonus != 0:
+		parts.append("%+d" % temp_flat_damage_bonus)
 	if parts.size() > 1:
 		if use_bbcode:
 			return "⚔️ %s ([color=#7dcea0]%s[/color])" % [range_text, " ".join(parts)]
@@ -441,6 +450,11 @@ func format_adjacency_bonus_notes(grid: BodyGrid, use_bbcode: bool = true) -> St
 				lines.append(tr("KEY_ADJ_DOT_BONUS_NOTE") % dot_bonus)
 			else:
 				lines.append(tr("KEY_ADJ_DOT_BONUS_NOTE_PLAIN") % dot_bonus)
+	if temp_flat_damage_bonus > 0:
+		if use_bbcode:
+			lines.append(tr("KEY_TEMP_DMG_BONUS_NOTE") % temp_flat_damage_bonus)
+		else:
+			lines.append(tr("KEY_TEMP_DMG_BONUS_NOTE_PLAIN") % temp_flat_damage_bonus)
 	return "\n".join(lines)
 
 
