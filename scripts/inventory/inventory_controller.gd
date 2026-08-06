@@ -221,3 +221,87 @@ func unlock_random_adjacent_cells(count: int = BodyGrid.LEVEL_UP_CELL_GAIN) -> A
 	if grid == null:
 		return []
 	return grid.unlock_random_adjacent_cells(count)
+
+
+func unlock_random_cell() -> Array[Vector2i]:
+	## Grid Expander: permanently unlock one adjacent locked cell.
+	return unlock_random_adjacent_cells(1)
+
+
+func find_placed_item(item_data: ItemData) -> PlacedItem:
+	if grid == null or item_data == null:
+		return null
+	for placed: PlacedItem in grid.items:
+		if placed != null and placed.data == item_data:
+			return placed
+	return null
+
+
+func use_consumable_out_of_combat(item_data: ItemData) -> Dictionary:
+	## Returns { ok: bool, message: String, unlocked_cells: Array[Vector2i] }.
+	var result := {"ok": false, "message": "", "unlocked_cells": []}
+	if item_data == null:
+		return result
+	if item_data.is_combat_only:
+		result["message"] = tr("KEY_ITEM_COMBAT_ONLY")
+		return result
+	if not item_data.can_use_out_of_combat():
+		result["message"] = tr("KEY_ITEM_CANNOT_USE")
+		return result
+	var placed := find_placed_item(item_data)
+	if placed == null or grid == null:
+		result["message"] = tr("KEY_ITEM_CANNOT_USE")
+		return result
+	if not item_data.has_charges_remaining() and item_data.consumable:
+		result["message"] = tr("KEY_LOG_NO_CHARGES")
+		return result
+
+	## Special: permanent body-grid expansion.
+	if item_data.is_grid_expander():
+		var unlocked: Array[Vector2i] = unlock_random_cell()
+		if unlocked.is_empty():
+			result["message"] = tr("KEY_GRID_EXPAND_FULL")
+			return result
+		_spend_consumable_charge(placed)
+		EventBus.grid_expanded.emit(unlocked)
+		result["ok"] = true
+		result["unlocked_cells"] = unlocked
+		result["message"] = tr("KEY_GRID_EXPAND_SUCCESS")
+		return result
+
+	## Healing still applies out of combat.
+	if TraitManager.has_trait(item_data, "TRAIT_BIO_GEL_HEAL"):
+		var heal_amt := 8
+		current_hp = mini(max_hp, current_hp + heal_amt)
+		EventBus.player_hp_changed.emit(current_hp, max_hp)
+		_spend_consumable_charge(placed)
+		result["ok"] = true
+		result["message"] = tr("KEY_LOG_STATUS_HEAL") % heal_amt
+		return result
+
+	## AP stimulants / utility burn: consume only — no AP grant outside combat.
+	_spend_consumable_charge(placed)
+	result["ok"] = true
+	if item_data.grants_ap_on_use():
+		result["message"] = tr("KEY_ITEM_BURNED_NO_AP")
+	else:
+		result["message"] = tr("KEY_ITEM_CONSUMED")
+	return result
+
+
+func _spend_consumable_charge(placed: PlacedItem) -> void:
+	if placed == null or placed.data == null or grid == null:
+		return
+	var data := placed.data
+	if data.consumable and data.max_charges > 0:
+		data.current_charges = maxi(0, data.current_charges - 1)
+		EventBus.inventory_changed.emit()
+		if data.current_charges <= 0 and data.destroy_on_empty:
+			grid.remove_item(placed, true)
+			EventBus.item_removed.emit(data.id)
+			EventBus.inventory_changed.emit()
+		return
+	## Non-charge consumables / one-shot tools: remove from grid.
+	grid.remove_item(placed, true)
+	EventBus.item_removed.emit(data.id)
+	EventBus.inventory_changed.emit()

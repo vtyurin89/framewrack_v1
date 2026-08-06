@@ -91,6 +91,13 @@ KEY_HINT_ROTATED,Rotated to %dx%d — drop to confirm.,Повёрнуто до %
 KEY_HINT_STASH_RETURN,Returned to stash.,Возвращено на склад.
 KEY_ITEM_DETAILS,ITEM DETAILS,ДЕТАЛИ ПРЕДМЕТА
 KEY_INSPECT,Inspect,Осмотреть
+KEY_APPLY_ITEM,[ Apply ],[ Применить ]
+KEY_ITEM_COMBAT_ONLY,"[color=#FF5555]Cannot use outside of combat![/color]","[color=#FF5555]Нельзя использовать вне боя![/color]"
+KEY_ITEM_CANNOT_USE,"[color=#FF5555]Cannot use this item here.[/color]","[color=#FF5555]Этот предмет нельзя применить здесь.[/color]"
+KEY_ITEM_BURNED_NO_AP,"Consumed.","Израсходовано."
+KEY_ITEM_CONSUMED,Item consumed.,Предмет израсходован.
+KEY_GRID_EXPAND_SUCCESS,"[color=#9B59B6]Grid expanded! A new cell has been unlocked.[/color]","[color=#9B59B6]Сетка расширена! Разблокирована новая ячейка.[/color]"
+KEY_GRID_EXPAND_FULL,"[color=#FF5555]No locked cells left to unlock.[/color]","[color=#FF5555]Нет закрытых ячеек для разблокировки.[/color]"
 KEY_ABILITIES,Abilities,Способности
 KEY_NO_ABILITIES,No abilities.,Нет способностей.
 KEY_STR,STR,СИЛ
@@ -349,6 +356,8 @@ ITEM_THERMITE_NAME,Thermite Charge,Термитный заряд
 ITEM_THERMITE_DESC,Deals 9-10 damage to selected enemy and applies 3 Burn.,Наносит 9-10 урона выбранному врагу и накладывает 3 Горения.
 ITEM_MOLOTOV_NAME,Molotov Cocktail,Коктейль Молотова
 ITEM_MOLOTOV_DESC,"Simple but effective. Deals 4 AOE damage and applies 2 Burn to all enemies.","Простое, но эффективное средство. Наносит 4 урона по площади и поджигает всех врагов на 2 хода."
+ITEM_GRID_EXPANDER_NAME,Grid Expander,Расширитель Сетки
+ITEM_GRID_EXPANDER_DESC,"Experimental data-bus expansion chip. When activated, permanently unlocks 1 random locked cell in the BODY GRID.","Экспериментальный чип расширения шины данных. При активировании перманентно разблокирует 1 случайную закрытую ячейку в BODY GRID."
 ITEM_PURGE_SOLVENT_NAME,Purge Solvent,Очищающий раствор
 ITEM_PURGE_SOLVENT_DESC,Cleanses all negative status effects (Poison, Rust, Burn).,Снимает все негативные эффекты (Яд, Ржавчина, Горение).
 TRAIT_ARMOR_EDGE_NAME,Edge Anchor,Краевой якорь

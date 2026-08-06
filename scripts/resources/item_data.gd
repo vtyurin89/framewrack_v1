@@ -78,6 +78,9 @@ const FALLBACK_ICON_PATH := "res://assets/icons/fallback_item.png"
 ## Harmful / parasitic modules forced into the Body Grid (cannot be discarded).
 @export var is_harmful: bool = false
 
+## If true, this consumable can only be activated during combat.
+@export var is_combat_only: bool = false
+
 ## Intrinsic combat values before active trait modifiers.
 ## Damaging modules roll between min_damage and max_damage on hit.
 @export var min_damage: int = 0
@@ -439,6 +442,35 @@ func is_currency() -> bool:
 	if item_type == null:
 		return false
 	return item_type.id.strip_edges().to_upper() == "CURRENCY"
+
+
+func is_consumable_item() -> bool:
+	if consumable:
+		return true
+	if item_type == null:
+		return false
+	return item_type.id.strip_edges().to_upper() == "CONSUMABLE"
+
+
+func can_use_out_of_combat() -> bool:
+	## Utility / heal / grid tools — not combat-only grenades or harmful parasites.
+	if not usable or is_harmful or is_combat_only:
+		return false
+	return is_consumable_item()
+
+
+func grants_ap_on_use() -> bool:
+	for item_trait: TraitData in traits:
+		if item_trait == null:
+			continue
+		var tid := item_trait.id.strip_edges().to_upper()
+		if tid in ["TRAIT_GIVE_AP", "TRAIT_NEURO_STIM", "TRAIT_SYNAPSE_BOOSTER"]:
+			return true
+	return false
+
+
+func is_grid_expander() -> bool:
+	return id.strip_edges().to_upper() == "GRID_EXPANDER"
 
 
 func is_shield() -> bool:

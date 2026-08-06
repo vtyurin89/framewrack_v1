@@ -3,13 +3,17 @@ extends PanelContainer
 ## Floating RMB context menu for a statically placed inventory item.
 
 signal inspect_pressed(item: ItemData)
+signal use_pressed(item: ItemData)
 signal closed
 
-const MENU_MIN_WIDTH := 160.0
+const MENU_MIN_WIDTH := 180.0
 
 var _item: ItemData
 var _inspect_btn: Button
+var _use_btn: Button
 var _open: bool = false
+## When true, show/enable out-of-combat [Use] for eligible consumables.
+var allow_out_of_combat_use: bool = true
 
 
 func _ready() -> void:
@@ -28,12 +32,14 @@ func is_open() -> bool:
 	return _open
 
 
-func open_for_item(item: ItemData, global_pos: Vector2) -> void:
+func open_for_item(item: ItemData, global_pos: Vector2, in_combat: bool = false) -> void:
 	if item == null:
 		close()
 		return
 	_item = item
+	allow_out_of_combat_use = not in_combat
 	_refresh_labels()
+	_refresh_use_button()
 	visible = true
 	_open = true
 	set_process_unhandled_input(true)
@@ -56,11 +62,44 @@ func close() -> void:
 
 func _on_language_changed(_locale: String) -> void:
 	_refresh_labels()
+	_refresh_use_button()
 
 
 func _refresh_labels() -> void:
 	if _inspect_btn:
 		_inspect_btn.text = tr("KEY_INSPECT")
+	if _use_btn:
+		_use_btn.text = tr("KEY_APPLY_ITEM")
+
+
+func _refresh_use_button() -> void:
+	if _use_btn == null:
+		return
+	var show_use := _item != null and _item.is_consumable_item() and not _item.is_harmful
+	_use_btn.visible = show_use and allow_out_of_combat_use
+	if not _use_btn.visible:
+		_use_btn.disabled = true
+		_use_btn.modulate = Color.WHITE
+		_use_btn.tooltip_text = ""
+		_use_btn.set_meta("blocked", false)
+		return
+
+	## Keep the control hoverable when blocked — Godot skips tooltips on disabled Buttons.
+	if _item.is_combat_only:
+		_use_btn.disabled = false
+		_use_btn.modulate = Color(0.55, 0.55, 0.55, 1.0)
+		_use_btn.tooltip_text = tr("KEY_ITEM_COMBAT_ONLY")
+		_use_btn.set_meta("blocked", true)
+	elif not _item.can_use_out_of_combat():
+		_use_btn.disabled = false
+		_use_btn.modulate = Color(0.55, 0.55, 0.55, 1.0)
+		_use_btn.tooltip_text = tr("KEY_ITEM_CANNOT_USE")
+		_use_btn.set_meta("blocked", true)
+	else:
+		_use_btn.disabled = false
+		_use_btn.modulate = Color.WHITE
+		_use_btn.tooltip_text = ""
+		_use_btn.set_meta("blocked", false)
 
 
 func _unhandled_input(event: InputEvent) -> void:
@@ -92,6 +131,14 @@ func _build() -> void:
 	vbox.add_theme_constant_override("separation", 2)
 	margin.add_child(vbox)
 
+	_use_btn = _ContextUseButton.new()
+	_use_btn.custom_minimum_size = Vector2(MENU_MIN_WIDTH, 28)
+	_use_btn.alignment = HORIZONTAL_ALIGNMENT_LEFT
+	_use_btn.pressed.connect(_on_use_pressed)
+	_use_btn.text = tr("KEY_APPLY_ITEM")
+	_use_btn.visible = false
+	vbox.add_child(_use_btn)
+
 	_inspect_btn = Button.new()
 	_inspect_btn.custom_minimum_size = Vector2(MENU_MIN_WIDTH, 28)
 	_inspect_btn.alignment = HORIZONTAL_ALIGNMENT_LEFT
@@ -105,6 +152,15 @@ func _on_inspect_pressed() -> void:
 	close()
 	if selected != null:
 		inspect_pressed.emit(selected)
+
+
+func _on_use_pressed() -> void:
+	if _use_btn != null and bool(_use_btn.get_meta("blocked", false)):
+		return
+	var selected: ItemData = _item
+	close()
+	if selected != null:
+		use_pressed.emit(selected)
 
 
 func _apply_style() -> void:
@@ -128,3 +184,28 @@ func _clamp_to_viewport() -> void:
 	pos.x = clampf(pos.x, 0.0, maxf(0.0, vp.x - tip_size.x))
 	pos.y = clampf(pos.y, 0.0, maxf(0.0, vp.y - tip_size.y))
 	global_position = pos
+
+
+## Button subclass so disabled [Apply] can show BBCode combat-only tooltips.
+class _ContextUseButton extends Button:
+	func _make_custom_tooltip(for_text: String) -> Object:
+		if for_text.is_empty():
+			return null
+		var tip := RichTextLabel.new()
+		tip.bbcode_enabled = true
+		tip.fit_content = true
+		tip.scroll_active = false
+		tip.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+		tip.custom_minimum_size = Vector2(220, 0)
+		tip.text = for_text
+		tip.add_theme_font_size_override("normal_font_size", 12)
+		var panel := PanelContainer.new()
+		var style := StyleBoxFlat.new()
+		style.bg_color = Color(0.08, 0.08, 0.09, 0.96)
+		style.set_border_width_all(1)
+		style.border_color = Color(0.45, 0.45, 0.5)
+		style.set_content_margin_all(8)
+		style.set_corner_radius_all(4)
+		panel.add_theme_stylebox_override("panel", style)
+		panel.add_child(tip)
+		return panel

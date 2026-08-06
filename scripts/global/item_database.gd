@@ -296,6 +296,16 @@ func _parse_item_row(row: PackedStringArray, col: Dictionary) -> ItemData:
 	item.is_stackable = _parse_bool(_cell(row, col, "is_stackable"), false)
 	item.max_stack = maxi(1, _parse_int(_cell(row, col, "max_stack"), 99))
 	item.current_stack = clampi(_parse_int(_cell(row, col, "current_stack"), 1), 1, item.max_stack)
+
+	## Combat-only: explicit CSV, else infer for damaging enemy-targeted consumables.
+	var combat_only_raw := _cell(row, col, "is_combat_only")
+	if not combat_only_raw.is_empty():
+		item.is_combat_only = _parse_bool(combat_only_raw, false)
+	elif item.consumable and item.max_damage > 0 and item.target_type != ItemData.TargetType.SELF:
+		item.is_combat_only = true
+	else:
+		item.is_combat_only = false
+
 	item.initialize_runtime_state()
 
 	item.price = _parse_price(_cell(row, col, "price"))

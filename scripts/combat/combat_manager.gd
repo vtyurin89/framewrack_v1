@@ -80,6 +80,10 @@ func is_player_turn_active() -> bool:
 	return state == CombatState.PLAYER_TURN
 
 
+func is_in_combat() -> bool:
+	return state != CombatState.INACTIVE
+
+
 func start_combat(enemy_datas: Array[EnemyData], max_attackers: int = -1) -> void:
 	_ensure_ability_executor()
 	if player_statuses == null:

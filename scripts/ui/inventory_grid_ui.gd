@@ -200,6 +200,7 @@ func _ensure_context_menu() -> void:
 	_context_menu = ItemContextMenu.new()
 	_context_menu.name = "ItemContextMenu"
 	_context_menu.inspect_pressed.connect(_on_context_inspect_pressed)
+	_context_menu.use_pressed.connect(_on_context_use_pressed)
 	add_child(_context_menu)
 
 
@@ -529,13 +530,59 @@ func open_item_context_menu(item: ItemData) -> void:
 		return
 	_hide_hover_tooltip()
 	_ensure_context_menu()
-	_context_menu.open_for_item(item, get_global_mouse_position())
+	var in_combat := combat_click_mode
+	if combat_manager != null and combat_manager.has_method("is_in_combat"):
+		in_combat = combat_manager.is_in_combat()
+	_context_menu.open_for_item(item, get_global_mouse_position(), in_combat)
 
 
 func _on_context_inspect_pressed(item: ItemData) -> void:
 	_close_context_menu()
 	_hide_hover_tooltip()
 	inspect_item(item)
+
+
+func _on_context_use_pressed(item: ItemData) -> void:
+	_close_context_menu()
+	_hide_hover_tooltip()
+	if inventory == null or item == null:
+		return
+	if combat_click_mode:
+		return
+	var result: Dictionary = inventory.use_consumable_out_of_combat(item)
+	var msg := str(result.get("message", ""))
+	if not msg.is_empty():
+		EventBus.combat_log_message.emit(msg)
+		_show_inventory_toast(msg)
+	var unlocked: Array = result.get("unlocked_cells", [])
+	if unlocked is Array and not unlocked.is_empty():
+		var cells: Array[Vector2i] = []
+		for c in unlocked:
+			if c is Vector2i:
+				cells.append(c)
+		if not cells.is_empty():
+			_play_unlock_reveal(cells)
+	refresh()
+
+
+func _show_inventory_toast(bbcode_or_text: String) -> void:
+	## Lightweight floating notice over the body grid.
+	var toast := RichTextLabel.new()
+	toast.bbcode_enabled = true
+	toast.fit_content = true
+	toast.scroll_active = false
+	toast.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	toast.text = bbcode_or_text
+	toast.z_index = 200
+	toast.add_theme_font_size_override("normal_font_size", 14)
+	add_child(toast)
+	toast.set_anchors_preset(Control.PRESET_CENTER_TOP)
+	toast.position = Vector2(size.x * 0.5 - 120.0, 12.0)
+	toast.custom_minimum_size = Vector2(240, 0)
+	var tw := create_tween()
+	tw.tween_interval(1.6)
+	tw.tween_property(toast, "modulate:a", 0.0, 0.35)
+	tw.tween_callback(toast.queue_free)
 
 
 func inspect_item(item: ItemData) -> void:
