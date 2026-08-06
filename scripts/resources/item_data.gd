@@ -487,6 +487,12 @@ func is_sellable() -> bool:
 	return price != null and price > 0
 
 
+func get_price_value() -> int:
+	if price == null:
+		return 0
+	return maxi(0, int(price))
+
+
 func is_weapon() -> bool:
 	return (max_damage > 0 or min_damage > 0 or damage > 0) and ap_cost > 0
 

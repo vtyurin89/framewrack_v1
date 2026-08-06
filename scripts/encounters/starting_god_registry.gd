@@ -161,6 +161,28 @@ static func _parse_choice(choice_dict: Dictionary) -> DialogChoiceData:
 	choice.text_key = str(choice_dict.get("text_key", ""))
 	choice.stat_check = str(choice_dict.get("stat_check", ""))
 	choice.check_dc = int(choice_dict.get("check_dc", 0))
+	choice.stat_pool_bonus = int(choice_dict.get("stat_pool_bonus", 0))
+
+	var success_next := str(choice_dict.get("success_next_dialog_id", "")).strip_edges()
+	var failure_next := str(choice_dict.get("failure_next_dialog_id", "")).strip_edges()
+	## Stat-check branches: success/failure next nodes (merchant bargain, etc.).
+	if not choice.stat_check.strip_edges().is_empty() and (
+		not success_next.is_empty() or not failure_next.is_empty()
+	):
+		var success_dict := choice_dict.duplicate(true)
+		if not success_next.is_empty():
+			success_dict["next_dialog_id"] = success_next
+		choice.success_outcome = _outcome_from_choice(success_dict)
+		if not failure_next.is_empty():
+			var fail_dict: Dictionary = {"next_dialog_id": failure_next}
+			if choice_dict.has("failure_reward"):
+				fail_dict["reward"] = choice_dict.get("failure_reward")
+			if choice_dict.has("failure_message_key"):
+				fail_dict["message_key"] = choice_dict.get("failure_message_key")
+			choice.failure_outcome = _outcome_from_choice(fail_dict)
+		else:
+			choice.failure_outcome = DialogOutcomeData.make_end()
+		return choice
 
 	## New format: next_dialog_id + reward
 	if choice_dict.has("next_dialog_id") or choice_dict.has("reward"):
@@ -171,6 +193,9 @@ static func _parse_choice(choice_dict: Dictionary) -> DialogChoiceData:
 	var outcome_raw: Variant = choice_dict.get("outcome", {})
 	if typeof(outcome_raw) == TYPE_DICTIONARY:
 		choice.success_outcome = _parse_outcome(outcome_raw as Dictionary)
+	var fail_raw: Variant = choice_dict.get("failure_outcome", {})
+	if typeof(fail_raw) == TYPE_DICTIONARY and not (fail_raw as Dictionary).is_empty():
+		choice.failure_outcome = _parse_outcome(fail_raw as Dictionary)
 	return choice
 
 
@@ -178,6 +203,7 @@ static func _outcome_from_choice(choice_dict: Dictionary) -> DialogOutcomeData:
 	var next_id := str(choice_dict.get("next_dialog_id", "")).strip_edges()
 	var reward_raw: Variant = choice_dict.get("reward", null)
 	var o := DialogOutcomeData.new()
+	o.message_key = str(choice_dict.get("message_key", "")).strip_edges()
 
 	if next_id == END_ENCOUNTER_ID or next_id.is_empty():
 		o.kind = DialogOutcomeData.OutcomeKind.END
@@ -190,6 +216,8 @@ static func _outcome_from_choice(choice_dict: Dictionary) -> DialogOutcomeData:
 		var reward: Dictionary = reward_raw
 		var reward_type := str(reward.get("type", "")).strip_edges().to_lower()
 		var amount := int(reward.get("amount", 0))
+		if o.message_key.is_empty():
+			o.message_key = str(reward.get("message_key", "")).strip_edges()
 
 		## Multi-effect bundles (Pale Maiden kiss: +STR / -Humanity + pact).
 		var effects_raw: Variant = reward.get("effects", null)
@@ -214,6 +242,12 @@ static func _outcome_from_choice(choice_dict: Dictionary) -> DialogOutcomeData:
 			return o
 
 		match reward_type:
+			"shop":
+				o.kind = DialogOutcomeData.OutcomeKind.SHOP
+				o.price_multiplier = float(reward.get("price_multiplier", 1.0))
+				if o.price_multiplier <= 0.0:
+					o.price_multiplier = 1.0
+				o.next_node_id = ""
 			"humanity", "endurance", "strength", "agility", "intelligence", "luck":
 				o.kind = DialogOutcomeData.OutcomeKind.GRANT_STAT
 				o.stat_name = reward_type
@@ -251,8 +285,9 @@ static func _outcome_from_choice(choice_dict: Dictionary) -> DialogOutcomeData:
 				pass
 			_:
 				pass
-		_apply_god_flags_from_reward(o, reward)
-		_preserve_branch_nav(o, next_id)
+		if reward_type != "shop":
+			_apply_god_flags_from_reward(o, reward)
+			_preserve_branch_nav(o, next_id)
 	return o
 
 
@@ -297,6 +332,7 @@ static func _parse_outcome(raw: Dictionary) -> DialogOutcomeData:
 	o.item_pool_id = str(raw.get("item_pool_id", "")).strip_edges()
 	o.buff_id = str(raw.get("buff_id", "")).strip_edges()
 	o.buff_amount = int(raw.get("buff_amount", 0))
+	o.price_multiplier = float(raw.get("price_multiplier", 1.0))
 	var pool_ids: Array = raw.get("item_pool_ids", [])
 	for pid in pool_ids:
 		var s := str(pid).strip_edges()
@@ -320,6 +356,10 @@ static func _parse_outcome(raw: Dictionary) -> DialogOutcomeData:
 			o.kind = DialogOutcomeData.OutcomeKind.GRANT_STAT
 		"SELECT_ITEM":
 			o.kind = DialogOutcomeData.OutcomeKind.SELECT_ITEM
+		"SHOP":
+			o.kind = DialogOutcomeData.OutcomeKind.SHOP
+			if o.price_multiplier <= 0.0:
+				o.price_multiplier = 1.0
 		"SKIP":
 			o.kind = DialogOutcomeData.OutcomeKind.SKIP
 		_:

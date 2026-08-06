@@ -163,9 +163,9 @@ func _get_or_build_act_data(act_index: int) -> ActData:
 	return built
 
 
-func _is_placeholder_node(node_type: MapNodeData.MapNodeType) -> bool:
-	## REPAIR / REST_SITE is a real encounter (RestSiteUI); shop still pending.
-	return node_type == MapNodeData.MapNodeType.SHOP
+func _is_placeholder_node(_node_type: MapNodeData.MapNodeType) -> bool:
+	## All map node types currently resolve through EncounterManager.
+	return false
 
 func _start_act_intro() -> void:
 	if current_map_data == null:

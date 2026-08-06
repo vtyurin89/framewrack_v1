@@ -10,6 +10,8 @@ extends Resource
 @export var stat_check: String = ""
 ## Required number of 5–6 successes on the d6 pool (StatCheckManager).
 @export var check_dc: int = 0
+## Hidden pool modifier (e.g. Act 2 INT check uses INT - 1). Applied as max(1, stat + bonus).
+@export var stat_pool_bonus: int = 0
 @export var success_outcome: DialogOutcomeData
 @export var failure_outcome: DialogOutcomeData
 

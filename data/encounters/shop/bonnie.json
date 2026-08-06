@@ -1,0 +1,85 @@
+{
+	"id": "bonnie",
+	"title_key": "KEY_MERCHANT_TITLE",
+	"merchant_name": "Bonnie",
+	"merchant_name_ru": "Бонни",
+	"aliases": ["EVERYMART Clerk", "Bonnie of EVERYMART"],
+	"aliases_ru": ["Клерк EVERYMART", "Бонни из EVERYMART"],
+	"good_mood_chance": 0.15,
+	"good_mood_id": "bonnie_good_mood",
+	"dialogs": {
+		"start": {
+			"narrator_text_en": "Music drifts from afar — cheery, looping and full of static. With a heavy screech an enormous trading truck stops in front of you, and a hologram of a beautiful merchant young woman appears. She flickers, then snaps into focus.\n\nWhile she talks, the twin autocannons bolted to the chassis never waver from your chest.",
+			"narrator_text_ru": "Издалека доносится музыка — весёлая, зацикленная, с помехами. С тяжёлым скрипом перед вами останавливается огромный торговый грузовик, и появляется голограмма красивой девушки-торговца. Она мерцает и обретает чёткость.\n\nПока торговка беседует с вами, спаренные пулемёты, установленные на грузовик, ни секунды не перестают в вас целиться.",
+			"speech_text_en": "Hey there, friend! Welcome to EVERYMART mobile outlet number 317! Straight to business, or shall we talk price?",
+			"speech_text_ru": "Здравствуй, дорогой друг! Добро пожаловать в мобильный узел EVERYMART номер 317! Сразу к покупкам, или обсудим цену?",
+			"choices": [
+				{
+					"text_en": "[Start trade] \"Show me what you've got.\"",
+					"text_ru": "[Начать торговлю] «Покажи, что у тебя есть».",
+					"text_key": "KEY_MERCHANT_CHOICE_TRADE",
+					"next_dialog_id": "trade_intro"
+				},
+				{
+					"text_en": "[Bargain — Intelligence check] \"Your prices are clearly inflated.\"",
+					"text_ru": "[Поторговаться — проверка интеллекта] «Твои цены явно завышены».",
+					"text_key": "KEY_MERCHANT_CHOICE_BARGAIN",
+					"stat_check": "INT",
+					"check_dc": 1,
+					"stat_pool_bonus": 0,
+					"success_next_dialog_id": "bargain_success",
+					"failure_next_dialog_id": "bargain_fail"
+				},
+				{
+					"text_en": "[Leave] \"I don't need this.\"",
+					"text_ru": "[Уйти] «Мне это не нужно».",
+					"text_key": "KEY_MERCHANT_CHOICE_LEAVE",
+					"next_dialog_id": "end_encounter",
+					"message_key": "KEY_STATUS_SHOP"
+				}
+			]
+		},
+		"trade_intro": {
+			"narrator_text_en": "",
+			"narrator_text_ru": "",
+			"speech_text_en": "Excellent choice! Please — the entire selection is certified pre-war quality!*\n\n*[i](in tiny print at the bottom: \"standards have long ceased to apply\")[/i]",
+			"speech_text_ru": "Отличный выбор! Прошу, весь ассортимент — сертифицированное довоенное качество!*\n\n*[i](супер-мелким шрифтом внизу сноска: «стандарты давно не действуют»)[/i]",
+			"choices": [
+				{
+					"text_en": "Start trade",
+					"text_ru": "Начать торговлю",
+					"text_key": "KEY_MERCHANT_CHOICE_OPEN_SHOP",
+					"reward": { "type": "shop", "price_multiplier": 1.0 }
+				}
+			]
+		},
+		"bargain_success": {
+			"narrator_text_en": "",
+			"narrator_text_ru": "",
+			"speech_text_en": "Alright, you got me! A 20% discount — just for you, val... ued... cus... (a burst of static)",
+			"speech_text_ru": "Ладно, вы меня подловили! Скидка 20% — специально для вас, цен...ный кли... (писк статики)",
+			"choices": [
+				{
+					"text_en": "Start trade",
+					"text_ru": "Начать торговлю",
+					"text_key": "KEY_MERCHANT_CHOICE_OPEN_SHOP",
+					"reward": { "type": "shop", "price_multiplier": 0.8 }
+				}
+			]
+		},
+		"bargain_fail": {
+			"narrator_text_en": "Bonnie wags a finger at you with mock reproach and grins.",
+			"narrator_text_ru": "Бонни укоризненно грозит вам пальчиком и улыбается.",
+			"speech_text_en": "Oh, nice try, but no! I'm afraid company protocols leave me no choice — price goes up 25%. Thank you for your understanding!",
+			"speech_text_ru": "Ой, хорошая попытка, но нет! К сожалению, протоколы компании вынуждают меня поднять цену на 25%. Благодарю за понимание!",
+			"choices": [
+				{
+					"text_en": "Start trade",
+					"text_ru": "Начать торговлю",
+					"text_key": "KEY_MERCHANT_CHOICE_OPEN_SHOP",
+					"reward": { "type": "shop", "price_multiplier": 1.25 }
+				}
+			]
+		}
+	}
+}

@@ -444,7 +444,8 @@ ITEM_REBAR_CUDGEL_DESC,Heavy rebar length. Stronger when given room — no adjac
 ITEM_CYBER_SPIKE_NAME,Cyber Spike,Кибершип
 ITEM_CYBER_SPIKE_DESC,Needle implant that siphons vitality from the target into your Frame HP.,Игольчатый имплант; тянет жизненную силу с цели в ОЗ фрейма.
 KEY_STATUS_CHEST,Salvage chest cracked open.,Контейнер взломан.
-KEY_STATUS_SHOP,Shop stub — nothing for sale yet.,Магазин-заглушка — пока нечего купить.
+KEY_STATUS_SHOP,Shop visit complete.,Визит в магазин завершён.
+KEY_STATUS_SHOP_OPEN,"EVERYMART is open — drag items into your Body Grid to buy.","EVERYMART открыт — перетащите предметы в сетку тела, чтобы купить."
 KEY_STATUS_STAIRS,Stairs to the next sector.,Лестница в следующий сектор.
 KEY_STAT_CHECK_SUCCESS,Check passed.,Проверка пройдена.
 KEY_STAT_CHECK_FAILURE,Check failed.,Проверка провалена.
@@ -541,3 +542,14 @@ ABILITY_FACELESS_INJECT_DESC,Forces a Slimy Parasite into the Body Grid.,Вжи�
 ABILITY_FACELESS_INJECT_TEXT,{name} opens a wet seam in the frame.,{name} разрывает влажный шов в каркасе.
 KEY_ACT1_ANNOUNCE_TITLE,Chapter 1,Глава 1
 KEY_ACT1_ANNOUNCE_SUBTITLE,"Ruins of Ra'im, City of Humans","Развалины Ра'има, города людей"
+KEY_MERCHANT_TITLE,EVERYMART / Bonnie,EVERYMART / Бонни
+KEY_MERCHANT_CHOICE_TRADE,"[Start trade] ""Show me what you've got.""","[Начать торговлю] «Покажи, что у тебя есть»."
+KEY_MERCHANT_CHOICE_BARGAIN,"[Bargain — Intelligence check] ""Your prices are clearly inflated.""","[Поторговаться — проверка интеллекта] «Твои цены явно завышены»."
+KEY_MERCHANT_CHOICE_LEAVE,"[Leave] ""I don't need this.""","[Уйти] «Мне это не нужно»."
+KEY_MERCHANT_CHOICE_OPEN_SHOP,Start trade,Начать торговлю
+KEY_MERCHANT_CHOICE_BACK,Back,Назад
+KEY_SHOP_TITLE,EVERYMART,EVERYMART
+KEY_SHOP_CHIPS,Neuro-Chips: %d,Нейро-чипы: %d
+KEY_SHOP_PRICE,%d NC,%d НЧ
+KEY_SHOP_NOT_ENOUGH_CHIPS,Not enough Neuro-Chips.,Недостаточно нейро-чипов.
+KEY_SHOP_NO_SELL,"Bonnie does not buy. Drag stock into your Body Grid to purchase.","Бонни не скупает. Перетащите товар в сетку тела, чтобы купить."

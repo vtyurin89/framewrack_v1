@@ -9,6 +9,7 @@ signal request_combat(enemy_datas: Array, encounter: EncounterData)
 signal request_show_dialog(dialog: DialogEventData, encounter: EncounterData)
 signal request_show_placeholder(encounter: EncounterData, message_key: String)
 signal request_show_rest_site(encounter: EncounterData)
+signal request_show_shop(encounter: EncounterData, price_multiplier: float)
 signal request_item_selection(item_pool: Array, title: String)
 signal item_selection_resolved(item: ItemData)
 signal request_post_combat_rewards(encounter: EncounterData)
@@ -211,6 +212,14 @@ func apply_dialog_outcome(outcome: DialogOutcomeData) -> void:
 			if not outcome.message_key.is_empty():
 				_pending_rewards["message_key"] = outcome.message_key
 			_start_combat_from_ids(outcome.enemy_ids, outcome.faction, null)
+		DialogOutcomeData.OutcomeKind.SHOP:
+			if not outcome.message_key.is_empty():
+				_pending_rewards["message_key"] = outcome.message_key
+			var mult := outcome.price_multiplier
+			if mult <= 0.0:
+				mult = 1.0
+			_pending_rewards["shop_price_multiplier"] = mult
+			request_show_shop.emit(active_encounter, mult)
 
 
 func resolve_item_selection(selected_item: ItemData) -> void:
@@ -239,9 +248,12 @@ func open_item_selection(item_pool: Array, title: String = "Выберите н�
 
 
 func resolve_stat_check(
-	stat_name: String, required_successes: int = 1, consumed_ap: int = 0
+	stat_name: String,
+	required_successes: int = 1,
+	consumed_ap: int = 0,
+	pool_bonus: int = 0
 ) -> StatCheckManager.CheckResult:
-	var stat_value := _get_player_stat(stat_name)
+	var stat_value := maxi(1, _get_player_stat(stat_name) + pool_bonus)
 	return StatCheckManager.perform_check(stat_value, required_successes, consumed_ap)
 
 
@@ -287,8 +299,10 @@ func _launch_by_type(data: EncounterData) -> void:
 			request_show_placeholder.emit(data, "KEY_STATUS_CHEST")
 			_finish_encounter(_pending_rewards)
 		EncounterData.EncounterType.SHOP:
-			request_show_placeholder.emit(data, "KEY_STATUS_SHOP")
-			_finish_encounter(_pending_rewards)
+			var act := int(data.payload.get("act", 1))
+			var dialog := MerchantEncounter.build_dialog(maxi(1, act))
+			data.encounter_payload = dialog
+			request_show_dialog.emit(dialog, data)
 		EncounterData.EncounterType.STAIRS:
 			_pending_rewards["message_key"] = "KEY_STATUS_STAIRS"
 			request_show_placeholder.emit(data, "KEY_STATUS_STAIRS")
@@ -558,6 +572,17 @@ func complete_rest_site() -> void:
 		return
 	if not _pending_rewards.has("message_key"):
 		_pending_rewards["message_key"] = "KEY_STATUS_REPAIR"
+	_finish_encounter(_pending_rewards)
+
+
+func complete_shop_site() -> void:
+	## Called by ShopScreen after the player presses Continue.
+	if active_encounter == null:
+		return
+	if active_encounter.type != EncounterData.EncounterType.SHOP:
+		return
+	if not _pending_rewards.has("message_key"):
+		_pending_rewards["message_key"] = "KEY_STATUS_SHOP"
 	_finish_encounter(_pending_rewards)
 
 

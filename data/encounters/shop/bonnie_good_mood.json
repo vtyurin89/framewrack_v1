@@ -1,0 +1,31 @@
+{
+	"id": "bonnie_good_mood",
+	"title_key": "KEY_MERCHANT_TITLE",
+	"merchant_name": "Bonnie",
+	"merchant_name_ru": "Бонни",
+	"aliases": ["EVERYMART Clerk", "Bonnie of EVERYMART"],
+	"aliases_ru": ["Клерк EVERYMART", "Бонни из EVERYMART"],
+	"dialogs": {
+		"start": {
+			"narrator_text_en": "Bonnie hums a bright EVERYMART jingle. Today the booth likes you.",
+			"narrator_text_ru": "Бонни мурлычет рекламный джингл EVERYMART. Сегодня ларёк к тебе добр.",
+			"speech_text_en": "Oh — lucky day, frame. Standards waived. Take the discount and browse.",
+			"speech_text_ru": "О, сегодня твой счастливый день, каркас. Стандарты сняты. Бери скидку и смотри витрину.",
+			"choices": [
+				{
+					"text_en": "Start trade",
+					"text_ru": "Начать торговлю",
+					"text_key": "KEY_MERCHANT_CHOICE_TRADE",
+					"reward": { "type": "shop", "price_multiplier": 0.8 }
+				},
+				{
+					"text_en": "Leave",
+					"text_ru": "Уйти",
+					"text_key": "KEY_MERCHANT_CHOICE_LEAVE",
+					"next_dialog_id": "end_encounter",
+					"message_key": "KEY_STATUS_SHOP"
+				}
+			]
+		}
+	}
+}

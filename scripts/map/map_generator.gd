@@ -371,7 +371,7 @@ static func _build_encounter_for_node(act_data: ActData, node: MapNodeData) -> E
 		MapNodeData.MapNodeType.REPAIR:
 			return _build_basic_encounter(node.id, EncounterData.EncounterType.REST_SITE, "Repair")
 		MapNodeData.MapNodeType.SHOP:
-			return _build_basic_encounter(node.id, EncounterData.EncounterType.SHOP, "Shop")
+			return _build_shop_encounter(act_data, node)
 		MapNodeData.MapNodeType.ELITE:
 			return _build_combat_encounter(
 				act_data, node, EncounterData.EncounterType.COMBAT_ELITE, "Elite"
@@ -463,6 +463,14 @@ static func _build_basic_encounter(id: String, kind: EncounterData.EncounterType
 	encounter.title = title
 	encounter.title_key = _title_key_for_type(kind)
 	encounter.payload = {"map_node_id": id}
+	return encounter
+
+
+static func _build_shop_encounter(act_data: ActData, node: MapNodeData) -> EncounterData:
+	var encounter := _build_basic_encounter(node.id, EncounterData.EncounterType.SHOP, "Shop")
+	var act_index := act_data.act_index if act_data != null else 1
+	encounter.payload["act"] = maxi(1, act_index)
+	encounter.payload["layer"] = node.layer
 	return encounter
 
 

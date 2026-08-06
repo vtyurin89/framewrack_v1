@@ -14,6 +14,7 @@ const GAME_OVER_SCENE := preload("res://scenes/UI/game_over_ui.tscn")
 const SETTINGS_SCENE := preload("res://scenes/UI/settings_modal.tscn")
 const DIALOG_EVENT_SCENE := preload("res://scenes/UI/dialog_event_ui.tscn")
 const REST_SITE_SCENE := preload("res://scenes/UI/rest_site_ui.tscn")
+const SHOP_SCREEN_SCENE := preload("res://scenes/UI/shop_screen.tscn")
 const SELECT_ITEM_SCENE := preload("res://scenes/UI/select_item_ui.tscn")
 const REWARD_SCREEN_SCENE := preload("res://scenes/UI/reward_screen.tscn")
 const FORCED_ITEM_SCREEN_SCENE := preload("res://scenes/UI/forced_item_screen.tscn")
@@ -50,6 +51,7 @@ var _inventory_combat_docked: bool = false
 
 var _dialog_event_ui: DialogEventUI
 var _rest_site_ui: RestSiteUI
+var _shop_screen: ShopScreen
 var _select_item_ui: SelectItemUI
 var _reward_screen: RewardScreen
 var _forced_item_screen: ForcedItemScreen
@@ -57,6 +59,7 @@ var _announcer_ui: AnnouncerUI
 var _post_combat_reward_active: bool = false
 var _forced_insertion_active: bool = false
 var _encounter_combat_active: bool = false
+var _shop_active: bool = false
 var _act1_announced: bool = false
 
 
@@ -74,6 +77,7 @@ func _ready() -> void:
 	_encounters.request_show_dialog.connect(_on_encounter_request_dialog)
 	_encounters.request_show_placeholder.connect(_on_encounter_placeholder)
 	_encounters.request_show_rest_site.connect(_on_encounter_request_rest_site)
+	_encounters.request_show_shop.connect(_on_encounter_request_shop)
 	_encounters.request_item_selection.connect(_on_encounter_request_item_selection)
 	_encounters.request_post_combat_rewards.connect(_on_encounter_request_post_combat_rewards)
 	_style_body_grid_pane()
@@ -435,6 +439,11 @@ func _reset_run_to_startup() -> void:
 		_dialog_event_ui.close_dialog()
 	if _rest_site_ui != null and is_instance_valid(_rest_site_ui):
 		_rest_site_ui.close_rest_site()
+	_shop_active = false
+	if _shop_screen != null and is_instance_valid(_shop_screen):
+		_shop_screen.close_session()
+	elif ShopManager != null:
+		ShopManager.clear_session()
 	_inventory_ui.setup(inventory)
 	if _inventory_ui.has_method("bind_player_stats"):
 		_inventory_ui.bind_player_stats(player_stats)
@@ -457,6 +466,11 @@ func _on_player_died() -> void:
 
 func _show_exploring() -> void:
 	_set_flow(GameFlowState.State.EXPLORING)
+	_shop_active = false
+	if _shop_screen != null and is_instance_valid(_shop_screen) and _shop_screen.is_active():
+		_shop_screen.close_session()
+	elif ShopManager != null:
+		ShopManager.clear_session()
 	_map_ui.visible = true
 	_combat_ui.visible = false
 	_mount_inventory_modal_host()
@@ -654,6 +668,30 @@ func _on_encounter_request_rest_site(_encounter: EncounterData) -> void:
 	_rest_site_ui.open_rest_site()
 
 
+func _on_encounter_request_shop(_encounter: EncounterData, price_multiplier: float) -> void:
+	_ensure_shop_screen()
+	if _shop_screen == null:
+		_encounters.complete_shop_site()
+		return
+	_shop_active = true
+	_map_ui.visible = false
+	_combat_ui.visible = false
+	_mount_inventory_combat_dock()
+	if _inventory_ui.has_method("set_combat_mode"):
+		_inventory_ui.set_combat_mode(false)
+	_inventory_ui.refresh()
+	var act := 1
+	if _run_flow != null:
+		act = maxi(_run_flow.current_act, 1)
+	if _encounter != null:
+		act = maxi(int(_encounter.payload.get("act", act)), 1)
+	var stock: Array[ItemData] = ShopManager.generate_stock(act, ShopManager.STOCK_COUNT)
+	ShopManager.begin_session(stock, price_multiplier)
+	_status_banner.text = tr("KEY_STATUS_SHOP_OPEN")
+	await get_tree().process_frame
+	_shop_screen.open_session(inventory, _inventory_ui)
+
+
 func _on_encounter_placeholder(_encounter: EncounterData, message_key: String) -> void:
 	if not message_key.is_empty():
 		_status_banner.text = tr(message_key)
@@ -773,6 +811,21 @@ func _ensure_rest_site_ui() -> void:
 		resized.connect(_on_main_resized_for_dialog)
 
 
+func _ensure_shop_screen() -> void:
+	if _shop_screen != null and is_instance_valid(_shop_screen):
+		return
+	var host := get_node_or_null("%MainStage") as Control
+	_shop_screen = SHOP_SCREEN_SCENE.instantiate() as ShopScreen
+	_shop_screen.name = "ShopScreen"
+	if host != null:
+		host.add_child(_shop_screen)
+	else:
+		add_child(_shop_screen)
+	_shop_screen.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+	_shop_screen.finished.connect(_on_shop_screen_finished)
+	_shop_screen.notice_requested.connect(_on_reward_notice)
+
+
 func _layout_dialog_event_under_top_bar() -> void:
 	if _dialog_event_ui == null or not is_instance_valid(_dialog_event_ui):
 		return
@@ -796,6 +849,15 @@ func _on_rest_site_continue() -> void:
 	if _inventory_ui:
 		_inventory_ui.refresh()
 	_encounters.complete_rest_site()
+
+
+func _on_shop_screen_finished() -> void:
+	_shop_active = false
+	if _inventory_ui:
+		if _inventory_ui.has_method("set_reward_handler"):
+			_inventory_ui.set_reward_handler(null)
+		_inventory_ui.refresh()
+	_encounters.complete_shop_site()
 
 
 func _on_main_resized_for_dialog() -> void:

@@ -12,6 +12,7 @@ enum OutcomeKind {
 	GRANT_STAT, ## Permanent player_stats bonus then continue or end
 	SELECT_ITEM, ## Open SelectItemUI with an item pool, then continue or end
 	SKIP, ## Complete encounter with no further effect
+	SHOP, ## Close dialog and open the merchant shop UI
 }
 
 @export var kind: OutcomeKind = OutcomeKind.END
@@ -32,6 +33,8 @@ enum OutcomeKind {
 ## Optional run buff applied alongside the outcome (e.g. enemies_start_1hp).
 @export var buff_id: String = ""
 @export var buff_amount: int = 0
+## SHOP: price scale applied to stock (0.8 discount / 1.0 list / 1.25 markup).
+@export var price_multiplier: float = 1.0
 ## Optional compound reward list from story JSON (`reward.effects`).
 var payload_effects: Array = []
 
@@ -108,5 +111,15 @@ static func make_select_item(
 	o.kind = OutcomeKind.SELECT_ITEM
 	o.item_pool_id = pool_id
 	o.next_node_id = next_id
+	o.message_key = message_key
+	return o
+
+
+static func make_shop(
+	price_multiplier: float = 1.0, message_key: String = ""
+) -> DialogOutcomeData:
+	var o := DialogOutcomeData.new()
+	o.kind = OutcomeKind.SHOP
+	o.price_multiplier = price_multiplier
 	o.message_key = message_key
 	return o

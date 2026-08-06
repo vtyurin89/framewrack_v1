@@ -429,10 +429,11 @@ func _on_confirm_stat_check() -> void:
 	var result: StatCheckManager.CheckResult = null
 	if _encounter_manager != null:
 		result = _encounter_manager.resolve_stat_check(
-			choice.stat_check, required, _check_boost_ap
+			choice.stat_check, required, _check_boost_ap, choice.stat_pool_bonus
 		)
 	elif StatCheckManager != null:
-		result = StatCheckManager.perform_check(1, required, _check_boost_ap)
+		var fallback_pool := maxi(1, 1 + choice.stat_pool_bonus)
+		result = StatCheckManager.perform_check(fallback_pool, required, _check_boost_ap)
 	_check_boost_ap = 0
 	var passed := result != null and result.is_success
 	var outcome: DialogOutcomeData = choice.success_outcome if passed else choice.failure_outcome
