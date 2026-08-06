@@ -8,18 +8,24 @@ const DEFAULT_MERCHANT_ID := "bonnie"
 const GOOD_MOOD_CHANCE := 0.15
 
 
-static func build_dialog(act: int, force_good_mood: Variant = null) -> DialogEventData:
+static func build_dialog(
+	act: int,
+	force_good_mood: Variant = null,
+	inventory: InventoryController = null
+) -> DialogEventData:
 	var raw := _load_json_dict(DEFAULT_MERCHANT_ID)
 	if raw.is_empty():
 		push_warning("MerchantEncounter: missing shop dialog JSON for %s" % DEFAULT_MERCHANT_ID)
 		return _fallback_dialog()
 
 	var good_mood := false
-	if force_good_mood == null:
+	if force_good_mood != null:
+		good_mood = bool(force_good_mood)
+	elif ShopManager != null and ShopManager.is_vip_card_equipped(inventory):
+		good_mood = true
+	else:
 		var chance := float(raw.get("good_mood_chance", GOOD_MOOD_CHANCE))
 		good_mood = randf() < chance
-	else:
-		good_mood = bool(force_good_mood)
 
 	if good_mood:
 		var mood_id := str(raw.get("good_mood_id", "bonnie_good_mood")).strip_edges()

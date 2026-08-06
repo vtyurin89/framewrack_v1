@@ -531,7 +531,7 @@ ITEM_SLIMY_PARASITE_NAME,Slimy Parasite,Склизкий паразит
 ITEM_SLIMY_PARASITE_DESC,"Deals 3 HP at the start of each turn and caps usable AP to 3. Spend 1 AP to cut it out.","Наносит 3 HP в начале хода и ограничивает ОД до 3. Потратьте 1 ОД, чтобы вырезать его."
 ITEM_BROKEN_SLOT_NAME,Broken Slot,Сломанный слот
 ITEM_BROKEN_SLOT_DESC,Spend 1 AP to clear this ruined body-grid mass.,Потратьте 1 ОД, чтобы очистить это разрушенное место на сетке.
-KEY_FORCED_INSERT_BANNER,"An entity has penetrated your frame! You must place the parasite into your body grid.","Сущность проникла в ваш каркас! Вы должны поместить паразита в сетку тела."
+KEY_FORCED_INSERT_BANNER,"An entity has penetrated your frame! You must place the parasite into your body grid.","Сущность проникла в ваш фрейм! Вы должны поместить паразита в сетку тела."
 KEY_FORCED_INSERT_MUST_PLACE,Place the harmful item into your Body Grid first!,Сначала поместите вредоносный предмет в сетку тела!
 KEY_LOG_PARASITE_DAMAGE,Slimy Parasite drains %d HP.,Склизкий паразит высасывает %d HP.
 KEY_LOG_HARMFUL_SURGERY,You cut out %s.,Вы вырезаете: %s.
@@ -554,3 +554,7 @@ KEY_SHOP_CHIPS,Neuro-Chips: %d,Нейро-чипы: %d
 KEY_SHOP_PRICE,%d NC,%d НЧ
 KEY_SHOP_NOT_ENOUGH_CHIPS,Not enough Neuro-Chips.,Недостаточно нейро-чипов.
 KEY_SHOP_NO_SELL,"Bonnie does not buy. Drag stock into your Body Grid to purchase.","Бонни не скупает. Перетащите товар в сетку тела, чтобы купить."
+ITEM_FAKE_VIP_CARD_NAME,"Fake VIP Card ""Gold Partner""","Поддельная VIP-карта «Gold Partner»"
+ITEM_FAKE_VIP_CARD_DESC,"A pre-war plastic card with a forged digital access chip. When EVERYMART scans it, you permanently unlock special pricing.","Пластиковая карта довоенного образца с поддельным цифровым чипом доступа. При сканировании системой EVERYMART навсегда даёт вам доступ к особым ценам."
+TRAIT_VIP_LUCK_NAME,Forged Privilege,Поддельная привилегия
+TRAIT_VIP_LUCK_DESC,Grants +1 Luck while implanted.,Даёт +1 к Удаче пока установлена.

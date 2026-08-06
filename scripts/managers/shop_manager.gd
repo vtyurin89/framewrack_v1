@@ -10,6 +10,7 @@ const STOCK_COUNT := 6
 const PRICE_LIST := 1.0
 const PRICE_DISCOUNT := 0.8
 const PRICE_MARKUP := 1.25
+const VIP_CARD_ID := "FAKE_VIP_CARD_GOLD_PARTNER"
 
 ## Same starter / story items RewardManager keeps out of combat loot.
 const EXCLUDED_SHOP_IDS: Array[String] = [
@@ -29,6 +30,23 @@ var _active: bool = false
 
 func is_active() -> bool:
 	return _active
+
+
+func is_vip_card_equipped(inventory: InventoryController) -> bool:
+	## Fake VIP Card forces Bonnie's Good Mood while it sits in the Body Grid.
+	if inventory == null:
+		return false
+	if StatCheckManager != null:
+		return StatCheckManager.inventory_has_item(inventory, VIP_CARD_ID)
+	if inventory.grid == null:
+		return false
+	var needle := VIP_CARD_ID.strip_edges().to_upper()
+	for placed: PlacedItem in inventory.grid.items:
+		if placed == null or placed.data == null:
+			continue
+		if placed.data.id.strip_edges().to_upper() == needle:
+			return true
+	return false
 
 
 func clear_session() -> void:

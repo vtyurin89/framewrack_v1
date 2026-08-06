@@ -300,7 +300,7 @@ func _launch_by_type(data: EncounterData) -> void:
 			_finish_encounter(_pending_rewards)
 		EncounterData.EncounterType.SHOP:
 			var act := int(data.payload.get("act", 1))
-			var dialog := MerchantEncounter.build_dialog(maxi(1, act))
+			var dialog := MerchantEncounter.build_dialog(maxi(1, act), null, inventory)
 			data.encounter_payload = dialog
 			request_show_dialog.emit(dialog, data)
 		EncounterData.EncounterType.STAIRS:
