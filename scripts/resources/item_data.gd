@@ -410,6 +410,40 @@ func format_armor_display(use_bbcode: bool = true, stats: ActorStats = null) -> 
 	return "🛡️ %d %s" % [effective, tr("KEY_ARMOR")]
 
 
+func applies_dot_on_hit() -> bool:
+	## Burn / Poison application traits (weapons + throwables).
+	return (
+		TraitManager.has_trait(self, "TRAIT_FUEL_BURST")
+		or TraitManager.has_trait(self, "TRAIT_APPLY_BURN")
+		or TraitManager.has_trait(self, "TRAIT_BURN_DAMAGE")
+		or TraitManager.has_trait(self, "TRAIT_FANG_POISON")
+	)
+
+
+func format_adjacency_bonus_notes(grid: BodyGrid, use_bbcode: bool = true) -> String:
+	## Live neighbour bonuses shown under combat stats (not baked into damage numbers).
+	if grid == null:
+		return ""
+	var placed := grid.find_placed_by_data(self)
+	if placed == null:
+		return ""
+	var lines: PackedStringArray = []
+	var dmg_bonus := grid.get_adjacency_damage_bonus_for(placed)
+	if dmg_bonus > 0:
+		if use_bbcode:
+			lines.append(tr("KEY_ADJ_DMG_BONUS_NOTE") % dmg_bonus)
+		else:
+			lines.append(tr("KEY_ADJ_DMG_BONUS_NOTE_PLAIN") % dmg_bonus)
+	if applies_dot_on_hit():
+		var dot_bonus := grid.get_adjacent_dot_amplify_bonus(placed)
+		if dot_bonus > 0:
+			if use_bbcode:
+				lines.append(tr("KEY_ADJ_DOT_BONUS_NOTE") % dot_bonus)
+			else:
+				lines.append(tr("KEY_ADJ_DOT_BONUS_NOTE_PLAIN") % dot_bonus)
+	return "\n".join(lines)
+
+
 func is_sellable() -> bool:
 	## Merchants only trade items with a positive numeric price.
 	return price != null and price > 0
@@ -473,8 +507,52 @@ func is_grid_expander() -> bool:
 	return id.strip_edges().to_upper() == "GRID_EXPANDER"
 
 
+func is_implant() -> bool:
+	if item_type == null:
+		return false
+	return item_type.id.strip_edges().to_upper() == "IMPLANT"
+
+
+func is_amplifier() -> bool:
+	if item_type == null:
+		return false
+	return item_type.id.strip_edges().to_upper() == "AMPLIFIER"
+
+
+func is_active_module() -> bool:
+	if item_type == null:
+		return false
+	return item_type.id.strip_edges().to_upper() == "ACTIVE_MODULE"
+
+
+func is_neuron_amplifier() -> bool:
+	return id.strip_edges().to_upper() == "NEURON_AMPLIFIER"
+
+
 func is_shield() -> bool:
 	return (base_armor > 0 or block_amount > 0) and ap_cost > 0
+
+
+func on_combat_end(player: InventoryController) -> void:
+	## Passive implant / module triggers after a victorious fight.
+	if player == null:
+		return
+	if TraitManager.has_trait(self, "TRAIT_HEAL_ON_COMBAT_END"):
+		var heal_amt := TraitManager.get_trait_value(self, "TRAIT_HEAL_ON_COMBAT_END", 2)
+		if heal_amt > 0:
+			player.current_hp = mini(player.max_hp, player.current_hp + heal_amt)
+			EventBus.player_hp_changed.emit(player.current_hp, player.max_hp)
+			EventBus.combat_log_message.emit(
+				tr("KEY_LOG_COMBAT_END_HEAL") % [get_localized_name(), heal_amt]
+			)
+	if TraitManager.has_trait(self, "TRAIT_CHIPS_ON_COMBAT_END"):
+		var chips := TraitManager.get_trait_value(self, "TRAIT_CHIPS_ON_COMBAT_END", 4)
+		if chips > 0 and GameManager != null:
+			var gained: int = GameManager.add_chips(chips)
+			if gained > 0:
+				EventBus.combat_log_message.emit(
+					tr("KEY_LOG_COMBAT_END_CHIPS") % [get_localized_name(), gained]
+				)
 
 
 func get_equipment_stat_modifiers() -> Dictionary:

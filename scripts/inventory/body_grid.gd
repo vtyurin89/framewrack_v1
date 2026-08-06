@@ -360,6 +360,34 @@ func get_adjacency_damage_bonus_for(weapon: PlacedItem) -> int:
 	return bonus
 
 
+func get_adjacent_dot_amplify_bonus(source: PlacedItem) -> int:
+	## +N DoT stacks from each orthogonal amplifier with TRAIT_DOT_AMPLIFY.
+	var bonus := 0
+	if source == null:
+		return 0
+	for neighbour: PlacedItem in get_adjacent_items(source):
+		if neighbour == null or neighbour.data == null:
+			continue
+		if not is_item_functional(neighbour):
+			continue
+		if not neighbour.data.is_amplifier():
+			continue
+		if not TraitManager.has_trait(neighbour.data, "TRAIT_DOT_AMPLIFY"):
+			continue
+		bonus += maxi(1, TraitManager.get_trait_value(neighbour.data, "TRAIT_DOT_AMPLIFY", 1))
+	return bonus
+
+
+func find_placed_by_data(item: ItemData) -> PlacedItem:
+	## Resolve a live grid placement from an ItemData instance reference.
+	if item == null:
+		return null
+	for placed: PlacedItem in items:
+		if placed != null and placed.data == item:
+			return placed
+	return null
+
+
 func get_adjacent_bonuses() -> Dictionary:
 	## Aggregate adjacency bonuses across the whole grid.
 	## Returns { "damage_bonus": int, "ap_bonus": int, "per_weapon": Dictionary }.

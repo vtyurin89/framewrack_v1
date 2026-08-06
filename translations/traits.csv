@@ -60,3 +60,15 @@ TRAIT_BURN_DAMAGE_NAME,Thermite Burn,Термитный прожиг
 TRAIT_BURN_DAMAGE_DESC,Deals 9-10 damage to selected enemy and applies 3 Burn.,Наносит 9-10 урона выбранному врагу и накладывает 3 Горения.
 TRAIT_CLEANSE_DEBUFFS_NAME,Purge Cycle,Цикл очистки
 TRAIT_CLEANSE_DEBUFFS_DESC,Cleanses all negative status effects (Poison, Rust, Burn).,Снимает все негативные эффекты (Яд, Ржавчина, Горение).
+TRAIT_IMPLANT_ENDURANCE_NAME,Endurance Graft,Прививка выносливости
+TRAIT_IMPLANT_ENDURANCE_DESC,Grants +1 Endurance while implanted.,Даёт +1 к Выносливости пока установлен.
+TRAIT_HEAL_ON_COMBAT_END_NAME,Combat Med-Patch,Боевой мед-патч
+TRAIT_HEAL_ON_COMBAT_END_DESC,Restores 2 HP after each combat victory.,Восстанавливает 2 HP после каждой победы в бою.
+TRAIT_CHIPS_ON_COMBAT_END_NAME,Field Salvage,Полевой утилизатор
+TRAIT_CHIPS_ON_COMBAT_END_DESC,Grants 4 Neuro-Chips after each combat victory.,Даёт 4 нейро-чипа после каждой победы в бою.
+TRAIT_AMP_INTELLIGENCE_NAME,Neural Catalysis,Нейрокатализ
+TRAIT_AMP_INTELLIGENCE_DESC,Grants +1 Intelligence while equipped.,Даёт +1 к Интеллекту пока экипирован.
+TRAIT_DOT_AMPLIFY_NAME,DoT Catalyst,Катализатор DoT
+TRAIT_DOT_AMPLIFY_DESC,Adjacent weapons applying Burn or Poison gain +1 stack.,Смежное оружие при наложении Горения или Яда получает +1 стак.
+TRAIT_NEURON_AMP_NAME,Neuron Overclock,Нейронный разгон
+TRAIT_NEURON_AMP_DESC,"Pays dynamic HP for +1 AP in combat or +2d6 on a dialog check.","Тратит динамическое HP за +1 ОД в бою или +2d6 к диалоговой проверке."

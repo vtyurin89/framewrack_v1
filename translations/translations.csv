@@ -23,6 +23,10 @@ KEY_EXPERIENCE_MAX,Experience: MAX,Опыт: МАКС
 KEY_AP_COST_FMT,%d %s,%d %s
 KEY_USE_COST_FMT,Use: %d %s,Использование: %d %s
 KEY_COOLDOWN_FMT,CD %d,КД %d
+KEY_ADJ_DMG_BONUS_NOTE,"[color=#7dcea0]Adjacency: +%d damage from neighbouring modules[/color]","[color=#7dcea0]Соседство: +%d урона от соседних модулей[/color]"
+KEY_ADJ_DMG_BONUS_NOTE_PLAIN,Adjacency: +%d damage from neighbouring modules,Соседство: +%d урона от соседних модулей
+KEY_ADJ_DOT_BONUS_NOTE,"[color=#e67e22]Adjacency: +%d DoT stack from Amplifiers[/color]","[color=#e67e22]Соседство: +%d стак DoT от усилителей[/color]"
+KEY_ADJ_DOT_BONUS_NOTE_PLAIN,Adjacency: +%d DoT stack from Amplifiers,Соседство: +%d стак DoT от усилителей
 KEY_HP,HP,ОЗ
 KEY_CORRUPTED,Corrupted,Искажено
 KEY_MUTATION_LEVEL,Mutation Level,Уровень мутации
@@ -358,6 +362,14 @@ ITEM_MOLOTOV_NAME,Molotov Cocktail,Коктейль Молотова
 ITEM_MOLOTOV_DESC,"Simple but effective. Deals 4 AOE damage and applies 2 Burn to all enemies.","Простое, но эффективное средство. Наносит 4 урона по площади и поджигает всех врагов на 2 хода."
 ITEM_GRID_EXPANDER_NAME,Grid Expander,Расширитель Сетки
 ITEM_GRID_EXPANDER_DESC,"Experimental data-bus expansion chip. When activated, permanently unlocks 1 random locked cell in the BODY GRID.","Экспериментальный чип расширения шины данных. При активировании перманентно разблокирует 1 случайную закрытую ячейку в BODY GRID."
+ITEM_HEALING_UNIT_NAME,Healing Unit,Лечебная Установка
+ITEM_HEALING_UNIT_DESC,"Automated medical system. Grants +1 Endurance and restores 2 HP at the end of each combat.","Автоматизированная медицинская система. Даёт +1 к Выносливости и восстанавливает 2 HP в конце каждого боя."
+ITEM_RECYCLER_NAME,Recycler,Переработчик
+ITEM_RECYCLER_DESC,"Converts field scrap into resources. Grants 4 Neuro-Chips at the end of each combat.","Преобразует полевой мусор в ценные ресурсы. Даёт 4 нейро-чипа в конце каждого боя."
+ITEM_AMPLIFIER_INJECTOR_NAME,Amplifier Injector,Усиленный Инжектор
+ITEM_AMPLIFIER_INJECTOR_DESC,"Catalyzes compounds. Grants +1 INT and makes adjacent weapons apply +1 additional DoT stack.","Катализирует составы. Даёт +1 к INT и заставляет смежное оружие накладывать +1 дополнительный стак DoT."
+ITEM_NEURON_AMPLIFIER_NAME,Neuron Amplifier,Усилитель Нейронов
+ITEM_NEURON_AMPLIFIER_DESC,"Forces neural links at the cost of health. Base cost: 4 HP (+1 HP per armor item on the grid). Available in combat and dialog checks.","Форсирует нейронные связи ценой здоровья. Базовая цена: 4 HP (+1 HP за каждый предмет брони в сетке). Доступен в бою и при проверках в диалогах."
 ITEM_PURGE_SOLVENT_NAME,Purge Solvent,Очищающий раствор
 ITEM_PURGE_SOLVENT_DESC,Cleanses all negative status effects (Poison, Rust, Burn).,Снимает все негативные эффекты (Яд, Ржавчина, Горение).
 TRAIT_ARMOR_EDGE_NAME,Edge Anchor,Краевой якорь
@@ -426,6 +438,11 @@ KEY_STAT_CHECK_FAILURE,Check failed.,Проверка провалена.
 KEY_STAT_CHECK_GUARANTEED,[100% GUARANTEED SUCCESS],[100% ГАРАНТИРОВАННЫЙ УСПЕХ]
 KEY_STAT_CHECK_USE_NEURO,Use Neuro-Stimulator (+4d6),Использовать нейро-стимулятор (+4d6)
 KEY_STAT_CHECK_USE_SYNAPSE,Use Synapse Booster (100% success),Использовать синапс-бустер (100% успех)
+KEY_STAT_CHECK_USE_NEURON,[Apply Neuron Amplifier (-%d HP)],[Применить Усилитель Нейронов (-%d HP)]
+KEY_NEURON_AMP_UNSAFE,"[color=#FF5555]Not enough HP for safe use![/color]","[color=#FF5555]Недостаточно HP для безопасного применения![/color]"
+KEY_LOG_NEURON_AMP,%s burns %d HP for +%d AP.,%s сжигает %d HP за +%d ОД.
+KEY_LOG_COMBAT_END_HEAL,%s restores %d HP.,%s восстанавливает %d HP.
+KEY_LOG_COMBAT_END_CHIPS,%s salvages %d Neuro-Chips.,%s извлекает %d нейро-чипов.
 KEY_STAT_CHECK_ROLL,Roll check,Бросить проверку
 KEY_STAT_CHECK_CANCEL,Cancel,Отмена
 KEY_STAT_CHECK_PREPARE,Prepare check (%s),Подготовка проверки (%s)
@@ -454,6 +471,18 @@ TRAIT_EYE_OF_PALE_MAIDEN_NAME,Pale Eye,Бледный глаз
 TRAIT_EYE_OF_PALE_MAIDEN_DESC,"+1 AP on turn 1, or -1 AP if next to a weapon.","+1 ОД в ход 1, или -1 ОД рядом с оружием."
 TRAIT_FANG_POISON_NAME,Forgotten Venom,Яд Забытой
 TRAIT_FANG_POISON_DESC,On hit applies 3 Poison.,При ударе накладывает 3 Яда.
+TRAIT_IMPLANT_ENDURANCE_NAME,Endurance Graft,Прививка выносливости
+TRAIT_IMPLANT_ENDURANCE_DESC,Grants +1 Endurance while implanted.,Даёт +1 к Выносливости пока установлен.
+TRAIT_HEAL_ON_COMBAT_END_NAME,Combat Med-Patch,Боевой мед-патч
+TRAIT_HEAL_ON_COMBAT_END_DESC,Restores 2 HP after each combat victory.,Восстанавливает 2 HP после каждой победы в бою.
+TRAIT_CHIPS_ON_COMBAT_END_NAME,Field Salvage,Полевой утилизатор
+TRAIT_CHIPS_ON_COMBAT_END_DESC,Grants 4 Neuro-Chips after each combat victory.,Даёт 4 нейро-чипа после каждой победы в бою.
+TRAIT_AMP_INTELLIGENCE_NAME,Neural Catalysis,Нейрокатализ
+TRAIT_AMP_INTELLIGENCE_DESC,Grants +1 Intelligence while equipped.,Даёт +1 к Интеллекту пока экипирован.
+TRAIT_DOT_AMPLIFY_NAME,DoT Catalyst,Катализатор DoT
+TRAIT_DOT_AMPLIFY_DESC,Adjacent weapons applying Burn or Poison gain +1 stack.,Смежное оружие при наложении Горения или Яда получает +1 стак.
+TRAIT_NEURON_AMP_NAME,Neuron Overclock,Нейронный разгон
+TRAIT_NEURON_AMP_DESC,"Pays dynamic HP for +1 AP in combat or +2d6 on a dialog check.","Тратит динамическое HP за +1 ОД в бою или +2d6 к диалоговой проверке."
 ENEMY_FACELESS_LADY_NAME,Faceless Lady,Безликая дама
 ENEMY_FACELESS_LADY_DESC,"A stalker bound to the Pale Maiden's pact. Debuffs and bleeds the frame.","Сталкер, связанный с договором Бледной девы. Дебаффит каркас."
 ABILITY_FACELESS_TEETH_NAME,Tooth Clicking,Постукивание зубов

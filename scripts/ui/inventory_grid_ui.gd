@@ -132,8 +132,10 @@ func bind_player_stats(stats: PlayerStats) -> void:
 	player_stats = stats
 	if _hover_tooltip != null:
 		_hover_tooltip.actor_stats = stats
+		_hover_tooltip.body_grid = inventory.grid if inventory != null else null
 	if _inspect_modal != null:
 		_inspect_modal.actor_stats = stats
+		_inspect_modal.body_grid = inventory.grid if inventory != null else null
 	if player_stats != null:
 		if not player_stats.stats_changed.is_connected(_on_stats_changed):
 			player_stats.stats_changed.connect(_on_stats_changed)
@@ -187,10 +189,12 @@ func _on_ap_changed_visuals(_current: int, _maximum: int) -> void:
 
 func _ensure_hover_tooltip() -> void:
 	if _hover_tooltip != null and is_instance_valid(_hover_tooltip):
+		_hover_tooltip.body_grid = inventory.grid if inventory != null else null
 		return
 	_hover_tooltip = ItemHoverTooltip.new()
 	_hover_tooltip.name = "ItemHoverTooltip"
 	_hover_tooltip.actor_stats = player_stats
+	_hover_tooltip.body_grid = inventory.grid if inventory != null else null
 	add_child(_hover_tooltip)
 
 
@@ -206,10 +210,13 @@ func _ensure_context_menu() -> void:
 
 func _ensure_inspect_modal() -> void:
 	if _inspect_modal != null and is_instance_valid(_inspect_modal):
+		_inspect_modal.actor_stats = player_stats
+		_inspect_modal.body_grid = inventory.grid if inventory != null else null
 		return
 	_inspect_modal = INSPECT_MODAL_SCENE.instantiate() as ItemInspectModal
 	_inspect_modal.name = "ItemInspectModal"
 	_inspect_modal.actor_stats = player_stats
+	_inspect_modal.body_grid = inventory.grid if inventory != null else null
 	_inspect_modal.set_anchors_preset(Control.PRESET_FULL_RECT)
 	_inspect_modal.offset_left = 0
 	_inspect_modal.offset_top = 0

@@ -77,7 +77,7 @@ static func palette_kind_for_item(item: ItemData) -> PaletteKind:
 			return PaletteKind.ARMOR
 		"CONSUMABLE":
 			return PaletteKind.CONSUMABLE
-		"JUNK", "PARTS", "REACTOR", "CURRENCY":
+		"JUNK", "PARTS", "REACTOR", "CURRENCY", "IMPLANT", "AMPLIFIER", "ACTIVE_MODULE":
 			return PaletteKind.JUNK
 		_:
 			return PaletteKind.JUNK

@@ -28,6 +28,10 @@ var _following: bool = false
 var _show_timer: Timer
 ## Optional player stats so tooltips include STR/AGI/INT scaling.
 var actor_stats: ActorStats
+## Live body grid — used to resolve adjacency bonus notes for placed weapons.
+var body_grid: BodyGrid
+
+var _adjacency_label: RichTextLabel
 
 
 func _ready() -> void:
@@ -214,6 +218,17 @@ func _build_layout() -> void:
 	_combat_label.visible = false
 	root.add_child(_combat_label)
 
+	_adjacency_label = RichTextLabel.new()
+	_adjacency_label.bbcode_enabled = true
+	_adjacency_label.fit_content = true
+	_adjacency_label.scroll_active = false
+	_adjacency_label.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	_adjacency_label.custom_minimum_size = Vector2(MAX_WIDTH - 24, 0)
+	_adjacency_label.add_theme_font_size_override("normal_font_size", 11)
+	_adjacency_label.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	_adjacency_label.visible = false
+	root.add_child(_adjacency_label)
+
 	var sep := HSeparator.new()
 	sep.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	root.add_child(sep)
@@ -256,6 +271,7 @@ func _populate(item: ItemData) -> void:
 	_meta_label.text = _build_meta_line(item)
 	_combat_label.text = _build_combat_line(item)
 	_combat_label.visible = not _combat_label.text.is_empty()
+	_refresh_adjacency_notes(item)
 
 	var desc := item.get_localized_description()
 	_desc_label.visible = not desc.is_empty()
@@ -263,6 +279,16 @@ func _populate(item: ItemData) -> void:
 
 	_rebuild_traits(item)
 	_force_autosize()
+
+
+func _refresh_adjacency_notes(item: ItemData) -> void:
+	if _adjacency_label == null:
+		return
+	var notes := ""
+	if item != null and body_grid != null:
+		notes = item.format_adjacency_bonus_notes(body_grid, true)
+	_adjacency_label.text = notes
+	_adjacency_label.visible = not notes.is_empty()
 
 
 func _populate_text(title: String, body: String) -> void:
@@ -274,6 +300,9 @@ func _populate_text(title: String, body: String) -> void:
 	_meta_label.text = ""
 	_combat_label.visible = false
 	_combat_label.text = ""
+	if _adjacency_label:
+		_adjacency_label.visible = false
+		_adjacency_label.text = ""
 	_desc_label.visible = not body.is_empty()
 	_desc_label.text = body
 	for child in _traits_box.get_children():

@@ -171,6 +171,48 @@ func get_max_ap() -> int:
 	return BASE_MAX_AP + grid.get_total_max_ap_bonus()
 
 
+func get_equipped_items_by_type(type_id: String) -> Array[PlacedItem]:
+	## All functional (or simply placed) modules matching item_type id.
+	var result: Array[PlacedItem] = []
+	if grid == null:
+		return result
+	var needle := type_id.strip_edges().to_upper()
+	if needle.is_empty():
+		return result
+	for placed: PlacedItem in grid.items:
+		if placed == null or placed.data == null or placed.data.item_type == null:
+			continue
+		if placed.data.item_type.id.strip_edges().to_upper() == needle:
+			result.append(placed)
+	return result
+
+
+func get_neuron_amplifier_hp_cost() -> int:
+	## Base 4 HP + 1 per equipped armor module on the body grid.
+	var base_cost: int = 4
+	var armor_count: int = get_equipped_items_by_type("armor").size()
+	return base_cost + armor_count
+
+
+func can_safely_use_neuron_amplifier() -> bool:
+	## Dialogue / out-of-combat safety: must keep HP above the cost.
+	return current_hp > get_neuron_amplifier_hp_cost()
+
+
+func pay_neuron_amplifier_hp(allow_fatal: bool = false) -> bool:
+	## Spends dynamic HP cost. Returns false if blocked by safety (non-fatal path).
+	var cost := get_neuron_amplifier_hp_cost()
+	if cost <= 0:
+		return true
+	if not allow_fatal and current_hp <= cost:
+		return false
+	current_hp = maxi(0, current_hp - cost)
+	EventBus.player_hp_changed.emit(current_hp, max_hp)
+	if current_hp <= 0:
+		EventBus.player_died.emit()
+	return true
+
+
 func apply_damage(amount: int, block: int = 0) -> int:
 	var absorbed := mini(block, amount)
 	var remaining := amount - absorbed

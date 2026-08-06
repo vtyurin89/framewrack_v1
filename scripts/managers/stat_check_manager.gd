@@ -3,8 +3,10 @@ extends Node
 
 const NEURO_STIMULATOR_ID := "NEURO_STIMULATOR"
 const SYNAPSE_BOOSTER_ID := "SYNAPSE_BOOSTER"
-## Neuro-Stimulator spends as 2 "AP" → +4 d6 (see perform_check).
+const NEURON_AMPLIFIER_ID := "NEURON_AMPLIFIER"
+## Neuro-Stimulator spends as 2 "AP" → +4 d6; Neuron Amplifier as 1 → +2 d6.
 const NEURO_CHECK_AP_VALUE := 2
+const NEURON_CHECK_AP_VALUE := 1
 
 var force_guaranteed_success: bool = false
 ## When true, force_guaranteed_success is not cleared after one check (story locks).
@@ -107,12 +109,29 @@ func try_consume_synapse_booster(inventory: InventoryController) -> bool:
 	return true
 
 
+func try_use_neuron_amplifier(inventory: InventoryController) -> int:
+	## Dialogue path: pay HP only when safe (HP > cost). Returns AP-equivalent dice boost.
+	if inventory == null:
+		return 0
+	if not has_neuron_amplifier(inventory):
+		return 0
+	if not inventory.can_safely_use_neuron_amplifier():
+		return 0
+	if not inventory.pay_neuron_amplifier_hp(false):
+		return 0
+	return NEURON_CHECK_AP_VALUE
+
+
 func has_neuro_stimulator(inventory: InventoryController) -> bool:
 	return inventory_has_item(inventory, NEURO_STIMULATOR_ID)
 
 
 func has_synapse_booster(inventory: InventoryController) -> bool:
 	return inventory_has_item(inventory, SYNAPSE_BOOSTER_ID)
+
+
+func has_neuron_amplifier(inventory: InventoryController) -> bool:
+	return inventory_has_item(inventory, NEURON_AMPLIFIER_ID)
 
 
 func preview_dice_count(stat_value: int, consumed_ap: int = 0) -> int:

@@ -17,6 +17,10 @@ var _traits_box: VBoxContainer
 var _built: bool = false
 ## Optional player stats so inspect shows scaled damage/block.
 var actor_stats: ActorStats
+## Live body grid for adjacency bonus notes on placed weapons.
+var body_grid: BodyGrid
+
+var _adjacency_label: RichTextLabel
 
 
 func _ready() -> void:
@@ -117,6 +121,16 @@ func _ensure_content() -> void:
 	_combat_label.visible = false
 	right.add_child(_combat_label)
 
+	_adjacency_label = RichTextLabel.new()
+	_adjacency_label.bbcode_enabled = true
+	_adjacency_label.fit_content = true
+	_adjacency_label.scroll_active = false
+	_adjacency_label.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	_adjacency_label.add_theme_font_size_override("normal_font_size", 13)
+	_adjacency_label.custom_minimum_size = Vector2(320, 0)
+	_adjacency_label.visible = false
+	right.add_child(_adjacency_label)
+
 	var sep := HSeparator.new()
 	right.add_child(sep)
 
@@ -173,6 +187,13 @@ func _populate(item: ItemData) -> void:
 		combat_parts.append(armor_line)
 	_combat_label.text = "\n".join(combat_parts)
 	_combat_label.visible = not _combat_label.text.is_empty()
+
+	var adj_notes := ""
+	if body_grid != null:
+		adj_notes = item.format_adjacency_bonus_notes(body_grid, true)
+	if _adjacency_label:
+		_adjacency_label.text = adj_notes
+		_adjacency_label.visible = not adj_notes.is_empty()
 
 	var desc := item.get_localized_description()
 	_desc_label.visible = not desc.is_empty()

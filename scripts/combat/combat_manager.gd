@@ -415,6 +415,9 @@ func activate_item(placed: PlacedItem) -> bool:
 	data.start_cooldown()
 	EventBus.combat_item_availability_changed.emit()
 
+	if inventory != null and inventory.is_dead():
+		_lose()
+		return true
 	if _all_enemies_dead():
 		_win()
 	return true
@@ -484,7 +487,7 @@ func _resolve_self(placed: PlacedItem) -> void:
 		return
 
 	var data := placed.data
-	if data.item_type != null and data.item_type.id.to_upper() == "CONSUMABLE":
+	if data.item_type != null and data.item_type.id.to_upper() in ["CONSUMABLE", "ACTIVE_MODULE"]:
 		_apply_self_use_traits(placed)
 		return
 
@@ -666,6 +669,18 @@ func _apply_self_use_traits(placed: PlacedItem) -> void:
 		if player_statuses != null:
 			player_statuses.clear_debuffs()
 		inventory.grid.clear_all_corruption()
+	if TraitManager.has_trait(data, "TRAIT_NEURON_AMP") or data.is_neuron_amplifier():
+		## Combat allows fatal self-use (current_hp may drop to 0).
+		var cost := inventory.get_neuron_amplifier_hp_cost()
+		inventory.pay_neuron_amplifier_hp(true)
+		var ap_gain := TraitManager.get_trait_value(data, "TRAIT_NEURON_AMP", 1)
+		if ap_gain <= 0:
+			ap_gain = 1
+		current_ap += ap_gain
+		EventBus.ap_changed.emit(current_ap, max_ap)
+		EventBus.combat_log_message.emit(
+			tr("KEY_LOG_NEURON_AMP") % [data.get_localized_name(), cost, ap_gain]
+		)
 
 
 func _resolve_consumable_enemy(placed: PlacedItem, enemy_index: int) -> void:
@@ -679,7 +694,8 @@ func _resolve_consumable_enemy(placed: PlacedItem, enemy_index: int) -> void:
 		_deal_damage_to(enemy_index, burn_hit, data.get_localized_name(), true, "burn")
 		dealt = burn_hit
 		if enemy_index >= 0 and enemy_index < enemies.size():
-			apply_status_to_enemy(enemy_index, BurnStatus.STATUS_ID, TraitManager.BURN_APPLY_STACKS)
+			var stacks := _dot_stacks_with_amplify(placed, TraitManager.BURN_APPLY_STACKS)
+			apply_status_to_enemy(enemy_index, BurnStatus.STATUS_ID, stacks)
 	if dealt == 0:
 		_deal_damage_to(enemy_index, data.roll_damage(player_stats), data.get_localized_name())
 
@@ -1133,10 +1149,22 @@ func _apply_on_hit_weapon_statuses(placed: PlacedItem, enemy_index: int) -> void
 		return
 	if TraitManager.has_trait(placed.data, "TRAIT_FANG_POISON"):
 		var stacks := TraitManager.get_trait_value(placed.data, "TRAIT_FANG_POISON", 3)
-		apply_status_to_enemy(enemy_index, "poison", maxi(1, stacks))
+		apply_status_to_enemy(enemy_index, "poison", _dot_stacks_with_amplify(placed, maxi(1, stacks)))
 	var burn_stacks := _burn_stacks_from_item(placed.data)
 	if burn_stacks > 0:
-		apply_status_to_enemy(enemy_index, BurnStatus.STATUS_ID, burn_stacks)
+		apply_status_to_enemy(
+			enemy_index,
+			BurnStatus.STATUS_ID,
+			_dot_stacks_with_amplify(placed, burn_stacks)
+		)
+
+
+func _dot_stacks_with_amplify(placed: PlacedItem, base_stacks: int) -> int:
+	## Adjacent amplifier modules with TRAIT_DOT_AMPLIFY add +1 stack each.
+	var bonus := 0
+	if inventory != null and inventory.grid != null:
+		bonus = inventory.grid.get_adjacent_dot_amplify_bonus(placed)
+	return maxi(1, base_stacks) + bonus
 
 
 func _item_applies_burn(data: ItemData) -> bool:
@@ -1260,9 +1288,22 @@ func _win() -> void:
 	for enemy: EnemyInstance in enemies:
 		if enemy != null and enemy.statuses != null:
 			enemy.statuses.clear_combat_statuses()
+	_run_on_combat_end_triggers()
 	_set_state(CombatState.VICTORY)
 	EventBus.combat_log_message.emit(tr("KEY_LOG_VICTORY"))
 	EventBus.combat_ended.emit(true)
+
+
+func _run_on_combat_end_triggers() -> void:
+	## Passive implants / modules with on_combat_end hooks (victory only).
+	if inventory == null or inventory.grid == null:
+		return
+	for placed: PlacedItem in inventory.grid.items:
+		if placed == null or placed.data == null:
+			continue
+		if not inventory.grid.is_item_functional(placed):
+			continue
+		placed.data.on_combat_end(inventory)
 
 
 func _lose() -> void:

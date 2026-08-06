@@ -41,6 +41,7 @@ var _pending_stat_choice: DialogChoiceData
 var _check_boost_ap: int = 0
 var _pending_use_neuro: bool = false
 var _pending_use_synapse: bool = false
+var _pending_use_neuron_amp: bool = false
 
 
 func _ready() -> void:
@@ -286,6 +287,7 @@ func _begin_stat_check_prepare(choice: DialogChoiceData, preserve_boost: bool = 
 		_check_boost_ap = 0
 		_pending_use_neuro = false
 		_pending_use_synapse = false
+		_pending_use_neuron_amp = false
 	_clear_choices()
 
 	var guaranteed := (
@@ -321,6 +323,12 @@ func _begin_stat_check_prepare(choice: DialogChoiceData, preserve_boost: bool = 
 		var syn_btn := _make_choice_button(tr("KEY_STAT_CHECK_USE_SYNAPSE"))
 		syn_btn.pressed.connect(_on_use_synapse_for_check)
 		_choices_box.add_child(syn_btn)
+	if (
+		StatCheckManager != null
+		and not _pending_use_neuron_amp
+		and StatCheckManager.has_neuron_amplifier(inventory)
+	):
+		_add_neuron_amplifier_choice_button(inventory)
 
 	var roll_label := tr("KEY_STAT_CHECK_ROLL")
 	if guaranteed:
@@ -334,6 +342,34 @@ func _begin_stat_check_prepare(choice: DialogChoiceData, preserve_boost: bool = 
 	var cancel_btn := _make_choice_button(tr("KEY_STAT_CHECK_CANCEL"))
 	cancel_btn.pressed.connect(_on_cancel_stat_check)
 	_choices_box.add_child(cancel_btn)
+
+
+func _add_neuron_amplifier_choice_button(inventory: InventoryController) -> void:
+	var cost := 4
+	if inventory != null:
+		cost = inventory.get_neuron_amplifier_hp_cost()
+	var btn := _BbcodeTooltipButton.new()
+	btn.text = tr("KEY_STAT_CHECK_USE_NEURON") % cost
+	btn.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	btn.custom_minimum_size = Vector2(0, float(_choices_box.get_meta("choice_min_h", CHOICE_MIN_HEIGHT_BASE)))
+	btn.add_theme_font_size_override("font_size", int(_choices_box.get_meta("choice_font", CHOICE_FONT_BASE)))
+	btn.mouse_default_cursor_shape = Control.CURSOR_POINTING_HAND
+	btn.alignment = HORIZONTAL_ALIGNMENT_LEFT
+	btn.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	btn.clip_text = false
+	var safe := inventory != null and inventory.can_safely_use_neuron_amplifier()
+	if safe:
+		btn.modulate = Color.WHITE
+		btn.tooltip_text = ""
+		btn.set_meta("blocked", false)
+		btn.pressed.connect(_on_use_neuron_amp_for_check)
+	else:
+		## Keep hoverable so the BBCode unsafe tooltip still shows.
+		btn.modulate = Color(0.55, 0.55, 0.55, 1.0)
+		btn.tooltip_text = tr("KEY_NEURON_AMP_UNSAFE")
+		btn.set_meta("blocked", true)
+		btn.pressed.connect(func() -> void: pass)
+	_choices_box.add_child(btn)
 
 
 func _on_use_neuro_for_check() -> void:
@@ -356,6 +392,20 @@ func _on_use_synapse_for_check() -> void:
 	_begin_stat_check_prepare(_pending_stat_choice, true)
 
 
+func _on_use_neuron_amp_for_check() -> void:
+	if _pending_stat_choice == null or StatCheckManager == null:
+		return
+	var inventory := _get_inventory()
+	if not StatCheckManager.has_neuron_amplifier(inventory):
+		return
+	if inventory == null or not inventory.can_safely_use_neuron_amplifier():
+		return
+	## Stage until roll confirm — cancel keeps HP.
+	_pending_use_neuron_amp = true
+	_check_boost_ap += StatCheckManager.NEURON_CHECK_AP_VALUE
+	_begin_stat_check_prepare(_pending_stat_choice, true)
+
+
 func _on_confirm_stat_check() -> void:
 	var choice := _pending_stat_choice
 	if choice == null:
@@ -370,6 +420,10 @@ func _on_confirm_stat_check() -> void:
 			_pending_use_synapse = false
 		else:
 			_pending_use_synapse = false
+	if _pending_use_neuron_amp and StatCheckManager != null:
+		if StatCheckManager.try_use_neuron_amplifier(inventory) <= 0:
+			_check_boost_ap = maxi(0, _check_boost_ap - StatCheckManager.NEURON_CHECK_AP_VALUE)
+		_pending_use_neuron_amp = false
 	_pending_stat_choice = null
 	var required := choice.get_required_successes()
 	var result: StatCheckManager.CheckResult = null
@@ -398,6 +452,7 @@ func _on_cancel_stat_check() -> void:
 	_check_boost_ap = 0
 	_pending_use_neuro = false
 	_pending_use_synapse = false
+	_pending_use_neuron_amp = false
 	if _dialog == null:
 		return
 	_show_node(_current_node_id)
@@ -550,3 +605,28 @@ func _on_language_changed(_locale: String = "") -> void:
 	if _dialog == null or not visible:
 		return
 	_show_node(_current_node_id)
+
+
+## Choice button that can render BBCode tooltips (unsafe Neuron Amplifier warning).
+class _BbcodeTooltipButton extends Button:
+	func _make_custom_tooltip(for_text: String) -> Object:
+		if for_text.is_empty():
+			return null
+		var tip := RichTextLabel.new()
+		tip.bbcode_enabled = true
+		tip.fit_content = true
+		tip.scroll_active = false
+		tip.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+		tip.custom_minimum_size = Vector2(240, 0)
+		tip.text = for_text
+		tip.add_theme_font_size_override("normal_font_size", 12)
+		var panel := PanelContainer.new()
+		var style := StyleBoxFlat.new()
+		style.bg_color = Color(0.08, 0.08, 0.09, 0.96)
+		style.set_border_width_all(1)
+		style.border_color = Color(0.45, 0.45, 0.5)
+		style.set_content_margin_all(8)
+		style.set_corner_radius_all(4)
+		panel.add_theme_stylebox_override("panel", style)
+		panel.add_child(tip)
+		return panel
