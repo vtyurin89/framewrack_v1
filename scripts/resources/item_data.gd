@@ -51,6 +51,8 @@ const FALLBACK_ICON_PATH := "res://assets/icons/fallback_item.png"
 
 ## Max activations per player turn. -1 or 0 = unlimited (AP still required).
 @export var uses_per_turn: int = -1
+## Max activations for the whole combat. -1 or 0 = unlimited.
+@export var uses_per_combat: int = -1
 
 ## Combat cooldown in player turns (0 = none). After use, current_cd = cooldown.
 @export var cooldown: int = 0
@@ -116,6 +118,8 @@ enum StatScaling {
 
 ## Runtime: uses spent this player turn (reset on turn start).
 var current_turn_uses: int = 0
+## Runtime: uses spent this combat (reset on combat start).
+var current_combat_uses: int = 0
 
 ## Runtime: remaining cooldown turns (decremented at player turn start).
 var current_cd: int = 0
@@ -124,6 +128,8 @@ var current_cd: int = 0
 var current_charges: int = -1
 ## Runtime: temporary flat damage for this turn only (e.g. War Module adjacency buff).
 var temp_flat_damage_bonus: int = 0
+## Runtime: permanent flat damage growth kept on this item instance.
+var permanent_damage_bonus: int = 0
 
 static var _cached_fallback_icon: Texture2D
 
@@ -168,8 +174,10 @@ var exhaustable: bool:
 func initialize_runtime_state() -> void:
 	## Call after duplicating a prototype for a placed / inventory instance.
 	current_turn_uses = 0
+	current_combat_uses = 0
 	current_cd = 0
 	temp_flat_damage_bonus = 0
+	permanent_damage_bonus = 0
 	if consumable:
 		current_charges = maxi(max_charges, 0)
 	else:
@@ -179,6 +187,10 @@ func initialize_runtime_state() -> void:
 
 func reset_turn_uses() -> void:
 	current_turn_uses = 0
+
+
+func reset_combat_uses() -> void:
+	current_combat_uses = 0
 
 
 func clear_temporary_combat_bonuses() -> void:
@@ -203,12 +215,22 @@ func has_unlimited_turn_uses() -> bool:
 	return uses_per_turn <= 0
 
 
+func has_unlimited_combat_uses() -> bool:
+	return uses_per_combat <= 0
+
+
 func can_use_this_turn() -> bool:
 	if is_on_cooldown():
 		return false
 	if has_unlimited_turn_uses():
 		return true
 	return current_turn_uses < uses_per_turn
+
+
+func can_use_this_combat() -> bool:
+	if has_unlimited_combat_uses():
+		return true
+	return current_combat_uses < uses_per_combat
 
 
 func has_charges_remaining() -> bool:
@@ -288,7 +310,7 @@ func get_effective_damage_bounds() -> Vector2i:
 	var bounds := get_damage_roll_bounds()
 	if bounds == Vector2i.ZERO:
 		return Vector2i.ZERO
-	var bonus := get_active_trait_bonus("DAMAGE") + temp_flat_damage_bonus
+	var bonus := get_active_trait_bonus("DAMAGE") + temp_flat_damage_bonus + permanent_damage_bonus
 	return Vector2i(bounds.x + bonus, bounds.y + bonus)
 
 
@@ -390,6 +412,8 @@ func format_damage_display(use_bbcode: bool = true, stats: ActorStats = null) ->
 		parts.append("%+d" % trait_bonus)
 	if stat_bonus != 0:
 		parts.append("%+d" % stat_bonus)
+	if permanent_damage_bonus != 0:
+		parts.append("%+d" % permanent_damage_bonus)
 	if temp_flat_damage_bonus != 0:
 		parts.append("%+d" % temp_flat_damage_bonus)
 	if parts.size() > 1:

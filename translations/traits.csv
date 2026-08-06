@@ -84,3 +84,7 @@ TRAIT_WAR_LUCK_NAME,Tactical Instinct,Тактический инстинкт
 TRAIT_WAR_LUCK_DESC,Passive +1 Luck while equipped.,Пассивно даёт +1 к Удаче пока установлен.
 TRAIT_DOT_MULTIPLIER_NAME,Catalytic Cascade,Каталитический каскад
 TRAIT_DOT_MULTIPLIER_DESC,Triples all current Burn/Poison/Bleed stacks on target.,Утраивает все текущие стаки Горения/Яда/Кровотечения на цели.
+TRAIT_ORACLE_KILL_SCALING_NAME,Oracle Learning Loop,Петля обучения Оракула
+TRAIT_ORACLE_KILL_SCALING_DESC,Whenever this weapon kills an enemy it permanently gains +1 damage.,Каждое убийство этим оружием перманентно даёт ему +1 к урону.
+TRAIT_STATUS_ANALYZER_NAME,Status Shock Converter,Конвертер статусного шока
+TRAIT_STATUS_ANALYZER_DESC,Whenever any status effect is applied to an enemy, deal 1 immediate direct damage.,Когда на врага накладывается любой статус, немедленно наносит 1 прямого урона.

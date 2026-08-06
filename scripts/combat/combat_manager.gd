@@ -105,6 +105,7 @@ func start_combat(enemy_datas: Array[EnemyData], max_attackers: int = -1) -> voi
 		ids.append(data.id)
 	current_block = 0
 	player_turn_index = 0
+	_reset_all_item_combat_uses()
 	_parasite_at_combat_start = _has_item_in_grid(SLIMY_PARASITE_ID)
 	_select_first_living_enemy()
 	EventBus.combat_started.emit(ids)
@@ -380,6 +381,8 @@ func can_activate_item(placed: PlacedItem) -> bool:
 		return false
 	if not data.can_use_this_turn():
 		return false
+	if not data.can_use_this_combat():
+		return false
 	if data.is_on_cooldown():
 		return false
 	if not data.has_charges_remaining():
@@ -396,6 +399,7 @@ func activate_item(placed: PlacedItem) -> bool:
 	var data: ItemData = placed.data
 	current_ap -= data.ap_cost
 	data.current_turn_uses += 1
+	data.current_combat_uses += 1
 	EventBus.ap_changed.emit(current_ap, max_ap)
 
 	## Rust jam: AP already spent, effect skipped.
@@ -445,6 +449,8 @@ func _log_activation_failure(placed: PlacedItem) -> void:
 			EventBus.combat_log_message.emit(tr("KEY_LOG_ITEM_COOLDOWN") % data.get_localized_name())
 		else:
 			EventBus.combat_log_message.emit(tr("KEY_LOG_NO_USES"))
+	elif not data.can_use_this_combat():
+		EventBus.combat_log_message.emit(tr("KEY_LOG_NO_COMBAT_USES"))
 	elif not data.has_charges_remaining():
 		EventBus.combat_log_message.emit(tr("KEY_LOG_NO_CHARGES"))
 
@@ -460,7 +466,9 @@ func _resolve_single_enemy(placed: PlacedItem) -> void:
 	var dmg := _calc_damage(placed)
 	var trait_bonus := _consume_attack_trait_bonus(placed)
 	dmg += trait_bonus
-	_deal_damage_to(target_index, dmg, data.get_localized_name())
+	var killed := _deal_damage_to(target_index, dmg, data.get_localized_name())
+	if killed:
+		_apply_oracle_kill_bonus(placed, 1)
 	_apply_on_hit_weapon_statuses(placed, target_index)
 	_apply_armorless_adjacent_heal_on_hit(placed)
 
@@ -472,9 +480,13 @@ func _resolve_all_enemies(placed: PlacedItem) -> void:
 	dmg += trait_bonus
 	var living := _living_enemy_indices()
 	var damage_type := "burn" if _item_applies_burn(data) else "physical"
+	var killed_count := 0
 	for idx: int in living:
-		_deal_damage_to(idx, dmg, data.get_localized_name(), true, damage_type)
+		if _deal_damage_to(idx, dmg, data.get_localized_name(), true, damage_type):
+			killed_count += 1
 		_apply_on_hit_weapon_statuses(placed, idx)
+	if killed_count > 0:
+		_apply_oracle_kill_bonus(placed, killed_count)
 	_apply_armorless_adjacent_heal_on_hit(placed)
 
 
@@ -552,12 +564,12 @@ func _deal_damage_to(
 	source_name: String,
 	allow_crit: bool = true,
 	damage_type: String = "physical"
-) -> void:
+) -> bool:
 	if index < 0 or index >= enemies.size():
-		return
+		return false
 	var enemy: EnemyInstance = enemies[index]
 	if not enemy.is_alive():
-		return
+		return false
 	var final_dmg := dmg
 	## Enemy vulnerability amplifies incoming hits.
 	if enemy.statuses != null:
@@ -590,7 +602,7 @@ func _deal_damage_to(
 			tr("KEY_LOG_EVASION_NEGATE_ENEMY") % enemy.get_localized_name()
 		)
 		EventBus.enemy_hp_changed.emit(index, enemy.current_hp, enemy.max_hp)
-		return
+		return false
 	_request_enemy_popup(index, dealt if dealt > 0 else final_dmg, damage_type, is_crit, false)
 	## Thorns on enemy reflect to player.
 	if enemy.statuses != null:
@@ -614,8 +626,10 @@ func _deal_damage_to(
 		_on_enemy_defeated(enemy, index)
 		EventBus.enemy_died.emit(index)
 		_ensure_valid_selection()
+		return true
 	elif state == CombatState.PLAYER_TURN:
 		reevaluate_enemy_intention(index)
+	return false
 
 
 func _consume_charge_if_needed(placed: PlacedItem) -> void:
@@ -722,6 +736,14 @@ func _reset_all_item_turn_uses() -> void:
 	for placed: PlacedItem in inventory.grid.items:
 		if placed != null and placed.data != null:
 			placed.data.reset_turn_uses()
+
+
+func _reset_all_item_combat_uses() -> void:
+	if inventory == null or inventory.grid == null:
+		return
+	for placed: PlacedItem in inventory.grid.items:
+		if placed != null and placed.data != null:
+			placed.data.reset_combat_uses()
 
 
 func _clear_temporary_weapon_bonuses() -> void:
@@ -1236,6 +1258,19 @@ func _apply_war_module_adjacency_buff(placed: PlacedItem) -> int:
 	return count
 
 
+func _apply_oracle_kill_bonus(placed: PlacedItem, kills: int) -> void:
+	if placed == null or placed.data == null or kills <= 0:
+		return
+	var data := placed.data
+	if not TraitManager.has_trait(data, "TRAIT_ORACLE_KILL_SCALING"):
+		return
+	data.permanent_damage_bonus += kills
+	EventBus.inventory_changed.emit()
+	EventBus.combat_log_message.emit(
+		tr("KEY_LOG_ORACLE_KILL_BONUS") % kills
+	)
+
+
 func _apply_dot_multiplier_to_enemy(enemy_index: int, multiplier: int) -> void:
 	if enemy_index < 0 or enemy_index >= enemies.size():
 		return
@@ -1253,6 +1288,41 @@ func _apply_dot_multiplier_to_enemy(enemy_index: int, multiplier: int) -> void:
 	EventBus.combat_log_message.emit(
 		tr("KEY_LOG_DOT_MULTIPLIER_APPLIED") % [enemy.get_localized_name(), ", ".join(parts)]
 	)
+
+
+func _has_functional_analyzer() -> bool:
+	if inventory == null or inventory.grid == null:
+		return false
+	for placed: PlacedItem in inventory.grid.items:
+		if placed == null or placed.data == null:
+			continue
+		if not inventory.grid.is_item_functional(placed):
+			continue
+		if TraitManager.has_trait(placed.data, "TRAIT_STATUS_ANALYZER"):
+			return true
+	return false
+
+
+func _trigger_status_apply_direct_damage(enemy_index: int) -> void:
+	if enemy_index < 0 or enemy_index >= enemies.size():
+		return
+	if not _has_functional_analyzer():
+		return
+	var enemy := enemies[enemy_index]
+	if enemy == null or not enemy.is_alive():
+		return
+	enemy.current_hp = maxi(0, enemy.current_hp - 1)
+	_request_enemy_popup(enemy_index, 1, "physical", false, false)
+	EventBus.combat_log_message.emit(
+		tr("KEY_LOG_STATUS_ANALYZER_PING") % enemy.get_localized_name()
+	)
+	EventBus.enemy_hp_changed.emit(enemy_index, enemy.current_hp, enemy.max_hp)
+	if not enemy.is_alive():
+		enemy.clear_intention()
+		EventBus.enemy_intention_changed.emit(enemy_index, enemy.current_intention)
+		_on_enemy_defeated(enemy, enemy_index)
+		EventBus.enemy_died.emit(enemy_index)
+		_ensure_valid_selection()
 
 
 func _item_applies_burn(data: ItemData) -> bool:
@@ -1309,7 +1379,9 @@ func apply_status_to_enemy(index: int, status_id: String, amount: int = 1) -> vo
 		return
 	if enemy.statuses == null:
 		enemy.statuses = StatusController.new()
-	enemy.statuses.apply_status_by_id(status_id, maxi(1, amount))
+	var applied := enemy.statuses.apply_status_by_id(status_id, maxi(1, amount))
+	if applied != null:
+		_trigger_status_apply_direct_damage(index)
 
 
 func apply_status_to_enemy_instance(enemy: EnemyInstance, status_id: String, amount: int = 1) -> void:
@@ -1317,7 +1389,9 @@ func apply_status_to_enemy_instance(enemy: EnemyInstance, status_id: String, amo
 		return
 	if enemy.statuses == null:
 		enemy.statuses = StatusController.new()
-	enemy.statuses.apply_status_by_id(status_id, maxi(1, amount))
+	var applied := enemy.statuses.apply_status_by_id(status_id, maxi(1, amount))
+	if applied != null:
+		_trigger_status_apply_direct_damage(enemies.find(enemy))
 
 
 func _request_enemy_popup(

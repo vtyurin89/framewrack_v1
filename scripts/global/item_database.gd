@@ -285,6 +285,7 @@ func _parse_item_row(row: PackedStringArray, col: Dictionary) -> ItemData:
 
 	item.target_type = _parse_target_type(_cell(row, col, "target_type"))
 	item.uses_per_turn = _parse_int(_cell(row, col, "uses_per_turn"), -1)
+	item.uses_per_combat = _parse_int(_cell(row, col, "uses_per_combat"), -1)
 	item.cooldown = maxi(0, _parse_int(_cell(row, col, "cooldown"), 0))
 
 	var exhaust_raw := _cell(row, col, "exhaustable")
@@ -311,6 +312,8 @@ func _parse_item_row(row: PackedStringArray, col: Dictionary) -> ItemData:
 	item.price = _parse_price(_cell(row, col, "price"))
 
 	item.traits = _parse_traits(_cell(row, col, "traits"))
+	if item.uses_per_combat <= 0 and TraitManager.has_trait(item, "TRAIT_ORACLE_KILL_SCALING"):
+		item.uses_per_combat = 1
 
 	var icon_path := _cell(row, col, "icon_path")
 	if icon_path.is_empty():

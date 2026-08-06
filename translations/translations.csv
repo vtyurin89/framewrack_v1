@@ -29,6 +29,7 @@ KEY_ADJ_DOT_BONUS_NOTE,"[color=#e67e22]Adjacency: +%d DoT stack from Amplifiers[
 KEY_ADJ_DOT_BONUS_NOTE_PLAIN,Adjacency: +%d DoT stack from Amplifiers,Соседство: +%d стак DoT от усилителей
 KEY_TEMP_DMG_BONUS_NOTE,"[color=#f5b041]Temporary: +%d damage until end of turn[/color]","[color=#f5b041]Временно: +%d урона до конца хода[/color]"
 KEY_TEMP_DMG_BONUS_NOTE_PLAIN,Temporary: +%d damage until end of turn,Временно: +%d урона до конца хода
+KEY_LOG_NO_COMBAT_USES,No uses left for this combat.,Лимит использований в этом бою исчерпан.
 KEY_HP,HP,ОЗ
 KEY_CORRUPTED,Corrupted,Искажено
 KEY_MUTATION_LEVEL,Mutation Level,Уровень мутации
@@ -378,6 +379,10 @@ ITEM_WAR_MODULE_NAME,War Module,Модуль войны
 ITEM_WAR_MODULE_DESC,"Temporary overload of weapon circuits. Grants +1 Luck and +1 Strength. On use gives +2 damage to adjacent weapons until end of turn.","Временный перегруз оружейных контуров. Даёт +1 к Удаче и +1 к Силе. При активации даёт +2 к урону всему смежному оружию до конца хода."
 ITEM_HKR137_NAME,HKR-137 Serum,Сыворотка «HKR-137»
 ITEM_HKR137_DESC,Catalytic aggressor. Triples current stacks of all DoT effects on the selected target.,Каталитический агрессор. Утраивает количество стаков всех DoT-эффектов на выбранной цели.
+ITEM_ORACLE_MK4_NAME,Oracle MK-IV Claw,Боевой коготь «Оракул MK-IV»
+ITEM_ORACLE_MK4_DESC,"Neuro-blade with a bio-structure scanner. Learns from each kill and permanently gains +1 damage. Can only be used once per combat.","Нейро-клинок со сканером био-структур. Считывает алгоритмы смерти жертвы, перманентно увеличивая урон на +1 за каждое убийство. Можно использовать только 1 раз за бой."
+ITEM_DAMAGE_ANALYZER_NAME,Damage Analyzer,Анализатор урона
+ITEM_DAMAGE_ANALYZER_DESC,"Instantly converts instability in the target body into a physical discharge. Grants +1 Agility. Applying any status effect or stack to an enemy immediately deals 1 damage.","Мгновенно преобразует сбои в теле жертвы в физический разряд. Даёт +1 к Ловкости. Наложение любого статусного эффекта или стака на врага немедленно наносит ему 1 урон."
 ITEM_PURGE_SOLVENT_NAME,Purge Solvent,Очищающий раствор
 ITEM_PURGE_SOLVENT_DESC,Cleanses all negative status effects (Poison, Rust, Burn).,Снимает все негативные эффекты (Яд, Ржавчина, Горение).
 TRAIT_ARMOR_EDGE_NAME,Edge Anchor,Краевой якорь
@@ -455,6 +460,8 @@ KEY_LOG_ARMORLESS_HEAL_ON_HIT,%s siphons vitality: +%d HP.,%s поглощает
 KEY_LOG_WAR_MODULE_BUFF,%s overloads %d adjacent weapon(s): +%d damage this turn.,%s перегружает %d смежн. оруж.: +%d урона в этот ход.
 KEY_LOG_DOT_MULTIPLIER_APPLIED,HKR-137 destabilizes %s: %s.,HKR-137 дестабилизирует %s: %s.
 KEY_LOG_DOT_MULTIPLIER_NONE,HKR-137 finds no DoT stacks on target.,HKR-137 не находит DoT-стаков на цели.
+KEY_LOG_ORACLE_KILL_BONUS,"[color=#9B59B6]Oracle MK-IV analyzed the target! Damage permanently +%d.[/color]","[color=#9B59B6]Оракул MK-IV проанализировал цель! Урон перманентно +%d.[/color]"
+KEY_LOG_STATUS_ANALYZER_PING,Damage Analyzer shocks %s for 1.,Анализатор урона поражает %s на 1.
 KEY_STAT_CHECK_ROLL,Roll check,Бросить проверку
 KEY_STAT_CHECK_CANCEL,Cancel,Отмена
 KEY_STAT_CHECK_PREPARE,Prepare check (%s),Подготовка проверки (%s)
@@ -507,6 +514,10 @@ TRAIT_WAR_LUCK_NAME,Tactical Instinct,Тактический инстинкт
 TRAIT_WAR_LUCK_DESC,Passive +1 Luck while equipped.,Пассивно даёт +1 к Удаче пока установлен.
 TRAIT_DOT_MULTIPLIER_NAME,Catalytic Cascade,Каталитический каскад
 TRAIT_DOT_MULTIPLIER_DESC,Triples all current Burn/Poison/Bleed stacks on target.,Утраивает все текущие стаки Горения/Яда/Кровотечения на цели.
+TRAIT_ORACLE_KILL_SCALING_NAME,Oracle Learning Loop,Петля обучения Оракула
+TRAIT_ORACLE_KILL_SCALING_DESC,Whenever this weapon kills an enemy it permanently gains +1 damage.,Каждое убийство этим оружием перманентно даёт ему +1 к урону.
+TRAIT_STATUS_ANALYZER_NAME,Status Shock Converter,Конвертер статусного шока
+TRAIT_STATUS_ANALYZER_DESC,Whenever any status effect is applied to an enemy, deal 1 immediate direct damage.,Когда на врага накладывается любой статус, немедленно наносит 1 прямого урона.
 ENEMY_FACELESS_LADY_NAME,Faceless Lady,Безликая дама
 ENEMY_FACELESS_LADY_DESC,"A stalker bound to the Pale Maiden's pact. Debuffs and bleeds the frame.","Сталкер, связанный с договором Бледной девы. Дебаффит каркас."
 ABILITY_FACELESS_TEETH_NAME,Tooth Clicking,Постукивание зубов
