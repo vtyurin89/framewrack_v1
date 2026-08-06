@@ -7,20 +7,20 @@
 	"aliases_ru": ["Клерк EVERYMART", "Бонни из EVERYMART"],
 	"dialogs": {
 		"start": {
-			"narrator_text_en": "Bonnie hums a bright EVERYMART jingle. Today the booth likes you.",
-			"narrator_text_ru": "Бонни мурлычет рекламный джингл EVERYMART. Сегодня ларёк к тебе добр.",
-			"speech_text_en": "Oh — lucky day, frame. Standards waived. Take the discount and browse.",
-			"speech_text_ru": "О, сегодня твой счастливый день, каркас. Стандарты сняты. Бери скидку и смотри витрину.",
+			"narrator_text_en": "Music drifts in from afar — brighter today, almost clear of static. The trading truck stops in front of you, and Bonnie's hologram snaps into focus immediately, without the usual flicker.\n\nThe twin autocannons, as always, never stop tracking you.",
+			"narrator_text_ru": "Издалека доносится музыка — сегодня она звучит чуть бодрее обычного, почти без помех. Торговый грузовик останавливается перед вами, и голограмма Бонни появляется сразу чёткой, без привычного мерцания.\n\nПулемёты, как всегда, ни на секунду не перестают целиться в вас.",
+			"speech_text_en": "Oh, it's you again! You know, today is simply a WONDERFUL day — I don't know what got into me, but the quarterly figures were pleasing... — her eyes glaze over for a second — ...pleasing… Anyway, it doesn't matter…. Today we have a festive discount! Especially for you — discounted prices across the full range, no strings attached!",
+			"speech_text_ru": "О, снова вы! Знаете, сегодня просто ЗАМЕЧАТЕЛЬНЫЙ день — не знаю почему, но квартальные показатели порадовали... — её глаза на секунду стекленеют — ...порадовали…В общем, неважно…. Сегодня у нас праздничный ценопад! Специально для вас — особые цены на весь ассортимент, без всяких условий!",
 			"choices": [
 				{
-					"text_en": "Start trade",
-					"text_ru": "Начать торговлю",
-					"text_key": "KEY_MERCHANT_CHOICE_TRADE",
+					"text_en": "[Start trade] \"I won't say no.\"",
+					"text_ru": "[Начать торговлю] «Не откажусь».",
+					"text_key": "KEY_MERCHANT_CHOICE_TRADE_GOOD_MOOD",
 					"reward": { "type": "shop", "price_multiplier": 0.8 }
 				},
 				{
-					"text_en": "Leave",
-					"text_ru": "Уйти",
+					"text_en": "[Leave] \"I don't need this.\"",
+					"text_ru": "[Уйти] «Мне это не нужно».",
 					"text_key": "KEY_MERCHANT_CHOICE_LEAVE",
 					"next_dialog_id": "end_encounter",
 					"message_key": "KEY_STATUS_SHOP"
