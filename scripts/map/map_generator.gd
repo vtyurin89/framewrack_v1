@@ -30,8 +30,13 @@ static func generate_for_act(act_data: ActData) -> MapData:
 	var finale_layer := total_layers - 2
 	var stairs_layer := total_layers - 1
 
-	## Layer 0 — single MAIN_STORY start.
-	var start := _create_node(act_data, 0, START_COLUMN, MapNodeData.MapNodeType.MAIN_STORY)
+	## Layer 0 — Act 1 opens with INTRO (gods); later acts open with MAIN_STORY.
+	var start_type := (
+		MapNodeData.MapNodeType.INTRO
+		if act_data.act_index == 1
+		else MapNodeData.MapNodeType.MAIN_STORY
+	)
+	var start := _create_node(act_data, 0, START_COLUMN, start_type)
 	start.state = MapNodeData.NodeState.AVAILABLE
 	out.nodes[start.id] = start
 
@@ -360,6 +365,8 @@ static func _create_node(
 
 static func _build_encounter_for_node(act_data: ActData, node: MapNodeData) -> EncounterData:
 	match node.node_type:
+		MapNodeData.MapNodeType.INTRO:
+			return _build_intro_encounter(act_data, node)
 		MapNodeData.MapNodeType.MAIN_STORY:
 			return _build_story_encounter(act_data, node)
 		MapNodeData.MapNodeType.COMBAT:
@@ -388,14 +395,32 @@ static func _build_encounter_for_node(act_data: ActData, node: MapNodeData) -> E
 			return _build_basic_encounter(node.id, EncounterData.EncounterType.UNKNOWN, "Unknown")
 
 
+static func _build_intro_encounter(act_data: ActData, node: MapNodeData) -> EncounterData:
+	## Act 1 opening: random starting-god INTRO dialog.
+	var god := StartingGodRegistry.pick_random_god_encounter()
+	if god != null:
+		var copy := god.duplicate(true) as EncounterData
+		copy.payload["map_node_id"] = node.id
+		copy.payload["prologue"] = false
+		copy.payload["act"] = act_data.act_index if act_data != null else 1
+		return copy
+	var fallback := IntroEncounterData.new()
+	fallback.id = "%s_intro" % node.id
+	fallback.title_key = "KEY_TYPE_INTRO"
+	fallback.payload = {
+		"map_node_id": node.id,
+		"act": act_data.act_index if act_data != null else 1,
+	}
+	return fallback
+
+
 static func _build_story_encounter(act_data: ActData, node: MapNodeData) -> EncounterData:
-	## Opening beat (layer 0): god / prologue pool for Act 1.
-	if node.layer == 0 and act_data.act_index == 1:
-		var god := StartingGodRegistry.pick_random_god_encounter()
-		if god != null:
-			var copy := god.duplicate(true) as EncounterData
+	## Opening beat (layer 0): MAIN_STORY stubs for acts 2+.
+	if node.layer == 0:
+		var opening := MainStoryRegistry.load_opening_for_act(act_data.act_index)
+		if opening != null:
+			var copy := opening.duplicate(true) as EncounterData
 			copy.payload["map_node_id"] = node.id
-			copy.payload["prologue"] = false
 			copy.payload["act"] = act_data.act_index
 			return copy
 	var story := MainStoryEncounterData.new()
@@ -529,6 +554,8 @@ static func _title_key_for_type(kind: EncounterData.EncounterType) -> String:
 			return "KEY_TYPE_BOSS"
 		EncounterData.EncounterType.EVENT:
 			return "KEY_TYPE_EVENT"
+		EncounterData.EncounterType.INTRO:
+			return "KEY_TYPE_INTRO"
 		EncounterData.EncounterType.REST_SITE:
 			return "KEY_TYPE_REPAIR"
 		EncounterData.EncounterType.SHOP:
@@ -562,7 +589,7 @@ static func _pick_middle_type(
 	layer_type_counts: Dictionary
 ) -> MapNodeData.MapNodeType:
 	## Weighted pick with layer caps and Act 1 early-layer exclusions.
-	## MAIN_STORY / STAIRS / BOSS are never rolled here — fixed at act ends.
+	## INTRO / MAIN_STORY / STAIRS / BOSS are never rolled here — fixed at act ends.
 	for _attempt in 24:
 		var candidate := _roll_middle_type(act_data, layer)
 		if int(layer_type_counts.get(candidate, 0)) >= 3:

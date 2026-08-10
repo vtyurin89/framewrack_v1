@@ -68,6 +68,7 @@ KEY_TYPE_REPAIR,REPAIR,РЕМОНТ
 KEY_TYPE_EVENT,EVENT,СОБЫТИЕ
 KEY_TYPE_BOSS,BOSS,БОСС
 KEY_TYPE_MAIN_STORY,MAIN STORY,СЮЖЕТ
+KEY_TYPE_INTRO,INTRO,ИНТРО
 KEY_TYPE_SHOP,SHOP,МАГАЗИН
 KEY_TYPE_ELITE,ELITE,ЭЛИТА
 KEY_RARITY_COMMON,Common,Обычный
@@ -85,7 +86,8 @@ KEY_CHEST_HINT,Examine the chest,Осмотрите сундук
 KEY_CHEST_NEED_LOCKPICK,A lockpick is required to unlock this chest.,Чтобы отпереть сундук, требуется отмычка.
 KEY_STATUS_CHEST_OPENED,Chest opened.,Сундук открыт.
 KEY_STATUS_CHEST_LEFT,You leave the chest behind.,Вы оставляете сундук позади.
-KEY_MAIN_STORY_BADGE,STORY / GOD,СЮЖЕТ / БОГ
+KEY_MAIN_STORY_BADGE,MAIN STORY,СЮЖЕТ
+KEY_INTRO_BADGE,INTRO / GOD,ИНТРО / БОГ
 KEY_ATK,ATK,АТК
 KEY_BLK,BLK,БЛК
 KEY_AP_FMT,%s %d / %d,%s %d / %d

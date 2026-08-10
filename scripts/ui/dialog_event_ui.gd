@@ -163,10 +163,7 @@ func _apply_responsive_layout() -> void:
 		_title_label.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 	if _story_badge:
 		_story_badge.add_theme_font_size_override("font_size", int(round(12 * s)))
-		_story_badge.add_theme_color_override(
-			"font_color",
-			GamePalette.COLOR_MAIN_STORY if GamePalette != null else Color("#F1C40F")
-		)
+		## Color is applied in _apply_story_badge (INTRO vs MAIN_STORY).
 	_apply_story_badge()
 	if _story_text:
 		_story_text.bbcode_enabled = true
@@ -205,9 +202,21 @@ func _apply_event_image(dialog: DialogEventData) -> void:
 func _apply_story_badge() -> void:
 	if _story_badge == null:
 		return
+	var is_intro := _encounter_type == EncounterData.EncounterType.INTRO
 	var is_main_story := _encounter_type == EncounterData.EncounterType.MAIN_STORY
-	_story_badge.visible = is_main_story
-	_story_badge.text = tr("KEY_MAIN_STORY_BADGE")
+	_story_badge.visible = is_intro or is_main_story
+	if is_intro:
+		_story_badge.text = tr("KEY_INTRO_BADGE")
+		_story_badge.add_theme_color_override(
+			"font_color",
+			GamePalette.COLOR_INTRO if GamePalette != null else Color("#9B59B6")
+		)
+	else:
+		_story_badge.text = tr("KEY_MAIN_STORY_BADGE")
+		_story_badge.add_theme_color_override(
+			"font_color",
+			GamePalette.COLOR_MAIN_STORY if GamePalette != null else Color("#F1C40F")
+		)
 
 
 func _show_node(node_id: String) -> void:

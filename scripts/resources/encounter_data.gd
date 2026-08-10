@@ -7,6 +7,7 @@ enum EncounterType {
 	COMBAT_ELITE,
 	COMBAT_BOSS,
 	EVENT,
+	INTRO,
 	MAIN_STORY,
 	CHEST,
 	SHOP,

@@ -71,7 +71,7 @@ func start_prologue() -> void:
 	start_encounter(god_encounter)
 
 
-func get_random_god_encounter() -> MainStoryEncounterData:
+func get_random_god_encounter() -> IntroEncounterData:
 	## Prefer the curated starting pool; fall back to full gods directory.
 	var pool: Array[String] = []
 	for god_id in STARTING_GOD_IDS:
@@ -86,12 +86,12 @@ func get_random_god_encounter() -> MainStoryEncounterData:
 	return encounter
 
 
-func load_random_starting_god() -> MainStoryEncounterData:
+func load_random_starting_god() -> IntroEncounterData:
 	## Public loader for the starting-god pool under data/encounters/gods/.
 	return get_random_god_encounter()
 
 
-func load_starting_god(god_id: String) -> MainStoryEncounterData:
+func load_starting_god(god_id: String) -> IntroEncounterData:
 	return StartingGodRegistry.load_god_encounter(god_id)
 
 
@@ -277,20 +277,36 @@ func _launch_by_type(data: EncounterData) -> void:
 				_apply_heal(int(data.payload.get("heal_amount", 10)))
 				_pending_rewards["message_key"] = "KEY_STATUS_EVENT"
 				_finish_encounter(_pending_rewards)
-		EncounterData.EncounterType.MAIN_STORY:
-			var story_dialog := data.get_dialog_event()
-			if story_dialog != null:
-				request_show_dialog.emit(story_dialog, data)
-			elif bool(data.payload.get("act_finale", false)):
-				## Post-boss chapter beat — no starting-god re-roll.
-				_pending_rewards["message_key"] = "KEY_TYPE_MAIN_STORY"
-				request_show_placeholder.emit(data, "KEY_TYPE_MAIN_STORY")
-				_finish_encounter(_pending_rewards)
+		EncounterData.EncounterType.INTRO:
+			## Starting-god / prologue dialogs — same UI path as MAIN_STORY.
+			var intro_dialog := data.get_dialog_event()
+			if intro_dialog != null:
+				request_show_dialog.emit(intro_dialog, data)
 			else:
 				var picked := get_random_god_encounter()
 				if picked != null:
 					start_encounter(picked)
 				else:
+					_finish_encounter(_pending_rewards)
+		EncounterData.EncounterType.MAIN_STORY:
+			var story_dialog := data.get_dialog_event()
+			if story_dialog != null:
+				request_show_dialog.emit(story_dialog, data)
+			elif bool(data.payload.get("act_finale", false)):
+				## Post-boss chapter beat — placeholder until authored.
+				_pending_rewards["message_key"] = "KEY_TYPE_MAIN_STORY"
+				request_show_placeholder.emit(data, "KEY_TYPE_MAIN_STORY")
+				_finish_encounter(_pending_rewards)
+			else:
+				## Opening MAIN_STORY without dialog: try act stub, else placeholder.
+				var act := int(data.payload.get("act", 1))
+				var stub := MainStoryRegistry.load_opening_for_act(act)
+				if stub != null and stub.get_dialog_event() != null:
+					stub.payload["map_node_id"] = str(data.payload.get("map_node_id", ""))
+					start_encounter(stub)
+				else:
+					_pending_rewards["message_key"] = "KEY_TYPE_MAIN_STORY"
+					request_show_placeholder.emit(data, "KEY_TYPE_MAIN_STORY")
 					_finish_encounter(_pending_rewards)
 		EncounterData.EncounterType.REST_SITE:
 			request_show_rest_site.emit(data)

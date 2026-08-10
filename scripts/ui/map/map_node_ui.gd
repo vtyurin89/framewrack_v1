@@ -61,6 +61,8 @@ func _state_color(state: MapNodeData.NodeState) -> Color:
 
 func _icon_for_type(node_type: MapNodeData.MapNodeType) -> String:
 	match node_type:
+		MapNodeData.MapNodeType.INTRO:
+			return "✦"
 		MapNodeData.MapNodeType.MAIN_STORY:
 			return "📖"
 		MapNodeData.MapNodeType.COMBAT:
@@ -94,6 +96,8 @@ func _display_name() -> String:
 
 func _type_label(node_type: MapNodeData.MapNodeType) -> String:
 	match node_type:
+		MapNodeData.MapNodeType.INTRO:
+			return tr("KEY_TYPE_INTRO")
 		MapNodeData.MapNodeType.MAIN_STORY:
 			return tr("KEY_TYPE_MAIN_STORY")
 		MapNodeData.MapNodeType.COMBAT:

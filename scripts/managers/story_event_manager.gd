@@ -159,7 +159,7 @@ func maybe_inject_faceless_lady(
 
 func _rebuild_catalog() -> void:
 	_catalog.clear()
-	## Pale Maiden is a starting god (data/encounters/gods/), not a map event.
+	## Pale Maiden is a starting god (data/encounters/gods/, INTRO), not a map event.
 	_register_event(WHITE_FOG_ID, StoryEvent.Faction.HUMAN, WHITE_FOG_ID, true)
 	## Act 1 city beats — travel through the ruins of Ra'im.
 	_register_event("raim_great_ascent", StoryEvent.Faction.HUMAN, "raim_great_ascent", false)
