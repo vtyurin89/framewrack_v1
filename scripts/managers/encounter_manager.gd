@@ -10,6 +10,7 @@ signal request_show_dialog(dialog: DialogEventData, encounter: EncounterData)
 signal request_show_placeholder(encounter: EncounterData, message_key: String)
 signal request_show_rest_site(encounter: EncounterData)
 signal request_show_shop(encounter: EncounterData, price_multiplier: float)
+signal request_show_chest_reward(encounter: EncounterData)
 signal request_item_selection(item_pool: Array, title: String)
 signal item_selection_resolved(item: ItemData)
 signal request_post_combat_rewards(encounter: EncounterData)
@@ -294,10 +295,7 @@ func _launch_by_type(data: EncounterData) -> void:
 		EncounterData.EncounterType.REST_SITE:
 			request_show_rest_site.emit(data)
 		EncounterData.EncounterType.CHEST:
-			_grant_item(str(data.payload.get("item_id", "BIO_GEL")))
-			_pending_rewards["message_key"] = "KEY_STATUS_CHEST"
-			request_show_placeholder.emit(data, "KEY_STATUS_CHEST")
-			_finish_encounter(_pending_rewards)
+			request_show_chest_reward.emit(data)
 		EncounterData.EncounterType.SHOP:
 			var act := int(data.payload.get("act", 1))
 			var dialog := MerchantEncounter.build_dialog(maxi(1, act), null, inventory)
@@ -535,7 +533,8 @@ func _apply_unknown_defaults(data: EncounterData) -> void:
 				data.payload["item_id"] = "REBEL_CLEAVER"
 				data.payload["heal_amount"] = 10
 		EncounterData.EncounterType.CHEST:
-			data.payload["item_id"] = "BIO_GEL"
+			if not data.payload.has("locked"):
+				data.payload["locked"] = randf() < 0.55
 		_:
 			pass
 
@@ -583,6 +582,21 @@ func complete_shop_site() -> void:
 		return
 	if not _pending_rewards.has("message_key"):
 		_pending_rewards["message_key"] = "KEY_STATUS_SHOP"
+	_finish_encounter(_pending_rewards)
+
+
+func complete_chest_site(opened: bool = false) -> void:
+	## Called by Main after leaving the chest / chest-loot flow.
+	if active_encounter == null:
+		return
+	if active_encounter.type != EncounterData.EncounterType.CHEST:
+		return
+	if opened:
+		_pending_rewards["message_key"] = "KEY_STATUS_CHEST_OPENED"
+		_pending_rewards["chest_opened"] = true
+	elif not _pending_rewards.has("message_key"):
+		_pending_rewards["message_key"] = "KEY_STATUS_CHEST_LEFT"
+		_pending_rewards["chest_opened"] = false
 	_finish_encounter(_pending_rewards)
 
 

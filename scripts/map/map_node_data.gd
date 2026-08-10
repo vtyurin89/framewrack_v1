@@ -10,6 +10,7 @@ enum MapNodeType {
 	ELITE,
 	BOSS,
 	STAIRS,
+	REWARD,
 }
 
 enum NodeState {

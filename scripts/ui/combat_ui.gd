@@ -909,12 +909,22 @@ func _scroll_log_to_end() -> void:
 		_log.scroll_to_line(_log.get_line_count())
 
 
-func set_reward_phase(active: bool) -> void:
+func set_reward_phase(active: bool, hint_key: String = "KEY_REWARD_SELECT_UP_TO_3") -> void:
 	## Swap the enemy stage for floating loot; keep the existing Continue button.
 	_reward_phase = active
 	if active:
 		_harmful_insertion_phase = false
-	_apply_space_stage_layout(active, tr("KEY_REWARD_SELECT_UP_TO_3"))
+	_apply_space_stage_layout(active, tr(hint_key))
+
+
+func set_chest_phase(active: bool, hint_key: String = "KEY_CHEST_HINT") -> void:
+	## Swap the enemy stage for the chest interaction UI.
+	_reward_phase = active
+	if active:
+		_harmful_insertion_phase = false
+	_apply_space_stage_layout(active, tr(hint_key))
+	if _continue_btn and active:
+		_continue_btn.disabled = false
 
 
 func set_harmful_insertion_phase(active: bool) -> void:

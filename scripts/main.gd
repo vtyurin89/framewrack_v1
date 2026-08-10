@@ -17,6 +17,7 @@ const REST_SITE_SCENE := preload("res://scenes/UI/rest_site_ui.tscn")
 const SHOP_SCREEN_SCENE := preload("res://scenes/UI/shop_screen.tscn")
 const SELECT_ITEM_SCENE := preload("res://scenes/UI/select_item_ui.tscn")
 const REWARD_SCREEN_SCENE := preload("res://scenes/UI/reward_screen.tscn")
+const CHEST_REWARD_SCENE := preload("res://scenes/UI/chest_reward_ui.tscn")
 const FORCED_ITEM_SCREEN_SCENE := preload("res://scenes/UI/forced_item_screen.tscn")
 const ANNOUNCER_SCENE := preload("res://scenes/UI/announcer_ui.tscn")
 
@@ -54,9 +55,12 @@ var _rest_site_ui: RestSiteUI
 var _shop_screen: ShopScreen
 var _select_item_ui: SelectItemUI
 var _reward_screen: RewardScreen
+var _chest_reward_ui: ChestRewardUI
 var _forced_item_screen: ForcedItemScreen
 var _announcer_ui: AnnouncerUI
 var _post_combat_reward_active: bool = false
+var _chest_site_active: bool = false
+var _chest_loot_active: bool = false
 var _forced_insertion_active: bool = false
 var _encounter_combat_active: bool = false
 var _shop_active: bool = false
@@ -78,6 +82,7 @@ func _ready() -> void:
 	_encounters.request_show_placeholder.connect(_on_encounter_placeholder)
 	_encounters.request_show_rest_site.connect(_on_encounter_request_rest_site)
 	_encounters.request_show_shop.connect(_on_encounter_request_shop)
+	_encounters.request_show_chest_reward.connect(_on_encounter_request_chest_reward)
 	_encounters.request_item_selection.connect(_on_encounter_request_item_selection)
 	_encounters.request_post_combat_rewards.connect(_on_encounter_request_post_combat_rewards)
 	_style_body_grid_pane()
@@ -467,6 +472,10 @@ func _on_player_died() -> void:
 func _show_exploring() -> void:
 	_set_flow(GameFlowState.State.EXPLORING)
 	_shop_active = false
+	_chest_site_active = false
+	_chest_loot_active = false
+	if _chest_reward_ui != null and is_instance_valid(_chest_reward_ui):
+		_chest_reward_ui.close_session()
 	if _shop_screen != null and is_instance_valid(_shop_screen) and _shop_screen.is_active():
 		_shop_screen.close_session()
 	elif ShopManager != null:
@@ -692,6 +701,83 @@ func _on_encounter_request_shop(_encounter: EncounterData, price_multiplier: flo
 	_shop_screen.open_session(inventory, _inventory_ui)
 
 
+func _on_encounter_request_chest_reward(encounter: EncounterData) -> void:
+	_chest_site_active = true
+	_chest_loot_active = false
+	_map_ui.visible = false
+	_combat_ui.visible = true
+	if not _inventory_combat_docked:
+		_mount_inventory_combat_dock()
+	_hide_inventory_overlay()
+	if _inventory_ui.has_method("set_combat_mode"):
+		_inventory_ui.set_combat_mode(false)
+	_inventory_ui.refresh()
+	if _combat_ui.has_method("set_chest_phase"):
+		_combat_ui.set_chest_phase(true)
+	_ensure_chest_reward_ui()
+	var locked := true
+	if encounter != null:
+		locked = bool(encounter.payload.get("locked", true))
+	_status_banner.text = tr("KEY_TYPE_REWARD")
+	if _chest_reward_ui != null:
+		_chest_reward_ui.open_session(inventory, locked)
+
+
+func _ensure_chest_reward_ui() -> void:
+	var host: Control = null
+	if _combat_ui != null and _combat_ui.has_method("get_loot_stage"):
+		host = _combat_ui.get_loot_stage()
+	if host == null:
+		host = _combat_ui
+	if _chest_reward_ui != null and is_instance_valid(_chest_reward_ui):
+		if _chest_reward_ui.get_parent() != host and host != null:
+			_chest_reward_ui.reparent(host)
+			_chest_reward_ui.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+		return
+	_chest_reward_ui = CHEST_REWARD_SCENE.instantiate() as ChestRewardUI
+	_chest_reward_ui.name = "ChestRewardUI"
+	if host != null:
+		host.add_child(_chest_reward_ui)
+	else:
+		add_child(_chest_reward_ui)
+	_chest_reward_ui.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+	_chest_reward_ui.loot_opened.connect(_on_chest_loot_opened)
+
+
+func _on_chest_loot_opened() -> void:
+	if not _chest_site_active:
+		return
+	_ensure_reward_screen()
+	var act_depth := 1
+	if _run_flow != null:
+		act_depth = maxi(_run_flow.current_act, 1)
+		if _run_flow.current_map_data != null:
+			var cur := _run_flow.current_map_data.get_node(_run_flow.current_map_data.current_node_id)
+			if cur != null:
+				act_depth = maxi(cur.layer, 0)
+	var loot := RewardManager.generate_chest_rewards(act_depth)
+	_chest_loot_active = true
+	if _combat_ui.has_method("set_reward_phase"):
+		_combat_ui.set_reward_phase(true, "KEY_REWARD_SELECT_ONE")
+	_status_banner.text = tr("KEY_REWARD_SELECT_ONE")
+	_reward_screen.open_session(loot, inventory, _inventory_ui, RewardManager.CHEST_PICKS)
+
+
+func _finish_chest_site(opened: bool) -> void:
+	if _chest_reward_ui != null:
+		_chest_reward_ui.close_session()
+	if _reward_screen != null and _reward_screen.is_active():
+		_reward_screen.close_session()
+	_chest_site_active = false
+	_chest_loot_active = false
+	_post_combat_reward_active = false
+	if _combat_ui != null and _combat_ui.has_method("set_reward_phase"):
+		_combat_ui.set_reward_phase(false)
+	if _inventory_ui != null and _inventory_ui.has_method("set_reward_handler"):
+		_inventory_ui.set_reward_handler(null)
+	_encounters.complete_chest_site(opened)
+
+
 func _on_encounter_placeholder(_encounter: EncounterData, message_key: String) -> void:
 	if not message_key.is_empty():
 		_status_banner.text = tr(message_key)
@@ -783,6 +869,9 @@ func _on_reward_notice(message: String) -> void:
 
 
 func _on_reward_screen_finished() -> void:
+	if _chest_loot_active or _chest_site_active:
+		_finish_chest_site(true)
+		return
 	_post_combat_reward_active = false
 	_encounter_combat_active = false
 	if _combat_ui != null and _combat_ui.has_method("set_reward_phase"):
@@ -946,6 +1035,13 @@ func _on_combat_continue() -> void:
 		return
 	if _forced_insertion_active and _forced_item_screen != null and _forced_item_screen.is_active():
 		_forced_item_screen.confirm_and_finish()
+		return
+	## Chest site: leave without opening, or finish after single-pick loot.
+	if _chest_site_active:
+		if _chest_loot_active and _reward_screen != null and _reward_screen.is_active():
+			_reward_screen.confirm_and_finish()
+			return
+		_finish_chest_site(false)
 		return
 	## Reward phase: the same Continue discards leftover Space loot and returns to map.
 	if _post_combat_reward_active and _reward_screen != null and _reward_screen.is_active():

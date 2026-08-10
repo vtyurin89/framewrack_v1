@@ -77,6 +77,8 @@ func _icon_for_type(node_type: MapNodeData.MapNodeType) -> String:
 			return "👑"
 		MapNodeData.MapNodeType.STAIRS:
 			return "⬆"
+		MapNodeData.MapNodeType.REWARD:
+			return "📦"
 		_:
 			return "•"
 
@@ -108,5 +110,7 @@ func _type_label(node_type: MapNodeData.MapNodeType) -> String:
 			return tr("KEY_TYPE_BOSS")
 		MapNodeData.MapNodeType.STAIRS:
 			return tr("KEY_TYPE_STAIRS")
+		MapNodeData.MapNodeType.REWARD:
+			return tr("KEY_TYPE_REWARD")
 		_:
 			return "?"

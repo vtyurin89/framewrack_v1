@@ -78,6 +78,13 @@ KEY_REWARD_SELECT_UP_TO_3,Select up to 3 new items,Выберите до 3 но�
 KEY_REWARD_PICK_LIMIT,Cannot pick more than 3 new items!,Нельзя взять больше 3 новых предметов!
 KEY_REWARD_NOT_DROPPABLE,This item cannot be discarded!,Этот предмет нельзя выбросить!
 KEY_TYPE_STAIRS,STAIRS,ЛЕСТНИЦА
+KEY_TYPE_REWARD,REWARD,НАГРАДА
+KEY_REWARD_SELECT_ONE,Select 1 item,Выберите 1 предмет
+KEY_REWARD_PICK_LIMIT_ONE,You can take only one item!,Можно взять только один предмет!
+KEY_CHEST_HINT,Examine the chest,Осмотрите сундук
+KEY_CHEST_NEED_LOCKPICK,A lockpick is required to unlock this chest.,Чтобы отпереть сундук, требуется отмычка.
+KEY_STATUS_CHEST_OPENED,Chest opened.,Сундук открыт.
+KEY_STATUS_CHEST_LEFT,You leave the chest behind.,Вы оставляете сундук позади.
 KEY_MAIN_STORY_BADGE,STORY / GOD,СЮЖЕТ / БОГ
 KEY_ATK,ATK,АТК
 KEY_BLK,BLK,БЛК
