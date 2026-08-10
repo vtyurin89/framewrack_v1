@@ -684,11 +684,17 @@ func _on_encounter_request_shop(_encounter: EncounterData, price_multiplier: flo
 		return
 	_shop_active = true
 	_map_ui.visible = false
-	_combat_ui.visible = false
-	_mount_inventory_combat_dock()
+	_combat_ui.visible = true
+	if not _inventory_combat_docked:
+		_mount_inventory_combat_dock()
+	_hide_inventory_overlay()
 	if _inventory_ui.has_method("set_combat_mode"):
 		_inventory_ui.set_combat_mode(false)
 	_inventory_ui.refresh()
+	if _combat_ui.has_method("set_reward_phase"):
+		_combat_ui.set_reward_phase(true, "KEY_STATUS_SHOP_OPEN")
+	if _combat_ui.has_method("set_continue_enabled"):
+		_combat_ui.set_continue_enabled(true)
 	var act := 1
 	if _run_flow != null:
 		act = maxi(_run_flow.current_act, 1)
@@ -901,9 +907,17 @@ func _ensure_rest_site_ui() -> void:
 
 
 func _ensure_shop_screen() -> void:
+	## Host inside CombatUI LootStage — same left-side Space as post-combat rewards.
+	var host: Control = null
+	if _combat_ui != null and _combat_ui.has_method("get_loot_stage"):
+		host = _combat_ui.get_loot_stage()
+	if host == null:
+		host = _combat_ui
 	if _shop_screen != null and is_instance_valid(_shop_screen):
+		if _shop_screen.get_parent() != host and host != null:
+			_shop_screen.reparent(host)
+			_shop_screen.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
 		return
-	var host := get_node_or_null("%MainStage") as Control
 	_shop_screen = SHOP_SCREEN_SCENE.instantiate() as ShopScreen
 	_shop_screen.name = "ShopScreen"
 	if host != null:
@@ -942,6 +956,8 @@ func _on_rest_site_continue() -> void:
 
 func _on_shop_screen_finished() -> void:
 	_shop_active = false
+	if _combat_ui != null and _combat_ui.has_method("set_reward_phase"):
+		_combat_ui.set_reward_phase(false)
 	if _inventory_ui:
 		if _inventory_ui.has_method("set_reward_handler"):
 			_inventory_ui.set_reward_handler(null)
@@ -1035,6 +1051,10 @@ func _on_combat_continue() -> void:
 		return
 	if _forced_insertion_active and _forced_item_screen != null and _forced_item_screen.is_active():
 		_forced_item_screen.confirm_and_finish()
+		return
+	## Shop: same Continue as post-combat rewards.
+	if _shop_active and _shop_screen != null and _shop_screen.is_active():
+		_shop_screen.confirm_and_finish()
 		return
 	## Chest site: leave without opening, or finish after single-pick loot.
 	if _chest_site_active:

@@ -30,18 +30,21 @@ func _ready() -> void:
 	visible = false
 	mouse_filter = Control.MOUSE_FILTER_STOP
 	process_mode = Node.PROCESS_MODE_ALWAYS
+	## Hosted in CombatUI LootStage like RewardScreen — no full-screen fog overlay.
 	if _fog:
-		_fog.visible = true
+		_fog.visible = false
 		_fog.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	if _title:
-		_title.visible = true
+		_title.visible = false
 		_title.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	if _chips_label:
-		_chips_label.visible = true
+		_chips_label.visible = false
 		_chips_label.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	if _continue_btn:
-		_continue_btn.visible = true
-		_continue_btn.pressed.connect(_on_continue_pressed)
+		## Continue lives on CombatUI (same as post-combat rewards).
+		_continue_btn.visible = false
+		if not _continue_btn.pressed.is_connected(_on_continue_pressed):
+			_continue_btn.pressed.connect(_on_continue_pressed)
 		_style_continue_button()
 	if _notice:
 		_notice.mouse_filter = Control.MOUSE_FILTER_IGNORE
@@ -68,6 +71,7 @@ func open_session(
 	p_inventory_ui: Control
 ) -> void:
 	## Expects ShopManager.begin_session() already called with priced stock.
+	## Layout: floating stock in CombatUI LootStage (left); Body Grid docked right.
 	inventory = p_inventory
 	inventory_ui = p_inventory_ui
 	_clear_floating()
@@ -92,7 +96,21 @@ func open_session(
 	if ShopManager != null:
 		stock = ShopManager.stock_items.duplicate()
 	_spawn_stock_in_space(stock)
-	move_to_front()
+
+
+func confirm_and_finish() -> void:
+	## Called by Main when CombatUI Continue is pressed.
+	if not _active:
+		return
+	_clear_floating()
+	_pending_space_return.clear()
+	_active = false
+	visible = false
+	if inventory_ui != null and inventory_ui.has_method("set_reward_handler"):
+		inventory_ui.set_reward_handler(null)
+	if ShopManager != null:
+		ShopManager.clear_session()
+	finished.emit()
 
 
 func close_session() -> void:
@@ -195,10 +213,7 @@ func recover_space_item_if_lost(item: ItemData, from_global: Vector2) -> void:
 
 
 func _on_continue_pressed() -> void:
-	if not _active:
-		return
-	close_session()
-	finished.emit()
+	confirm_and_finish()
 
 
 func _on_chips_changed(_amount: int) -> void:
