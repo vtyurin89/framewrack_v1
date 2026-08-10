@@ -1,0 +1,125 @@
+{
+	"id": "bonnie_03",
+	"title_key": "KEY_MERCHANT_TITLE",
+	"merchant_name": "Bonnie",
+	"merchant_name_ru": "Бонни",
+	"aliases": ["EVERYMART Clerk", "Bonnie of EVERYMART"],
+	"aliases_ru": ["Клерк EVERYMART", "Бонни из EVERYMART"],
+	"dialogs": {
+		"start": {
+			"narrator_text_en": "The trading truck noses out from around a bend, squeezing through a jam of rusted cars that never moved again on the day the world ended.",
+			"narrator_text_ru": "Торговый грузовик выныривает из-за поворота, протискиваясь сквозь пробку из ржавых машин, что так и не сдвинулась с места в день конца света.",
+			"speech_text_en": "Excuse me, folks! One at a time, please — (she mimes elbowing through an invisible crowd) — Alright, who's next? What'll it be, my friend?",
+			"speech_text_ru": "Прошу прощения, дорогие покупатели! Не толпитесь, пожалуйста, — (голограмма делает жест, будто пробивается через несуществующую толпу.) — Так, кто у нас следующий? Что хотите купить, друг мой?",
+			"choices": [
+				{
+					"text_en": "[Start trade] \"Show me what you've got.\"",
+					"text_ru": "[Начать торговлю] «Покажи, что у тебя есть».",
+					"text_key": "KEY_MERCHANT_CHOICE_TRADE",
+					"next_dialog_id": "trade_intro"
+				},
+				{
+					"text_en": "[Bargain — Intelligence check] \"Your prices are clearly inflated.\"",
+					"text_ru": "[Поторговаться — проверка интеллекта] «Твои цены явно завышены».",
+					"text_key": "KEY_MERCHANT_CHOICE_BARGAIN",
+					"next_dialog_id": "bargain_prep"
+				},
+				{
+					"text_en": "[Leave] \"I don't need this.\"",
+					"text_ru": "[Уйти] «Мне это не нужно».",
+					"text_key": "KEY_MERCHANT_CHOICE_LEAVE",
+					"next_dialog_id": "leave_exit"
+				}
+			]
+		},
+		"trade_intro": {
+			"narrator_text_en": "",
+			"narrator_text_ru": "",
+			"speech_text_en": "Excellent! What you're after is down the aisle, third door on the left… — (she trails off, staring at the rubble that used to be a wall) — …or right here, actually. Yes — everything's right here. Go ahead!",
+			"speech_text_ru": "Прекрасно! Стеллаж, который вам нужен, — прямо по коридору, третья дверь... — (она смотрит на обрушенную стену перед собой) — ...или просто вот, всё здесь. Смотрите!",
+			"choices": [
+				{
+					"text_en": "Start trade",
+					"text_ru": "Начать торговлю",
+					"text_key": "KEY_MERCHANT_CHOICE_OPEN_SHOP",
+					"reward": { "type": "shop", "price_multiplier": 1.0 }
+				}
+			]
+		},
+		"bargain_prep": {
+			"narrator_text_en": "",
+			"narrator_text_ru": "",
+			"speech_text_en": "Oh! Let me check your loyalty status… — (the hologram swipes through an empty display, eyes scanning data only she can see)",
+			"speech_text_ru": "О! Дайте-ка проверю ваш статус в программе лояльности... — (голограмма листает несуществующий список)",
+			"choices": [
+				{
+					"text_en": "[Intelligence check] Continue",
+					"text_ru": "[Проверка интеллекта] Продолжить",
+					"text_key": "KEY_MERCHANT_CHOICE_BARGAIN_ROLL",
+					"stat_check": "INT",
+					"check_dc": 1,
+					"stat_pool_bonus": 0,
+					"success_next_dialog_id": "bargain_success",
+					"failure_next_dialog_id": "bargain_fail"
+				}
+			]
+		},
+		"bargain_success": {
+			"narrator_text_en": "",
+			"narrator_text_ru": "",
+			"speech_text_en": "I like you! Congratulations — you've been promoted to Platinum Customer. Special discount applies until I forget I made this call! — (Bonnie winks)",
+			"speech_text_ru": "А вы мне нравитесь! Поздравляю — вы переходите на уровень \"Платиновый клиент\". Специальная скидка для вас будет действовать, пока я не забуду об этом решении! — (Бонни подмигивает)",
+			"choices": [
+				{
+					"text_en": "Start trade",
+					"text_ru": "Начать торговлю",
+					"text_key": "KEY_MERCHANT_CHOICE_OPEN_SHOP",
+					"reward": { "type": "shop", "price_multiplier": 0.8 }
+				}
+			]
+		},
+		"bargain_fail": {
+			"narrator_text_en": "",
+			"narrator_text_ru": "",
+			"speech_text_en": "Uh-oh. Dear customer, why would you break company rules? I'm afraid I'll have to lower your status — just temporarily — and add a small markup. Nothing personal, just following protocol. Have a nice day!",
+			"speech_text_ru": "Ай-ай-ай. Дорогой клиент, что же вы нарушаете правила компании? Боюсь, я вынуждена временно понизить ваш статус и применить небольшую наценку. Ничего личного, это правила программы…. Хорошего вам дня!",
+			"choices": [
+				{
+					"text_en": "Start trade",
+					"text_ru": "Начать торговлю",
+					"text_key": "KEY_MERCHANT_CHOICE_OPEN_SHOP",
+					"reward": { "type": "shop", "price_multiplier": 1.25 }
+				}
+			]
+		},
+		"leave_exit": {
+			"narrator_text_en": "",
+			"narrator_text_ru": "",
+			"speech_text_en": "Leaving already? What a shame! Before you go — how would you rate today's service? One to five?",
+			"speech_text_ru": "Уже уходите? Очень жаль! Перед уходом не могли бы вы оценить качество обслуживания сегодня, от одной до пяти звёзд?",
+			"choices": [
+				{
+					"text_en": "…",
+					"text_ru": "…",
+					"text_key": "KEY_MERCHANT_CHOICE_LEAVE_CONTINUE",
+					"next_dialog_id": "leave_exit_2"
+				}
+			]
+		},
+		"leave_exit_2": {
+			"narrator_text_en": "Without waiting for an answer, Bonnie nods happily and claps her hands.",
+			"narrator_text_ru": "Не дождавшись ответа, Бонни вдруг радостно кивает и хлопает в ладоши.",
+			"speech_text_en": "Five stars — for me? Really? Wonderful! Have a nice day, dear friend. Take care out there.",
+			"speech_text_ru": "Пять звёзд — правда? Прекрасно! Хорошего дня, дорогой друг. Берегите себя.",
+			"choices": [
+				{
+					"text_en": "Leave",
+					"text_ru": "Уйти",
+					"text_key": "KEY_CONTINUE",
+					"next_dialog_id": "end_encounter",
+					"message_key": "KEY_STATUS_SHOP"
+				}
+			]
+		}
+	}
+}

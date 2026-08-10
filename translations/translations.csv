@@ -546,7 +546,9 @@ KEY_MERCHANT_TITLE,EVERYMART / Bonnie,EVERYMART / Бонни
 KEY_MERCHANT_CHOICE_TRADE,"[Start trade] ""Show me what you've got.""","[Начать торговлю] «Покажи, что у тебя есть»."
 KEY_MERCHANT_CHOICE_TRADE_GOOD_MOOD,"[Start trade] ""I won't say no.""","[Начать торговлю] «Не откажусь»."
 KEY_MERCHANT_CHOICE_BARGAIN,"[Bargain — Intelligence check] ""Your prices are clearly inflated.""","[Поторговаться — проверка интеллекта] «Твои цены явно завышены»."
+KEY_MERCHANT_CHOICE_BARGAIN_ROLL,"[Intelligence check] Continue","[Проверка интеллекта] Продолжить"
 KEY_MERCHANT_CHOICE_LEAVE,"[Leave] ""I don't need this.""","[Уйти] «Мне это не нужно»."
+KEY_MERCHANT_CHOICE_LEAVE_CONTINUE,…,…
 KEY_MERCHANT_CHOICE_OPEN_SHOP,Start trade,Начать торговлю
 KEY_MERCHANT_CHOICE_BACK,Back,Назад
 KEY_SHOP_TITLE,EVERYMART,EVERYMART

@@ -1,11 +1,9 @@
 class_name MerchantEncounter
 extends RefCounted
 ## Loads EVERYMART / Bonnie dialog JSON from res://data/encounters/shop/.
-## Applies Act-scaled INT bargain modifiers at runtime.
+## Good Mood vs randomized standard pool (Encounter #1, #3, …).
 
 const SHOP_DIR := "res://data/encounters/shop/"
-const DEFAULT_MERCHANT_ID := "bonnie"
-const GOOD_MOOD_CHANCE := 0.15
 
 
 static func build_dialog(
@@ -13,10 +11,7 @@ static func build_dialog(
 	force_good_mood: Variant = null,
 	inventory: InventoryController = null
 ) -> DialogEventData:
-	var raw := _load_json_dict(DEFAULT_MERCHANT_ID)
-	if raw.is_empty():
-		push_warning("MerchantEncounter: missing shop dialog JSON for %s" % DEFAULT_MERCHANT_ID)
-		return _fallback_dialog()
+	var meta := _load_json_dict(MerchantDialoguePool.META_ENCOUNTER_ID)
 
 	var good_mood := false
 	if force_good_mood != null:
@@ -24,16 +19,25 @@ static func build_dialog(
 	elif ShopManager != null and ShopManager.is_vip_card_equipped(inventory):
 		good_mood = true
 	else:
-		var chance := float(raw.get("good_mood_chance", GOOD_MOOD_CHANCE))
-		good_mood = randf() < chance
+		good_mood = randf() < MerchantDialoguePool.get_good_mood_chance(meta)
 
+	var raw: Dictionary = {}
 	if good_mood:
-		var mood_id := str(raw.get("good_mood_id", "bonnie_good_mood")).strip_edges()
-		var mood_raw := _load_json_dict(mood_id)
-		if not mood_raw.is_empty():
-			raw = mood_raw
-		else:
+		var mood_id := MerchantDialoguePool.get_good_mood_id(meta)
+		raw = _load_json_dict(mood_id)
+		if raw.is_empty():
 			push_warning("MerchantEncounter: missing good-mood JSON %s" % mood_id)
+	else:
+		var standard_id := MerchantDialoguePool.pick_standard_id()
+		raw = _load_json_dict(standard_id)
+		if raw.is_empty():
+			push_warning("MerchantEncounter: missing standard JSON %s" % standard_id)
+
+	if raw.is_empty():
+		## Last resort: Encounter #1, then hardcoded fallback.
+		raw = _load_json_dict(MerchantDialoguePool.META_ENCOUNTER_ID)
+	if raw.is_empty():
+		return _fallback_dialog()
 
 	var dialog := _dialog_from_raw(raw)
 	if dialog == null:
