@@ -92,6 +92,8 @@ func is_in_combat() -> bool:
 func start_combat(enemy_datas: Array[EnemyData], max_attackers: int = -1) -> void:
 	_ensure_ability_executor()
 	_player_action_busy = false
+	if player_stats != null:
+		player_stats.clear_combat_stat_buffs()
 	if player_statuses == null:
 		player_statuses = StatusController.new()
 	player_statuses.clear_combat_statuses()
@@ -620,6 +622,32 @@ func _perform_harmful_surgery(placed: PlacedItem) -> void:
 		EventBus.ap_changed.emit(current_ap, max_ap)
 
 
+func _resolve_pliers_extract(placed: PlacedItem) -> void:
+	## Remove the first harmful item in the same row to the right; grant combat +1 STR on success.
+	if placed == null or placed.data == null or inventory == null or inventory.grid == null:
+		return
+	var tool_name := placed.data.get_localized_name()
+	var target := inventory.grid.find_first_harmful_right_in_row(placed)
+	if target == null or target.data == null:
+		EventBus.combat_log_message.emit(tr("KEY_LOG_PLIERS_MISS") % tool_name)
+		return
+	var removed_name := target.data.get_localized_name()
+	var removed_id := target.data.id
+	inventory.grid.remove_item(target, true)
+	EventBus.item_removed.emit(removed_id)
+	EventBus.inventory_changed.emit()
+	EventBus.combat_item_availability_changed.emit()
+	if not _has_item_in_grid(SLIMY_PARASITE_ID):
+		max_ap = inventory.get_max_ap()
+		EventBus.ap_changed.emit(current_ap, max_ap)
+	var str_gain := maxi(1, TraitManager.get_trait_value(placed.data, "TRAIT_PLIERS_EXTRACT", 1))
+	if player_stats != null:
+		player_stats.apply_stackable_stat_buff("strength", str_gain)
+	EventBus.combat_log_message.emit(
+		tr("KEY_LOG_PLIERS_EXTRACT") % [tool_name, removed_name, str_gain, tr("KEY_STR")]
+	)
+
+
 func _calc_damage(placed: PlacedItem) -> int:
 	var adjacency_bonus: int = inventory.grid.get_adjacency_damage_bonus_for(placed)
 	var raw: int = placed.data.roll_damage(player_stats) + adjacency_bonus
@@ -816,6 +844,8 @@ func _apply_self_use_traits(placed: PlacedItem) -> void:
 				tr("KEY_LOG_WAR_MODULE_BUFF") % [data.get_localized_name(), affected, WAR_MODULE_TEMP_DMG]
 			)
 			EventBus.inventory_changed.emit()
+	if TraitManager.has_trait(data, "TRAIT_PLIERS_EXTRACT"):
+		_resolve_pliers_extract(placed)
 
 
 func _resolve_consumable_enemy(placed: PlacedItem, enemy_index: int) -> void:
@@ -1554,6 +1584,8 @@ func _emit_enemy_hp() -> void:
 
 func _win() -> void:
 	_player_action_busy = false
+	if player_stats != null:
+		player_stats.clear_combat_stat_buffs()
 	if player_statuses != null:
 		player_statuses.clear_combat_statuses()
 	for enemy: EnemyInstance in enemies:
@@ -1580,6 +1612,8 @@ func _run_on_combat_end_triggers() -> void:
 func _lose() -> void:
 	## Abort combat and hand control to the global GAME_OVER state.
 	_player_action_busy = false
+	if player_stats != null:
+		player_stats.clear_combat_stat_buffs()
 	_set_state(CombatState.DEFEAT)
 	EventBus.combat_log_message.emit(tr("KEY_LOG_DEFEAT"))
 	EventBus.combat_ended.emit(false)
@@ -1596,6 +1630,9 @@ func abort_combat() -> void:
 	current_ap = 0
 	current_block = 0
 	target_index = -1
+	_player_action_busy = false
+	if player_stats != null:
+		player_stats.clear_combat_stat_buffs()
 	if player_statuses != null:
 		player_statuses.clear_combat_statuses()
 	state_changed.emit(state)

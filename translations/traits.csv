@@ -90,3 +90,5 @@ TRAIT_STATUS_ANALYZER_NAME,Status Shock Converter,Конвертер стату�
 TRAIT_STATUS_ANALYZER_DESC,Whenever any status effect is applied to an enemy, deal 1 immediate direct damage.,Когда на врага накладывается любой статус, немедленно наносит 1 прямого урона.
 TRAIT_AUTO_SCATTER_NAME,Faulty Stabilizer,Неисправный стабилизатор
 TRAIT_AUTO_SCATTER_DESC,Fires 3 shots: first hits the selected target; the rest scatter to random living enemies.,Делает 3 выстрела: первый в выбранную цель, остальные разлетаются по случайным живым врагам.
+TRAIT_PLIERS_EXTRACT_NAME,Field Extraction,Полевой экстракт
+TRAIT_PLIERS_EXTRACT_DESC,Removes the first harmful item to the right in the same row; grants +1 Strength for the rest of combat.,Удаляет первый вредоносный предмет справа в том же ряду; даёт +1 к Силе до конца боя.

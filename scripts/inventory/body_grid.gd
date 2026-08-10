@@ -510,3 +510,31 @@ func clear_all_corruption() -> void:
 	changed.emit()
 	EventBus.inventory_changed.emit()
 	EventBus.repair_station_used.emit()
+
+
+func find_first_harmful_right_in_row(origin_item: PlacedItem) -> PlacedItem:
+	## First harmful module sharing this row whose cells lie strictly right of origin_item.
+	if origin_item == null or origin_item.data == null:
+		return null
+	var row_ys: Dictionary = {}
+	var right_edge := origin_item.origin.x + origin_item.data.size.x - 1
+	for cell: Vector2i in origin_item.occupied_cells():
+		row_ys[cell.y] = true
+	var best: PlacedItem = null
+	var best_x := 1_000_000
+	for other: PlacedItem in items:
+		if other == null or other == origin_item or other.data == null:
+			continue
+		if not other.data.is_harmful:
+			continue
+		var min_x_right := 1_000_000
+		for cell: Vector2i in other.occupied_cells():
+			if not row_ys.has(cell.y):
+				continue
+			if cell.x <= right_edge:
+				continue
+			min_x_right = mini(min_x_right, cell.x)
+		if min_x_right < best_x:
+			best_x = min_x_right
+			best = other
+	return best
