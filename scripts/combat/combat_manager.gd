@@ -685,6 +685,29 @@ func _apply_self_use_traits(placed: PlacedItem) -> void:
 	if TraitManager.has_trait(data, "TRAIT_SYNAPSE_BOOSTER"):
 		current_ap += TraitManager.get_trait_value(data, "TRAIT_SYNAPSE_BOOSTER", 4)
 		EventBus.ap_changed.emit(current_ap, max_ap)
+	if TraitManager.has_trait(data, "TRAIT_PERM_STRENGTH"):
+		var str_amt := TraitManager.get_trait_value(data, "TRAIT_PERM_STRENGTH", 1)
+		if player_stats != null and str_amt != 0:
+			player_stats.add_stat_bonus("strength", str_amt)
+			EventBus.combat_log_message.emit(
+				tr("KEY_LOG_PERM_STAT_GAIN") % [data.get_localized_name(), tr("KEY_STR"), str_amt]
+			)
+	if TraitManager.has_trait(data, "TRAIT_PERM_INTELLIGENCE"):
+		var int_amt := TraitManager.get_trait_value(data, "TRAIT_PERM_INTELLIGENCE", 1)
+		if player_stats != null and int_amt != 0:
+			player_stats.add_stat_bonus("intelligence", int_amt)
+			EventBus.combat_log_message.emit(
+				tr("KEY_LOG_PERM_STAT_GAIN") % [data.get_localized_name(), tr("KEY_INT"), int_amt]
+			)
+	if TraitManager.has_trait(data, "TRAIT_PERM_ENDURANCE"):
+		var end_amt := TraitManager.get_trait_value(data, "TRAIT_PERM_ENDURANCE", 1)
+		if player_stats != null and end_amt != 0:
+			player_stats.add_stat_bonus("endurance", end_amt)
+			if inventory != null:
+				inventory.apply_actor_stats(player_stats)
+			EventBus.combat_log_message.emit(
+				tr("KEY_LOG_PERM_STAT_GAIN") % [data.get_localized_name(), tr("KEY_END"), end_amt]
+			)
 	if TraitManager.has_trait(data, "TRAIT_CLEANSE_DEBUFFS"):
 		if player_statuses != null:
 			player_statuses.clear_debuffs()

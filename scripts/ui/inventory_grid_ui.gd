@@ -556,7 +556,7 @@ func _on_context_use_pressed(item: ItemData) -> void:
 		return
 	if combat_click_mode:
 		return
-	var result: Dictionary = inventory.use_consumable_out_of_combat(item)
+	var result: Dictionary = inventory.use_consumable_out_of_combat(item, player_stats)
 	var msg := str(result.get("message", ""))
 	if not msg.is_empty():
 		EventBus.combat_log_message.emit(msg)

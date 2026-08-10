@@ -279,7 +279,7 @@ func find_placed_item(item_data: ItemData) -> PlacedItem:
 	return null
 
 
-func use_consumable_out_of_combat(item_data: ItemData) -> Dictionary:
+func use_consumable_out_of_combat(item_data: ItemData, player_stats: PlayerStats = null) -> Dictionary:
 	## Returns { ok: bool, message: String, unlocked_cells: Array[Vector2i] }.
 	var result := {"ok": false, "message": "", "unlocked_cells": []}
 	if item_data == null:
@@ -321,6 +321,17 @@ func use_consumable_out_of_combat(item_data: ItemData) -> Dictionary:
 		result["message"] = tr("KEY_LOG_STATUS_HEAL") % heal_amt
 		return result
 
+	## Permanent stat injections (usable from inventory outside combat).
+	if _is_permanent_stat_injection(item_data):
+		var perm_msg := _try_apply_permanent_stat_injection(item_data, player_stats)
+		if perm_msg.is_empty():
+			result["message"] = tr("KEY_ITEM_CANNOT_USE")
+			return result
+		_spend_consumable_charge(placed)
+		result["ok"] = true
+		result["message"] = perm_msg
+		return result
+
 	## AP stimulants / utility burn: consume only — no AP grant outside combat.
 	_spend_consumable_charge(placed)
 	result["ok"] = true
@@ -329,6 +340,45 @@ func use_consumable_out_of_combat(item_data: ItemData) -> Dictionary:
 	else:
 		result["message"] = tr("KEY_ITEM_CONSUMED")
 	return result
+
+
+func _try_apply_permanent_stat_injection(item_data: ItemData, player_stats: PlayerStats) -> String:
+	## Returns localized success message, or "" on failure / missing stats.
+	if item_data == null or player_stats == null:
+		return ""
+	if TraitManager.has_trait(item_data, "TRAIT_PERM_STRENGTH"):
+		var amt := TraitManager.get_trait_value(item_data, "TRAIT_PERM_STRENGTH", 1)
+		if amt != 0:
+			player_stats.add_stat_bonus("strength", amt)
+			return tr("KEY_LOG_PERM_STAT_GAIN") % [
+				item_data.get_localized_name(), tr("KEY_STR"), amt
+			]
+	if TraitManager.has_trait(item_data, "TRAIT_PERM_INTELLIGENCE"):
+		var amt := TraitManager.get_trait_value(item_data, "TRAIT_PERM_INTELLIGENCE", 1)
+		if amt != 0:
+			player_stats.add_stat_bonus("intelligence", amt)
+			return tr("KEY_LOG_PERM_STAT_GAIN") % [
+				item_data.get_localized_name(), tr("KEY_INT"), amt
+			]
+	if TraitManager.has_trait(item_data, "TRAIT_PERM_ENDURANCE"):
+		var amt := TraitManager.get_trait_value(item_data, "TRAIT_PERM_ENDURANCE", 1)
+		if amt != 0:
+			player_stats.add_stat_bonus("endurance", amt)
+			apply_actor_stats(player_stats)
+			return tr("KEY_LOG_PERM_STAT_GAIN") % [
+				item_data.get_localized_name(), tr("KEY_END"), amt
+			]
+	return ""
+
+
+func _is_permanent_stat_injection(item_data: ItemData) -> bool:
+	if item_data == null:
+		return false
+	return (
+		TraitManager.has_trait(item_data, "TRAIT_PERM_STRENGTH")
+		or TraitManager.has_trait(item_data, "TRAIT_PERM_INTELLIGENCE")
+		or TraitManager.has_trait(item_data, "TRAIT_PERM_ENDURANCE")
+	)
 
 
 func _spend_consumable_charge(placed: PlacedItem) -> void:

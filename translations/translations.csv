@@ -560,3 +560,16 @@ ITEM_FAKE_VIP_CARD_NAME,"Fake VIP Card ""Gold Partner""","Поддельная V
 ITEM_FAKE_VIP_CARD_DESC,"A pre-war plastic card with a forged digital access chip. When EVERYMART scans it, you permanently unlock special pricing.","Пластиковая карта довоенного образца с поддельным цифровым чипом доступа. При сканировании системой EVERYMART навсегда даёт вам доступ к особым ценам."
 TRAIT_VIP_LUCK_NAME,Forged Privilege,Поддельная привилегия
 TRAIT_VIP_LUCK_DESC,Grants +1 Luck while implanted.,Даёт +1 к Удаче пока установлена.
+ITEM_TITAN_STRENGTH_INJECTION_NAME,Titan Strength Injection,Инъекция силы титана
+ITEM_TITAN_STRENGTH_INJECTION_DESC,"A highly concentrated anabolic cocktail from pre-war special services. Permanently increases Strength by +1.","Высококонцентрированный анаболический коктейль довоенных спецслужб. Навсегда увеличивает Силу на +1."
+ITEM_NEURON_INJECTION_NAME,Neuron Injection,Инъекция нейронов
+ITEM_NEURON_INJECTION_DESC,"An experimental neurostimulator. Permanently increases Intelligence by +1.","Экспериментальный нейростимулятор. Навсегда увеличивает Интеллект на +1."
+ITEM_GIANT_ENDURANCE_INJECTION_NAME,Giant Endurance Injection,Инъекция великаньей выносливости
+ITEM_GIANT_ENDURANCE_INJECTION_DESC,"A synthetic cellular regeneration stimulant. Permanently increases Endurance by +1 and recalculates Max HP.","Синтетический стимулятор клеточной регенерации. Навсегда увеличивает Выносливость на +1 и пересчитывает максимальный запас HP."
+TRAIT_PERM_STRENGTH_NAME,Titan Surge,Всплеск титана
+TRAIT_PERM_STRENGTH_DESC,On use: permanently +1 Strength.,При использовании: навсегда +1 к Силе.
+TRAIT_PERM_INTELLIGENCE_NAME,Neural Graft,Нейронный прививок
+TRAIT_PERM_INTELLIGENCE_DESC,On use: permanently +1 Intelligence.,При использовании: навсегда +1 к Интеллекту.
+TRAIT_PERM_ENDURANCE_NAME,Giant Vitality,Великанская живучесть
+TRAIT_PERM_ENDURANCE_DESC,On use: permanently +1 Endurance and recalculate Max HP.,При использовании: навсегда +1 к Выносливости и пересчёт макс. HP.
+KEY_LOG_PERM_STAT_GAIN,%s permanently raises %s by %d.,%s навсегда повышает %s на %d.
