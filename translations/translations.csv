@@ -573,3 +573,7 @@ TRAIT_PERM_INTELLIGENCE_DESC,On use: permanently +1 Intelligence.,При исп�
 TRAIT_PERM_ENDURANCE_NAME,Giant Vitality,Великанская живучесть
 TRAIT_PERM_ENDURANCE_DESC,On use: permanently +1 Endurance and recalculate Max HP.,При использовании: навсегда +1 к Выносливости и пересчёт макс. HP.
 KEY_LOG_PERM_STAT_GAIN,%s permanently raises %s by %d.,%s навсегда повышает %s на %d.
+ITEM_AUTO_BLASTER_NAME,Auto-Blaster,Автоматический бластер
+ITEM_AUTO_BLASTER_DESC,"A rapid-fire energy blaster with a faulty stabilizer. Fires 3 shots: the first hits the target, the other two scatter at random.","Скорострельный энерго-бластер с неисправным стабилизатором. Делает 3 выстрела: первый точно в цель, остальные два разлетаются случайным образом."
+TRAIT_AUTO_SCATTER_NAME,Faulty Stabilizer,Неисправный стабилизатор
+TRAIT_AUTO_SCATTER_DESC,Fires 3 shots: first hits the selected target; the rest scatter to random living enemies.,Делает 3 выстрела: первый в выбранную цель, остальные разлетаются по случайным живым врагам.

@@ -88,3 +88,5 @@ TRAIT_ORACLE_KILL_SCALING_NAME,Oracle Learning Loop,Петля обучения 
 TRAIT_ORACLE_KILL_SCALING_DESC,Whenever this weapon kills an enemy it permanently gains +1 damage.,Каждое убийство этим оружием перманентно даёт ему +1 к урону.
 TRAIT_STATUS_ANALYZER_NAME,Status Shock Converter,Конвертер статусного шока
 TRAIT_STATUS_ANALYZER_DESC,Whenever any status effect is applied to an enemy, deal 1 immediate direct damage.,Когда на врага накладывается любой статус, немедленно наносит 1 прямого урона.
+TRAIT_AUTO_SCATTER_NAME,Faulty Stabilizer,Неисправный стабилизатор
+TRAIT_AUTO_SCATTER_DESC,Fires 3 shots: first hits the selected target; the rest scatter to random living enemies.,Делает 3 выстрела: первый в выбранную цель, остальные разлетаются по случайным живым врагам.

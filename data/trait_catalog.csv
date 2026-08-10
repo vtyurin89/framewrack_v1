@@ -48,3 +48,4 @@ TRAIT_VIP_LUCK,TRAIT_VIP_LUCK_NAME,TRAIT_VIP_LUCK_DESC,LCK,1,Passive +1 Luck whi
 TRAIT_DOT_MULTIPLIER,TRAIT_DOT_MULTIPLIER_NAME,TRAIT_DOT_MULTIPLIER_DESC,,3,Triples all current DoT stacks on target enemy.
 TRAIT_ORACLE_KILL_SCALING,TRAIT_ORACLE_KILL_SCALING_NAME,TRAIT_ORACLE_KILL_SCALING_DESC,,1,Gain +1 permanent damage whenever this weapon kills an enemy.
 TRAIT_STATUS_ANALYZER,TRAIT_STATUS_ANALYZER_NAME,TRAIT_STATUS_ANALYZER_DESC,AGI,1,Whenever any status is applied to an enemy, deal 1 direct damage.
+TRAIT_AUTO_SCATTER,TRAIT_AUTO_SCATTER_NAME,TRAIT_AUTO_SCATTER_DESC,,3,Fires 3 shots: first hits the selected target, the rest scatter to random living enemies.

@@ -49,6 +49,10 @@ var _play_player_hit_fx: Callable
 var _play_enemy_cast_fx: Callable
 const ENEMY_ACTION_GAP := 0.25
 const ENEMY_HEAL_BEAT := 0.4
+const PLAYER_MULTI_SHOT_GAP := 0.22
+
+## True while a multi-shot player resolution is awaiting presentation beats.
+var _player_action_busy: bool = false
 
 
 func setup(p_inventory: InventoryController, p_stats: PlayerStats = null) -> void:
@@ -87,6 +91,7 @@ func is_in_combat() -> bool:
 
 func start_combat(enemy_datas: Array[EnemyData], max_attackers: int = -1) -> void:
 	_ensure_ability_executor()
+	_player_action_busy = false
 	if player_statuses == null:
 		player_statuses = StatusController.new()
 	player_statuses.clear_combat_statuses()
@@ -300,6 +305,8 @@ func _player_post_turn_phase() -> void:
 func end_player_turn() -> void:
 	if state != CombatState.PLAYER_TURN:
 		return
+	if _player_action_busy:
+		return
 	_player_post_turn_phase()
 	_begin_enemy_turn()
 
@@ -370,6 +377,8 @@ func _apply_selection(index: int) -> void:
 func can_activate_item(placed: PlacedItem) -> bool:
 	if state != CombatState.PLAYER_TURN:
 		return false
+	if _player_action_busy:
+		return false
 	if placed == null or placed.data == null:
 		return false
 	var data: ItemData = placed.data
@@ -417,18 +426,28 @@ func activate_item(placed: PlacedItem) -> bool:
 		ItemData.TargetType.ALL_ENEMIES:
 			_resolve_all_enemies(placed)
 		_:
+			if _is_auto_scatter_weapon(data):
+				_consume_charge_if_needed(placed)
+				data.start_cooldown()
+				EventBus.combat_item_availability_changed.emit()
+				_resolve_auto_scatter_async(placed)
+				return true
 			_resolve_single_enemy(placed)
 
 	_consume_charge_if_needed(placed)
 	data.start_cooldown()
 	EventBus.combat_item_availability_changed.emit()
 
+	_finish_player_activation()
+	return true
+
+
+func _finish_player_activation() -> void:
 	if inventory != null and inventory.is_dead():
 		_lose()
-		return true
+		return
 	if _all_enemies_dead():
 		_win()
-	return true
 
 
 func _log_activation_failure(placed: PlacedItem) -> void:
@@ -471,6 +490,72 @@ func _resolve_single_enemy(placed: PlacedItem) -> void:
 		_apply_oracle_kill_bonus(placed, 1)
 	_apply_on_hit_weapon_statuses(placed, target_index)
 	_apply_armorless_adjacent_heal_on_hit(placed)
+
+
+func _is_auto_scatter_weapon(data: ItemData) -> bool:
+	return data != null and TraitManager.has_trait(data, "TRAIT_AUTO_SCATTER")
+
+
+func _resolve_auto_scatter_async(placed: PlacedItem) -> void:
+	## 3-shot scatter: shot 1 guaranteed on selected target; shots 2–3 random living enemies.
+	if placed == null or placed.data == null:
+		_finish_player_activation()
+		return
+	_player_action_busy = true
+	EventBus.combat_item_availability_changed.emit()
+
+	var data := placed.data
+	var shot_count := maxi(1, TraitManager.get_trait_value(data, "TRAIT_AUTO_SCATTER", 3))
+	var source_name := data.get_localized_name()
+	var trait_bonus := _consume_attack_trait_bonus(placed)
+	var killed_count := 0
+	var any_hit := false
+
+	for shot_i in shot_count:
+		if state != CombatState.PLAYER_TURN:
+			break
+		if shot_i > 0:
+			if _living_enemy_indices().is_empty():
+				break
+			await get_tree().create_timer(PLAYER_MULTI_SHOT_GAP).timeout
+			if state != CombatState.PLAYER_TURN:
+				break
+
+		var idx := -1
+		if shot_i == 0:
+			_ensure_valid_selection()
+			idx = target_index
+			if idx < 0 or idx >= enemies.size() or not enemies[idx].is_alive():
+				idx = _pick_random_living_enemy_index()
+		else:
+			idx = _pick_random_living_enemy_index()
+
+		if idx < 0:
+			break
+
+		var dmg := _calc_damage(placed)
+		if shot_i == 0:
+			dmg += trait_bonus
+		any_hit = true
+		if _deal_damage_to(idx, dmg, source_name):
+			killed_count += 1
+		_apply_on_hit_weapon_statuses(placed, idx)
+
+	if killed_count > 0:
+		_apply_oracle_kill_bonus(placed, killed_count)
+	if any_hit:
+		_apply_armorless_adjacent_heal_on_hit(placed)
+
+	_player_action_busy = false
+	EventBus.combat_item_availability_changed.emit()
+	_finish_player_activation()
+
+
+func _pick_random_living_enemy_index() -> int:
+	var living := _living_enemy_indices()
+	if living.is_empty():
+		return -1
+	return living[randi() % living.size()]
 
 
 func _resolve_all_enemies(placed: PlacedItem) -> void:
@@ -1468,6 +1553,7 @@ func _emit_enemy_hp() -> void:
 
 
 func _win() -> void:
+	_player_action_busy = false
 	if player_statuses != null:
 		player_statuses.clear_combat_statuses()
 	for enemy: EnemyInstance in enemies:
@@ -1493,6 +1579,7 @@ func _run_on_combat_end_triggers() -> void:
 
 func _lose() -> void:
 	## Abort combat and hand control to the global GAME_OVER state.
+	_player_action_busy = false
 	_set_state(CombatState.DEFEAT)
 	EventBus.combat_log_message.emit(tr("KEY_LOG_DEFEAT"))
 	EventBus.combat_ended.emit(false)
