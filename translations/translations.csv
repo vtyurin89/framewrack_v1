@@ -439,7 +439,7 @@ ITEM_JACKHAMMER_DESC,Industrial breaker arm. Costs 2 AP. Stuns the enemy on impa
 ITEM_BIO_CLAW_NAME,Biomorphic Claw,Биоморфный коготь
 ITEM_BIO_CLAW_DESC,Living talon that can graft inside the frame. Resonates with nearby biomorphic modules.,Живой коготь; можно встроить внутрь каркаса. Резонирует с соседними биоморфными модулями.
 ITEM_NAIL_GUN_NAME,Nail Gun,Гвоздомёт
-ITEM_NAIL_GUN_DESC,Compressed nail driver. Edge-mounted ranged weapon with limited ammo bursts.,Пневматический гвоздомёт. Дальнобойное оружие с ограниченным боезапасом; должно располагаться на краю инвентаря.
+ITEM_NAIL_GUN_DESC,"Nail driver. Deals 2-4 + INT damage for 0 AP, then cools down for 1 turn. Killing the target resets the cooldown.","Гвоздомёт. Наносит 2–4 + INT за 0 AP, затем кулдаун 1 ход. Убийство цели сбрасывает кулдаун."
 ITEM_ARC_DISCHARGER_NAME,Arc Discharger,Дуговой разрядник
 ITEM_ARC_DISCHARGER_DESC,Coiled contacts that arc harder when a reactor shares an edge.,Скрученные провода. Бьют сильнее; если касаются реактора.
 ITEM_SURGICAL_SAW_NAME,Surgical Saw,Хирургическая пила
@@ -469,6 +469,7 @@ KEY_LOG_WAR_MODULE_BUFF,%s overloads %d adjacent weapon(s): +%d damage this turn
 KEY_LOG_DOT_MULTIPLIER_APPLIED,HKR-137 destabilizes %s: %s.,HKR-137 дестабилизирует %s: %s.
 KEY_LOG_DOT_MULTIPLIER_NONE,HKR-137 finds no DoT stacks on target.,HKR-137 не находит DoT-стаков на цели.
 KEY_LOG_ORACLE_KILL_BONUS,"[color=#9B59B6]Oracle MK-IV analyzed the target! Damage permanently +%d.[/color]","[color=#9B59B6]Оракул MK-IV проанализировал цель! Урон перманентно +%d.[/color]"
+KEY_LOG_NAIL_KILL_RESET,"[color=#F0C060]%s: kill resets cooldown![/color]","[color=#F0C060]%s: убийство сбрасывает кулдаун![/color]"
 KEY_LOG_STATUS_ANALYZER_PING,Damage Analyzer shocks %s for 1.,Анализатор урона поражает %s на 1.
 KEY_STAT_CHECK_ROLL,Roll check,Бросить проверку
 KEY_STAT_CHECK_CANCEL,Cancel,Отмена

@@ -434,7 +434,18 @@ func activate_item(placed: PlacedItem) -> bool:
 				EventBus.combat_item_availability_changed.emit()
 				_resolve_auto_scatter_async(placed)
 				return true
-			_resolve_single_enemy(placed)
+			var killed := _resolve_single_enemy(placed)
+			_consume_charge_if_needed(placed)
+			if killed and _should_reset_cooldown_on_kill(data):
+				data.current_cd = 0
+				EventBus.combat_log_message.emit(
+					tr("KEY_LOG_NAIL_KILL_RESET") % data.get_localized_name()
+				)
+			else:
+				data.start_cooldown()
+			EventBus.combat_item_availability_changed.emit()
+			_finish_player_activation()
+			return true
 
 	_consume_charge_if_needed(placed)
 	data.start_cooldown()
@@ -476,14 +487,15 @@ func _log_activation_failure(placed: PlacedItem) -> void:
 		EventBus.combat_log_message.emit(tr("KEY_LOG_NO_CHARGES"))
 
 
-func _resolve_single_enemy(placed: PlacedItem) -> void:
+func _resolve_single_enemy(placed: PlacedItem) -> bool:
+	## Returns true if the primary target was killed by this activation.
 	_ensure_valid_selection()
 	if target_index < 0:
-		return
+		return false
 	var data := placed.data
 	if data.item_type != null and data.item_type.id.to_upper() == "CONSUMABLE":
 		_resolve_consumable_enemy(placed, target_index)
-		return
+		return false
 	var dmg := _calc_damage(placed)
 	var trait_bonus := _consume_attack_trait_bonus(placed)
 	dmg += trait_bonus
@@ -492,6 +504,11 @@ func _resolve_single_enemy(placed: PlacedItem) -> void:
 		_apply_oracle_kill_bonus(placed, 1)
 	_apply_on_hit_weapon_statuses(placed, target_index)
 	_apply_armorless_adjacent_heal_on_hit(placed)
+	return killed
+
+
+func _should_reset_cooldown_on_kill(data: ItemData) -> bool:
+	return data != null and TraitManager.has_trait(data, "TRAIT_NAIL_KILL_RESET")
 
 
 func _is_auto_scatter_weapon(data: ItemData) -> bool:

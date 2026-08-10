@@ -3,7 +3,7 @@ TRAIT_BASIC_BLUDGEON,TRAIT_BASIC_BLUDGEON_NAME,TRAIT_BASIC_BLUDGEON_DESC,,0,Enem
 TRAIT_BLEED_NO_BIO,TRAIT_BLEED_NO_BIO_NAME,TRAIT_BLEED_NO_BIO_DESC,,0,Bleed on enemies. Disabled when adjacent to biomorphic modules.
 TRAIT_STUN_IMPACT,TRAIT_STUN_IMPACT_NAME,TRAIT_STUN_IMPACT_DESC,,0,Stuns the targeted enemy. Never damages or corrupts player cells.
 TRAIT_BIO_RESONANCE,TRAIT_BIO_RESONANCE_NAME,TRAIT_BIO_RESONANCE_DESC,DAMAGE,3,Bonus damage when adjacent to biomorphic modules.
-TRAIT_NAIL_BURST,TRAIT_NAIL_BURST_NAME,TRAIT_NAIL_BURST_DESC,,0,Consumes ammo to fire a nail burst at the enemy.
+TRAIT_NAIL_KILL_RESET,TRAIT_NAIL_KILL_RESET_NAME,TRAIT_NAIL_KILL_RESET_DESC,,0,Killing an enemy with this shot resets the weapon cooldown.
 TRAIT_REACTOR_CHAIN,TRAIT_REACTOR_CHAIN_NAME,TRAIT_REACTOR_CHAIN_DESC,DAMAGE,2,Chains bonus damage when adjacent to a reactor.
 TRAIT_ARMOR_PIERCE,TRAIT_ARMOR_PIERCE_NAME,TRAIT_ARMOR_PIERCE_DESC,,0,Ignores a portion of enemy Block / armor.
 TRAIT_FUEL_BURST,TRAIT_FUEL_BURST_NAME,TRAIT_FUEL_BURST_DESC,,2,Applies 2 Burn (turns) to hit enemies. No self-burn or cell corruption.
