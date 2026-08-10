@@ -75,7 +75,13 @@ func _refresh_labels() -> void:
 func _refresh_use_button() -> void:
 	if _use_btn == null:
 		return
-	var show_use := _item != null and _item.is_consumable_item() and not _item.is_harmful
+	var show_use := (
+		_item != null
+		and _item.usable
+		and _item.is_consumable_item()
+		and not _item.is_harmful
+		and not _item.is_quest_item()
+	)
 	_use_btn.visible = show_use and allow_out_of_combat_use
 	if not _use_btn.visible:
 		_use_btn.disabled = true

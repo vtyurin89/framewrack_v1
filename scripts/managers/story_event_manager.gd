@@ -238,3 +238,29 @@ func _roll_faction(weights: Dictionary) -> String:
 		if roll <= acc:
 			return key
 	return "human"
+
+
+# ---------------------------------------------------------------------------
+# Narrative inventory helpers (Body Grid quest / tool items)
+# ---------------------------------------------------------------------------
+
+func has_item(inventory: InventoryController, item_id: String) -> bool:
+	## Convenience for dialog / event scripts.
+	if inventory == null:
+		return false
+	return inventory.has_item(item_id)
+
+
+func consume_item(inventory: InventoryController, item_id: String) -> bool:
+	## Spend one charge / remove the item when an event consumes it.
+	if inventory == null:
+		return false
+	return inventory.consume_item_charge(item_id)
+
+
+func has_lockpick(inventory: InventoryController) -> bool:
+	return has_item(inventory, "LOCKPICK")
+
+
+func consume_lockpick(inventory: InventoryController) -> bool:
+	return consume_item(inventory, "LOCKPICK")

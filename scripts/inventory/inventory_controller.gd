@@ -279,6 +279,34 @@ func find_placed_item(item_data: ItemData) -> PlacedItem:
 	return null
 
 
+func find_placed_item_by_id(item_id: String) -> PlacedItem:
+	if grid == null:
+		return null
+	var needle := item_id.strip_edges().to_upper()
+	if needle.is_empty():
+		return null
+	for placed: PlacedItem in grid.items:
+		if placed == null or placed.data == null:
+			continue
+		if placed.data.id.strip_edges().to_upper() == needle:
+			return placed
+	return null
+
+
+func has_item(item_id: String) -> bool:
+	## True if Body Grid contains at least one instance of item_id.
+	return find_placed_item_by_id(item_id) != null
+
+
+func consume_item_charge(item_id: String) -> bool:
+	## Spend one charge (or remove) an item in the Body Grid. Returns false if missing.
+	var placed := find_placed_item_by_id(item_id)
+	if placed == null:
+		return false
+	_spend_consumable_charge(placed)
+	return true
+
+
 func use_consumable_out_of_combat(item_data: ItemData, player_stats: PlayerStats = null) -> Dictionary:
 	## Returns { ok: bool, message: String, unlocked_cells: Array[Vector2i] }.
 	var result := {"ok": false, "message": "", "unlocked_cells": []}

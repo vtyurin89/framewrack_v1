@@ -569,6 +569,12 @@ func is_active_module() -> bool:
 	return item_type.id.strip_edges().to_upper() == "ACTIVE_MODULE"
 
 
+func is_quest_item() -> bool:
+	if item_type == null:
+		return false
+	return item_type.id.strip_edges().to_upper() == "QUEST_ITEM"
+
+
 func is_neuron_amplifier() -> bool:
 	return id.strip_edges().to_upper() == "NEURON_AMPLIFIER"
 

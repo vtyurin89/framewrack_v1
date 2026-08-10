@@ -60,10 +60,14 @@ func clear_guaranteed_success() -> void:
 
 
 func inventory_has_item(inventory: InventoryController, item_id: String) -> bool:
+	if inventory != null and inventory.has_method("has_item"):
+		return inventory.has_item(item_id)
 	return find_placed_item(inventory, item_id) != null
 
 
 func find_placed_item(inventory: InventoryController, item_id: String) -> PlacedItem:
+	if inventory != null and inventory.has_method("find_placed_item_by_id"):
+		return inventory.find_placed_item_by_id(item_id)
 	if inventory == null or inventory.grid == null:
 		return null
 	var needle := item_id.strip_edges().to_upper()
@@ -78,6 +82,8 @@ func find_placed_item(inventory: InventoryController, item_id: String) -> Placed
 
 
 func consume_inventory_item(inventory: InventoryController, item_id: String) -> bool:
+	if inventory != null and inventory.has_method("consume_item_charge"):
+		return inventory.consume_item_charge(item_id)
 	var placed := find_placed_item(inventory, item_id)
 	if placed == null or inventory == null or inventory.grid == null:
 		return false

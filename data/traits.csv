@@ -50,3 +50,4 @@ TRAIT_ORACLE_KILL_SCALING,TRAIT_ORACLE_KILL_SCALING_NAME,TRAIT_ORACLE_KILL_SCALI
 TRAIT_STATUS_ANALYZER,TRAIT_STATUS_ANALYZER_NAME,TRAIT_STATUS_ANALYZER_DESC,AGI,1,Whenever any status is applied to an enemy, deal 1 direct damage.
 TRAIT_AUTO_SCATTER,TRAIT_AUTO_SCATTER_NAME,TRAIT_AUTO_SCATTER_DESC,,3,Fires 3 shots: first hits the selected target, the rest scatter to random living enemies.
 TRAIT_PLIERS_EXTRACT,TRAIT_PLIERS_EXTRACT_NAME,TRAIT_PLIERS_EXTRACT_DESC,,1,Removes the first harmful item to the right in the same row; grants +1 Strength for the rest of combat.
+TRAIT_TOOL_LOCKPICK,TRAIT_TOOL_LOCKPICK_NAME,TRAIT_TOOL_LOCKPICK_DESC,,1,Can open locked containers and doors (consumed on use).
