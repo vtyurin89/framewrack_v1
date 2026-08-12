@@ -182,7 +182,8 @@ func get_equipped_items_by_type(type_id: String) -> Array[PlacedItem]:
 	for placed: PlacedItem in grid.items:
 		if placed == null or placed.data == null or placed.data.item_type == null:
 			continue
-		if placed.data.item_type.id.strip_edges().to_upper() == needle:
+		var placed_type := placed.data.item_type.id.strip_edges().to_upper()
+		if placed_type == needle or (needle == "ARMOR" and placed_type == "SHIELD"):
 			result.append(placed)
 	return result
 

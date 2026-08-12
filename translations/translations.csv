@@ -439,7 +439,7 @@ TRAIT_CLEANSE_DEBUFFS_DESC,Cleanses active corruption pressure on use.,Сним�
 ITEM_SCRAP_PIPE_NAME,Scrap Pipe,Обломок трубы
 ITEM_SCRAP_PIPE_DESC,Bent conduit swung as a club. Edge-mounted. Simple; reliable blunt trauma.,Согнутая труба как дубина. Должна лежать на краю инвентаря. Простое и надёжное дробящее оружие.
 ITEM_REBEL_CLEAVER_NAME,Rebel Cleaver,Тесак повстанца
-ITEM_REBEL_CLEAVER_DESC,A scavenged meat cleaver. Bleeds foes; but goes dull beside biomorphic grafts.,Трофейный тесак. Вызывает кровотечение; но теряет эффективность рядом с биоморфными имплантами.
+ITEM_REBEL_CLEAVER_DESC,A scavenged meat cleaver. Each attack with it grants +1 damage to this weapon until end of turn.,Трофейный тесак. Каждая атака этим оружием даёт +1 к его урону до конца хода.
 ITEM_JACKHAMMER_NAME,Pneumatic Jackhammer,Пневматический отбойник
 ITEM_JACKHAMMER_DESC,Industrial breaker arm. Costs 2 AP. Stuns the enemy on impact — never harms your own grid.,Промышленный отбойный рычаг. Стоит 2 ОД. Оглушает врага при ударе — свою сетку не трогает.
 ITEM_BIO_CLAW_NAME,Biomorphic Claw,Биоморфный коготь

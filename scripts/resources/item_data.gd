@@ -513,7 +513,8 @@ func enforce_harmful_constraints() -> void:
 func is_armor() -> bool:
 	if item_type == null:
 		return false
-	return item_type.id.strip_edges().to_upper() == "ARMOR"
+	var type_id := item_type.id.strip_edges().to_upper()
+	return type_id == "ARMOR" or type_id == "SHIELD"
 
 
 func is_currency() -> bool:

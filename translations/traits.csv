@@ -7,6 +7,8 @@ TRAIT_STUN_IMPACT_NAME,Stun Impact,Оглушающий удар
 TRAIT_STUN_IMPACT_DESC,Heavy impact stuns the targeted enemy for 1 turn. Purely offensive — never damages; blocks; or corrupts your own inventory cells.,Тяжёлый удар оглушает выбранного врага на 1 ход. Только наступательный эффект — никогда не повреждает; не блокирует и не искажает ваши клетки инвентаря.
 TRAIT_BIO_RESONANCE_NAME,Bio Resonance,Биорезонанс
 TRAIT_BIO_RESONANCE_DESC,Gains bonus damage while adjacent to biomorphic modules.,Получает бонус урона рядом с биоморфными модулями.
+TRAIT_STACKABLE_DAMAGE_BOOST_NAME,Stacking Damage,Накапливающийся урон
+TRAIT_STACKABLE_DAMAGE_BOOST_DESC,Each attack with this weapon grants +1 damage to this weapon for the rest of this turn.,Каждая атака этим оружием даёт +1 к урону именно этого оружия до конца хода.
 TRAIT_NAIL_KILL_RESET_NAME,Execution Cycle,Цикл казни
 TRAIT_NAIL_KILL_RESET_DESC,Killing an enemy resets the cooldown.,Убийство врага сбрасывает кулдаун.
 TRAIT_REACTOR_CHAIN_NAME,Reactor Chain,Цепь реактора

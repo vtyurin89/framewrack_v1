@@ -505,6 +505,7 @@ func _resolve_single_enemy(placed: PlacedItem) -> bool:
 	var killed := _deal_damage_to(target_index, dmg, data.get_localized_name())
 	if killed:
 		_apply_oracle_kill_bonus(placed, 1)
+	_apply_stackable_damage_boost_on_attack(placed)
 	_apply_on_hit_weapon_statuses(placed, target_index)
 	_apply_armorless_adjacent_heal_on_hit(placed)
 	return killed
@@ -516,6 +517,20 @@ func _should_reset_cooldown_on_kill(data: ItemData) -> bool:
 
 func _is_auto_scatter_weapon(data: ItemData) -> bool:
 	return data != null and TraitManager.has_trait(data, "TRAIT_AUTO_SCATTER")
+
+
+func _apply_stackable_damage_boost_on_attack(placed: PlacedItem) -> void:
+	## +N damage to this exact weapon for the rest of the current turn.
+	if placed == null or placed.data == null:
+		return
+	var data := placed.data
+	if not data.is_weapon():
+		return
+	if not TraitManager.has_trait(data, "TRAIT_STACKABLE_DAMAGE_BOOST"):
+		return
+	var gain := maxi(1, TraitManager.get_trait_value(data, "TRAIT_STACKABLE_DAMAGE_BOOST", 1))
+	data.temp_flat_damage_bonus += gain
+	EventBus.inventory_changed.emit()
 
 
 func _resolve_auto_scatter_async(placed: PlacedItem) -> void:
