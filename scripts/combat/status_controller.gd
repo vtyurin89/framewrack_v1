@@ -14,8 +14,8 @@ const FRENZY_OUTGOING_MULT := 1.5
 const VULN_INCOMING_MULT := 1.5
 ## Ferocity: crit damage multiplier override.
 const FEROCITY_CRIT_MULT := 1.7
-## Rust: 10% fail/miss chance per stack.
-const RUST_FAIL_CHANCE_PER_STACK := 0.10
+## Rust: flat miss/jam chance while any stacks remain.
+const RUST_FAIL_CHANCE := 0.25
 
 var _statuses: Array[StatusInstance] = []
 const DOT_IDS := {
@@ -151,6 +151,12 @@ func tick_negative_statuses() -> Dictionary:
 		logs.append("bleed:%d" % bleed.stacks)
 		bleed.stacks = maxi(0, bleed.stacks - 1)
 
+	## Rust: no DoT — stacks are duration only; effect is a flat miss chance while active.
+	var rust := get_instance("rust")
+	if rust != null and rust.stacks > 0:
+		logs.append("rust:%d" % rust.stacks)
+		rust.stacks = maxi(0, rust.stacks - 1)
+
 	var stun := get_instance("stun")
 	if stun != null and stun.duration > 0:
 		skip_turn = true
@@ -246,11 +252,10 @@ func get_crit_damage_multiplier(default_mult: float = 1.4) -> float:
 
 
 func roll_rust_fail() -> bool:
-	## True = jam (player) or miss (enemy).
-	var rust_stacks := get_stacks("rust")
-	if rust_stacks <= 0:
+	## True = jam (player) or miss (enemy). Flat chance while any Rust stacks remain.
+	if get_stacks("rust") <= 0:
 		return false
-	return randf() < clampf(float(rust_stacks) * RUST_FAIL_CHANCE_PER_STACK, 0.0, 1.0)
+	return randf() < RUST_FAIL_CHANCE
 
 
 func get_thorns_reflect() -> int:

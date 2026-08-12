@@ -316,6 +316,8 @@ KEY_LOG_NO_CELL,no cell,нет клетки
 KEY_LOG_VICTORY,Hostiles neutralized.,Противники нейтрализованы.
 KEY_LOG_DEFEAT,Frame integrity critical. Shutdown.,Критические повреждения фрейма. Отключение.
 KEY_LOG_XP_GAINED,You gained %d XP.,Вы получили %d опыта.
+KEY_LOG_BOSS_VICTORY_HEAL,Act boss defeated — frame integrity restored to full.,Босс акта повержен — целостность фрейма полностью восстановлена.
+KEY_LOG_BOSS_VICTORY_PURGE,Purged %d harmful module(s) from the frame.,Из фрейма удалено вредоносных модулей: %d.
 KEY_LOG_TARGETING,Targeting enemy #%d.,Цель: враг #%d.
 KEY_PLACE_NO_DATA,No item data.,Нет данных предмета.
 KEY_PLACE_INVALID_FOOTPRINT,Invalid footprint.,Неверная форма.
@@ -447,7 +449,7 @@ TRAIT_GIVE_AP_DESC,Gain AP immediately on use.,Мгновенно дает до�
 TRAIT_APPLY_BURN_NAME,Incendiary Splash,Зажигательный всплеск
 TRAIT_APPLY_BURN_DESC,"Applies 2 Burn to all hit enemies.","Накладывает 2 Горения на всех поражённых врагов."
 TRAIT_APPLY_RUST_NAME,Rusting Blow,Ржавый удар
-TRAIT_APPLY_RUST_DESC,"Applies 3 Rust to all hit enemies.","Накладывает 3 стака Ржавчины на всех поражённых врагов."
+TRAIT_APPLY_RUST_DESC,"Applies 3 Rust (25% miss; stacks are duration, cap 5).","Накладывает 3 стака Ржавчины (25% промах; стаки — длительность, кап 5)."
 TRAIT_NEURO_STIM_NAME,Neuro Surge,Нейро-импульс
 TRAIT_NEURO_STIM_DESC,"+2 AP in combat or +4d6 on a dialog check.","+2 ОД в бою или +4d6 к диалоговой проверке."
 TRAIT_SYNAPSE_BOOSTER_NAME,Synapse Override,Синаптический пробой
@@ -469,7 +471,7 @@ ITEM_NAIL_GUN_DESC,"Nail driver. Deals 2-4 + INT damage for 0 AP, then cools dow
 ITEM_ARC_DISCHARGER_NAME,Arc Discharger,Дуговой разрядник
 ITEM_ARC_DISCHARGER_DESC,Coiled contacts that arc harder when a reactor shares an edge.,Скрученные провода. Бьют сильнее; если касаются реактора.
 ITEM_RUSTY_CHAIN_NAME,Rusty Chain,Ржавая цепь
-ITEM_RUSTY_CHAIN_DESC,Improvised weighted chain: hits all enemies for 2–3 + STR and applies 3 Rust. Cooldown: 3 turns.,Самодельная утяжелённая цепь: наносит всем врагам 2–3 + STR и накладывает 3 стака Ржавчины. Кулдаун: 3 хода.
+ITEM_RUSTY_CHAIN_DESC,Improvised weighted chain: hits all enemies for 2–3 + STR and applies 3 Rust (25% miss; stacks tick down). Cooldown: 3 turns.,Самодельная утяжелённая цепь: наносит всем врагам 2–3 + STR и накладывает 3 стака Ржавчины (25% промах; стаки сгорают каждый ход). Кулдаун: 3 хода.
 ITEM_FLAMETHROWER_NAME,Flamethrower,Огнемёт
 ITEM_FLAMETHROWER_DESC,"Burns everything ahead. Deals INT-scaling damage to all enemies and applies 2 Burn. Cooldown: 1 turn.","Выжигает всё перед собой. Наносит урон всем врагам (скалируется от INT) и поджигает их на 2 хода. Кулдаун: 1 ход."
 ITEM_REBAR_CUDGEL_NAME,Rebar Cudgel,Кусок арматуры
@@ -551,6 +553,8 @@ TRAIT_DOT_MULTIPLIER_NAME,Catalytic Cascade,Каталитический кас�
 TRAIT_DOT_MULTIPLIER_DESC,Triples all current Burn/Poison/Bleed stacks on target.,Утраивает все текущие стаки Горения/Яда/Кровотечения на цели.
 TRAIT_ORACLE_KILL_SCALING_NAME,Oracle Learning Loop,Петля обучения Оракула
 TRAIT_ORACLE_KILL_SCALING_DESC,Whenever this weapon kills an enemy it permanently gains +1 damage.,Каждое убийство этим оружием перманентно даёт ему +1 к урону.
+TRAIT_ARMOR_PIERCE_NAME,Armor Pierce,Пробивает броню
+TRAIT_ARMOR_PIERCE_DESC,Ignores target Block and deals damage directly to HP.,Игнорирует блок цели и наносит урон сразу по здоровью.
 TRAIT_STATUS_ANALYZER_NAME,Status Shock Converter,Конвертер статусного шока
 TRAIT_STATUS_ANALYZER_DESC,Whenever any status effect is applied to an enemy, deal 1 immediate direct damage.,Когда на врага накладывается любой статус, немедленно наносит 1 прямого урона.
 ENEMY_FACELESS_LADY_NAME,Faceless Lady,Безликая дама

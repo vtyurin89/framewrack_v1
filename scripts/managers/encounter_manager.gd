@@ -140,9 +140,26 @@ func notify_combat_finished(victory: bool) -> void:
 		_pending_rewards["failed"] = true
 		_finish_encounter(_pending_rewards)
 		return
+	## Act-boss victory: full heal + purge harmful modules before loot.
+	_apply_act_boss_victory_recovery()
 	## Victory: open floating loot reward screen before completing the encounter.
 	_pending_post_combat_finish = true
 	request_post_combat_rewards.emit(active_encounter)
+
+
+func _apply_act_boss_victory_recovery() -> void:
+	## Mandatory post-fight effect for the act's final boss node.
+	if active_encounter == null:
+		return
+	if active_encounter.type != EncounterData.EncounterType.COMBAT_BOSS:
+		return
+	if inventory != null:
+		inventory.heal_full()
+		EventBus.combat_log_message.emit(tr("KEY_LOG_BOSS_VICTORY_HEAL"))
+		var removed := inventory.remove_all_harmful_items()
+		if removed > 0:
+			EventBus.combat_log_message.emit(tr("KEY_LOG_BOSS_VICTORY_PURGE") % removed)
+			EventBus.inventory_changed.emit()
 
 
 func complete_post_combat_rewards() -> void:

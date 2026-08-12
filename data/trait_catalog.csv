@@ -9,7 +9,7 @@ TRAIT_REACTOR_CHAIN,TRAIT_REACTOR_CHAIN_NAME,TRAIT_REACTOR_CHAIN_DESC,DAMAGE,2,C
 TRAIT_ARMOR_PIERCE,TRAIT_ARMOR_PIERCE_NAME,TRAIT_ARMOR_PIERCE_DESC,,0,Ignores a portion of enemy Block / armor.
 TRAIT_FUEL_BURST,TRAIT_FUEL_BURST_NAME,TRAIT_FUEL_BURST_DESC,,2,Applies 2 Burn (turns) to hit enemies. No self-burn or cell corruption.
 TRAIT_APPLY_BURN,TRAIT_APPLY_BURN_NAME,TRAIT_APPLY_BURN_DESC,,2,Applies 2 Burn (turns) to all hit enemies.
-TRAIT_APPLY_RUST,TRAIT_APPLY_RUST_NAME,TRAIT_APPLY_RUST_DESC,,3,Applies 3 Rust stacks to all hit enemies.
+TRAIT_APPLY_RUST,TRAIT_APPLY_RUST_NAME,TRAIT_APPLY_RUST_DESC,,3,Applies 3 Rust stacks (flat 25% miss; stacks tick down; cap 5).
 TRAIT_HEAVY_SOLO,TRAIT_HEAVY_SOLO_NAME,TRAIT_HEAVY_SOLO_DESC,DAMAGE,4,Bonus damage when not adjacent to other weapons.
 TRAIT_DRAIN_LIFE,TRAIT_DRAIN_LIFE_NAME,TRAIT_DRAIN_LIFE_DESC,,0,Heals the frame on hit. Does not drain or damage inventory cells.
 TRAIT_ARMOR_EDGE,TRAIT_ARMOR_EDGE_NAME,TRAIT_ARMOR_EDGE_DESC,ARMOR,1,Edge-mounted shields gain stability bonus.
@@ -51,6 +51,7 @@ TRAIT_WAR_LUCK,TRAIT_WAR_LUCK_NAME,TRAIT_WAR_LUCK_DESC,LCK,1,Passive +1 Luck whi
 TRAIT_VIP_LUCK,TRAIT_VIP_LUCK_NAME,TRAIT_VIP_LUCK_DESC,LCK,1,Passive +1 Luck while the fake VIP card is implanted.
 TRAIT_DOT_MULTIPLIER,TRAIT_DOT_MULTIPLIER_NAME,TRAIT_DOT_MULTIPLIER_DESC,,3,Triples all current DoT stacks on target enemy.
 TRAIT_ORACLE_KILL_SCALING,TRAIT_ORACLE_KILL_SCALING_NAME,TRAIT_ORACLE_KILL_SCALING_DESC,,1,Gain +1 permanent damage whenever this weapon kills an enemy.
+TRAIT_ARMOR_PIERCE,TRAIT_ARMOR_PIERCE_NAME,TRAIT_ARMOR_PIERCE_DESC,,0,Ignores target Block and deals damage directly to HP.
 TRAIT_STATUS_ANALYZER,TRAIT_STATUS_ANALYZER_NAME,TRAIT_STATUS_ANALYZER_DESC,AGI,1,Whenever any status is applied to an enemy, deal 1 direct damage.
 TRAIT_AUTO_SCATTER,TRAIT_AUTO_SCATTER_NAME,TRAIT_AUTO_SCATTER_DESC,,3,Fires 3 shots: first hits the selected target, the rest scatter to random living enemies.
 TRAIT_PLIERS_EXTRACT,TRAIT_PLIERS_EXTRACT_NAME,TRAIT_PLIERS_EXTRACT_DESC,,1,Removes the first harmful item to the right in the same row; grants +1 Strength for the rest of combat.

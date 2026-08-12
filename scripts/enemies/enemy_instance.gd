@@ -405,13 +405,14 @@ func resolve_multi_hit_base_rolls(ability: EnemyAbility, hit_count: int) -> Arra
 	return hits
 
 
-func apply_incoming_damage(amount: int) -> int:
+func apply_incoming_damage(amount: int, pierce_block: bool = false) -> int:
 	## Absorb with enemy block first; returns HP lost.
 	## Evasion fully negates the instance before block.
+	## pierce_block: skip Block and apply remaining damage straight to HP.
 	if amount > 0 and statuses != null and statuses.try_consume_evasion():
 		return 0
 	var remaining := maxi(0, amount)
-	if current_block > 0:
+	if not pierce_block and current_block > 0:
 		var absorbed := mini(current_block, remaining)
 		current_block -= absorbed
 		remaining -= absorbed

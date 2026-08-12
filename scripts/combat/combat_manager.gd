@@ -527,7 +527,10 @@ func _resolve_single_enemy(placed: PlacedItem) -> bool:
 	var dmg := _calc_damage(placed)
 	var trait_bonus := _consume_attack_trait_bonus(placed)
 	dmg += trait_bonus
-	var killed := _deal_damage_to(target_index, dmg, data.get_localized_name())
+	var pierce := TraitManager.has_trait(data, "TRAIT_ARMOR_PIERCE")
+	var killed := _deal_damage_to(
+		target_index, dmg, data.get_localized_name(), true, "physical", pierce
+	)
 	if killed:
 		_apply_oracle_kill_bonus(placed, 1)
 	_apply_stackable_damage_boost_on_attack(placed)
@@ -599,7 +602,8 @@ func _resolve_auto_scatter_async(placed: PlacedItem) -> void:
 		if shot_i == 0:
 			dmg += trait_bonus
 		any_hit = true
-		if _deal_damage_to(idx, dmg, source_name):
+		var pierce := TraitManager.has_trait(data, "TRAIT_ARMOR_PIERCE")
+		if _deal_damage_to(idx, dmg, source_name, true, "physical", pierce):
 			killed_count += 1
 		_apply_on_hit_weapon_statuses(placed, idx)
 
@@ -627,9 +631,10 @@ func _resolve_all_enemies(placed: PlacedItem) -> void:
 	dmg += trait_bonus
 	var living := _living_enemy_indices()
 	var damage_type := "burn" if _item_applies_burn(data) else "physical"
+	var pierce := TraitManager.has_trait(data, "TRAIT_ARMOR_PIERCE")
 	var killed_count := 0
 	for idx: int in living:
-		if _deal_damage_to(idx, dmg, data.get_localized_name(), true, damage_type):
+		if _deal_damage_to(idx, dmg, data.get_localized_name(), true, damage_type, pierce):
 			killed_count += 1
 		_apply_on_hit_weapon_statuses(placed, idx)
 	if killed_count > 0:
@@ -736,7 +741,8 @@ func _deal_damage_to(
 	dmg: int,
 	source_name: String,
 	allow_crit: bool = true,
-	damage_type: String = "physical"
+	damage_type: String = "physical",
+	pierce_block: bool = false
 ) -> bool:
 	if index < 0 or index >= enemies.size():
 		return false
@@ -762,7 +768,7 @@ func _deal_damage_to(
 	)
 	var hp_before := enemy.current_hp
 	var block_before := enemy.current_block
-	enemy.apply_incoming_damage(final_dmg)
+	enemy.apply_incoming_damage(final_dmg, pierce_block)
 	var dealt := maxi(0, hp_before - enemy.current_hp)
 	var block_absorbed := maxi(0, block_before - enemy.current_block)
 	if (
