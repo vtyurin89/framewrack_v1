@@ -31,6 +31,8 @@ signal ap_changed(current: int, maximum: int)
 signal ap_insufficient
 signal player_hp_changed(current: int, maximum: int)
 signal enemy_hp_changed(enemy_index: int, current: int, maximum: int)
+## Fired when an enemy's Block / armor amount changes (shield gain or absorb).
+signal enemy_block_changed(enemy_index: int, amount: int)
 ## Fired when an enemy receives healing (UI heal flash / float text).
 signal enemy_healed(enemy_index: int, amount: int)
 signal enemy_selected(enemy_index: int)

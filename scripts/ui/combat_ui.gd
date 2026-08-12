@@ -87,6 +87,7 @@ func _ready() -> void:
 	EventBus.block_changed.connect(_on_block_changed)
 	EventBus.combat_log_message.connect(_on_log)
 	EventBus.enemy_hp_changed.connect(_on_enemy_hp)
+	EventBus.enemy_block_changed.connect(_on_enemy_block)
 	EventBus.enemy_healed.connect(_on_enemy_healed)
 	EventBus.enemy_selected.connect(_on_enemy_selected)
 	EventBus.enemy_roster_changed.connect(_rebuild_enemies)
@@ -884,6 +885,19 @@ func _on_enemy_hp(index: int, current: int, maximum: int) -> void:
 	if card == null:
 		return
 	card.set_hp(current, maximum)
+	## Keep block badge in sync even if a separate block signal was skipped.
+	var enemy := card.get_enemy()
+	if enemy != null:
+		card.set_block(enemy.current_block)
+
+
+func _on_enemy_block(index: int, amount: int) -> void:
+	if _dying_indices.get(index, false):
+		return
+	var card := _find_card_by_index(index)
+	if card == null:
+		return
+	card.set_block(amount)
 
 
 func _on_enemy_healed(index: int, amount: int) -> void:

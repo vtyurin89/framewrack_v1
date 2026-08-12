@@ -739,10 +739,11 @@ func _deal_damage_to(
 	var block_before := enemy.current_block
 	enemy.apply_incoming_damage(final_dmg)
 	var dealt := maxi(0, hp_before - enemy.current_hp)
+	var block_absorbed := maxi(0, block_before - enemy.current_block)
 	if (
 		had_evasion
 		and dealt <= 0
-		and enemy.current_block == block_before
+		and block_absorbed <= 0
 		and final_dmg > 0
 	):
 		_request_enemy_popup(index, 0, damage_type, false, true)
@@ -750,8 +751,11 @@ func _deal_damage_to(
 			tr("KEY_LOG_EVASION_NEGATE_ENEMY") % enemy.get_localized_name()
 		)
 		EventBus.enemy_hp_changed.emit(index, enemy.current_hp, enemy.max_hp)
+		EventBus.enemy_block_changed.emit(index, enemy.current_block)
 		return false
-	_request_enemy_popup(index, dealt if dealt > 0 else final_dmg, damage_type, is_crit, false)
+	var popup_amount := dealt if dealt > 0 else (block_absorbed if block_absorbed > 0 else final_dmg)
+	var popup_type := "block" if dealt <= 0 and block_absorbed > 0 else damage_type
+	_request_enemy_popup(index, popup_amount, popup_type, is_crit, false)
 	## Thorns on enemy reflect to player.
 	if enemy.statuses != null:
 		var thorns := enemy.statuses.get_thorns_reflect()
@@ -768,6 +772,7 @@ func _deal_damage_to(
 			tr("KEY_LOG_DAMAGE") % [source_name, final_dmg, adjacency_note, enemy.get_localized_name()]
 		)
 	EventBus.enemy_hp_changed.emit(index, enemy.current_hp, enemy.max_hp)
+	EventBus.enemy_block_changed.emit(index, enemy.current_block)
 	if not enemy.is_alive():
 		enemy.clear_intention()
 		EventBus.enemy_intention_changed.emit(index, enemy.current_intention)
@@ -1367,6 +1372,14 @@ func emit_enemy_hp_for(enemy: EnemyInstance) -> void:
 	if idx < 0:
 		return
 	EventBus.enemy_hp_changed.emit(idx, enemy.current_hp, enemy.max_hp)
+	EventBus.enemy_block_changed.emit(idx, enemy.current_block)
+
+
+func emit_enemy_block_for(enemy: EnemyInstance) -> void:
+	var idx := enemies.find(enemy)
+	if idx < 0:
+		return
+	EventBus.enemy_block_changed.emit(idx, enemy.current_block)
 
 
 func notify_enemy_healed(enemy: EnemyInstance, amount: int) -> void:
@@ -1671,6 +1684,7 @@ func _emit_enemy_hp() -> void:
 	for i in enemies.size():
 		var enemy: EnemyInstance = enemies[i]
 		EventBus.enemy_hp_changed.emit(i, enemy.current_hp, enemy.max_hp)
+		EventBus.enemy_block_changed.emit(i, enemy.current_block)
 	if target_index >= 0:
 		EventBus.enemy_selected.emit(target_index)
 

@@ -42,6 +42,7 @@ var _has_fled: bool = false
 @onready var _sprite: TextureRect = %Sprite
 @onready var _hit_fx: TextureRect = %HitFx
 @onready var _ghost_hp: GhostProgressBar = %GhostHPBar
+@onready var _block_badge: EnemyBlockBadge = %BlockBadge
 @onready var _selection_overlay: Control = %SelectionOverlay
 @onready var _status_host: HBoxContainer = %StatusHost
 
@@ -51,6 +52,7 @@ var _hit_fx_tween: Tween
 var _action_tween: Tween
 var _heal_tween: Tween
 var _filtered_texture_cache: Dictionary = {}
+var _displayed_hp: int = -1
 
 
 func _ready() -> void:
@@ -94,11 +96,13 @@ func setup(enemy: EnemyInstance, index: int, selected: bool) -> void:
 	_refresh_presentation(selected)
 	if enemy != null:
 		set_hp(enemy.current_hp, enemy.max_hp, false)
+		set_block(enemy.current_block)
 		set_intention(enemy.current_intention)
 		if _statuses_ui:
 			_statuses_ui.bind_controller(enemy.statuses)
 	else:
 		set_hp(0, 1, false)
+		set_block(0)
 		set_intention(null)
 		if _statuses_ui:
 			_statuses_ui.unbind()
@@ -123,8 +127,11 @@ func set_hp(current: int, maximum: int, animate: bool = true) -> void:
 		return
 	var max_hp := maxi(maximum, 1)
 	var cur := clampi(current, 0, max_hp)
+	## Only animate the HP bar when HP actually changes (block-only hits skip the drain).
+	var should_animate := animate and cur != _displayed_hp and _displayed_hp >= 0
+	_displayed_hp = cur
 	if _ghost_hp:
-		if animate:
+		if should_animate:
 			_ghost_hp.set_hp_animated(cur, max_hp)
 		else:
 			_ghost_hp.snap_hp(cur, max_hp)
@@ -135,6 +142,11 @@ func set_hp(current: int, maximum: int, animate: bool = true) -> void:
 			modulate = Color.WHITE
 		mouse_filter = Control.MOUSE_FILTER_STOP
 
+
+func set_block(amount: int) -> void:
+	if _block_badge == null:
+		return
+	_block_badge.set_block(amount)
 
 func play_heal_effect(amount: int) -> void:
 	## Green flash + floating +N for heals / mass repair.
