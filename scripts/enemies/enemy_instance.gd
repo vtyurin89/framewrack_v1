@@ -34,9 +34,6 @@ var _stat_buff_stacks: Dictionary = {}
 ## Committed next main ability (matches the telegraphed CombatIntention).
 var planned_ability: EnemyAbility = null
 var current_intention: CombatIntention = null
-## HP ratio that last forced a reactive intention refresh.
-var _last_intention_hp_ratio: float = 1.0
-const INTENTION_REACT_HP_THRESHOLD := 0.40
 
 
 func setup(blueprint: EnemyData) -> void:
@@ -91,7 +88,6 @@ func setup(blueprint: EnemyData) -> void:
 			abilities.append(ability)
 	planned_ability = null
 	current_intention = null
-	_last_intention_hp_ratio = 1.0
 	## Trait passives applied at spawn (e.g. summoned_creature on slaver minions).
 	for trait_id: String in data.trait_ids:
 		var tid := trait_id.strip_edges().to_lower()
@@ -483,6 +479,11 @@ func has_permanent_shield() -> bool:
 	return has_enemy_trait(EnemyData.TRAIT_PERMANENT_SHIELD)
 
 
+func has_always_reroll_intent() -> bool:
+	## Mad/unstable enemies: HP damage always forces a fresh intention roll.
+	return has_enemy_trait(EnemyData.TRAIT_ALWAYS_REROLL_INTENT)
+
+
 func clear_block_for_new_turn() -> bool:
 	## Mirror player Block expiry. Returns true if Block was cleared.
 	if has_permanent_shield():
@@ -513,32 +514,31 @@ func evaluate_intention(_player_state = null, combat_context = null) -> CombatIn
 		current_intention.primary_type = CombatIntention.Type.UNKNOWN
 	else:
 		current_intention = CombatIntention.from_ability(self, ability)
-	_last_intention_hp_ratio = get_hp_ratio()
 	return current_intention
 
 
-func reevaluate_intention(force: bool = false, combat_context = null) -> CombatIntention:
-	## Reactive refresh — e.g. HP crossed the desperate threshold mid player-turn.
+func reevaluate_intention_for_trigger(trigger: String, combat_context = null) -> bool:
+	## Soft reactive refresh. Returns true only when the planned ability changed.
+	## Triggers: "hp_damage" (self HP hit), "ally_death" (another enemy died).
 	if not is_alive():
 		clear_intention()
-		return current_intention
-	var hp_ratio := get_hp_ratio()
-	var crossed_desperate := (
-		_last_intention_hp_ratio > INTENTION_REACT_HP_THRESHOLD
-		and hp_ratio <= INTENTION_REACT_HP_THRESHOLD
-	)
-	if force or crossed_desperate or planned_ability == null:
-		var action: Dictionary = EnemyAI.commit_main_action(self, true, combat_context)
-		var ability: EnemyAbility = action.get("ability") as EnemyAbility
-		if ability == null:
-			current_intention = CombatIntention.new()
-			current_intention.primary_type = CombatIntention.Type.UNKNOWN
-		else:
-			current_intention = CombatIntention.from_ability(self, ability)
-	elif current_intention != null and planned_ability != null:
-		## Refresh displayed numbers (stats / difficulty) without re-rolling the pick.
-		current_intention = CombatIntention.from_ability(self, planned_ability)
-	_last_intention_hp_ratio = hp_ratio
+		return true
+	if not EnemyAI.should_recommit_intention(self, combat_context, trigger):
+		return false
+	var previous: EnemyAbility = planned_ability
+	## Free this unit's reserved attacker slot before recommitting.
+	planned_ability = null
+	if combat_context != null and combat_context.has_method("recount_attacker_slots_from_plans"):
+		combat_context.call("recount_attacker_slots_from_plans")
+	evaluate_intention(null, combat_context)
+	return previous != planned_ability
+
+
+func reevaluate_intention(force: bool = false, combat_context = null) -> CombatIntention:
+	## Legacy entry: force = full recommit; otherwise reason-check as HP damage.
+	if force:
+		return evaluate_intention(null, combat_context)
+	reevaluate_intention_for_trigger("hp_damage", combat_context)
 	return current_intention
 
 

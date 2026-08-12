@@ -132,6 +132,16 @@ func reset_attacker_slots() -> void:
 	_attacker_slots_used = 0
 
 
+func recount_attacker_slots_from_plans() -> void:
+	## Rebuild reservation count from living telegraphed offensive plans.
+	_attacker_slots_used = 0
+	for enemy: EnemyInstance in enemies:
+		if enemy == null or not enemy.is_alive():
+			continue
+		if EnemyAI.is_offensive_ability(enemy.planned_ability):
+			_attacker_slots_used += 1
+
+
 func try_reserve_attacker_slot() -> bool:
 	## Returns true if this unit may commit an offensive main action.
 	if _attacker_slots_used >= max_attackers_per_turn:
@@ -334,13 +344,28 @@ func _plan_all_intentions(force_reroll: bool = true) -> void:
 
 
 func reevaluate_enemy_intention(index: int) -> void:
+	## Soft mid-turn check for one enemy after it took HP damage.
+	_try_reevaluate_enemy_intention_at(index, "hp_damage")
+
+
+func _try_reevaluate_enemy_intention_at(index: int, trigger: String) -> void:
 	if index < 0 or index >= enemies.size():
 		return
 	var enemy: EnemyInstance = enemies[index]
 	if enemy == null or not enemy.is_alive():
 		return
-	## Full replan so group attacker caps stay consistent with telegraphs.
-	_plan_all_intentions(true)
+	if not enemy.reevaluate_intention_for_trigger(trigger, self):
+		return
+	EventBus.enemy_intention_changed.emit(index, enemy.current_intention)
+
+
+func _reevaluate_allies_after_death(dead: EnemyInstance) -> void:
+	## Living allies always reason-check after a death (e.g. slaves panic when master falls).
+	for i in enemies.size():
+		var other: EnemyInstance = enemies[i]
+		if other == null or other == dead or not other.is_alive():
+			continue
+		_try_reevaluate_enemy_intention_at(i, "ally_death")
 
 
 func plan_intentions_for_living(force_reroll: bool = true) -> void:
@@ -780,7 +805,8 @@ func _deal_damage_to(
 		EventBus.enemy_died.emit(index)
 		_ensure_valid_selection()
 		return true
-	elif state == CombatState.PLAYER_TURN:
+	elif state == CombatState.PLAYER_TURN and dealt > 0:
+		## Block-only hits keep the telegraph; HP damage may reason-check.
 		reevaluate_enemy_intention(index)
 	return false
 
@@ -1444,6 +1470,8 @@ func _on_enemy_defeated(enemy: EnemyInstance, _index: int) -> void:
 			StoryEventManager.mark_faceless_lady_defeated()
 	## Summoned creatures break and prepare to flee when their master dies.
 	_break_summons_of(enemy)
+	## Other living enemies reason-check (keep plan unless a real override applies).
+	_reevaluate_allies_after_death(enemy)
 
 
 func _apply_on_hit_weapon_statuses(placed: PlacedItem, enemy_index: int) -> void:
