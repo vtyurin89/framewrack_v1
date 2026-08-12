@@ -430,6 +430,7 @@ func format_armor_display(use_bbcode: bool = true, stats: ActorStats = null) -> 
 	var trait_bonus := get_active_trait_bonus("ARMOR")
 	var stat_bonus := get_armor_stat_bonus(stats)
 	var effective := base_armor + trait_bonus + stat_bonus
+	var label_key := "KEY_SHIELD" if is_shield() else "KEY_ARMOR"
 	var parts: PackedStringArray = []
 	parts.append(str(base_armor))
 	if trait_bonus != 0:
@@ -438,9 +439,9 @@ func format_armor_display(use_bbcode: bool = true, stats: ActorStats = null) -> 
 		parts.append("%+d" % stat_bonus)
 	if parts.size() > 1:
 		if use_bbcode:
-			return "🛡️ %d ([color=#7dcea0]%s[/color])" % [effective, " ".join(parts)]
-		return "🛡️ %d (%s)" % [effective, " ".join(parts)]
-	return "🛡️ %d %s" % [effective, tr("KEY_ARMOR")]
+			return "🛡️ %d ([color=#7dcea0]%s[/color]) %s" % [effective, " ".join(parts), tr(label_key)]
+		return "🛡️ %d (%s) %s" % [effective, " ".join(parts), tr(label_key)]
+	return "🛡️ %d %s" % [effective, tr(label_key)]
 
 
 func applies_dot_on_hit() -> bool:
@@ -517,6 +518,12 @@ func is_armor() -> bool:
 	return type_id == "ARMOR" or type_id == "SHIELD"
 
 
+func is_shield() -> bool:
+	if item_type == null:
+		return false
+	return item_type.id.strip_edges().to_upper() == "SHIELD"
+
+
 func is_currency() -> bool:
 	if item_type == null:
 		return false
@@ -578,10 +585,6 @@ func is_quest_item() -> bool:
 
 func is_neuron_amplifier() -> bool:
 	return id.strip_edges().to_upper() == "NEURON_AMPLIFIER"
-
-
-func is_shield() -> bool:
-	return (base_armor > 0 or block_amount > 0) and ap_cost > 0
 
 
 func on_combat_end(player: InventoryController) -> void:

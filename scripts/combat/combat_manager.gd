@@ -982,6 +982,9 @@ func _run_enemy_actions() -> void:
 		var i: int = enemies.find(enemy)
 		if i < 0:
 			continue
+		## Expire Block at the start of this enemy's turn (like the player),
+		## unless they have the hidden permanent_shield trait.
+		_expire_enemy_block_for_turn_start(i, enemy)
 		## 1. Pre-turn (DoT / Stun / Flee check)
 		var pre := await _enemy_pre_turn_phase_async(i, enemy)
 		if not pre:
@@ -1215,6 +1218,14 @@ func complete_forced_item_insertion() -> void:
 	forced_insertion_completed.emit()
 
 
+func _expire_enemy_block_for_turn_start(index: int, enemy: EnemyInstance) -> void:
+	if enemy == null:
+		return
+	if not enemy.clear_block_for_new_turn():
+		return
+	EventBus.enemy_block_changed.emit(index, enemy.current_block)
+
+
 func _enemy_start_turn_phase(index: int, enemy: EnemyInstance) -> void:
 	if enemy.statuses == null:
 		return
@@ -1245,6 +1256,7 @@ func _enemy_post_turn_phase(_index: int, enemy: EnemyInstance) -> void:
 
 func _enemy_act(index: int, enemy: EnemyInstance) -> void:
 	## Legacy entry retained for any external callers — routes through phased pipeline.
+	_expire_enemy_block_for_turn_start(index, enemy)
 	if not _enemy_pre_turn_phase(index, enemy):
 		return
 	_enemy_start_turn_phase(index, enemy)

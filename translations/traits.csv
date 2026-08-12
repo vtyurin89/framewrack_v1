@@ -29,9 +29,9 @@ TRAIT_STUN_IMPACT,Heavy impact stuns the targeted enemy for 1 turn. Purely offen
 TRAIT_FUEL_BURST,"Applies 2 Burn to hit enemies (2 damage per turn). Never scorches your body grid.","Накладывает 2 Горения на поражённых врагов (2 урона за ход). Не опаляет вашу сетку тела."
 TRAIT_DRAIN_LIFE,On hit; restores Frame HP equal to a portion of damage dealt. Beneficial only — never drains; blocks; or corrupts your own inventory cells. Self-corruption remains exclusive to enemy attacks.,При попадании восстанавливает ОЗ каркаса от части нанесённого урона. Только польза — никогда не выкачивает; не блокирует и не искажает ваши клетки. Самоискажение остаётся только у атак врагов.
 TRAIT_ARMOR_EDGE_NAME,Edge Anchor,Краевой якорь
-TRAIT_ARMOR_EDGE_DESC,Edge-mounted armor gains extra stability.,Краевая броня получает дополнительную устойчивость.
+TRAIT_ARMOR_EDGE_DESC,Edge-mounted shields gain extra stability.,Краевые щиты получают дополнительную устойчивость.
 TRAIT_ARMOR_CHAIN_NAME,Armor Chain,Цепь брони
-TRAIT_ARMOR_CHAIN_DESC,Adjacent armor pieces reinforce each other.,Соседние бронемодули усиливают друг друга.
+TRAIT_ARMOR_CHAIN_DESC,Adjacent shields reinforce each other.,Соседние щиты усиливают друг друга.
 TRAIT_SPIKES_OUTER_NAME,Sharp Spikes,Острые шипы
 TRAIT_SPIKES_OUTER_DESC,At combat start grants 2 Sharp Spikes stacks. Each stack deals 1 reflected physical damage to an attacker.,В начале боя даёт 2 стака «Острые шипы». Каждый стак наносит 1 отражённого физического урона атакующему.
 TRAIT_HEAT_DISSIPATION_NAME,Heat Dissipation,Теплоотвод

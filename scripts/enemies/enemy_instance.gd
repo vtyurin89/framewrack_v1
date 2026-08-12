@@ -468,6 +468,31 @@ func get_trait_ids() -> Array[String]:
 	return result
 
 
+func has_enemy_trait(trait_id: String) -> bool:
+	var needle := trait_id.strip_edges().to_lower()
+	if needle.is_empty():
+		return false
+	for tid: String in get_trait_ids():
+		if tid.strip_edges().to_lower() == needle:
+			return true
+	return false
+
+
+func has_permanent_shield() -> bool:
+	## Block persists across this enemy's turns when the hidden trait is present.
+	return has_enemy_trait(EnemyData.TRAIT_PERMANENT_SHIELD)
+
+
+func clear_block_for_new_turn() -> bool:
+	## Mirror player Block expiry. Returns true if Block was cleared.
+	if has_permanent_shield():
+		return false
+	if current_block <= 0:
+		return false
+	current_block = 0
+	return true
+
+
 func has_traits() -> bool:
 	return not get_trait_ids().is_empty()
 

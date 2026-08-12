@@ -267,6 +267,9 @@ KEY_COMBAT_TEXT_ENEMY_CRIT,Critical hit!,Критический удар!
 KEY_PRICE,Price,Цена
 KEY_DAMAGE,Damage,Урон
 KEY_ARMOR,Armor,Броня
+KEY_SHIELD,Shield,Щит
+KEY_ITEM_TYPE_ARMOR,Armor,Броня
+KEY_ITEM_TYPE_SHIELD,Shield,Щит
 KEY_TRAITS,TRAITS,ТРЕЙТЫ
 KEY_NO_TRAITS,No traits.,Нет трейтов.
 KEY_TRAIT_ACTIVE,ACTIVE,АКТИВЕН
@@ -352,13 +355,13 @@ ENEMY_UNKNOWN_NAME,Unknown Host,Неизвестный носитель
 ITEM_NEURO_CHIP_NAME,Neuro-Chips,Нейро-чипы
 ITEM_NEURO_CHIP_DESC,Neuro-Chip currency used in vendors and upgrade stations.,Валютный нейро-чип, который можно потратить у торговцев или на станциях улучшений.
 ITEM_SCRAP_PLATE_NAME,Heavy Scrap Plate,Тяжелая пластина из хлама
-ITEM_SCRAP_PLATE_DESC,Crude reinforced plate. Reliable starter armor.,Грубая усиленная пластина. Надежная стартовая броня.
+ITEM_SCRAP_PLATE_DESC,Crude reinforced plate. Reliable starter shield.,Грубая усиленная пластина. Надёжный стартовый щит.
 ITEM_EXO_FRAME_NAME,Perforated Exo Frame,Перфорированный экзо-фрейм
 ITEM_EXO_FRAME_DESC,Long exo frame distributing impacts along the chassis.,Длинный экзо-фрейм, способный поглощать удары.
 ITEM_SPIKED_BUMPER_NAME,Spiked Bumper,Шипованный бампер
-ITEM_SPIKED_BUMPER_DESC,Compact spiked armor. At combat start grants Sharp Spikes that reflect physical hits.,Компактная шипованная броня. В начале боя даёт «Острые шипы», отражающие физические удары.
+ITEM_SPIKED_BUMPER_DESC,Compact spiked shield. At combat start grants Sharp Spikes that reflect physical hits.,Компактный шипованный щит. В начале боя даёт «Острые шипы», отражающие физические удары.
 ITEM_COOLING_SHIELD_NAME,Cooling Shield,Охлаждающий щит
-ITEM_COOLING_SHIELD_DESC,Cryo-laced plating that maintains high defensive output.,Крио-пластины с высоким защитным потенциалом.
+ITEM_COOLING_SHIELD_DESC,"A cryo-laced shield module that maintains high Block output.","Криогенный щит с высоким запасом блока."
 ITEM_REACTIVE_COMPOSITE_NAME,Reactive Composite,Реактивный композит
 ITEM_REACTIVE_COMPOSITE_DESC,Adaptive laminate that stabilizes after corruption shock.,Адаптивное покрытие, способное стабилизировать вас после удара током.
 ITEM_ARMOR_CORE_NAME,Armor Core,Защитное ядро
@@ -410,9 +413,9 @@ ITEM_DAMAGE_ANALYZER_DESC,"Instantly converts instability in the target body int
 ITEM_PURGE_SOLVENT_NAME,Purge Solvent,Очищающий раствор
 ITEM_PURGE_SOLVENT_DESC,Cleanses all negative status effects (Poison, Rust, Burn).,Снимает все негативные эффекты (Яд, Ржавчина, Горение).
 TRAIT_ARMOR_EDGE_NAME,Edge Anchor,Краевой якорь
-TRAIT_ARMOR_EDGE_DESC,Edge-mounted armor gains extra stability.,Краевая броня получает дополнительную устойчивость.
+TRAIT_ARMOR_EDGE_DESC,Edge-mounted shields gain extra stability.,Краевые щиты получают дополнительную устойчивость.
 TRAIT_ARMOR_CHAIN_NAME,Armor Chain,Броня-цепь
-TRAIT_ARMOR_CHAIN_DESC,Adjacent armor pieces reinforce each other.,Соседство с другими предметами брони даёт бонус к броне.
+TRAIT_ARMOR_CHAIN_DESC,Adjacent shields reinforce each other.,Соседние щиты усиливают друг друга.
 TRAIT_SPIKES_OUTER_NAME,Sharp Spikes,Острые шипы
 TRAIT_SPIKES_OUTER_DESC,At combat start grants 2 Sharp Spikes stacks. Each stack deals 1 reflected physical damage to an attacker.,В начале боя даёт 2 стака «Острые шипы». Каждый стак наносит 1 отражённого физического урона атакующему.
 TRAIT_HEAT_DISSIPATION_NAME,Heat Dissipation,Теплоотвод

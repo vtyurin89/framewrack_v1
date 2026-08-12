@@ -5,5 +5,5 @@
 [resource]
 script = ExtResource("1")
 id = "shield"
-type_name_key = ""
+type_name_key = "KEY_ITEM_TYPE_SHIELD"
 display_name = "Shield"

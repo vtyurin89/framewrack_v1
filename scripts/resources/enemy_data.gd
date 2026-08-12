@@ -21,6 +21,9 @@ const ROLE_DAMAGE := "damage"
 const ROLE_SUPPORT := "support"
 const ROLE_BOSS := "boss"
 
+## Hidden enemy trait: Block does not expire at the start of this enemy's turn.
+const TRAIT_PERMANENT_SHIELD := "permanent_shield"
+
 @export var id: String = ""
 
 ## Localization keys (preferred). Fallbacks: display_name / description.
