@@ -9,6 +9,7 @@ TRAIT_REACTOR_CHAIN,TRAIT_REACTOR_CHAIN_NAME,TRAIT_REACTOR_CHAIN_DESC,DAMAGE,2,C
 TRAIT_ARMOR_PIERCE,TRAIT_ARMOR_PIERCE_NAME,TRAIT_ARMOR_PIERCE_DESC,,0,Ignores a portion of enemy Block / armor.
 TRAIT_FUEL_BURST,TRAIT_FUEL_BURST_NAME,TRAIT_FUEL_BURST_DESC,,2,Applies 2 Burn (turns) to hit enemies. No self-burn or cell corruption.
 TRAIT_APPLY_BURN,TRAIT_APPLY_BURN_NAME,TRAIT_APPLY_BURN_DESC,,2,Applies 2 Burn (turns) to all hit enemies.
+TRAIT_APPLY_RUST,TRAIT_APPLY_RUST_NAME,TRAIT_APPLY_RUST_DESC,,3,Applies 3 Rust stacks to all hit enemies.
 TRAIT_HEAVY_SOLO,TRAIT_HEAVY_SOLO_NAME,TRAIT_HEAVY_SOLO_DESC,DAMAGE,4,Bonus damage when not adjacent to other weapons.
 TRAIT_DRAIN_LIFE,TRAIT_DRAIN_LIFE_NAME,TRAIT_DRAIN_LIFE_DESC,,0,Heals the frame on hit. Does not drain or damage inventory cells.
 TRAIT_ARMOR_EDGE,TRAIT_ARMOR_EDGE_NAME,TRAIT_ARMOR_EDGE_DESC,ARMOR,1,Edge-mounted armor gains stability bonus.

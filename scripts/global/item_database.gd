@@ -81,7 +81,7 @@ func build_choice_pool(pool_id: String) -> Array:
 				if thermite != null:
 					result.append(thermite)
 		"combat_loot", "post_combat":
-			for item_id in ["SURGICAL_SAW", "BIO_GEL", "SALT_INJECTOR", "REBEL_CLEAVER"]:
+			for item_id in ["RUSTY_CHAIN", "BIO_GEL", "SALT_INJECTOR", "REBEL_CLEAVER"]:
 				var item := get_item(item_id)
 				if item != null:
 					result.append(item)

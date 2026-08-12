@@ -428,6 +428,8 @@ TRAIT_GIVE_AP_NAME,Adrenal Salt,Адреналиновая соль
 TRAIT_GIVE_AP_DESC,Gain AP immediately on use.,Мгновенно дает дополнительные ОД.
 TRAIT_APPLY_BURN_NAME,Incendiary Splash,Зажигательный всплеск
 TRAIT_APPLY_BURN_DESC,"Applies 2 Burn to all hit enemies.","Накладывает 2 Горения на всех поражённых врагов."
+TRAIT_APPLY_RUST_NAME,Rusting Blow,Ржавый удар
+TRAIT_APPLY_RUST_DESC,"Applies 3 Rust to all hit enemies.","Накладывает 3 стака Ржавчины на всех поражённых врагов."
 TRAIT_NEURO_STIM_NAME,Neuro Surge,Нейро-импульс
 TRAIT_NEURO_STIM_DESC,"+2 AP in combat or +4d6 on a dialog check.","+2 ОД в бою или +4d6 к диалоговой проверке."
 TRAIT_SYNAPSE_BOOSTER_NAME,Synapse Override,Синаптический пробой
@@ -448,8 +450,8 @@ ITEM_NAIL_GUN_NAME,Nail Gun,Гвоздомёт
 ITEM_NAIL_GUN_DESC,"Nail driver. Deals 2-4 + INT damage for 0 AP, then cools down for 1 turn. Killing the target resets the cooldown.","Гвоздомёт. Наносит 2–4 + INT за 0 AP, затем кулдаун 1 ход. Убийство цели сбрасывает кулдаун."
 ITEM_ARC_DISCHARGER_NAME,Arc Discharger,Дуговой разрядник
 ITEM_ARC_DISCHARGER_DESC,Coiled contacts that arc harder when a reactor shares an edge.,Скрученные провода. Бьют сильнее; если касаются реактора.
-ITEM_SURGICAL_SAW_NAME,Surgical Saw,Хирургическая пила
-ITEM_SURGICAL_SAW_DESC,Precision bone saw. Compact 1x1 edge tool that pierces Block.,Точная костная пила. Компактный инструмент 1x1; должен располагаться на краю инвентаря; пробивает Блок.
+ITEM_RUSTY_CHAIN_NAME,Rusty Chain,Ржавая цепь
+ITEM_RUSTY_CHAIN_DESC,Improvised weighted chain: hits all enemies for 2–3 + STR and applies 3 Rust. Cooldown: 3 turns.,Самодельная утяжелённая цепь: наносит всем врагам 2–3 + STR и накладывает 3 стака Ржавчины. Кулдаун: 3 хода.
 ITEM_FLAMETHROWER_NAME,Flamethrower,Огнемёт
 ITEM_FLAMETHROWER_DESC,"Burns everything ahead. Deals INT-scaling damage to all enemies and applies 2 Burn. Cooldown: 1 turn.","Выжигает всё перед собой. Наносит урон всем врагам (скалируется от INT) и поджигает их на 2 хода. Кулдаун: 1 ход."
 ITEM_REBAR_CUDGEL_NAME,Rebar Cudgel,Кусок арматуры

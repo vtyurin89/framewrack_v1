@@ -19,6 +19,8 @@ TRAIT_FUEL_BURST_NAME,Fuel Burst,Топливный выброс
 TRAIT_FUEL_BURST_DESC,"Applies 2 Burn to hit enemies (2 damage per turn). Never scorches your body grid.","Накладывает 2 Горения на поражённых врагов (2 урона за ход). Не опаляет вашу сетку тела."
 TRAIT_APPLY_BURN_NAME,Incendiary Splash,Зажигательный всплеск
 TRAIT_APPLY_BURN_DESC,"Applies 2 Burn to all hit enemies.","Накладывает 2 Горения на всех поражённых врагов."
+TRAIT_APPLY_RUST_NAME,Rusting Blow,Ржавый удар
+TRAIT_APPLY_RUST_DESC,"Applies 3 Rust to all hit enemies.","Накладывает 3 стака Ржавчины на всех поражённых врагов."
 TRAIT_HEAVY_SOLO_NAME,Heavy Solo,Тяжёлый соло
 TRAIT_HEAVY_SOLO_DESC,Deals bonus damage when no other weapon shares an adjacent edge.,Наносит бонусный урон; если никакое другое оружие не касается по ребру.
 TRAIT_DRAIN_LIFE_NAME,Life Drain,Выкачка жизни

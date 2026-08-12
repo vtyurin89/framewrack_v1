@@ -1421,6 +1421,9 @@ func _apply_on_hit_weapon_statuses(placed: PlacedItem, enemy_index: int) -> void
 			BurnStatus.STATUS_ID,
 			_dot_stacks_with_amplify(placed, burn_stacks)
 		)
+	if TraitManager.has_trait(placed.data, "TRAIT_APPLY_RUST"):
+		var rust_stacks := TraitManager.get_trait_value(placed.data, "TRAIT_APPLY_RUST", 3)
+		apply_status_to_enemy(enemy_index, "rust", maxi(1, rust_stacks))
 
 
 func _dot_stacks_with_amplify(placed: PlacedItem, base_stacks: int) -> int:
