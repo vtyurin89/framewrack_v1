@@ -208,6 +208,8 @@ func apply_dialog_outcome(outcome: DialogOutcomeData) -> void:
 		DialogOutcomeData.OutcomeKind.SELECT_ITEM:
 			if not outcome.message_key.is_empty():
 				_pending_rewards["message_key"] = outcome.message_key
+			if _try_resolve_direct_item_pool(outcome, false):
+				return
 			_begin_item_selection(outcome, false)
 		DialogOutcomeData.OutcomeKind.COMBAT:
 			if not outcome.message_key.is_empty():
@@ -434,6 +436,8 @@ func _apply_cripple_buff_to_enemies(datas: Array[EnemyData]) -> Array[EnemyData]
 		if copy != null:
 			copy.base_hp = 1
 			copy.max_hp = 1
+			if not copy.trait_ids.has("war_god_corruption"):
+				copy.trait_ids.append("war_god_corruption")
 			out.append(copy)
 		else:
 			out.append(data)
@@ -451,6 +455,33 @@ func _begin_item_selection(outcome: DialogOutcomeData, post_combat: bool) -> voi
 	if post_combat:
 		title = "Награда за бой"
 	request_item_selection.emit(pool, title)
+
+
+func _try_resolve_direct_item_pool(outcome: DialogOutcomeData, post_combat: bool) -> bool:
+	if outcome == null:
+		return false
+	var pool_key := outcome.item_pool_id.strip_edges().to_lower()
+	if pool_key not in ["grenade", "grenades"]:
+		return false
+	var pool: Array = _build_item_pool_from_outcome(outcome)
+	if pool.is_empty():
+		return false
+	var picked := pool[randi() % pool.size()] as ItemData
+	if picked == null:
+		return false
+	_grant_item_data(picked)
+	_pending_rewards["item_id"] = picked.id
+	_pending_rewards["item_amount"] = 1
+	_awaiting_item_selection = false
+	_pending_select_outcome = null
+	_pending_post_combat_finish = post_combat
+	item_selection_resolved.emit(picked)
+	if _pending_post_combat_finish:
+		_pending_post_combat_finish = false
+		_finish_encounter(_pending_rewards)
+	elif outcome.next_node_id.is_empty():
+		_finish_encounter(_pending_rewards)
+	return true
 
 
 func _build_item_pool_from_outcome(outcome: DialogOutcomeData) -> Array:
