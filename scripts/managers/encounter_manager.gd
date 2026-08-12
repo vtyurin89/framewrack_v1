@@ -461,7 +461,7 @@ func _try_resolve_direct_item_pool(outcome: DialogOutcomeData, post_combat: bool
 	if outcome == null:
 		return false
 	var pool_key := outcome.item_pool_id.strip_edges().to_lower()
-	if pool_key not in ["grenade", "grenades"]:
+	if pool_key not in ["grenade", "grenades", "uncommon_weapon"]:
 		return false
 	var pool: Array = _build_item_pool_from_outcome(outcome)
 	if pool.is_empty():

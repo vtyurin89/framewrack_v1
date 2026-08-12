@@ -52,10 +52,13 @@ func _rebuild(statuses: Array[StatusInstance]) -> void:
 
 
 func _make_icon(status: StatusInstance) -> Control:
-	var wrap := PanelContainer.new()
+	var wrap := UITooltipHost.new()
 	wrap.custom_minimum_size = ICON_MIN_SIZE
 	wrap.mouse_filter = Control.MOUSE_FILTER_STOP
-	wrap.tooltip_text = _build_tooltip(status)
+	## Non-empty tooltip_text is required for Godot to request a custom tip.
+	wrap.tooltip_text = UITooltip.format_status_title(status)
+	wrap.tip_factory = func() -> Control:
+		return UITooltip.create_from_status(status)
 
 	var style := StyleBoxFlat.new()
 	style.bg_color = Color(0.12, 0.12, 0.14, 0.92)
@@ -97,16 +100,3 @@ func _make_icon(status: StatusInstance) -> Control:
 	count.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	row.add_child(count)
 	return wrap
-
-
-func _build_tooltip(status: StatusInstance) -> String:
-	var title := status.data.get_display_title()
-	var body := status.data.get_display_description(status.stacks, status.duration)
-	var count_label := "Permanent"
-	if status.data.stack_type == StatusEffectData.StackType.DURATION:
-		count_label = "Duration: %d" % status.duration
-	elif status.data.stack_type == StatusEffectData.StackType.STACKS:
-		count_label = "Stacks: %d" % status.stacks
-	if body.is_empty():
-		return "%s\n%s" % [title, count_label]
-	return "%s\n%s\n%s" % [title, count_label, body]

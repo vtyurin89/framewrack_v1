@@ -21,13 +21,21 @@ var _active_tween: Tween
 
 
 func _ready() -> void:
-	mouse_filter = Control.MOUSE_FILTER_IGNORE
+	## PASS keeps hover tooltips while letting clicks reach the enemy card.
+	mouse_filter = Control.MOUSE_FILTER_PASS
 	if _root:
 		_root.mouse_filter = Control.MOUSE_FILTER_IGNORE
 		_root.pivot_offset = _root.custom_minimum_size * 0.5
 	visible = false
 	modulate.a = 1.0
 	scale = Vector2.ONE
+	_refresh_tooltip()
+
+
+func _make_custom_tooltip(_for_text: String) -> Object:
+	if _intention == null or _intention.is_empty() or _hidden_for_enemy_turn:
+		return null
+	return UITooltip.create_from_intention(_intention)
 
 
 func set_intention(intention: CombatIntention, animate_transition: bool = false) -> void:
@@ -104,6 +112,19 @@ func _refresh_visibility() -> void:
 		_root.pivot_offset = size * 0.5 if size.x > 0.0 else Vector2(40, 18)
 		modulate.a = 1.0
 		_root.scale = Vector2.ONE
+	_refresh_tooltip()
+
+
+func _refresh_tooltip() -> void:
+	## Non-empty tooltip_text is required for Godot to open a custom tip.
+	if (
+		_intention != null
+		and not _intention.is_empty()
+		and not _hidden_for_enemy_turn
+	):
+		tooltip_text = UITooltip.format_intention_description(_intention)
+	else:
+		tooltip_text = ""
 
 
 func _clear_badges() -> void:

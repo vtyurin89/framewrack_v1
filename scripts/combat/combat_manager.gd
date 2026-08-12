@@ -966,10 +966,16 @@ func _commit_passive_armor_into_block() -> void:
 
 
 func _run_enemy_actions() -> void:
-	## Sequential enemy acts with awaited attack/flee presentation.
-	for i in enemies.size():
-		var enemy: EnemyInstance = enemies[i]
+	## Snapshot living actors: flee/death can remove roster entries mid-loop.
+	var actors: Array[EnemyInstance] = []
+	for enemy: EnemyInstance in enemies:
+		if enemy != null and enemy.is_alive():
+			actors.append(enemy)
+	for enemy: EnemyInstance in actors:
 		if enemy == null or not enemy.is_alive():
+			continue
+		var i: int = enemies.find(enemy)
+		if i < 0:
 			continue
 		## 1. Pre-turn (DoT / Stun / Flee check)
 		var pre := await _enemy_pre_turn_phase_async(i, enemy)
@@ -977,6 +983,11 @@ func _run_enemy_actions() -> void:
 			if inventory != null and inventory.is_dead():
 				_lose()
 				return
+			await get_tree().create_timer(ENEMY_ACTION_GAP).timeout
+			continue
+		## Roster may have shifted during awaits (flee / death fade).
+		i = enemies.find(enemy)
+		if i < 0 or not enemy.is_alive():
 			await get_tree().create_timer(ENEMY_ACTION_GAP).timeout
 			continue
 		_enemy_start_turn_phase(i, enemy)
@@ -991,7 +1002,9 @@ func _run_enemy_actions() -> void:
 		if inventory != null and inventory.is_dead():
 			_lose()
 			return
-		_enemy_post_turn_phase(i, enemy)
+		i = enemies.find(enemy)
+		if i >= 0 and enemy.is_alive():
+			_enemy_post_turn_phase(i, enemy)
 		## 4. Short pause between enemy turns.
 		await get_tree().create_timer(ENEMY_ACTION_GAP).timeout
 
