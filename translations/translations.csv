@@ -341,7 +341,7 @@ ITEM_SCRAP_PLATE_DESC,Crude reinforced plate. Reliable starter armor.,Груба
 ITEM_EXO_FRAME_NAME,Perforated Exo Frame,Перфорированный экзо-фрейм
 ITEM_EXO_FRAME_DESC,Long exo frame distributing impacts along the chassis.,Длинный экзо-фрейм, способный поглощать удары.
 ITEM_SPIKED_BUMPER_NAME,Spiked Bumper,Шипованный бампер
-ITEM_SPIKED_BUMPER_DESC,Outer armor with punishing spikes for close threats.,Внешняя броня с шипами для ближних угроз.
+ITEM_SPIKED_BUMPER_DESC,Compact spiked armor. At combat start grants Sharp Spikes that reflect physical hits.,Компактная шипованная броня. В начале боя даёт «Острые шипы», отражающие физические удары.
 ITEM_COOLING_SHIELD_NAME,Cooling Shield,Охлаждающий щит
 ITEM_COOLING_SHIELD_DESC,Cryo-laced plating that maintains high defensive output.,Крио-пластины с высоким защитным потенциалом.
 ITEM_REACTIVE_COMPOSITE_NAME,Reactive Composite,Реактивный композит
@@ -355,7 +355,7 @@ ITEM_WELDED_DOME_DESC,Wide welded helmet with strong lower-cell scaling.,Шир�
 ITEM_NEURAL_HELM_NAME,Neural Helm,Нейрошлем
 ITEM_NEURAL_HELM_DESC,High-end helmet with superior passive scaling.,Продвинутый шлем с превосходным скейлингом.
 ITEM_GREAVES_FRAME_NAME,Greaves Frame,Фрейм-поножи
-ITEM_GREAVES_FRAME_DESC,Passive leg frame gaining defense from structure above.,Фрейм для ног, усиливается за счёт клеток над ним.
+ITEM_GREAVES_FRAME_DESC,Passive leg frame: +2 armor each turn; -1 armor per unlocked cell below.,Пассивный фрейм для ног: +2 брони каждый ход; -1 брони за каждую открытую клетку под ним.
 ITEM_TRACKED_FOOTING_NAME,Tracked Footing,Гусеничная опора
 ITEM_TRACKED_FOOTING_DESC,Stabilized leg assembly that rewards upper support.,Стабилизированная опора ног, получает бонусы от клеток сверху.
 ITEM_HYDRAULIC_BRACE_NAME,Hydraulic Brace,Гидравлический упор
@@ -398,8 +398,8 @@ TRAIT_ARMOR_EDGE_NAME,Edge Anchor,Краевой якорь
 TRAIT_ARMOR_EDGE_DESC,Edge-mounted armor gains extra stability.,Краевая броня получает дополнительную устойчивость.
 TRAIT_ARMOR_CHAIN_NAME,Armor Chain,Броня-цепь
 TRAIT_ARMOR_CHAIN_DESC,Adjacent armor pieces reinforce each other.,Соседство с другими предметами брони даёт бонус к броне.
-TRAIT_SPIKES_OUTER_NAME,Outer Spikes,Внешние шипы
-TRAIT_SPIKES_OUTER_DESC,Spikes punish hostile pressure around the frame.,Шипы наносят урон атакующим врагам.
+TRAIT_SPIKES_OUTER_NAME,Sharp Spikes,Острые шипы
+TRAIT_SPIKES_OUTER_DESC,At combat start grants 2 Sharp Spikes stacks. Each stack deals 1 reflected physical damage to an attacker.,В начале боя даёт 2 стака «Острые шипы». Каждый стак наносит 1 отражённого физического урона атакующему.
 TRAIT_HEAT_DISSIPATION_NAME,Heat Dissipation,Теплоотвод
 TRAIT_HEAT_DISSIPATION_DESC,Cooling channels increase defensive performance.,Охлаждающие каналы повышают защитный потенциал.
 TRAIT_REACTIVE_CLEANSE_NAME,Reactive Cleanse,Реактивная очистка
@@ -414,6 +414,10 @@ TRAIT_LEG_LOW_NAME,Upper Support Greaves,Поножи верхней опоры
 TRAIT_LEG_LOW_DESC,Passive armor scales with cells above (+0.5 each).,Бонус к броне за каждую клетку сверху (+0.5).
 TRAIT_LEG_HIGH_NAME,Upper Support Greaves+,Поножи верхней опоры+
 TRAIT_LEG_HIGH_DESC,Passive armor scales with cells above (+1 each).,Бонус к броне за каждую клетку сверху (+1).
+TRAIT_GREAVES_BASE_NAME,Greaves Core Plating,Базовая бронепластина поножей
+TRAIT_GREAVES_BASE_DESC,Passive +2 armor each turn.,Пассивно даёт +2 брони каждый ход.
+TRAIT_GREAVES_BELOW_PENALTY_NAME,Greaves Understrain,Перегрузка опоры поножей
+TRAIT_GREAVES_BELOW_PENALTY_DESC,-1 passive armor for each unlocked cell below this item.,-1 к пассивной броне за каждую открытую клетку под этим предметом.
 TRAIT_HELMET_ROW_PENALTY_NAME,Crowded Helmet Row,Скученный ряд шлемов
 TRAIT_HELMET_ROW_PENALTY_DESC,"-1 passive armor for each other helmet to the right in the same row.","-1 к пассивной броне за каждый другой шлем справа в том же ряду."
 TRAIT_LEG_ROW_PENALTY_NAME,Crowded Greaves Row,Скученный ряд поножей

@@ -3,6 +3,7 @@
 	"title_key": "KEY_MERCHANT_TITLE",
 	"merchant_name": "Bonnie",
 	"merchant_name_ru": "Бонни",
+	"image_path": "res://assets/sprites/story/bonny.png",
 	"aliases": ["EVERYMART Clerk", "Bonnie of EVERYMART"],
 	"aliases_ru": ["Клерк EVERYMART", "Бонни из EVERYMART"],
 	"dialogs": {

@@ -103,6 +103,15 @@ static func _calc_spatial_passive_armor(
 	clamp_non_negative: bool = true
 ) -> int:
 	var data := placed.data
+	if has_trait(data, "TRAIT_GREAVES_BASE"):
+		var base := maxi(0, get_trait_value(data, "TRAIT_GREAVES_BASE", 2))
+		var per_cell_penalty := maxi(0, get_trait_value(data, "TRAIT_GREAVES_BELOW_PENALTY", 1))
+		var below_cells := _count_unlocked_cells_below(placed, grid)
+		var row_penalty := _count_same_row_penalty(placed, grid)
+		var result := base - (below_cells * per_cell_penalty) - row_penalty
+		if clamp_non_negative:
+			return maxi(0, result)
+		return result
 	var low_helmet := has_trait(data, "TRAIT_HELMET_LOW")
 	var high_helmet := has_trait(data, "TRAIT_HELMET_HIGH")
 	var low_leg := has_trait(data, "TRAIT_LEG_LOW")
@@ -141,6 +150,19 @@ static func _calc_spatial_passive_armor(
 	if clamp_non_negative:
 		return maxi(0, result)
 	return result
+
+
+static func _count_unlocked_cells_below(placed: PlacedItem, grid: BodyGrid) -> int:
+	var count := 0
+	var left := placed.origin.x
+	var right := placed.origin.x + placed.data.size.x - 1
+	var bottom := placed.origin.y + placed.data.size.y - 1
+	for col in range(left, right + 1):
+		for y in range(bottom + 1, grid.height):
+			var c := Vector2i(col, y)
+			if grid.is_unlocked(c):
+				count += 1
+	return count
 
 
 static func _count_same_row_penalty(origin_item: PlacedItem, grid: BodyGrid) -> int:

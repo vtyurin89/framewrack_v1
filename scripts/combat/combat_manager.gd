@@ -53,6 +53,8 @@ const PLAYER_MULTI_SHOT_GAP := 0.22
 
 ## True while a multi-shot player resolution is awaiting presentation beats.
 var _player_action_busy: bool = false
+## Enemy currently resolving a physical attack against the player.
+var _active_player_attacker: EnemyInstance = null
 
 
 func setup(p_inventory: InventoryController, p_stats: PlayerStats = null) -> void:
@@ -113,6 +115,7 @@ func start_combat(enemy_datas: Array[EnemyData], max_attackers: int = -1) -> voi
 	current_block = 0
 	player_turn_index = 0
 	_reset_all_item_combat_uses()
+	_apply_start_of_combat_player_buffs()
 	_parasite_at_combat_start = _has_item_in_grid(SLIMY_PARASITE_ID)
 	_select_first_living_enemy()
 	EventBus.combat_started.emit(ids)
@@ -1155,10 +1158,12 @@ func _enemy_main_action_phase(index: int, enemy: EnemyInstance) -> void:
 		_request_player_popup(0, "rust", false, true)
 		return
 
+	_active_player_attacker = enemy
 	if ability != null:
 		_ability_executor.execute(enemy, index, ability)
 	else:
 		_enemy_act_legacy_fallback(index, enemy)
+	_active_player_attacker = null
 
 
 func request_forced_item_insertion(item_id: String) -> void:
@@ -1243,7 +1248,7 @@ func _enemy_act_legacy_fallback(index: int, enemy: EnemyInstance) -> void:
 		dmg = enemy.statuses.modify_outgoing_damage(dmg)
 	if GameSettings != null:
 		dmg = int(round(float(dmg) * GameSettings.get_enemy_damage_multiplier()))
-	var dealt := apply_enemy_damage_to_player(dmg)
+	var dealt := apply_enemy_damage_to_player(dmg, enemy, "physical")
 	EventBus.combat_log_message.emit(
 		tr("KEY_LOG_ENEMY_STRIKE") % [enemy.get_localized_name(), dmg, dealt]
 	)
@@ -1252,7 +1257,14 @@ func _enemy_act_legacy_fallback(index: int, enemy: EnemyInstance) -> void:
 
 ## --- AbilityEffect combat hooks ---------------------------------------------
 
-func apply_enemy_damage_to_player(damage: int) -> int:
+func apply_enemy_damage_to_player(
+	damage: int,
+	attacker: EnemyInstance = null,
+	damage_type: String = "physical"
+) -> int:
+	if attacker == null:
+		attacker = _active_player_attacker
+	_apply_player_spike_reflect(attacker, damage_type)
 	var incoming := damage
 	## Player evasion (if ever applied) negates the hit fully.
 	if player_statuses != null and player_statuses.try_consume_evasion():
@@ -1268,6 +1280,39 @@ func apply_enemy_damage_to_player(damage: int) -> int:
 		_request_player_popup(dealt, "physical")
 		_trigger_player_hit_feedback(dealt)
 	return dealt
+
+
+func _apply_start_of_combat_player_buffs() -> void:
+	if inventory == null or inventory.grid == null:
+		return
+	var sharp_stacks := 0
+	for placed: PlacedItem in inventory.grid.items:
+		if placed == null or placed.data == null:
+			continue
+		if not inventory.grid.is_item_functional(placed):
+			continue
+		if not TraitManager.has_trait(placed.data, "TRAIT_SPIKES_OUTER"):
+			continue
+		sharp_stacks += maxi(1, TraitManager.get_trait_value(placed.data, "TRAIT_SPIKES_OUTER", 2))
+	if sharp_stacks > 0:
+		apply_player_status("sharp_spikes", sharp_stacks)
+
+
+func _apply_player_spike_reflect(attacker: EnemyInstance, damage_type: String) -> void:
+	if attacker == null or not attacker.is_alive():
+		return
+	if damage_type.strip_edges().to_lower() != "physical":
+		return
+	if player_statuses == null:
+		return
+	var reflected := player_statuses.get_stacks("sharp_spikes")
+	if reflected <= 0:
+		return
+	attacker.apply_incoming_damage(reflected)
+	EventBus.combat_log_message.emit(
+		tr("KEY_LOG_THORNS") % [tr("TRAIT_SPIKES_OUTER_NAME"), reflected]
+	)
+	emit_enemy_hp_for(attacker)
 
 
 func _trigger_player_hit_feedback(dealt: int) -> void:

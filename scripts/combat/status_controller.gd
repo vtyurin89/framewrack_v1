@@ -255,7 +255,7 @@ func roll_rust_fail() -> bool:
 
 func get_thorns_reflect() -> int:
 	## Damage reflected to attacker on take-damage.
-	return get_stacks("thorns")
+	return get_stacks("thorns") + get_stacks("sharp_spikes")
 
 
 ## --- Internals -------------------------------------------------------------

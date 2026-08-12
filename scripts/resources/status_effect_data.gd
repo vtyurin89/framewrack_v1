@@ -70,6 +70,8 @@ func get_ui_glyph() -> String:
 			return "💚"
 		"thorns":
 			return "🌵"
+		"sharp_spikes":
+			return "🗡"
 		"ferocity":
 			return "🩸"
 		"evasion":

@@ -28,7 +28,7 @@ func apply(caster: EnemyInstance, target: Node, params: Array) -> void:
 			amount = roundi(float(amount) * GameSettings.get_enemy_damage_multiplier())
 		amount = maxi(0, amount)
 
-		var dealt: int = target.call("apply_enemy_damage_to_player", amount)
+		var dealt: int = target.call("apply_enemy_damage_to_player", amount, caster, "physical")
 		if is_crit:
 			EventBus.combat_log_message.emit(
 				tr("KEY_LOG_ENEMY_CRIT_HIT") % [caster.get_localized_name(), amount]
@@ -38,18 +38,6 @@ func apply(caster: EnemyInstance, target: Node, params: Array) -> void:
 			EventBus.combat_log_message.emit(
 				tr("KEY_LOG_ENEMY_STRIKE") % [caster.get_localized_name(), amount, dealt]
 			)
-
-		## Player thorns reflect to this attacker.
-		var p_statuses: StatusController = target.get("player_statuses") as StatusController
-		if p_statuses != null:
-			var thorns_amt := p_statuses.get_thorns_reflect()
-			if thorns_amt > 0:
-				caster.apply_incoming_damage(thorns_amt)
-				EventBus.combat_log_message.emit(
-					tr("KEY_LOG_THORNS") % ["FRAME", thorns_amt]
-				)
-				if target.has_method("emit_enemy_hp_for"):
-					target.call("emit_enemy_hp_for", caster)
 
 		if target.has_method("is_player_defeated") and bool(target.call("is_player_defeated")):
 			return

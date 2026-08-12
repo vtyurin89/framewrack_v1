@@ -28,8 +28,8 @@ TRAIT_ARMOR_EDGE_NAME,Edge Anchor,Краевой якорь
 TRAIT_ARMOR_EDGE_DESC,Edge-mounted armor gains extra stability.,Краевая броня получает дополнительную устойчивость.
 TRAIT_ARMOR_CHAIN_NAME,Armor Chain,Цепь брони
 TRAIT_ARMOR_CHAIN_DESC,Adjacent armor pieces reinforce each other.,Соседние бронемодули усиливают друг друга.
-TRAIT_SPIKES_OUTER_NAME,Outer Spikes,Внешние шипы
-TRAIT_SPIKES_OUTER_DESC,Spikes punish hostile pressure around the frame.,Шипы наказывают вражеское давление вокруг каркаса.
+TRAIT_SPIKES_OUTER_NAME,Sharp Spikes,Острые шипы
+TRAIT_SPIKES_OUTER_DESC,At combat start grants 2 Sharp Spikes stacks. Each stack deals 1 reflected physical damage to an attacker.,В начале боя даёт 2 стака «Острые шипы». Каждый стак наносит 1 отражённого физического урона атакующему.
 TRAIT_HEAT_DISSIPATION_NAME,Heat Dissipation,Теплоотвод
 TRAIT_HEAT_DISSIPATION_DESC,Cooling channels increase defensive performance.,Охлаждающие каналы повышают защитный потенциал.
 TRAIT_REACTIVE_CLEANSE_NAME,Reactive Cleanse,Реактивная очистка
@@ -44,6 +44,10 @@ TRAIT_LEG_LOW_NAME,Upper Support Greaves,Поножи верхней опоры
 TRAIT_LEG_LOW_DESC,Passive armor scales with cells above (+0.5 each).,Пассивная броня масштабируется от клеток сверху (+0.5).
 TRAIT_LEG_HIGH_NAME,Upper Support Greaves+,Поножи верхней опоры+
 TRAIT_LEG_HIGH_DESC,Passive armor scales with cells above (+1 each).,Пассивная броня масштабируется от клеток сверху (+1).
+TRAIT_GREAVES_BASE_NAME,Greaves Core Plating,Базовая бронепластина поножей
+TRAIT_GREAVES_BASE_DESC,Passive +2 armor each turn.,Пассивно даёт +2 брони каждый ход.
+TRAIT_GREAVES_BELOW_PENALTY_NAME,Greaves Understrain,Перегрузка опоры поножей
+TRAIT_GREAVES_BELOW_PENALTY_DESC,-1 passive armor for each unlocked cell below this item.,-1 к пассивной броне за каждую открытую клетку под этим предметом.
 TRAIT_HELMET_ROW_PENALTY_NAME,Crowded Helmet Row,Скученный ряд шлемов
 TRAIT_HELMET_ROW_PENALTY_DESC,"-1 passive armor for each other helmet to the right in the same row.","-1 к пассивной броне за каждый другой шлем справа в том же ряду."
 TRAIT_LEG_ROW_PENALTY_NAME,Crowded Greaves Row,Скученный ряд поножей
