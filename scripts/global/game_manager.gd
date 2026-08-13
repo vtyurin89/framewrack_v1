@@ -18,10 +18,14 @@ signal settings_requested
 ## Forwarded from run currency (Neuro-Chips).
 signal chips_changed(new_amount: int)
 
+const DEFAULT_GAME_OVER_REASON_KEY := "KEY_GAME_OVER_SUBTITLE"
+
 ## True while a run exists that can be Continued from the main menu.
 var is_session_active: bool = false
 ## True when the main menu is open over an active session (soft pause).
 var is_paused: bool = false
+## Localized subtitle key explaining why the current run ended.
+var game_over_reason_key: String = DEFAULT_GAME_OVER_REASON_KEY
 
 var state: GameState = GameState.MAIN_MENU
 ## Neuro-Chip wallet for the active run.
@@ -61,6 +65,7 @@ func change_state(new_state: GameState) -> void:
 func begin_session() -> void:
 	is_session_active = true
 	is_paused = false
+	game_over_reason_key = DEFAULT_GAME_OVER_REASON_KEY
 
 
 func end_session() -> void:
@@ -118,11 +123,20 @@ func request_open_settings() -> void:
 	settings_requested.emit()
 
 
-func trigger_game_over() -> void:
+func trigger_game_over(reason_key: String = DEFAULT_GAME_OVER_REASON_KEY) -> void:
 	if state == GameState.GAME_OVER:
 		return
+	game_over_reason_key = (
+		reason_key
+		if not reason_key.strip_edges().is_empty()
+		else DEFAULT_GAME_OVER_REASON_KEY
+	)
 	end_session()
 	change_state(GameState.GAME_OVER)
+
+
+func get_game_over_reason_key() -> String:
+	return game_over_reason_key
 
 
 # --- Neuro-Chip currency (delegates to RunCurrencyState) ---------------------

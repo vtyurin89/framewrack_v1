@@ -170,17 +170,35 @@ func complete_post_combat_rewards() -> void:
 	_finish_encounter(_pending_rewards)
 
 
-func apply_dialog_outcome(outcome: DialogOutcomeData) -> void:
+## Drop the active encounter without encounter_completed (run ended mid-event).
+func abort_active_encounter() -> void:
+	active_encounter = null
+	_awaiting_combat_resolution = false
+	_awaiting_item_selection = false
+	_pending_select_outcome = null
+	_pending_post_combat_finish = false
+	_pending_rewards.clear()
+
+
+func _run_ended_mid_encounter() -> bool:
+	return GameManager != null and GameManager.is_game_over()
+
+
+func apply_dialog_outcome(outcome: DialogOutcomeData) -> bool:
+	## Returns false when HP/humanity death aborted the encounter mid-flow.
 	if active_encounter == null:
-		return
+		return true
 	if outcome == null:
 		_finish_encounter(_pending_rewards)
-		return
+		return not _run_ended_mid_encounter()
 	## Compound story rewards (multi-stat / mixed) are fully applied here once.
 	var compound_applied := (
 		outcome.payload_effects is Array and not outcome.payload_effects.is_empty()
 	)
 	_apply_outcome_buff(outcome)
+	if _run_ended_mid_encounter():
+		abort_active_encounter()
+		return false
 	match outcome.kind:
 		DialogOutcomeData.OutcomeKind.END, DialogOutcomeData.OutcomeKind.SKIP:
 			if not outcome.message_key.is_empty():
@@ -192,6 +210,9 @@ func apply_dialog_outcome(outcome: DialogOutcomeData) -> void:
 				_pending_rewards["message_key"] = outcome.message_key
 		DialogOutcomeData.OutcomeKind.HEAL:
 			_apply_heal(outcome.heal_amount)
+			if _run_ended_mid_encounter():
+				abort_active_encounter()
+				return false
 			if not outcome.message_key.is_empty():
 				_pending_rewards["message_key"] = outcome.message_key
 			_pending_rewards["healed"] = outcome.heal_amount
@@ -199,6 +220,9 @@ func apply_dialog_outcome(outcome: DialogOutcomeData) -> void:
 				_finish_encounter(_pending_rewards)
 		DialogOutcomeData.OutcomeKind.DAMAGE:
 			_apply_damage(outcome.damage_amount)
+			if _run_ended_mid_encounter():
+				abort_active_encounter()
+				return false
 			if not outcome.message_key.is_empty():
 				_pending_rewards["message_key"] = outcome.message_key
 			_pending_rewards["damage_taken"] = outcome.damage_amount
@@ -207,6 +231,9 @@ func apply_dialog_outcome(outcome: DialogOutcomeData) -> void:
 		DialogOutcomeData.OutcomeKind.GRANT_ITEM:
 			if not compound_applied:
 				_grant_item(outcome.item_id, outcome.item_amount)
+			if _run_ended_mid_encounter():
+				abort_active_encounter()
+				return false
 			if not outcome.message_key.is_empty():
 				_pending_rewards["message_key"] = outcome.message_key
 			_pending_rewards["item_id"] = outcome.item_id
@@ -216,6 +243,9 @@ func apply_dialog_outcome(outcome: DialogOutcomeData) -> void:
 		DialogOutcomeData.OutcomeKind.GRANT_STAT:
 			if not compound_applied:
 				_grant_stat(outcome.stat_name, outcome.stat_amount)
+				if _run_ended_mid_encounter():
+					abort_active_encounter()
+					return false
 			if not outcome.message_key.is_empty():
 				_pending_rewards["message_key"] = outcome.message_key
 			_pending_rewards["stat_name"] = outcome.stat_name
@@ -226,7 +256,7 @@ func apply_dialog_outcome(outcome: DialogOutcomeData) -> void:
 			if not outcome.message_key.is_empty():
 				_pending_rewards["message_key"] = outcome.message_key
 			if _try_resolve_direct_item_pool(outcome, false):
-				return
+				return not _run_ended_mid_encounter()
 			_begin_item_selection(outcome, false)
 		DialogOutcomeData.OutcomeKind.COMBAT:
 			if not outcome.message_key.is_empty():
@@ -240,6 +270,7 @@ func apply_dialog_outcome(outcome: DialogOutcomeData) -> void:
 				mult = 1.0
 			_pending_rewards["shop_price_multiplier"] = mult
 			request_show_shop.emit(active_encounter, mult)
+	return not _run_ended_mid_encounter()
 
 
 func resolve_item_selection(selected_item: ItemData) -> void:
@@ -593,6 +624,9 @@ func _grant_item_data(item: ItemData) -> void:
 
 
 func _finish_encounter(rewards: Dictionary) -> void:
+	if _run_ended_mid_encounter():
+		abort_active_encounter()
+		return
 	var finished := active_encounter
 	active_encounter = null
 	_awaiting_combat_resolution = false

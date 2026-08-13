@@ -184,6 +184,7 @@ func _set_state(next: CombatState) -> void:
 func _begin_player_turn() -> void:
 	## Strict player turn pipeline.
 	_vaeron_charge_damage = 0
+	_reset_psychosis_hit_counters()
 	_reset_player_resources()
 	if not _apply_slimy_parasite_turn_damage():
 		return
@@ -199,6 +200,12 @@ func _begin_player_turn() -> void:
 	_set_state(CombatState.PLAYER_TURN)
 	EventBus.combat_log_message.emit(tr("KEY_LOG_YOUR_TURN") % current_ap)
 	## Action phase is interactive (activate_item / end_player_turn).
+
+
+func _reset_psychosis_hit_counters() -> void:
+	for enemy: EnemyInstance in enemies:
+		if enemy != null:
+			enemy.reset_psychosis_turn_tracking()
 
 
 func _reset_player_resources() -> void:
@@ -847,6 +854,18 @@ func _deal_damage_to(
 	EventBus.enemy_block_changed.emit(index, enemy.current_block)
 	if dealt > 0 and state == CombatState.PLAYER_TURN:
 		_register_vaeron_charge_damage(enemy, dealt)
+		if enemy.register_direct_attack_hit():
+			EventBus.combat_log_message.emit(
+				tr("KEY_LOG_PSYCHOSIS_BUFF") % [
+					enemy.get_localized_name(),
+					1,
+					tr("KEY_STR"),
+				]
+			)
+			## Refresh telegraph numbers for the new STR even if the ability stays.
+			if enemy.planned_ability != null:
+				enemy.current_intention = CombatIntention.from_ability(enemy, enemy.planned_ability)
+				EventBus.enemy_intention_changed.emit(index, enemy.current_intention)
 	if not enemy.is_alive():
 		enemy.clear_intention()
 		EventBus.enemy_intention_changed.emit(index, enemy.current_intention)
@@ -856,6 +875,7 @@ func _deal_damage_to(
 		return true
 	elif state == CombatState.PLAYER_TURN and dealt > 0:
 		## Block-only hits keep the telegraph; HP damage may reason-check.
+		## Unpredictable Chem-Junkies fully reroll here after Psychosis updates STR.
 		reevaluate_enemy_intention(index)
 	return false
 

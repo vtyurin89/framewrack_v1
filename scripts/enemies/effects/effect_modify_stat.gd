@@ -2,12 +2,14 @@ class_name EffectModifyStat
 extends AbilityEffect
 ## Stacking permanent (or temporary if duration>0) caster/ally stat buff.
 ## CSV: "luck|+1", "strength|+1|ABILITY_SCRAPPER_BUMPER" (stat|delta|followup_or_duration).
+## Optional flat Block: "strength|+1|block|7".
 
 
 func apply(caster: EnemyInstance, target: Node, params: Array) -> void:
 	if caster == null:
 		return
 	var ability := AbilityEffect.ability_from_params(params)
+	var enemy_index := AbilityEffect.enemy_index_from_params(params)
 	var csv := AbilityEffect.csv_params(params)
 	var stat_key := "luck"
 	var delta := 1
@@ -21,10 +23,13 @@ func apply(caster: EnemyInstance, target: Node, params: Array) -> void:
 		delta = ability.max_val
 	if csv.size() >= 3:
 		var third := str(csv[2]).strip_edges()
-		if third.is_valid_int():
-			duration = int(third)
-		elif not third.is_empty():
-			followup_id = third
+		var third_l := third.to_lower()
+		## Ignore hybrid block tokens — handled via parse_flat_block.
+		if third_l not in ["block", "guard", "shield"]:
+			if third.is_valid_int():
+				duration = int(third)
+			elif not third.is_empty():
+				followup_id = third
 
 	var subject := caster
 	if ability != null and ability.target_type.strip_edges().to_lower() == "ally":
@@ -39,6 +44,18 @@ func apply(caster: EnemyInstance, target: Node, params: Array) -> void:
 
 	if not followup_id.is_empty():
 		caster.arm_prepared_ability(followup_id)
+
+	var flat_block := AbilityEffect.parse_flat_block(ability)
+	if flat_block > 0:
+		if caster.roll_crit():
+			flat_block = roundi(float(flat_block) * EnemyInstance.CRIT_DAMAGE_MULT)
+			caster.emit_crit_notice(enemy_index)
+		caster.gain_block(flat_block)
+		EventBus.combat_log_message.emit(
+			tr("KEY_LOG_ENEMY_BLOCK") % [caster.get_localized_name(), flat_block]
+		)
+		if target != null and target.has_method("emit_enemy_block_for"):
+			target.call("emit_enemy_block_for", caster)
 
 	if ability != null and ability.id in ["ABILITY_ENEMY_STUDY", "enemy_study"]:
 		EventBus.combat_log_message.emit(

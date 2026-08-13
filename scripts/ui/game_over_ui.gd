@@ -50,7 +50,8 @@ func hide_game_over() -> void:
 
 func _apply_locale(_locale: String = "") -> void:
 	_title.text = tr("KEY_GAME_OVER_TITLE")
-	_subtitle.text = tr("KEY_GAME_OVER_SUBTITLE")
+	var reason_key: String = GameManager.get_game_over_reason_key()
+	_subtitle.text = tr(reason_key)
 	_restart_btn.text = tr("KEY_RESTART")
 	_menu_btn.text = tr("KEY_MAIN_MENU")
 

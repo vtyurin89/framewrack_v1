@@ -120,6 +120,25 @@ func close_dialog() -> void:
 	_kill_fade_tween()
 	_is_closing = false
 	_choices_locked = false
+	_pending_select_outcome = null
+	visible = false
+	modulate.a = 0.0
+	mouse_filter = Control.MOUSE_FILTER_IGNORE
+	_dialog = null
+	_clear_choices()
+
+
+func abort_on_run_end() -> void:
+	## Hard stop when the run ends mid-dialog (death / insanity). No event_finished.
+	_kill_fade_tween()
+	_is_closing = false
+	_choices_locked = true
+	_pending_select_outcome = null
+	if (
+		_encounter_manager != null
+		and _encounter_manager.item_selection_resolved.is_connected(_on_item_selection_resolved)
+	):
+		_encounter_manager.item_selection_resolved.disconnect(_on_item_selection_resolved)
 	visible = false
 	modulate.a = 0.0
 	mouse_filter = Control.MOUSE_FILTER_IGNORE
@@ -487,14 +506,15 @@ func _resolve_choice_outcome(outcome: DialogOutcomeData) -> void:
 					_on_item_selection_resolved, CONNECT_ONE_SHOT
 				)
 			_pending_select_outcome = outcome
-			_encounter_manager.apply_dialog_outcome(outcome)
+			if not _apply_outcome_via_manager(outcome):
+				return
 		else:
 			_finish_with_outcome(outcome)
 		return
 
 	if _is_continuing_outcome(outcome):
-		if _encounter_manager:
-			_encounter_manager.apply_dialog_outcome(outcome)
+		if _encounter_manager and not _apply_outcome_via_manager(outcome):
+			return
 		if not outcome.message_key.is_empty() and _result_label:
 			_result_label.visible = true
 			_result_label.text = tr(outcome.message_key)
@@ -506,6 +526,18 @@ func _resolve_choice_outcome(outcome: DialogOutcomeData) -> void:
 		return
 
 	_finish_with_outcome(outcome)
+
+
+func _apply_outcome_via_manager(outcome: DialogOutcomeData) -> bool:
+	if _encounter_manager == null:
+		return true
+	if not _encounter_manager.apply_dialog_outcome(outcome):
+		abort_on_run_end()
+		return false
+	if GameManager.is_game_over():
+		abort_on_run_end()
+		return false
+	return true
 
 
 func _on_item_selection_resolved(_item: ItemData) -> void:
@@ -575,8 +607,12 @@ func _finish_with_outcome(outcome: DialogOutcomeData) -> void:
 	_choices_locked = true
 	_set_choices_disabled(true)
 	await _play_exit_fade()
-	if _encounter_manager:
-		_encounter_manager.apply_dialog_outcome(outcome)
+	if GameManager.is_game_over():
+		abort_on_run_end()
+		return
+	if _encounter_manager and not _encounter_manager.apply_dialog_outcome(outcome):
+		abort_on_run_end()
+		return
 	choice_resolved.emit(outcome)
 	event_finished.emit(outcome)
 	_dialog = null

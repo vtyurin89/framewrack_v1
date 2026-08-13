@@ -228,7 +228,15 @@ func _populate_traits(enemy: EnemyInstance) -> void:
 		return
 	for trait_id: String in trait_ids:
 		var row := Label.new()
-		row.text = "• %s" % trait_id
+		var key := "TRAIT_%s_NAME" % trait_id.strip_edges().to_upper()
+		var translated := tr(key)
+		var title := translated if translated != key else trait_id
+		var desc_key := "TRAIT_%s_DESC" % trait_id.strip_edges().to_upper()
+		var desc_tr := tr(desc_key)
+		if desc_tr != desc_key and not desc_tr.is_empty():
+			row.text = "• %s — %s" % [title, desc_tr]
+		else:
+			row.text = "• %s" % title
 		row.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 		row.add_theme_font_size_override("font_size", 13)
 		row.add_theme_color_override("font_color", Color(0.8, 0.8, 0.85))

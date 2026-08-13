@@ -20,6 +20,7 @@ const REWARD_SCREEN_SCENE := preload("res://scenes/UI/reward_screen.tscn")
 const CHEST_REWARD_SCENE := preload("res://scenes/UI/chest_reward_ui.tscn")
 const FORCED_ITEM_SCREEN_SCENE := preload("res://scenes/UI/forced_item_screen.tscn")
 const ANNOUNCER_SCENE := preload("res://scenes/UI/announcer_ui.tscn")
+const HUMANITY_GAME_OVER_REASON_KEY := "KEY_GAME_OVER_INSANITY"
 
 @onready var _map_ui: Control = %MapUI
 @onready var _inventory_ui: Control = %InventoryUI
@@ -71,6 +72,7 @@ func _ready() -> void:
 	inventory = InventoryController.new()
 	player_stats = PlayerStats.new()
 	player_stats.pending_level_ups_changed.connect(_on_pending_level_ups_changed)
+	player_stats.stats_changed.connect(_on_player_stats_changed)
 	inventory.apply_actor_stats(player_stats)
 	inventory.heal_full()
 	_combat.setup(inventory, player_stats)
@@ -466,7 +468,27 @@ func _on_player_died() -> void:
 	## HP hit zero — stop combat interactions and open game over.
 	if _inventory_ui.has_method("set_combat_mode"):
 		_inventory_ui.set_combat_mode(false)
+	_abort_active_encounter_on_run_end()
 	GameManager.trigger_game_over()
+
+
+func _on_player_stats_changed() -> void:
+	## Humanity at zero means the protagonist has irreversibly lost control.
+	if player_stats == null or player_stats.humanity > 0:
+		return
+	if not GameManager.is_session_active or GameManager.is_game_over():
+		return
+	if _combat != null and _combat.has_method("abort_combat"):
+		_combat.abort_combat()
+	_abort_active_encounter_on_run_end()
+	GameManager.trigger_game_over(HUMANITY_GAME_OVER_REASON_KEY)
+
+
+func _abort_active_encounter_on_run_end() -> void:
+	if _encounters != null and _encounters.has_method("abort_active_encounter"):
+		_encounters.abort_active_encounter()
+	if _dialog_event_ui != null and is_instance_valid(_dialog_event_ui) and _dialog_event_ui.visible:
+		_dialog_event_ui.abort_on_run_end()
 
 
 func _show_exploring() -> void:

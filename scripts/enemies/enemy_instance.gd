@@ -25,6 +25,10 @@ var stolen_chips: int = 0
 var stolen_grid_item: ItemData = null
 ## Number of combat turns this enemy has started (for PRE_ACTION intervals).
 var turns_taken: int = 0
+## Psychosis: direct attack HP hits received during the current player turn.
+var direct_hits_this_player_turn: int = 0
+## Psychosis: whether the +1 STR threshold already fired this player turn.
+var _psychosis_triggered_this_turn: bool = false
 ## Remaining cooldown turns keyed by ability id.
 var _ability_cooldowns: Dictionary = {}
 ## Prepared / charged ability ids (for requires_prepare skills like Bumper Slam).
@@ -44,6 +48,8 @@ func setup(blueprint: EnemyData) -> void:
 	stolen_chips = 0
 	stolen_grid_item = null
 	summoner_ref = null
+	direct_hits_this_player_turn = 0
+	_psychosis_triggered_this_turn = false
 	_ability_cooldowns.clear()
 	_prepared_ability_ids.clear()
 	_stat_buff_stacks.clear()
@@ -94,7 +100,7 @@ func setup(blueprint: EnemyData) -> void:
 	## Trait passives applied at spawn (e.g. summoned_creature on slaver minions).
 	for trait_id: String in data.trait_ids:
 		var tid := trait_id.strip_edges().to_lower()
-		if tid.is_empty():
+		if tid.is_empty() or EnemyData.MECHANIC_TRAIT_IDS.has(tid):
 			continue
 		statuses.apply_status_by_id(tid, 1)
 
@@ -485,7 +491,31 @@ func has_permanent_shield() -> bool:
 
 func has_always_reroll_intent() -> bool:
 	## Mad/unstable enemies: HP damage always forces a fresh intention roll.
-	return has_enemy_trait(EnemyData.TRAIT_ALWAYS_REROLL_INTENT)
+	return (
+		has_enemy_trait(EnemyData.TRAIT_ALWAYS_REROLL_INTENT)
+		or has_enemy_trait(EnemyData.TRAIT_UNPREDICTABLE)
+	)
+
+
+func has_psychosis() -> bool:
+	return has_enemy_trait(EnemyData.TRAIT_PSYCHOSIS)
+
+
+func reset_psychosis_turn_tracking() -> void:
+	direct_hits_this_player_turn = 0
+	_psychosis_triggered_this_turn = false
+
+
+func register_direct_attack_hit() -> bool:
+	## Counts one player-attack HP hit for Psychosis. Returns true if STR buff applied.
+	if not has_psychosis() or not is_alive():
+		return false
+	direct_hits_this_player_turn += 1
+	if _psychosis_triggered_this_turn or direct_hits_this_player_turn < 3:
+		return false
+	_psychosis_triggered_this_turn = true
+	apply_stackable_stat_buff("strength", 1)
+	return true
 
 
 func clear_block_for_new_turn() -> bool:

@@ -10,6 +10,7 @@ KEY_SAVE_AND_EXIT,Save and exit,Сохранить и выйти
 KEY_RESTART,Restart,Заново
 KEY_GAME_OVER_TITLE,SYSTEM FAILURE,СБОЙ СИСТЕМЫ
 KEY_GAME_OVER_SUBTITLE,Frame integrity critical. YOU DIED.,Критические повреждения фрейма. ВЫ ПОГИБЛИ.
+KEY_GAME_OVER_INSANITY,You have gone insane,Вы сошли с ума
 KEY_MAIN_MENU_TAGLINE,Your inventory is your body.,Твой инвентарь — твоё тело.
 KEY_SETTINGS,Settings,Настройки
 KEY_DIFFICULTY,Difficulty,Сложность
@@ -627,6 +628,25 @@ KEY_LOG_POD_STEAL,%s steals %s from your frame!,%s крадёт %s из ваше
 KEY_LOG_POD_STEAL_FAIL,%s finds nothing worth stealing.,%s не находит ничего для кражи.
 KEY_LOG_POD_STEAL_RETURN,Returned module available: %s. Place it back into your Body Grid.,Возвращённый модуль: %s. Поместите его обратно в сетку тела.
 KEY_LOG_AUTO_INSERT,%s lodges itself into a free cell.,%s занимает свободную клетку.
+ENEMY_JUNKIE_NAME,Chem-Fiend,Обдолбанный торчок
+ENEMY_JUNKIE_DESC,"Erratic melee fighter. Unpredictable intentions and psychosis-fueled strength spikes.","Непредсказуемый боец ближнего боя. Меняет намерения от урона и усиливается в психозе."
+TRAIT_UNPREDICTABLE_NAME,Unpredictable,Непредсказуемость
+TRAIT_UNPREDICTABLE_DESC,Changes intention immediately whenever receiving HP damage.,Мгновенно меняет намерения при получении урона здоровью.
+TRAIT_PSYCHOSIS_NAME,Psychosis,Психоз
+TRAIT_PSYCHOSIS_DESC,Gains +1 STR for the rest of combat after being hit by attacks 3 times in a single turn.,Получает +1 к Силе до конца боя, если получает урон от атак 3 раза за один ход.
+ABILITY_JUNKIE_SHANK_NAME,Junkie Shank,Удар заточкой
+ABILITY_JUNKIE_SHANK_DESC,Basic Strength-scaled melee strike.,Базовый удар ближнего боя от Силы.
+ABILITY_JUNKIE_SHANK_TEXT,{name} jabs with a filthy shank.,{name} бьёт грязной заточкой.
+ABILITY_THRASH_SLASH_NAME,Thrash & Slash,Метаться и атаковать
+ABILITY_THRASH_SLASH_DESC,Gains +6 Block and deals Strength-scaled melee damage.,Получает +6 Блока и наносит урон ближнего боя от Силы.
+ABILITY_THRASH_SLASH_TEXT,{name} thrashes wildly behind scrap cover.,{name} мечется за обрезками металла.
+ABILITY_FRENZIED_SLASH_NAME,Frenzied Slash,Бешеный порез
+ABILITY_FRENZIED_SLASH_DESC,Heavy Strength-scaled slash. If it deals HP damage through Block, applies 3 Poison.,Тяжёлый удар от Силы. Если пробивает Блок и ранит HP — накладывает 3 Яда.
+ABILITY_FRENZIED_SLASH_TEXT,{name} carves a frenzied arc.,{name} рвёт бешеным порезом.
+ABILITY_MAZUT_SHOT_NAME,Mazut Dose,Доза Мазута
+ABILITY_MAZUT_SHOT_DESC,Once every 3 turns: +1 Strength for the rest of combat and +7 Block.,Раз в 3 хода: +1 Силы до конца боя и +7 Блока.
+ABILITY_MAZUT_SHOT_TEXT,{name} mainlines a Mazut dose.,{name} вкалывает дозу Мазута.
+KEY_LOG_PSYCHOSIS_BUFF,%s snaps into psychosis (+%d %s)!,У %s срывает крышу (+%d %s)!
 KEY_ACT1_ANNOUNCE_TITLE,Chapter 1,Глава 1
 KEY_ACT1_ANNOUNCE_SUBTITLE,"Ruins of Ra'im, City of Humans","Развалины Ра'има, города людей"
 KEY_MERCHANT_TITLE,EVERYMART / Bonnie,EVERYMART / Бонни

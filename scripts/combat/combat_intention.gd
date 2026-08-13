@@ -240,18 +240,29 @@ static func _parse_debuffs(
 
 
 static func _apply_hybrid_params(
-	intent: CombatIntention, ability: EnemyAbility, enemy: EnemyInstance
+	intent: CombatIntention, ability: EnemyAbility, _enemy: EnemyInstance
 ) -> void:
 	if ability == null:
 		return
+	## Flat Block from effect_params (thrash / mazut) — no agility added.
+	var flat := AbilityEffect.parse_flat_block(ability)
+	if flat > 0:
+		intent.block_value = maxi(intent.block_value, flat)
+	## Poison / conditional riders still show as debuff telegraph.
 	var csv := ability.get_effect_param_list()
-	for i in csv.size():
+	var i := 0
+	while i < csv.size():
 		var token := str(csv[i]).strip_edges().to_lower()
-		if token in ["block", "guard", "shield"] and i + 1 < csv.size() and str(csv[i + 1]).is_valid_int():
-			intent.block_value = maxi(intent.block_value, int(csv[i + 1]) + (enemy.agility if enemy else 0))
-		elif token.begins_with("block:") or token.begins_with("shield:"):
-			var parts := token.split(":")
-			if parts.size() >= 2 and parts[1].is_valid_int():
-				intent.block_value = maxi(
-					intent.block_value, int(parts[1]) + (enemy.agility if enemy else 0)
-				)
+		if token in ["poison", "bleed", "burn", "slow", "rust", "weakness", "vulnerability"]:
+			var stacks := 1
+			if i + 1 < csv.size() and str(csv[i + 1]).is_valid_int():
+				stacks = maxi(1, int(csv[i + 1]))
+				i += 2
+			else:
+				i += 1
+			## Skip if_hp / on_hp qualifier for telegraph (still preview the threat).
+			if i < csv.size() and str(csv[i]).strip_edges().to_lower() in ["if_hp", "on_hp"]:
+				i += 1
+			intent.applied_debuffs.append({"type": token, "stacks": stacks})
+			continue
+		i += 1
