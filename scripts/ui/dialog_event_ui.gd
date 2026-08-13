@@ -90,6 +90,10 @@ func layout_below_top_bar(top_bar: Control, extra_pad: float = 0.0) -> void:
 	_apply_responsive_layout()
 
 
+func has_active_event() -> bool:
+	return _dialog != null and not _is_closing
+
+
 func start_event(dialog: DialogEventData) -> void:
 	open_dialog(dialog)
 
@@ -273,6 +277,10 @@ func _rebuild_choices(node: DialogNodeData) -> void:
 		if choice == null:
 			continue
 		var btn := _make_choice_button(choice.get_display_text())
+		var available := choice.is_available(_get_inventory())
+		btn.disabled = not available
+		if not available:
+			btn.modulate = Color(1, 1, 1, 0.45)
 		var captured := choice
 		btn.pressed.connect(func() -> void: _on_choice_pressed(captured))
 		_choices_box.add_child(btn)
@@ -302,6 +310,8 @@ func _clear_choices() -> void:
 
 func _on_choice_pressed(choice: DialogChoiceData) -> void:
 	if choice == null or _is_closing or _choices_locked:
+		return
+	if not choice.is_available(_get_inventory()):
 		return
 	if choice.has_stat_check():
 		_begin_stat_check_prepare(choice)

@@ -35,6 +35,14 @@ enum OutcomeKind {
 @export var buff_amount: int = 0
 ## SHOP: price scale applied to stock (0.8 discount / 1.0 list / 1.25 markup).
 @export var price_multiplier: float = 1.0
+## Spend Neuro-Chips when this outcome resolves (after availability checks).
+@export var spend_chips: int = 0
+## Grant player EXP when this outcome resolves.
+@export var exp_amount: int = 0
+## COMBAT: use elite rarity weights for the post-fight loot screen.
+@export var elite_rewards: bool = false
+## SELECT_ITEM / loot offer: how many items the player may take (RewardScreen).
+@export var loot_pick_count: int = 1
 ## Optional compound reward list from story JSON (`reward.effects`).
 var payload_effects: Array = []
 

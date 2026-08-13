@@ -12,6 +12,7 @@ signal request_show_rest_site(encounter: EncounterData)
 signal request_show_shop(encounter: EncounterData, price_multiplier: float)
 signal request_show_chest_reward(encounter: EncounterData)
 signal request_item_selection(item_pool: Array, title: String)
+signal request_dialog_loot(items: Array, pick_count: int, title_key: String)
 signal item_selection_resolved(item: ItemData)
 signal request_post_combat_rewards(encounter: EncounterData)
 
@@ -195,6 +196,10 @@ func apply_dialog_outcome(outcome: DialogOutcomeData) -> bool:
 	var compound_applied := (
 		outcome.payload_effects is Array and not outcome.payload_effects.is_empty()
 	)
+	_apply_outcome_side_effects(outcome)
+	if _run_ended_mid_encounter():
+		abort_active_encounter()
+		return false
 	_apply_outcome_buff(outcome)
 	if _run_ended_mid_encounter():
 		abort_active_encounter()
@@ -255,12 +260,16 @@ func apply_dialog_outcome(outcome: DialogOutcomeData) -> bool:
 		DialogOutcomeData.OutcomeKind.SELECT_ITEM:
 			if not outcome.message_key.is_empty():
 				_pending_rewards["message_key"] = outcome.message_key
+			if _try_open_dialog_loot(outcome):
+				return not _run_ended_mid_encounter()
 			if _try_resolve_direct_item_pool(outcome, false):
 				return not _run_ended_mid_encounter()
 			_begin_item_selection(outcome, false)
 		DialogOutcomeData.OutcomeKind.COMBAT:
 			if not outcome.message_key.is_empty():
 				_pending_rewards["message_key"] = outcome.message_key
+			if outcome.elite_rewards and active_encounter != null:
+				active_encounter.payload["force_elite_rewards"] = true
 			_start_combat_from_ids(outcome.enemy_ids, outcome.faction, null)
 		DialogOutcomeData.OutcomeKind.SHOP:
 			if not outcome.message_key.is_empty():
@@ -289,6 +298,18 @@ func resolve_item_selection(selected_item: ItemData) -> void:
 		_pending_post_combat_finish = false
 		_finish_encounter(_pending_rewards)
 		return
+	if pending != null and pending.next_node_id.is_empty():
+		_finish_encounter(_pending_rewards)
+
+
+func complete_dialog_loot() -> void:
+	## Called by Main after dialog RewardScreen Continue (items already placed).
+	if not _awaiting_item_selection:
+		return
+	_awaiting_item_selection = false
+	var pending := _pending_select_outcome
+	_pending_select_outcome = null
+	item_selection_resolved.emit(null)
 	if pending != null and pending.next_node_id.is_empty():
 		_finish_encounter(_pending_rewards)
 
@@ -516,6 +537,58 @@ func _apply_cripple_buff_to_enemies(datas: Array[EnemyData]) -> Array[EnemyData]
 	return out
 
 
+func _try_open_dialog_loot(outcome: DialogOutcomeData) -> bool:
+	if outcome == null or RewardManager == null:
+		return false
+	var pool_key := outcome.item_pool_id.strip_edges().to_lower()
+	var pick_count := maxi(1, outcome.loot_pick_count)
+	var loot: Array[ItemData] = []
+	match pool_key:
+		"rare_pick_3", "rare_item_pick_3":
+			loot = RewardManager.generate_rare_offer(3)
+			pick_count = 1
+		"rare_weapon", "collector_weapon":
+			var weapon := RewardManager.generate_rare_weapon()
+			if weapon != null:
+				loot.append(weapon)
+			pick_count = 1
+		"rare_module", "collector_module":
+			var module := RewardManager.generate_rare_module()
+			if module != null:
+				loot.append(module)
+			pick_count = 1
+		"rare_weapon_and_module", "collector_both":
+			var w := RewardManager.generate_rare_weapon()
+			var m := RewardManager.generate_rare_module()
+			if w != null:
+				loot.append(w)
+			if m != null:
+				loot.append(m)
+			pick_count = maxi(2, loot.size())
+		_:
+			return false
+	if loot.is_empty():
+		return false
+	_awaiting_item_selection = true
+	_pending_select_outcome = outcome
+	_pending_post_combat_finish = false
+	_pending_rewards["dialog_loot"] = true
+	_pending_rewards["loot_pick_count"] = pick_count
+	request_dialog_loot.emit(loot, pick_count, "KEY_REWARD_SELECT_ONE")
+	return true
+
+
+func _apply_outcome_side_effects(outcome: DialogOutcomeData) -> void:
+	if outcome == null:
+		return
+	if outcome.spend_chips > 0 and GameManager != null:
+		GameManager.spend_chips(outcome.spend_chips)
+		_pending_rewards["spent_chips"] = outcome.spend_chips
+	if outcome.exp_amount > 0 and player_stats != null:
+		player_stats.add_exp(outcome.exp_amount)
+		_pending_rewards["exp"] = outcome.exp_amount
+
+
 func _begin_item_selection(outcome: DialogOutcomeData, post_combat: bool) -> void:
 	_awaiting_item_selection = true
 	_pending_select_outcome = outcome
@@ -601,6 +674,21 @@ func _apply_payload_effects(effects: Array) -> void:
 				_grant_item(str(effect.get("item_id", "")), maxi(1, amount if amount > 0 else 1))
 			"neuro_chips", "neuro_chip", "neurochip":
 				_grant_item("NEURO_CHIP", amount if amount > 0 else 10)
+			"exp", "experience", "xp":
+				if player_stats != null and amount > 0:
+					player_stats.add_exp(amount)
+					_pending_rewards["exp"] = int(_pending_rewards.get("exp", 0)) + amount
+			"spend_chips", "cost_chips":
+				var cost := amount if amount > 0 else maxi(0, int(effect.get("spend_chips", 0)))
+				if cost > 0 and GameManager != null:
+					GameManager.spend_chips(cost)
+					_pending_rewards["spent_chips"] = int(_pending_rewards.get("spent_chips", 0)) + cost
+			"damage":
+				## Applied only when DAMAGE is not the primary outcome kind.
+				pass
+			"item_choice", "select_item", "loot", "loot_offer", "reward_loot", "combat", "fight":
+				## Control-flow effects — handled by outcome.kind.
+				pass
 			"pale_maiden_pact":
 				if StoryEventManager != null:
 					StoryEventManager.mark_pale_maiden_pact()

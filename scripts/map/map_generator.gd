@@ -445,6 +445,7 @@ static func _build_event_encounter(act_data: ActData, node: MapNodeData) -> Enco
 		if story_enc != null:
 			story_enc.payload["map_node_id"] = node.id
 			story_enc.payload["act"] = act_index
+			story_enc.payload["layer"] = node.layer
 			return story_enc
 	var encounter := EncounterData.new()
 	encounter.id = node.id

@@ -520,6 +520,22 @@ EVENT_PALE_MAIDEN_TITLE,Pale Maiden,Бледная дева
 EVENT_WHITE_FOG_TITLE,White Fog,Белый туман
 EVENT_RAIM_GREAT_ASCENT_TITLE,The Great Ascent,Великий подъём
 EVENT_RAIM_HOLLOW_WINDOWS_TITLE,Hollow Windows,Пустые окна
+EVENT_ENC_CREMATORIUM_TITLE,Biomaterial Reception Point,Пункт приёма биоматериала
+EVENT_ENC_CREMATORIUM_CHOICE_PAY,[Pay 100 Neuro-Chips] Cover the woman,[Заплатить 100 нейро-чипов] Оплатить за женщину
+EVENT_ENC_CREMATORIUM_CHOICE_INT,[INT Check] Point out a protocol error,[Проверка ИНТ] Указать на ошибку протокола
+EVENT_ENC_CREMATORIUM_CHOICE_STR,[STR Check] Smash the control panel,[Проверка СИЛ] Разбить панель управления
+EVENT_ENC_CREMATORIUM_CHOICE_VIP,[Fake VIP Card] Override the system,[Поддельная VIP-карта] Переопределить систему
+EVENT_ENC_CREMATORIUM_CHOICE_SELL,[Sell END] Stand in line and sell part of yourself,[Продать ВЫН] Встать в очередь и продать часть себя
+EVENT_ENC_CREMATORIUM_CHOICE_LEAVE,[Leave] Walk past,[Уйти] Пройти мимо
+EVENT_ENC_CREMATORIUM_CONTINUE,Continue,Продолжить
+EVENT_ENC_CREMATORIUM_TAKE_SALVAGE,Take the salvage,Забрать добычу
+EVENT_ENC_COLLECTOR_HOUSE_TITLE,Collector's House,Дом коллекционера
+EVENT_ENC_COLLECTOR_HOUSE_CHOICE_WEAPON,Take experimental weapon,Взять экспериментальное оружие
+EVENT_ENC_COLLECTOR_HOUSE_CHOICE_MODULE,Take rare module,Взять редкий модуль
+EVENT_ENC_COLLECTOR_HOUSE_CHOICE_INT,[INT Check] Look around closely and attempt to grab both rewards,[Проверка ИНТ] Осмотреться внимательно и попытаться забрать оба
+EVENT_ENC_COLLECTOR_HOUSE_CONTINUE,Continue,Продолжить
+EVENT_ENC_COLLECTOR_HOUSE_TAKE_BOTH,Take both rewards,Забрать оба трофея
+EVENT_ENC_COLLECTOR_HOUSE_FIGHT,Defend yourself,Защищаться
 ITEM_EYE_OF_PALE_MAIDEN_NAME,Eye of the Pale Maiden,Глаз Бледной девы
 ITEM_EYE_OF_PALE_MAIDEN_DESC,"+1 AP on combat turn 1. If adjacent to any weapon, -1 AP instead.","+1 ОД в первый ход боя. Если рядом с оружием — вместо этого -1 ОД."
 ITEM_FANG_OF_THE_FORGOTTEN_NAME,Fang of the Forgotten,Клык Забытой

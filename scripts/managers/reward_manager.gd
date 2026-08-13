@@ -301,3 +301,101 @@ func _is_consumable_proto(proto: ItemData) -> bool:
 	if proto.item_type != null and proto.item_type.id.strip_edges().to_upper() == "CONSUMABLE":
 		return true
 	return false
+
+
+func generate_rare_offer(count: int = 3) -> Array[ItemData]:
+	## Dialog reward: N distinct RARE / VERY_RARE gear items (pick subset in UI).
+	var out: Array[ItemData] = []
+	var used: Dictionary = {}
+	var n := maxi(1, count)
+	for _i in n:
+		var item := _pick_rare_or_better_gear(used)
+		if item == null:
+			break
+		out.append(item)
+		used[item.id.strip_edges().to_upper()] = true
+	return out
+
+
+func generate_rare_weapon() -> ItemData:
+	return _pick_typed_rare_or_better(["WEAPON"], {})
+
+
+func generate_rare_module() -> ItemData:
+	return _pick_typed_rare_or_better(["AMPLIFIER", "ACTIVE_MODULE", "IMPLANT"], {})
+
+
+func ensure_at_least_one_rare(items: Array[ItemData]) -> Array[ItemData]:
+	## Elite dialog combat: guarantee ≥1 RARE / VERY_RARE in the offer.
+	for item in items:
+		if item != null and item.rarity != null:
+			var tier := item.rarity.get_tier()
+			if tier == ItemRarityData.Tier.RARE or tier == ItemRarityData.Tier.VERY_RARE:
+				return items
+	var used: Dictionary = {}
+	for item2 in items:
+		if item2 != null:
+			used[item2.id.strip_edges().to_upper()] = true
+	var rare := _pick_rare_or_better_gear(used)
+	if rare == null:
+		return items
+	var out: Array[ItemData] = items.duplicate()
+	if out.is_empty():
+		out.append(rare)
+	else:
+		out[0] = rare
+	out.shuffle()
+	return out
+
+
+func _pick_rare_or_better_gear(used_ids: Dictionary) -> ItemData:
+	var roll := randf()
+	var tier := ItemRarityData.Tier.RARE if roll < 0.78 else ItemRarityData.Tier.VERY_RARE
+	var item := _pick_random_item_of_tier(tier, false, used_ids)
+	if item == null:
+		item = _pick_random_item_of_tier(ItemRarityData.Tier.RARE, false, used_ids)
+	return item
+
+
+func _pick_typed_rare_or_better(type_ids: Array[String], used_ids: Dictionary) -> ItemData:
+	if ItemDatabase == null:
+		return null
+	var allowed: Dictionary = {}
+	for tid in type_ids:
+		allowed[tid.strip_edges().to_upper()] = true
+	var rare_pool: Array[ItemData] = []
+	var vr_pool: Array[ItemData] = []
+	for proto: ItemData in ItemDatabase.get_all_items():
+		if proto == null or proto.item_type == null or proto.rarity == null:
+			continue
+		if proto.is_currency() or proto.is_harmful_item():
+			continue
+		if _is_excluded_loot(proto.id):
+			continue
+		if used_ids.has(proto.id.strip_edges().to_upper()):
+			continue
+		var type_key := proto.item_type.id.strip_edges().to_upper()
+		if not allowed.has(type_key):
+			continue
+		var tier := proto.rarity.get_tier()
+		if tier == ItemRarityData.Tier.VERY_RARE:
+			vr_pool.append(proto)
+		elif tier == ItemRarityData.Tier.RARE:
+			rare_pool.append(proto)
+	var pool: Array[ItemData] = rare_pool
+	if randf() < 0.22 and not vr_pool.is_empty():
+		pool = vr_pool
+	elif pool.is_empty():
+		pool = vr_pool
+	if pool.is_empty():
+		## Soft fallback: any matching type.
+		for proto2: ItemData in ItemDatabase.get_all_items():
+			if proto2 == null or proto2.item_type == null:
+				continue
+			if allowed.has(proto2.item_type.id.strip_edges().to_upper()):
+				if not _is_excluded_loot(proto2.id) and not used_ids.has(proto2.id.strip_edges().to_upper()):
+					pool.append(proto2)
+	if pool.is_empty():
+		return null
+	var pick: ItemData = pool[randi() % pool.size()]
+	return ItemDatabase.create_instance(pick.id)

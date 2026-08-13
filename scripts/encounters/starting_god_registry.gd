@@ -162,6 +162,11 @@ static func _parse_choice(choice_dict: Dictionary) -> DialogChoiceData:
 	choice.stat_check = str(choice_dict.get("stat_check", ""))
 	choice.check_dc = int(choice_dict.get("check_dc", 0))
 	choice.stat_pool_bonus = int(choice_dict.get("stat_pool_bonus", 0))
+	choice.require_chips = maxi(0, int(choice_dict.get("require_chips", 0)))
+	choice.cost_chips = maxi(0, int(choice_dict.get("cost_chips", choice_dict.get("spend_chips", 0))))
+	choice.require_item_id = str(
+		choice_dict.get("require_item", choice_dict.get("require_item_id", ""))
+	).strip_edges()
 
 	var success_next := str(choice_dict.get("success_next_dialog_id", "")).strip_edges()
 	var failure_next := str(choice_dict.get("failure_next_dialog_id", "")).strip_edges()
@@ -172,6 +177,8 @@ static func _parse_choice(choice_dict: Dictionary) -> DialogChoiceData:
 		var success_dict := choice_dict.duplicate(true)
 		if not success_next.is_empty():
 			success_dict["next_dialog_id"] = success_next
+		if choice_dict.has("success_reward"):
+			success_dict["reward"] = choice_dict.get("success_reward")
 		choice.success_outcome = _outcome_from_choice(success_dict)
 		if not failure_next.is_empty():
 			var fail_dict: Dictionary = {"next_dialog_id": failure_next}
@@ -182,11 +189,21 @@ static func _parse_choice(choice_dict: Dictionary) -> DialogChoiceData:
 			choice.failure_outcome = _outcome_from_choice(fail_dict)
 		else:
 			choice.failure_outcome = DialogOutcomeData.make_end()
+		## Chip cost applies on the chosen branch after the check resolves.
+		if choice.cost_chips > 0:
+			if choice.success_outcome != null:
+				choice.success_outcome.spend_chips = maxi(
+					choice.success_outcome.spend_chips, choice.cost_chips
+				)
 		return choice
 
 	## New format: next_dialog_id + reward
 	if choice_dict.has("next_dialog_id") or choice_dict.has("reward"):
 		choice.success_outcome = _outcome_from_choice(choice_dict)
+		if choice.cost_chips > 0 and choice.success_outcome != null:
+			choice.success_outcome.spend_chips = maxi(
+				choice.success_outcome.spend_chips, choice.cost_chips
+			)
 		return choice
 
 	## Legacy: nested outcome object
@@ -226,17 +243,7 @@ static func _outcome_from_choice(choice_dict: Dictionary) -> DialogOutcomeData:
 			for entry in effects_raw:
 				if typeof(entry) == TYPE_DICTIONARY:
 					o.payload_effects.append((entry as Dictionary).duplicate(true))
-			if o.payload_effects.size() > 0:
-				var first: Dictionary = o.payload_effects[0]
-				var ft := str(first.get("type", "")).strip_edges().to_lower()
-				if ft in ["item", "grant_item"]:
-					o.kind = DialogOutcomeData.OutcomeKind.GRANT_ITEM
-					o.item_id = str(first.get("item_id", "")).strip_edges()
-					o.item_amount = maxi(1, int(first.get("amount", 1)))
-				elif ft in ["strength", "humanity", "endurance", "agility", "intelligence", "luck"]:
-					o.kind = DialogOutcomeData.OutcomeKind.GRANT_STAT
-					o.stat_name = ft
-					o.stat_amount = int(first.get("amount", 0))
+			_apply_compound_primary_kind(o, next_id)
 			_apply_god_flags_from_reward(o, reward)
 			_preserve_branch_nav(o, next_id)
 			return o
@@ -269,12 +276,44 @@ static func _outcome_from_choice(choice_dict: Dictionary) -> DialogOutcomeData:
 			"item_choice", "select_item":
 				o.kind = DialogOutcomeData.OutcomeKind.SELECT_ITEM
 				o.item_pool_id = str(reward.get("pool", reward.get("item_pool_id", ""))).strip_edges()
+				o.loot_pick_count = maxi(1, int(reward.get("pick_count", reward.get("loot_pick_count", 1))))
 				var ids_raw: Variant = reward.get("item_ids", [])
 				if ids_raw is Array:
 					for eid in ids_raw:
 						var sid := str(eid).strip_edges()
 						if not sid.is_empty():
 							o.item_pool_ids.append(sid)
+			"loot", "loot_offer", "reward_loot":
+				## Opens RewardScreen with generated items (pick_count allowed).
+				o.kind = DialogOutcomeData.OutcomeKind.SELECT_ITEM
+				o.item_pool_id = str(reward.get("pool", reward.get("item_pool_id", ""))).strip_edges()
+				o.loot_pick_count = maxi(1, int(reward.get("pick_count", reward.get("loot_pick_count", 1))))
+				var loot_ids: Variant = reward.get("item_ids", [])
+				if loot_ids is Array:
+					for eid2 in loot_ids:
+						var sid2 := str(eid2).strip_edges()
+						if not sid2.is_empty():
+							o.item_pool_ids.append(sid2)
+			"damage":
+				o.kind = DialogOutcomeData.OutcomeKind.DAMAGE
+				o.damage_amount = amount if amount > 0 else int(reward.get("damage_amount", 0))
+			"exp", "experience", "xp":
+				o.exp_amount = amount if amount > 0 else 0
+				## Keep navigation; EXP is applied as a side effect.
+				if o.kind == DialogOutcomeData.OutcomeKind.END and not next_id.is_empty() and next_id != END_ENCOUNTER_ID:
+					o.kind = DialogOutcomeData.OutcomeKind.CONTINUE
+			"combat", "fight":
+				o.kind = DialogOutcomeData.OutcomeKind.COMBAT
+				o.elite_rewards = bool(reward.get("elite_rewards", reward.get("elite", false)))
+				o.faction = str(reward.get("faction", "")).strip_edges()
+				var enemy_raw: Variant = reward.get("enemy_ids", [])
+				if enemy_raw is Array:
+					for eid3 in enemy_raw:
+						var sid3 := str(eid3).strip_edges()
+						if not sid3.is_empty():
+							o.enemy_ids.append(sid3)
+			"spend_chips", "cost_chips":
+				o.spend_chips = amount if amount > 0 else maxi(0, int(reward.get("spend_chips", 0)))
 			"enemies_start_1hp", "cripple_foes":
 				## Keep dialog navigation; buff is applied by EncounterManager.
 				if o.kind == DialogOutcomeData.OutcomeKind.END:
@@ -296,6 +335,72 @@ static func _preserve_branch_nav(o: DialogOutcomeData, next_id: String) -> void:
 		o.next_node_id = next_id
 	else:
 		o.next_node_id = ""
+
+
+static func _apply_compound_primary_kind(o: DialogOutcomeData, next_id: String) -> void:
+	## Pick the strongest control-flow effect; side effects stay in payload_effects.
+	for entry in o.payload_effects:
+		if typeof(entry) != TYPE_DICTIONARY:
+			continue
+		var effect: Dictionary = entry
+		var ft := str(effect.get("type", "")).strip_edges().to_lower()
+		var amount := int(effect.get("amount", 0))
+		match ft:
+			"combat", "fight":
+				o.kind = DialogOutcomeData.OutcomeKind.COMBAT
+				o.elite_rewards = bool(effect.get("elite_rewards", effect.get("elite", false)))
+				o.faction = str(effect.get("faction", "")).strip_edges()
+				var enemy_raw: Variant = effect.get("enemy_ids", [])
+				if enemy_raw is Array:
+					for eid in enemy_raw:
+						var sid := str(eid).strip_edges()
+						if not sid.is_empty():
+							o.enemy_ids.append(sid)
+			"item_choice", "select_item", "loot", "loot_offer", "reward_loot":
+				o.kind = DialogOutcomeData.OutcomeKind.SELECT_ITEM
+				o.item_pool_id = str(effect.get("pool", effect.get("item_pool_id", ""))).strip_edges()
+				o.loot_pick_count = maxi(1, int(effect.get("pick_count", effect.get("loot_pick_count", 1))))
+				var ids_raw: Variant = effect.get("item_ids", [])
+				if ids_raw is Array:
+					for eid2 in ids_raw:
+						var sid2 := str(eid2).strip_edges()
+						if not sid2.is_empty():
+							o.item_pool_ids.append(sid2)
+			"damage":
+				if o.kind != DialogOutcomeData.OutcomeKind.COMBAT and o.kind != DialogOutcomeData.OutcomeKind.SELECT_ITEM:
+					o.kind = DialogOutcomeData.OutcomeKind.DAMAGE
+					o.damage_amount = amount if amount > 0 else int(effect.get("damage_amount", 0))
+			"item", "grant_item":
+				if o.kind in [
+					DialogOutcomeData.OutcomeKind.END,
+					DialogOutcomeData.OutcomeKind.CONTINUE,
+				]:
+					o.kind = DialogOutcomeData.OutcomeKind.GRANT_ITEM
+					o.item_id = str(effect.get("item_id", "")).strip_edges()
+					o.item_amount = maxi(1, amount if amount > 0 else 1)
+			"strength", "humanity", "endurance", "agility", "intelligence", "luck":
+				if o.kind in [
+					DialogOutcomeData.OutcomeKind.END,
+					DialogOutcomeData.OutcomeKind.CONTINUE,
+				]:
+					o.kind = DialogOutcomeData.OutcomeKind.GRANT_STAT
+					o.stat_name = ft
+					o.stat_amount = amount if amount != 0 else 1
+			"exp", "experience", "xp":
+				## Applied via payload_effects in EncounterManager — avoid double grant.
+				pass
+			"spend_chips", "cost_chips":
+				## Applied via payload_effects unless already set as outcome.spend_chips.
+				if o.spend_chips <= 0:
+					o.spend_chips = amount if amount > 0 else maxi(0, int(effect.get("spend_chips", 0)))
+			_:
+				pass
+	if (
+		o.kind == DialogOutcomeData.OutcomeKind.END
+		and not next_id.is_empty()
+		and next_id != END_ENCOUNTER_ID
+	):
+		o.kind = DialogOutcomeData.OutcomeKind.CONTINUE
 
 
 static func _apply_god_flags_from_reward(o: DialogOutcomeData, reward: Dictionary) -> void:

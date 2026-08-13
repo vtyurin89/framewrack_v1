@@ -164,6 +164,8 @@ func _rebuild_catalog() -> void:
 	## Act 1 city beats — travel through the ruins of Ra'im.
 	_register_event("raim_great_ascent", StoryEvent.Faction.HUMAN, "raim_great_ascent", false)
 	_register_event("raim_hollow_windows", StoryEvent.Faction.HUMAN, "raim_hollow_windows", false)
+	_register_event("enc_crematorium", StoryEvent.Faction.HUMAN, "enc_crematorium", false)
+	_register_event("enc_collector_house", StoryEvent.Faction.HUMAN, "enc_collector_house", false)
 
 
 func _register_event(
