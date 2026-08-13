@@ -383,16 +383,29 @@ func _start_combat_from_ids(
 	if datas.is_empty() and active_encounter != null:
 		if active_encounter.type == EncounterData.EncounterType.COMBAT_BOSS:
 			var act := int(active_encounter.payload.get("act", 1))
-			var resolved_faction := faction.strip_edges().to_lower()
-			if resolved_faction.is_empty():
-				resolved_faction = _default_faction_for_act(act)
-			var boss: EnemyData = null
-			if not resolved_faction.is_empty():
-				boss = EnemyDatabase.get_random_boss_for_faction(resolved_faction)
-			if boss == null:
-				boss = EnemyDatabase.get_random_boss()
-			if boss != null:
-				datas.append(boss)
+			## Act 1 finale: Elder Vaeron flanked by both Stasis Pods.
+			if act <= 1:
+				var vaeron_ids: Array[String] = [
+					"stasis_pod_left",
+					"elder_vaeron",
+					"stasis_pod_right",
+				]
+				for vid: String in vaeron_ids:
+					if EnemyDatabase != null and EnemyDatabase.has_enemy(vid):
+						var bp := EnemyDatabase.create_blueprint(vid)
+						if bp != null:
+							datas.append(bp)
+			if datas.is_empty():
+				var resolved_faction := faction.strip_edges().to_lower()
+				if resolved_faction.is_empty():
+					resolved_faction = _default_faction_for_act(act)
+				var boss: EnemyData = null
+				if not resolved_faction.is_empty():
+					boss = EnemyDatabase.get_random_boss_for_faction(resolved_faction)
+				if boss == null:
+					boss = EnemyDatabase.get_random_boss()
+				if boss != null:
+					datas.append(boss)
 		else:
 			## Last-resort group pick when payload lacked layer / ids.
 			var layer := int(active_encounter.payload.get("layer", 1))
@@ -414,6 +427,15 @@ func _start_combat_from_ids(
 		max_attackers = maxi(1, group.max_attackers_per_turn)
 	elif active_encounter != null:
 		max_attackers = maxi(1, int(active_encounter.payload.get("max_attackers_per_turn", 2)))
+	## Vaeron trio needs three attack slots so pods can support every turn.
+	if datas.size() >= 3:
+		var has_vaeron := false
+		for d: EnemyData in datas:
+			if d != null and d.id == "elder_vaeron":
+				has_vaeron = true
+				break
+		if has_vaeron:
+			max_attackers = maxi(max_attackers, 3)
 
 	datas = _apply_cripple_buff_to_enemies(datas)
 	if StoryEventManager != null:

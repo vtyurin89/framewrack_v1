@@ -266,6 +266,10 @@ static func _get_mandatory_plan_override(
 			var forced := FacelessLady.pick_scripted_ability(enemy, combat)
 			if forced != null:
 				return forced
+		"elder_vaeron", "stasis_pod_left", "stasis_pod_right":
+			var vaeron_forced := ElderVaeron.pick_scripted_ability(enemy, combat)
+			if vaeron_forced != null:
+				return vaeron_forced
 		_:
 			pass
 	return null
@@ -353,6 +357,8 @@ static func _pick_scripted_main(enemy: EnemyInstance, combat: Node) -> EnemyAbil
 			return _ai_field_medic(enemy, combat)
 		"faceless_lady":
 			return FacelessLady.pick_scripted_ability(enemy, combat)
+		"elder_vaeron", "stasis_pod_left", "stasis_pod_right":
+			return ElderVaeron.pick_scripted_ability(enemy, combat)
 		_:
 			return null
 

@@ -21,6 +21,8 @@ var statuses: StatusController = StatusController.new()
 var summoner_ref: WeakRef = null
 ## Pocket thief: chips stolen this combat (returned on death, kept on flee).
 var stolen_chips: int = 0
+## Stasis Pod Right: grid item stolen this combat (returned on pod death).
+var stolen_grid_item: ItemData = null
 ## Number of combat turns this enemy has started (for PRE_ACTION intervals).
 var turns_taken: int = 0
 ## Remaining cooldown turns keyed by ability id.
@@ -40,6 +42,7 @@ func setup(blueprint: EnemyData) -> void:
 	data = blueprint
 	turns_taken = 0
 	stolen_chips = 0
+	stolen_grid_item = null
 	summoner_ref = null
 	_ability_cooldowns.clear()
 	_prepared_ability_ids.clear()

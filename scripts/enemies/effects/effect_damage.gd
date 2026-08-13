@@ -55,7 +55,7 @@ func _apply_status_riders(caster: EnemyInstance, target: Node, ability: EnemyAbi
 	## Whitelist known status riders so numeric / misc params are ignored.
 	var known := [
 		"slow", "bleed", "burn", "poison", "weakness", "vulnerability", "rust", "stun",
-		"panic", "healing_curse",
+		"panic", "healing_curse", "sensor_glitch",
 	]
 	var i := 0
 	while i < csv.size():

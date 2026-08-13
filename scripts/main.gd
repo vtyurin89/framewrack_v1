@@ -1081,19 +1081,28 @@ func _on_combat_continue() -> void:
 
 func _on_forced_insertion_requested(item_id: String) -> void:
 	var instance: ItemData = null
-	if ItemDatabase != null:
+	if _combat != null and _combat.has_method("take_pending_forced_item"):
+		instance = _combat.take_pending_forced_item() as ItemData
+	if instance == null and ItemDatabase != null:
 		instance = ItemDatabase.create_instance(item_id)
 	if instance == null:
 		push_warning("Main: forced insertion missing item '%s'" % item_id)
 		if _combat.has_method("complete_forced_item_insertion"):
 			_combat.complete_forced_item_insertion()
 		return
-	instance.enforce_harmful_constraints()
+	## Harmful parasites keep drop/use constraints; returned stolen loot does not.
+	if instance.is_harmful:
+		instance.enforce_harmful_constraints()
 	_ensure_forced_item_screen()
 	if _inventory_ui.has_method("set_combat_mode"):
 		_inventory_ui.set_combat_mode(false)
 	if _combat_ui.has_method("set_harmful_insertion_phase"):
-		_combat_ui.set_harmful_insertion_phase(true)
+		var banner := (
+			tr("KEY_FORCED_INSERT_BANNER")
+			if instance.is_harmful
+			else tr("KEY_FORCED_INSERT_RETURN")
+		)
+		_combat_ui.set_harmful_insertion_phase(true, banner)
 	_forced_insertion_active = true
 	_forced_item_screen.open_session(instance, inventory, _inventory_ui)
 

@@ -15,9 +15,14 @@ signal forced_insertion_requested(item_id: String)
 signal forced_insertion_completed
 
 const SLIMY_PARASITE_ID := "SLIMY_PARASITE"
+const BIONIC_LARVA_ID := "BIONIC_LARVA"
+const NEURO_TICK_ID := "NEURO_TICK"
 const PARASITE_TURN_DAMAGE := 3
+const BIONIC_LARVA_TURN_DAMAGE := 1
+const NEURO_TICK_ACTIVATION_DAMAGE := 1
 const PARASITE_AP_CAP := 3
 const WAR_MODULE_TEMP_DMG := 2
+const SENSOR_GLITCH_RETARGET_CHANCE := 0.5
 
 var inventory: InventoryController
 var player_stats: PlayerStats
@@ -42,6 +47,10 @@ var player_turn_index: int = 0
 var _parasite_at_combat_start: bool = false
 ## Mid-enemy-turn pause while ForcedItemScreen is open.
 var awaiting_forced_insertion: bool = false
+## Optional prebuilt ItemData for forced insertion (stolen item return).
+var _pending_forced_item: ItemData = null
+## HP damage dealt to charging Vaeron during the current player turn.
+var _vaeron_charge_damage: int = 0
 ## Presentation hooks bound by CombatUI (async Callables).
 var _play_enemy_attack_fx: Callable
 var _play_enemy_flee_fx: Callable
@@ -174,6 +183,7 @@ func _set_state(next: CombatState) -> void:
 
 func _begin_player_turn() -> void:
 	## Strict player turn pipeline.
+	_vaeron_charge_damage = 0
 	_reset_player_resources()
 	if not _apply_slimy_parasite_turn_damage():
 		return
@@ -250,6 +260,24 @@ func _apply_slimy_parasite_turn_damage() -> bool:
 	return true
 
 
+func _apply_bionic_larva_turn_damage() -> bool:
+	## End of every player turn while a Bionic Larva is lodged.
+	if not _has_item_in_grid(BIONIC_LARVA_ID) or inventory == null:
+		return true
+	var dealt := inventory.apply_damage(BIONIC_LARVA_TURN_DAMAGE, 0)
+	_request_player_popup(dealt if dealt > 0 else BIONIC_LARVA_TURN_DAMAGE, "poison")
+	if dealt > 0 or BIONIC_LARVA_TURN_DAMAGE > 0:
+		_trigger_player_hit_feedback(maxi(dealt, BIONIC_LARVA_TURN_DAMAGE))
+	EventBus.combat_log_message.emit(
+		tr("KEY_LOG_BIONIC_LARVA_DAMAGE") % BIONIC_LARVA_TURN_DAMAGE
+	)
+	EventBus.player_hp_changed.emit(inventory.current_hp, inventory.max_hp)
+	if inventory.is_dead():
+		_lose()
+		return false
+	return true
+
+
 func _eye_of_pale_maiden_turn1_ap_mod() -> int:
 	## +1 AP on turn 1, or -1 if the eye sits adjacent to any weapon.
 	if inventory == null or inventory.grid == null:
@@ -286,6 +314,8 @@ func _player_pre_turn_phase() -> bool:
 	if bool(result.get("skip_turn", false)):
 		EventBus.combat_log_message.emit(tr("KEY_LOG_STUNNED"))
 		_player_post_turn_phase()
+		if not _apply_bionic_larva_turn_damage():
+			return false
 		_begin_enemy_turn()
 		return false
 	return true
@@ -323,6 +353,8 @@ func end_player_turn() -> void:
 	if _player_action_busy:
 		return
 	_player_post_turn_phase()
+	if not _apply_bionic_larva_turn_damage():
+		return
 	_begin_enemy_turn()
 
 
@@ -472,12 +504,14 @@ func activate_item(placed: PlacedItem) -> bool:
 			else:
 				data.start_cooldown()
 			EventBus.combat_item_availability_changed.emit()
+			_apply_neuro_tick_adjacent_damage(placed)
 			_finish_player_activation()
 			return true
 
 	_consume_charge_if_needed(placed)
 	data.start_cooldown()
 	EventBus.combat_item_availability_changed.emit()
+	_apply_neuro_tick_adjacent_damage(placed)
 
 	_finish_player_activation()
 	return true
@@ -611,6 +645,7 @@ func _resolve_auto_scatter_async(placed: PlacedItem) -> void:
 		_apply_oracle_kill_bonus(placed, killed_count)
 	if any_hit:
 		_apply_armorless_adjacent_heal_on_hit(placed)
+	_apply_neuro_tick_adjacent_damage(placed)
 
 	_player_action_busy = false
 	EventBus.combat_item_availability_changed.emit()
@@ -746,6 +781,10 @@ func _deal_damage_to(
 ) -> bool:
 	if index < 0 or index >= enemies.size():
 		return false
+	## Sensor Glitch: 50% chance to retarget to another living enemy.
+	index = _maybe_sensor_glitch_retarget(index)
+	if index < 0 or index >= enemies.size():
+		return false
 	var enemy: EnemyInstance = enemies[index]
 	if not enemy.is_alive():
 		return false
@@ -771,6 +810,8 @@ func _deal_damage_to(
 	enemy.apply_incoming_damage(final_dmg, pierce_block)
 	var dealt := maxi(0, hp_before - enemy.current_hp)
 	var block_absorbed := maxi(0, block_before - enemy.current_block)
+	if ElderVaeron.is_vaeron(enemy) and ElderVaeron.is_pod_right_alive(self):
+		ElderVaeron.clamp_vaeron_block(enemy)
 	if (
 		had_evasion
 		and dealt <= 0
@@ -804,6 +845,8 @@ func _deal_damage_to(
 		)
 	EventBus.enemy_hp_changed.emit(index, enemy.current_hp, enemy.max_hp)
 	EventBus.enemy_block_changed.emit(index, enemy.current_block)
+	if dealt > 0 and state == CombatState.PLAYER_TURN:
+		_register_vaeron_charge_damage(enemy, dealt)
 	if not enemy.is_alive():
 		enemy.clear_intention()
 		EventBus.enemy_intention_changed.emit(index, enemy.current_intention)
@@ -1234,24 +1277,93 @@ func _enemy_main_action_phase(index: int, enemy: EnemyInstance) -> void:
 	_active_player_attacker = null
 
 
-func request_forced_item_insertion(item_id: String) -> void:
+func request_forced_item_insertion(item_id: String, existing: ItemData = null) -> void:
 	## Called by EffectForceInsert mid-enemy-turn; Main opens ForcedItemScreen.
 	var id := item_id.strip_edges()
 	if id.is_empty():
 		id = SLIMY_PARASITE_ID
+	_pending_forced_item = existing
 	awaiting_forced_insertion = true
 	forced_insertion_requested.emit(id)
+
+
+func take_pending_forced_item() -> ItemData:
+	var item := _pending_forced_item
+	_pending_forced_item = null
+	return item
 
 
 func complete_forced_item_insertion() -> void:
 	if not awaiting_forced_insertion:
 		return
 	awaiting_forced_insertion = false
+	_pending_forced_item = null
 	forced_insertion_completed.emit()
+
+
+func try_auto_insert_item(item_id: String) -> bool:
+	## Place a fresh instance into the first free footprint; returns false if no fit.
+	if inventory == null or ItemDatabase == null:
+		return false
+	var inst := ItemDatabase.create_instance(item_id)
+	if inst == null:
+		return false
+	inst.enforce_harmful_constraints()
+	if not inventory.try_place_anywhere(inst):
+		return false
+	EventBus.combat_log_message.emit(
+		tr("KEY_LOG_AUTO_INSERT") % inst.get_localized_name()
+	)
+	EventBus.inventory_changed.emit()
+	return true
+
+
+func find_enemy_by_id(enemy_id: String) -> EnemyInstance:
+	var needle := enemy_id.strip_edges().to_lower()
+	for enemy: EnemyInstance in enemies:
+		if enemy == null or enemy.data == null:
+			continue
+		if enemy.data.id.strip_edges().to_lower() == needle and enemy.is_alive():
+			return enemy
+	return null
+
+
+func steal_item_from_player_grid(caster: EnemyInstance) -> ItemData:
+	## Prefer a consumable; otherwise any non-harmful module. Returns null if nothing.
+	if inventory == null or inventory.grid == null:
+		return null
+	var consumables: Array[PlacedItem] = []
+	var fallback: Array[PlacedItem] = []
+	for placed: PlacedItem in inventory.grid.items:
+		if placed == null or placed.data == null:
+			continue
+		if placed.data.is_harmful:
+			continue
+		if placed.data.is_currency():
+			continue
+		if (
+			placed.data.item_type != null
+			and placed.data.item_type.id.strip_edges().to_upper() == "CONSUMABLE"
+		):
+			consumables.append(placed)
+		else:
+			fallback.append(placed)
+	var pool: Array[PlacedItem] = consumables if not consumables.is_empty() else fallback
+	if pool.is_empty():
+		return null
+	var pick: PlacedItem = pool[randi() % pool.size()]
+	var data: ItemData = pick.data
+	inventory.grid.remove_item(pick, true)
+	return data
 
 
 func _expire_enemy_block_for_turn_start(index: int, enemy: EnemyInstance) -> void:
 	if enemy == null:
+		return
+	## Right Stasis Pod keeps Elder Vaeron's Block across his turns (capped).
+	if ElderVaeron.is_vaeron(enemy) and ElderVaeron.is_pod_right_alive(self):
+		ElderVaeron.clamp_vaeron_block(enemy)
+		EventBus.enemy_block_changed.emit(index, enemy.current_block)
 		return
 	if not enemy.clear_block_for_new_turn():
 		return
@@ -1474,10 +1586,84 @@ func _on_enemy_defeated(enemy: EnemyInstance, _index: int) -> void:
 	if enemy.data != null and enemy.data.id.strip_edges().to_lower() == "faceless_lady":
 		if StoryEventManager != null:
 			StoryEventManager.mark_faceless_lady_defeated()
+	## Right Stasis Pod death: return any stolen grid item via ForcedItemScreen.
+	if ElderVaeron.is_pod_right(enemy) and enemy.stolen_grid_item != null:
+		var stolen: ItemData = enemy.stolen_grid_item
+		enemy.stolen_grid_item = null
+		EventBus.combat_log_message.emit(
+			tr("KEY_LOG_POD_STEAL_RETURN") % stolen.get_localized_name()
+		)
+		request_forced_item_insertion(stolen.id, stolen)
 	## Summoned creatures break and prepare to flee when their master dies.
 	_break_summons_of(enemy)
 	## Other living enemies reason-check (keep plan unless a real override applies).
 	_reevaluate_allies_after_death(enemy)
+
+
+func _apply_neuro_tick_adjacent_damage(activated: PlacedItem) -> void:
+	## Neuro Tick: 1 HP whenever an orthogonally adjacent module is activated.
+	if activated == null or inventory == null or inventory.grid == null:
+		return
+	if state != CombatState.PLAYER_TURN:
+		return
+	var ticks := 0
+	for neighbour: PlacedItem in inventory.grid.get_adjacent_items(activated):
+		if neighbour == null or neighbour.data == null:
+			continue
+		if neighbour.data.id.strip_edges().to_upper() != NEURO_TICK_ID:
+			continue
+		ticks += 1
+	if ticks <= 0:
+		return
+	var total := ticks * NEURO_TICK_ACTIVATION_DAMAGE
+	var dealt := inventory.apply_damage(total, 0)
+	_request_player_popup(dealt if dealt > 0 else total, "poison")
+	_trigger_player_hit_feedback(maxi(dealt, total))
+	EventBus.combat_log_message.emit(tr("KEY_LOG_NEURO_TICK_DAMAGE") % total)
+	EventBus.player_hp_changed.emit(inventory.current_hp, inventory.max_hp)
+	if inventory.is_dead():
+		_lose()
+
+
+func _maybe_sensor_glitch_retarget(intended_index: int) -> int:
+	if player_statuses == null or player_statuses.get_stacks("sensor_glitch") <= 0:
+		return intended_index
+	if randf() >= SENSOR_GLITCH_RETARGET_CHANCE:
+		return intended_index
+	var living := _living_enemy_indices()
+	var alternatives: Array[int] = []
+	for idx: int in living:
+		if idx != intended_index:
+			alternatives.append(idx)
+	if alternatives.is_empty():
+		return intended_index
+	var picked: int = alternatives[randi() % alternatives.size()]
+	EventBus.combat_log_message.emit(
+		tr("KEY_LOG_SENSOR_GLITCH_RETARGET") % enemies[picked].get_localized_name()
+	)
+	## Keep selection synced with the actual hit target.
+	_apply_selection(picked)
+	return picked
+
+
+func _register_vaeron_charge_damage(enemy: EnemyInstance, dealt: int) -> void:
+	if dealt <= 0 or not ElderVaeron.is_vaeron(enemy):
+		return
+	if not enemy.is_ability_prepared(ElderVaeron.ID_SYNAPSE_BLAST):
+		return
+	_vaeron_charge_damage += dealt
+	if _vaeron_charge_damage < ElderVaeron.SYNAPSE_INTERRUPT_DAMAGE:
+		return
+	enemy.consume_prepared_ability(ElderVaeron.ID_SYNAPSE_BLAST)
+	_vaeron_charge_damage = 0
+	EventBus.combat_log_message.emit(
+		tr("KEY_LOG_SYNAPSE_INTERRUPTED") % enemy.get_localized_name()
+	)
+	## Force a fresh telegraph after the charge is broken.
+	var idx := enemies.find(enemy)
+	if idx >= 0:
+		enemy.evaluate_intention({"block": current_block}, self)
+		EventBus.enemy_intention_changed.emit(idx, enemy.current_intention)
 
 
 func _apply_on_hit_weapon_statuses(placed: PlacedItem, enemy_index: int) -> void:

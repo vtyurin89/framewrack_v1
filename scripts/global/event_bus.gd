@@ -48,6 +48,8 @@ signal enemy_died(enemy_index: int)
 signal block_changed(amount: int)
 signal combat_item_availability_changed
 signal player_died
+## UI: animate an item icon flying from the grid toward an enemy card.
+signal item_stolen_by_enemy(enemy_index: int, item: ItemData)
 ## Floating damage / miss / status popup request (CombatUI resolves target nodes).
 ## target_kind: "enemy" | "player"
 signal damage_popup_requested(

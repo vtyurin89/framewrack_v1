@@ -199,7 +199,7 @@ func _pick_random_item_of_tier(
 	for proto: ItemData in ItemDatabase.get_all_items():
 		if proto == null or proto.rarity == null:
 			continue
-		if proto.is_currency():
+		if proto.is_currency() or proto.is_harmful_item():
 			continue
 		if _is_excluded_loot(proto.id):
 			continue
@@ -273,7 +273,7 @@ func _pick_any_matching(want_consumable: bool, used_ids: Dictionary = {}) -> Ite
 	for proto: ItemData in ItemDatabase.get_all_items():
 		if proto == null:
 			continue
-		if proto.is_currency():
+		if proto.is_currency() or proto.is_harmful_item():
 			continue
 		if _is_excluded_loot(proto.id):
 			continue

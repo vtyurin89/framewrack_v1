@@ -17,8 +17,12 @@ func apply(caster: EnemyInstance, target: Node, params: Array) -> void:
 		caster.emit_crit_notice(enemy_index)
 	amount = maxi(0, amount)
 	caster.gain_block(amount)
+	if ElderVaeron.is_vaeron(caster) and ElderVaeron.is_pod_right_alive(target):
+		ElderVaeron.clamp_vaeron_block(caster)
 	EventBus.combat_log_message.emit(
 		tr("KEY_LOG_ENEMY_BLOCK") % [caster.get_localized_name(), amount]
 	)
-	if target != null and target.has_method("emit_enemy_hp_for"):
+	if target != null and target.has_method("emit_enemy_block_for"):
+		target.call("emit_enemy_block_for", caster)
+	elif target != null and target.has_method("emit_enemy_hp_for"):
 		target.call("emit_enemy_hp_for", caster)

@@ -571,6 +571,8 @@ ITEM_BROKEN_SLOT_NAME,Broken Slot,Сломанный слот
 ITEM_BROKEN_SLOT_DESC,Spend 1 AP to clear this ruined body-grid mass.,Потратьте 1 ОД, чтобы очистить это разрушенное место на сетке.
 KEY_FORCED_INSERT_BANNER,"An entity has penetrated your frame! You must place the parasite into your body grid.","Сущность проникла в ваш фрейм! Вы должны поместить паразита в сетку тела."
 KEY_FORCED_INSERT_MUST_PLACE,Place the harmful item into your Body Grid first!,Сначала поместите вредоносный предмет в сетку тела!
+KEY_FORCED_INSERT_RETURN,"Stasis containment ruptured — reclaim your stolen module into the Body Grid.","Стазис разрушен — верните украденный модуль в сетку тела."
+KEY_FORCED_INSERT_MUST_RETURN,Place the returned module into your Body Grid first!,Сначала поместите возвращённый модуль в сетку тела!
 KEY_LOG_PARASITE_DAMAGE,Slimy Parasite drains %d HP.,Склизкий паразит высасывает %d HP.
 KEY_LOG_HARMFUL_SURGERY,You cut out %s.,Вы вырезаете: %s.
 KEY_LOG_PARASITE_INJECT,%s forces a parasite into your frame!,%s вживляет паразита в ваш каркас!
@@ -578,6 +580,53 @@ KEY_LOG_PARASITE_ALREADY,%s finds a parasite already lodged in the frame.,%s о�
 ABILITY_FACELESS_INJECT_NAME,Parasite Injection,Инъекция паразита
 ABILITY_FACELESS_INJECT_DESC,Forces a Slimy Parasite into the Body Grid.,Вживляет Склизкого паразита в сетку тела.
 ABILITY_FACELESS_INJECT_TEXT,{name} opens a wet seam in the frame.,{name} разрывает влажный шов в каркасе.
+ENEMY_ELDER_VAERON_NAME,Elder Vaeron,Старейшина Ваэрон
+ENEMY_ELDER_VAERON_DESC,"Act 1 boss. Flanked by Stasis Pods; corrupts targeting and forces parasites.","Босс 1 акта. В окружении стазис-подов; сбивает наведение и вживляет паразитов."
+ENEMY_STASIS_POD_LEFT_NAME,Stasis Pod (Left),Стазис-под (левый)
+ENEMY_STASIS_POD_LEFT_DESC,Heals Vaeron each turn and periodically injects a Bionic Larva.,Каждый ход лечит Ваэрона и периодически вживляет Бионическую личинку.
+ENEMY_STASIS_POD_RIGHT_NAME,Stasis Pod (Right),Стазис-под (правый)
+ENEMY_STASIS_POD_RIGHT_DESC,Keeps Vaeron's Block from resetting and can steal a module from your frame.,Не даёт блоку Ваэрона сбрасываться и может украсть модуль из вашего фрейма.
+STATUS_SENSOR_GLITCH_NAME,Sensor Glitch,Глитч сенсоров
+STATUS_SENSOR_GLITCH_DESC,"50% chance attacks retarget to another living enemy. Caps at 3 stacks. Cleared at combat end.","50% шанс, что атака перенацелится на другого живого врага. Кап 3. Снимается в конце боя."
+ITEM_BIONIC_LARVA_NAME,Bionic Larva,Бионическая личинка
+ITEM_BIONIC_LARVA_DESC,"Deals 1 HP at the end of every turn. Spend 1 AP to cut it out.","Наносит 1 HP в конце каждого хода. Потратьте 1 ОД, чтобы вырезать её."
+ITEM_NEURO_TICK_NAME,Neuro Tick,Нейро-клещ
+ITEM_NEURO_TICK_DESC,"Deals 1 HP whenever an adjacent Body Grid module is activated. Spend 1 AP to cut it out.","Наносит 1 HP при активации соседнего модуля сетки. Потратьте 1 ОД, чтобы вырезать его."
+ABILITY_POD_LEFT_HEAL_NAME,Stasis Feed,Питание стазиса
+ABILITY_POD_LEFT_HEAL_DESC,Heals Elder Vaeron.,Лечит Старейшину Ваэрона.
+ABILITY_POD_LEFT_HEAL_TEXT,{name} pulses restorative stasis into Vaeron.,{name} пульсирует восстанавливающим стазисом в Ваэрона.
+ABILITY_POD_LEFT_LARVA_NAME,Larva Injection,Инъекция личинки
+ABILITY_POD_LEFT_LARVA_DESC,Forces a Bionic Larva into a free Body Grid cell.,Вживляет Бионическую личинку в свободную клетку сетки.
+ABILITY_POD_LEFT_LARVA_TEXT,{name} spits a bionic larva into the frame.,{name} выплёвывает бионическую личинку в каркас.
+ABILITY_POD_RIGHT_STEAL_NAME,Module Siphon,Выкачивание модуля
+ABILITY_POD_RIGHT_STEAL_DESC,Steals one consumable (or random module) from the Body Grid.,Крадёт один расходник (или случайный модуль) из сетки тела.
+ABILITY_POD_RIGHT_STEAL_TEXT,{name} tears a module free of the frame.,{name} вырывает модуль из каркаса.
+ABILITY_POD_RIGHT_PULSE_NAME,Containment Pulse,Импульс удержания
+ABILITY_POD_RIGHT_PULSE_DESC,Light damage pulse.,Лёгкий импульс урона.
+ABILITY_POD_RIGHT_PULSE_TEXT,{name} cracks a containment pulse.,{name} бьёт импульсом удержания.
+ABILITY_VAERON_GLITCH_STRIKE_NAME,Glitch Strike,Глитч-удар
+ABILITY_VAERON_GLITCH_STRIKE_DESC,Damages the player and applies Sensor Glitch.,Наносит урон и накладывает Глитч сенсоров.
+ABILITY_VAERON_GLITCH_STRIKE_TEXT,{name} scrambles your targeting suite.,{name} сбивает ваш комплекс наведения.
+ABILITY_VAERON_SYNAPSE_CHARGE_NAME,Synapse Charge,Заряд синапса
+ABILITY_VAERON_SYNAPSE_CHARGE_DESC,Channels a multi-hit blast for the next turn. Interrupt by dealing enough HP damage.,Копит мультиудар на следующий ход. Прерывается достаточным уроном по HP.
+ABILITY_VAERON_SYNAPSE_CHARGE_TEXT,{name} gathers crackling synapse charge.,{name} собирает потрескивающий заряд синапса.
+ABILITY_VAERON_SYNAPSE_BLAST_NAME,Synapse Blast,Взрыв синапса
+ABILITY_VAERON_SYNAPSE_BLAST_DESC,High-damage multi-hit attack after Synapse Charge.,Мощный мультиудар после Заряда синапса.
+ABILITY_VAERON_SYNAPSE_BLAST_TEXT,{name} unleashes the synapse blast!,{name} выпускает взрыв синапса!
+ABILITY_VAERON_NEURO_TICK_NAME,Neuro Infestation,Нейро-заражение
+ABILITY_VAERON_NEURO_TICK_DESC,Forces a Neuro Tick into the Body Grid.,Вживляет Нейро-клеща в сетку тела.
+ABILITY_VAERON_NEURO_TICK_TEXT,{name} nests a neuro tick in the frame.,{name} вживляет нейро-клеща в каркас.
+ABILITY_VAERON_SHIELD_NAME,Stasis Mantle,Мантия стазиса
+ABILITY_VAERON_SHIELD_DESC,Raises personal Block.,Поднимает личный блок.
+ABILITY_VAERON_SHIELD_TEXT,{name} wraps himself in a stasis mantle.,{name} окутывает себя мантией стазиса.
+KEY_LOG_BIONIC_LARVA_DAMAGE,Bionic Larva drains %d HP.,Бионическая личинка высасывает %d HP.
+KEY_LOG_NEURO_TICK_DAMAGE,Neuro Tick bites for %d HP.,Нейро-клещ кусает на %d HP.
+KEY_LOG_SENSOR_GLITCH_RETARGET,Sensor Glitch retargets the hit to %s!,Глитч сенсоров перенацеливает удар на %s!
+KEY_LOG_SYNAPSE_INTERRUPTED,%s's Synapse Charge is interrupted!,Заряд синапса %s прерван!
+KEY_LOG_POD_STEAL,%s steals %s from your frame!,%s крадёт %s из вашего фрейма!
+KEY_LOG_POD_STEAL_FAIL,%s finds nothing worth stealing.,%s не находит ничего для кражи.
+KEY_LOG_POD_STEAL_RETURN,Returned module available: %s. Place it back into your Body Grid.,Возвращённый модуль: %s. Поместите его обратно в сетку тела.
+KEY_LOG_AUTO_INSERT,%s lodges itself into a free cell.,%s занимает свободную клетку.
 KEY_ACT1_ANNOUNCE_TITLE,Chapter 1,Глава 1
 KEY_ACT1_ANNOUNCE_SUBTITLE,"Ruins of Ra'im, City of Humans","Развалины Ра'има, города людей"
 KEY_MERCHANT_TITLE,EVERYMART / Bonnie,EVERYMART / Бонни
