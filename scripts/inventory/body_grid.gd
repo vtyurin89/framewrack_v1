@@ -25,8 +25,16 @@ const MAX_SIZE := Vector2i(7, 8)
 const STARTER_ORIGIN := Vector2i(2, 2)
 ## Back-compat alias for older callers.
 const DEFAULT_SIZE := STARTER_SIZE
-## Cells unlocked per level-up expansion.
+## Default cells unlocked per level-up (odd levels). Even levels unlock 4.
 const LEVEL_UP_CELL_GAIN := 3
+const LEVEL_UP_CELL_GAIN_EVEN := 4
+
+
+static func level_up_cell_gain_for_level(level: int) -> int:
+	## Odd level → 3 cells; even level → 4 cells.
+	if level % 2 == 0:
+		return LEVEL_UP_CELL_GAIN_EVEN
+	return LEVEL_UP_CELL_GAIN
 
 ## Bounding box of the grid (locked + unlocked cells inside MAX_SIZE).
 var width: int = MAX_SIZE.x

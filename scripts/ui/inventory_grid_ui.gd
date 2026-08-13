@@ -362,10 +362,14 @@ func _confirm_level_up() -> void:
 
 	await _fade_level_up_overlay_out()
 
+	## Resolve the level this reveal belongs to (supports multi-level XP dumps).
+	var reveal_level := 1
+	if player_stats != null:
+		reveal_level = player_stats.level - player_stats.pending_level_ups + 1
+	var cell_gain := BodyGrid.level_up_cell_gain_for_level(reveal_level)
+
 	_suppress_unlock_reveal = true
-	var new_cells: Array[Vector2i] = inventory.grid.unlock_random_adjacent_cells(
-		BodyGrid.LEVEL_UP_CELL_GAIN
-	)
+	var new_cells: Array[Vector2i] = inventory.grid.unlock_random_adjacent_cells(cell_gain)
 	_suppress_unlock_reveal = false
 	await _play_unlock_reveal(new_cells)
 
