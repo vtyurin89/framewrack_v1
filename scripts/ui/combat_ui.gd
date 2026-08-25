@@ -437,7 +437,7 @@ func _rebuild_enemies() -> void:
 		var card: EnemyCardUI = ENEMY_CARD_SCENE.instantiate() as EnemyCardUI
 		_enemy_row.add_child(card)
 		card.setup(enemy, i, enemy.is_selected)
-		card.card_gui_input.connect(_on_enemy_panel_input)
+		card.card_gui_input.connect(_on_enemy_panel_input.bind(card))
 		card.death_fade_finished.connect(_on_card_death_fade_finished)
 		if combat.state == combat.CombatState.ENEMY_TURN:
 			card.set_intentions_hidden(true)
@@ -449,14 +449,17 @@ func _rebuild_enemies() -> void:
 
 
 func _find_card_by_index(index: int) -> EnemyCardUI:
+	## Prefer a living card — dying slots can still hold a stale enemy_index.
+	var dying_match: EnemyCardUI = null
 	for child in _enemy_row.get_children():
 		var card := child as EnemyCardUI
-		if card != null and card.enemy_index == index and is_instance_valid(card):
-			return card
-	## Fallback: positional match while indices still align with row order.
-	if index >= 0 and index < _enemy_row.get_child_count():
-		return _enemy_row.get_child(index) as EnemyCardUI
-	return null
+		if card == null or not is_instance_valid(card) or card.enemy_index != index:
+			continue
+		if card.is_dying():
+			dying_match = card
+			continue
+		return card
+	return dying_match
 
 
 func _find_card_by_enemy(enemy: EnemyInstance) -> EnemyCardUI:
@@ -482,15 +485,23 @@ func _sync_card_indices() -> void:
 		card.enemy_index = combat.enemies.find(enemy)
 
 
-func _on_enemy_panel_input(event: InputEvent, index: int) -> void:
+func _on_enemy_panel_input(event: InputEvent, index: int, card: EnemyCardUI = null) -> void:
 	if event is InputEventMouseButton and event.pressed:
 		if event.button_index == MOUSE_BUTTON_LEFT:
 			if _enemy_context_menu and _enemy_context_menu.is_open():
 				_enemy_context_menu.close()
-			target_selected.emit(index)
-			_on_log(tr("KEY_LOG_TARGETING") % (index + 1))
+			## Prefer the emitting card; fall back to index lookup for older call sites.
+			var clicked := card if card != null and is_instance_valid(card) else _find_card_by_index(index)
+			if clicked == null or clicked.is_dying():
+				return
+			var live_index := clicked.enemy_index
+			if combat != null and live_index >= 0 and live_index < combat.enemies.size():
+				target_selected.emit(live_index)
+				_on_log(tr("KEY_LOG_TARGETING") % (live_index + 1))
 		elif event.button_index == MOUSE_BUTTON_RIGHT:
-			_open_enemy_context_menu(index, event.global_position)
+			var clicked_r := card if card != null and is_instance_valid(card) else _find_card_by_index(index)
+			var menu_index := clicked_r.enemy_index if clicked_r != null else index
+			_open_enemy_context_menu(menu_index, event.global_position)
 
 
 func _open_enemy_context_menu(index: int, global_pos: Vector2) -> void:
@@ -533,21 +544,30 @@ func _open_enemy_inspect(index: int) -> void:
 func _on_enemy_selected(index: int) -> void:
 	if combat == null:
 		return
+	## No targeting frame during loot / chest / insertion stages.
+	if _reward_phase or _harmful_insertion_phase or not _enemy_row.visible:
+		_clear_target_reticle()
+		return
 	var selected_card: EnemyCardUI = null
 	for child in _enemy_row.get_children():
 		var card: EnemyCardUI = child as EnemyCardUI
 		if card == null:
 			continue
-		var is_sel := card.enemy_index == index
+		var is_sel := (
+			card.enemy_index == index
+			and index >= 0
+			and not card.is_dying()
+			and card.visible
+			and card.modulate.a > 0.05
+		)
 		card.set_selected(is_sel)
 		if is_sel:
 			selected_card = card
-	_ensure_target_reticle()
 	if selected_card == null:
-		_target_reticle.clear_target()
+		_clear_target_reticle()
 	else:
 		## Defer so layout is settled after roster rebuilds.
-		call_deferred("_lock_reticle_on_card", selected_card)
+		call_deferred("_lock_reticle_on_card", selected_card, index)
 
 
 func _ensure_target_reticle() -> void:
@@ -555,14 +575,31 @@ func _ensure_target_reticle() -> void:
 		return
 	_target_reticle = TargetReticle.new()
 	_target_reticle.name = "TargetReticle"
-	## Parent to self so global→local mapping stays stable while cards layout.
 	add_child(_target_reticle)
 
 
-func _lock_reticle_on_card(card: EnemyCardUI) -> void:
+func _clear_target_reticle(animate: bool = false) -> void:
+	if _target_reticle != null and is_instance_valid(_target_reticle):
+		_target_reticle.clear_target(animate)
+
+
+func _lock_reticle_on_card(card: EnemyCardUI, expected_index: int = -1) -> void:
 	_ensure_target_reticle()
-	if card == null or not is_instance_valid(card) or not card.is_inside_tree():
+	if (
+		card == null
+		or not is_instance_valid(card)
+		or not card.is_inside_tree()
+		or card.is_dying()
+		or _reward_phase
+		or _harmful_insertion_phase
+		or not _enemy_row.visible
+	):
 		_target_reticle.clear_target()
+		return
+	## Refuse to frame a card that no longer matches the combat target.
+	if combat != null and expected_index >= 0 and combat.target_index != expected_index:
+		return
+	if combat != null and card.enemy_index != combat.target_index:
 		return
 	_target_reticle.lock_on(card)
 
@@ -893,6 +930,9 @@ func _on_enemy_died(index: int) -> void:
 	var card := _find_card_by_index(index)
 	if card == null:
 		return
+	## Drop the shared reticle immediately so it cannot linger on a corpse.
+	if card.is_selected_target() or (combat != null and combat.target_index == index):
+		_clear_target_reticle()
 	_dying_indices[index] = true
 	_pending_death_fades += 1
 	card.play_death_fade()
@@ -911,8 +951,26 @@ func _on_card_death_fade_finished(card: EnemyCardUI) -> void:
 	elif combat.has_method("remove_enemy_at"):
 		combat.remove_enemy_at(old_index, false)
 	_sync_card_indices()
-	if combat.target_index >= 0:
-		_on_enemy_selected(combat.target_index)
+	## Always retarget through CombatManager so UI frame and damage target stay in sync.
+	if combat.has_method("set_target"):
+		var living := _first_living_card()
+		if living != null and living.enemy_index >= 0:
+			combat.set_target(living.enemy_index)
+		else:
+			_clear_target_reticle()
+	else:
+		_clear_target_reticle()
+
+
+func _first_living_card() -> EnemyCardUI:
+	for child in _enemy_row.get_children():
+		var card := child as EnemyCardUI
+		if card == null or card.is_dying():
+			continue
+		var enemy := card.get_enemy()
+		if enemy != null and enemy.is_alive() and card.modulate.a > 0.05:
+			return card
+	return null
 
 
 func await_pending_death_fades() -> void:
@@ -1027,6 +1085,9 @@ func is_harmful_insertion_phase() -> bool:
 
 
 func _apply_space_stage_layout(active: bool, hint_text: String) -> void:
+	if active:
+		## Loot / chest / forced-insert — never keep combat target corners.
+		_clear_target_reticle()
 	if _loot_stage:
 		_loot_stage.visible = active
 		if active:
@@ -1069,6 +1130,7 @@ func is_reward_phase() -> bool:
 
 
 func _on_combat_ended(victory: bool) -> void:
+	_clear_target_reticle()
 	if _enemy_context_menu and _enemy_context_menu.is_open():
 		_enemy_context_menu.close()
 	_end_turn_btn.disabled = true

@@ -116,6 +116,14 @@ func setup(enemy: EnemyInstance, index: int, selected: bool) -> void:
 			_statuses_ui.unbind()
 
 
+func is_dying() -> bool:
+	return _is_dying
+
+
+func is_selected_target() -> bool:
+	return _is_selected
+
+
 func get_enemy() -> EnemyInstance:
 	return _enemy
 

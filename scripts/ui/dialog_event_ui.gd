@@ -253,7 +253,8 @@ func _apply_event_image(dialog: DialogEventData) -> void:
 		_event_image.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
 	if _image_placeholder:
 		_image_placeholder.visible = true
-		_image_placeholder.color = Color(0.03, 0.03, 0.04, 1) if tex != null else Color(0.08, 0.08, 0.1, 1)
+		## Letterbox behind KEEP_ASPECT art — match CRT panel green, not pure black.
+		_image_placeholder.color = GamePalette.PANEL_BG
 
 
 func _apply_story_badge() -> void:
