@@ -78,12 +78,20 @@ const TOTAL_DURATION := PHASE1_DURATION + PHASE2_DURATION + PHASE3_DURATION
 const INTRO_LINE_1 := "Benevolence Inc revival system loading"
 const INTRO_LINE_2 := "Welcome back to life!"
 
-const SYMBOL_POOL: PackedStringArray = ["█", "░", "▒", "▨", "☲", "⚡", "☠", "⬡"]
-const SYMBOL_FLICKER_INTERVAL := 0.08
-const LOG_LINE_DELAY_MIN := 0.03
-const LOG_LINE_DELAY_MAX := 0.05
+## Printable ASCII (skip control / space-heavy noise).
+const ASCII_POOL := "!\"#$%&'()*+,-./0123456789:;<=>?@ABCDEFGHIJKLMNOPQRSTUVWXYZ[\\]^_`abcdefghijklmnopqrstuvwxyz{|}~"
+const SYMBOL_REVEAL_INTERVAL := 0.022
+const SYMBOL_REVEAL_BURST := 2
+const SYMBOL_CELL := Vector2(16, 18)
+const SYMBOL_H_SEP := 2
+const SYMBOL_V_SEP := 2
+const LOG_LINE_DELAY_MIN := 0.055
+const LOG_LINE_DELAY_MAX := 0.085
 const MATRIX_COLS := 5
-const MATRIX_ROWS := 14
+const MATRIX_CODE_LEN := 12
+const MATRIX_LINE_SEP := 8
+const MATRIX_FONT_SIZE := 14
+const MATRIX_SPEED := 140.0
 const GRAIN_SHADER := preload("res://shaders/crt_grid_noise.gdshader")
 
 enum Phase { IDLE, INTRO, DIAGNOSTICS, MATRIX, DONE }
@@ -98,20 +106,25 @@ var _grain: ColorRect
 var _phase1: Control
 var _intro_label: Label
 var _phase2: Control
+var _phase2_left: VBoxContainer
 var _portrait: PanelContainer
+var _symbol_panel: PanelContainer
 var _symbol_grid: GridContainer
 var _symbol_labels: Array[Label] = []
+var _symbol_reveal_order: Array[int] = []
+var _symbol_reveal_index: int = 0
 var _log_scroll: ScrollContainer
 var _log_box: VBoxContainer
 var _phase3: Control
 var _matrix_columns: Array[VBoxContainer] = []
-var _matrix_tweens: Array[Tween] = []
+var _matrix_ready: bool = false
 
 var _symbol_timer: float = 0.0
 var _log_timer: float = 0.0
 var _log_queue: PackedStringArray = []
 var _log_index: int = 0
 var _phase1_fading: bool = false
+var _grid_built_for_size: Vector2 = Vector2.ZERO
 
 
 func _ready() -> void:
@@ -131,7 +144,6 @@ func is_playing() -> bool:
 
 
 func play() -> void:
-	_kill_matrix_tweens()
 	_clear_log()
 	_playing = true
 	_paused = GameManager != null and GameManager.is_paused
@@ -141,6 +153,10 @@ func play() -> void:
 	_symbol_timer = 0.0
 	_log_timer = 0.0
 	_log_index = 0
+	_symbol_reveal_index = 0
+	_symbol_reveal_order.clear()
+	_matrix_ready = false
+	_grid_built_for_size = Vector2.ZERO
 	_log_queue = _build_log_sequence()
 	_show_phase(1)
 	_intro_label.modulate.a = 1.0
@@ -155,7 +171,6 @@ func stop() -> void:
 	_playing = false
 	_phase = Phase.IDLE
 	set_process(false)
-	_kill_matrix_tweens()
 	visible = false
 	if was_playing:
 		finished.emit()
@@ -172,15 +187,9 @@ func _on_game_state_changed(_prev: GameManager.GameState, new_state: GameManager
 func _apply_pause_state() -> void:
 	if _paused:
 		z_index = 40
-		for tw in _matrix_tweens:
-			if tw != null and tw.is_valid():
-				tw.pause()
 	else:
 		z_index = 90
 		move_to_front()
-		for tw in _matrix_tweens:
-			if tw != null and tw.is_valid():
-				tw.play()
 
 
 func _process(delta: float) -> void:
@@ -211,9 +220,10 @@ func _process_phase1(_delta: float) -> void:
 
 func _process_phase2(delta: float) -> void:
 	_symbol_timer += delta
-	if _symbol_timer >= SYMBOL_FLICKER_INTERVAL:
+	if _symbol_timer >= SYMBOL_REVEAL_INTERVAL:
 		_symbol_timer = 0.0
-		_flicker_symbols()
+		for _i in SYMBOL_REVEAL_BURST:
+			_reveal_next_symbol()
 	_log_timer += delta
 	var delay := lerpf(LOG_LINE_DELAY_MIN, LOG_LINE_DELAY_MAX, randf())
 	if _log_timer >= delay and _log_index < _log_queue.size():
@@ -224,28 +234,44 @@ func _process_phase2(delta: float) -> void:
 		_begin_phase3()
 
 
-func _process_phase3(_delta: float) -> void:
-	## Matrix tweens run themselves; phase ends on TOTAL_DURATION.
-	pass
+func _process_phase3(delta: float) -> void:
+	## All columns rise from the bottom at the same speed until the phase ends.
+	if not _matrix_ready:
+		return
+	for col in _matrix_columns:
+		if col == null or not is_instance_valid(col):
+			continue
+		var host := col.get_parent() as Control
+		var view_h := host.size.y if host != null else size.y
+		if view_h < 1.0:
+			view_h = size.y
+		col.position.y -= MATRIX_SPEED * delta
+		var col_h := maxf(col.size.y, col.get_combined_minimum_size().y)
+		if col_h < view_h * 1.2:
+			_refill_matrix_column(col, view_h)
+			col_h = maxf(col.size.y, col.get_combined_minimum_size().y)
+		## Fully off the top → reappear at the bottom and keep crawling.
+		if col.position.y + col_h < 0.0:
+			_refill_matrix_column(col, view_h)
+			col.position.y = view_h
 
 
 func _begin_phase2() -> void:
 	_phase = Phase.DIAGNOSTICS
 	_show_phase(2)
-	_flicker_symbols()
+	call_deferred("_prepare_symbol_grid")
 
 
 func _begin_phase3() -> void:
 	_phase = Phase.MATRIX
 	_show_phase(3)
-	_start_matrix_scroll()
+	call_deferred("_start_matrix_scroll")
 
 
 func _complete() -> void:
 	_phase = Phase.DONE
 	_playing = false
 	set_process(false)
-	_kill_matrix_tweens()
 	visible = false
 	finished.emit()
 
@@ -328,66 +354,148 @@ func _clear_log() -> void:
 		child.queue_free()
 
 
-func _flicker_symbols() -> void:
-	for label in _symbol_labels:
-		if label == null or not is_instance_valid(label):
-			continue
-		label.text = SYMBOL_POOL[randi() % SYMBOL_POOL.size()]
-		if randf() < 0.15:
-			label.add_theme_color_override("font_color", GamePalette.PHOSPHOR_BRIGHT)
-		else:
-			label.add_theme_color_override("font_color", GamePalette.PHOSPHOR_ACTIVE)
+func _prepare_symbol_grid() -> void:
+	if _symbol_panel == null or not is_instance_valid(_symbol_panel):
+		return
+	## Wait one layout pass so the enlarged panel has a real size.
+	await get_tree().process_frame
+	if not _playing or _phase != Phase.DIAGNOSTICS:
+		return
+	_rebuild_symbol_grid_to_fit()
+	_reset_symbol_reveal()
+
+
+func _rebuild_symbol_grid_to_fit() -> void:
+	if _symbol_panel == null or _symbol_grid == null:
+		return
+	var area := _symbol_panel.get_global_rect().size
+	## Account for stylebox content margins.
+	area -= Vector2(20, 20)
+	if area.x < 8.0 or area.y < 8.0:
+		return
+	if area.distance_to(_grid_built_for_size) < 1.0 and not _symbol_labels.is_empty():
+		return
+	_grid_built_for_size = area
+	var cols := maxi(1, int(floor((area.x + SYMBOL_H_SEP) / (SYMBOL_CELL.x + SYMBOL_H_SEP))))
+	var rows := maxi(1, int(floor((area.y + SYMBOL_V_SEP) / (SYMBOL_CELL.y + SYMBOL_V_SEP))))
+	_symbol_grid.columns = cols
+	for child in _symbol_grid.get_children():
+		_symbol_grid.remove_child(child)
+		child.free()
+	_symbol_labels.clear()
+	var total := cols * rows
+	var cell_w := (area.x - float(maxi(0, cols - 1) * SYMBOL_H_SEP)) / float(cols)
+	var cell_h := (area.y - float(maxi(0, rows - 1) * SYMBOL_V_SEP)) / float(rows)
+	for _i in total:
+		var cell := Label.new()
+		cell.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+		cell.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
+		cell.custom_minimum_size = Vector2(cell_w, cell_h)
+		cell.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+		cell.size_flags_vertical = Control.SIZE_EXPAND_FILL
+		cell.add_theme_font_size_override("font_size", 13)
+		cell.add_theme_color_override("font_color", GamePalette.PHOSPHOR_ACTIVE)
+		cell.text = ""
+		_symbol_grid.add_child(cell)
+		_symbol_labels.append(cell)
+
+
+func _reset_symbol_reveal() -> void:
+	_symbol_reveal_order.clear()
+	_symbol_reveal_index = 0
+	for i in _symbol_labels.size():
+		_symbol_reveal_order.append(i)
+		if _symbol_labels[i] != null:
+			_symbol_labels[i].text = ""
+	## Random reveal order — cells pop in place until the grid is full.
+	for i in range(_symbol_reveal_order.size() - 1, 0, -1):
+		var j := randi() % (i + 1)
+		var tmp: int = _symbol_reveal_order[i]
+		_symbol_reveal_order[i] = _symbol_reveal_order[j]
+		_symbol_reveal_order[j] = tmp
+	_symbol_timer = 0.0
+
+
+func _reveal_next_symbol() -> void:
+	if _symbol_reveal_index >= _symbol_reveal_order.size():
+		return
+	var idx: int = _symbol_reveal_order[_symbol_reveal_index]
+	_symbol_reveal_index += 1
+	if idx < 0 or idx >= _symbol_labels.size():
+		return
+	var label := _symbol_labels[idx]
+	if label == null or not is_instance_valid(label):
+		return
+	label.text = _random_ascii_char()
+	label.add_theme_color_override(
+		"font_color",
+		GamePalette.PHOSPHOR_BRIGHT if randf() < 0.2 else GamePalette.PHOSPHOR_ACTIVE
+	)
+
+
+func _random_ascii_char() -> String:
+	var i := randi() % ASCII_POOL.length()
+	return ASCII_POOL.substr(i, 1)
 
 
 func _start_matrix_scroll() -> void:
-	_kill_matrix_tweens()
-	_matrix_tweens.clear()
+	if not _playing or _phase != Phase.MATRIX:
+		return
+	## One layout pass so wrap hosts have real height.
+	await get_tree().process_frame
+	if not _playing or _phase != Phase.MATRIX:
+		return
 	for col in _matrix_columns:
-		_refill_matrix_column(col)
+		if col == null or not is_instance_valid(col):
+			continue
 		var host := col.get_parent() as Control
-		var travel := size.y + 160.0
-		col.position = Vector2(0.0, size.y * 0.25)
-		var duration := 1.4 + randf() * 0.9
-		var tw := create_tween()
-		tw.set_loops()
-		tw.tween_property(col, "position:y", -travel * 0.65, duration).set_trans(Tween.TRANS_LINEAR)
-		tw.tween_callback(func() -> void:
-			_refill_matrix_column(col)
-			col.position.y = (host.size.y if host != null else size.y) * 0.35
-		)
-		_matrix_tweens.append(tw)
-	if _paused:
-		_apply_pause_state()
+		var view_h := host.size.y if host != null else size.y
+		var view_w := host.size.x if host != null else size.x / float(MATRIX_COLS)
+		if view_h < 1.0:
+			view_h = size.y
+		if view_w < 1.0:
+			view_w = size.x / float(MATRIX_COLS)
+		col.custom_minimum_size.x = view_w
+		_refill_matrix_column(col, view_h)
+		## Enter from the bottom edge; all columns share MATRIX_SPEED.
+		col.position = Vector2(0.0, view_h)
+	_matrix_ready = true
 
 
-func _refill_matrix_column(col: VBoxContainer) -> void:
+func _refill_matrix_column(col: VBoxContainer, view_h: float = 0.0) -> void:
 	if col == null or not is_instance_valid(col):
 		return
 	for child in col.get_children():
-		child.queue_free()
-	for _r in MATRIX_ROWS:
+		col.remove_child(child)
+		child.free()
+	if view_h < 1.0:
+		var host := col.get_parent() as Control
+		view_h = host.size.y if host != null else size.y
+	if view_h < 1.0:
+		view_h = size.y
+	## Tall enough that the band always covers the full viewport while crawling.
+	var line_pitch := float(MATRIX_FONT_SIZE + MATRIX_LINE_SEP + 4)
+	var rows := maxi(24, int(ceil(view_h * 2.2 / line_pitch)) + 4)
+	for _r in rows:
 		var label := Label.new()
 		label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-		label.add_theme_font_size_override("font_size", 14)
+		label.add_theme_font_size_override("font_size", MATRIX_FONT_SIZE)
 		label.add_theme_color_override("font_color", GamePalette.PHOSPHOR_ACTIVE)
 		label.text = _random_matrix_code()
 		col.add_child(label)
 
 
 func _random_matrix_code() -> String:
-	## 6-char style codes: 12F.91 / 80X.20 / 99A.12
+	## 12-char codes (2× previous width), e.g. 12F.9180X.20
 	const HEX := "0123456789ABCDEFGHJKMNPQRSTUVWXYZ"
-	var a := "%02d" % (randi() % 100)
-	var b := HEX[randi() % HEX.length()]
-	var c := "%02d" % (randi() % 100)
-	return "%s%s.%s" % [a, b, c]
-
-
-func _kill_matrix_tweens() -> void:
-	for tw in _matrix_tweens:
-		if tw != null and tw.is_valid():
-			tw.kill()
-	_matrix_tweens.clear()
+	return "%02d%s.%02d%02d%s.%02d" % [
+		randi() % 100,
+		HEX[randi() % HEX.length()],
+		randi() % 100,
+		randi() % 100,
+		HEX[randi() % HEX.length()],
+		randi() % 100,
+	]
 
 
 func _build_ui() -> void:
@@ -406,18 +514,17 @@ func _build_ui() -> void:
 
 	_intro_label = Label.new()
 	_intro_label.name = "IntroLabel"
-	_intro_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	_intro_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_LEFT
 	_intro_label.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
 	_intro_label.add_theme_font_size_override("font_size", 22)
 	_intro_label.add_theme_color_override("font_color", GamePalette.PHOSPHOR_ACTIVE)
 	_intro_label.text = "%s\n\n%s" % [INTRO_LINE_1, INTRO_LINE_2]
-	_intro_label.set_anchors_preset(Control.PRESET_CENTER)
-	_intro_label.grow_horizontal = Control.GROW_DIRECTION_BOTH
-	_intro_label.grow_vertical = Control.GROW_DIRECTION_BOTH
-	_intro_label.offset_left = -420.0
-	_intro_label.offset_right = 420.0
-	_intro_label.offset_top = 20.0
-	_intro_label.offset_bottom = 140.0
+	## Left-aligned, nudged slightly below vertical center.
+	_intro_label.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+	_intro_label.offset_left = 48.0
+	_intro_label.offset_right = -48.0
+	_intro_label.offset_top = 72.0
+	_intro_label.offset_bottom = 0.0
 	_phase1.add_child(_intro_label)
 
 	_phase2 = Control.new()
@@ -459,19 +566,21 @@ func _build_phase2() -> void:
 	_phase2.add_child(margin)
 
 	var split := HBoxContainer.new()
-	split.add_theme_constant_override("separation", 28)
+	split.add_theme_constant_override("separation", 24)
 	split.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	split.size_flags_vertical = Control.SIZE_EXPAND_FILL
 	margin.add_child(split)
 
-	var left := VBoxContainer.new()
-	left.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	left.size_flags_stretch_ratio = 0.42
-	left.add_theme_constant_override("separation", 16)
-	split.add_child(left)
+	## +15% left column vs original 0.42 → ~0.483; log gets the remainder (narrower).
+	_phase2_left = VBoxContainer.new()
+	_phase2_left.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	_phase2_left.size_flags_stretch_ratio = 0.483
+	_phase2_left.add_theme_constant_override("separation", 16)
+	split.add_child(_phase2_left)
 
 	_portrait = PanelContainer.new()
 	_portrait.name = "PortraitPlaceholder"
+	_portrait.visible = true
 	_portrait.custom_minimum_size = Vector2(0, 220)
 	_portrait.size_flags_vertical = Control.SIZE_EXPAND_FILL
 	_portrait.size_flags_stretch_ratio = 1.1
@@ -481,18 +590,13 @@ func _build_phase2() -> void:
 			GamePalette.PANEL_BG, GamePalette.MUTED_GREEN, 1, 0, 8.0, false
 		)
 	)
-	left.add_child(_portrait)
-	var portrait_hint := Label.new()
-	portrait_hint.text = ""
-	portrait_hint.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-	portrait_hint.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
-	portrait_hint.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
-	_portrait.add_child(portrait_hint)
+	_phase2_left.add_child(_portrait)
 
-	var symbol_panel := PanelContainer.new()
-	symbol_panel.name = "SymbolGridPanel"
-	symbol_panel.size_flags_vertical = Control.SIZE_EXPAND_FILL
-	symbol_panel.size_flags_stretch_ratio = 1.0
+	_symbol_panel = PanelContainer.new()
+	_symbol_panel.name = "SymbolGridPanel"
+	_symbol_panel.size_flags_vertical = Control.SIZE_EXPAND_FILL
+	_symbol_panel.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	_symbol_panel.size_flags_stretch_ratio = 1.0
 	var sym_style := StyleBoxFlat.new()
 	sym_style.bg_color = GamePalette.PANEL_BG
 	sym_style.border_color = GamePalette.PHOSPHOR_BRIGHT
@@ -501,28 +605,22 @@ func _build_phase2() -> void:
 	sym_style.border_width_left = 1
 	sym_style.border_width_right = 1
 	sym_style.set_content_margin_all(10.0)
-	symbol_panel.add_theme_stylebox_override("panel", sym_style)
-	left.add_child(symbol_panel)
+	_symbol_panel.add_theme_stylebox_override("panel", sym_style)
+	_phase2_left.add_child(_symbol_panel)
 
 	_symbol_grid = GridContainer.new()
+	_symbol_grid.name = "SymbolGrid"
 	_symbol_grid.columns = 8
-	_symbol_grid.add_theme_constant_override("h_separation", 6)
-	_symbol_grid.add_theme_constant_override("v_separation", 4)
-	symbol_panel.add_child(_symbol_grid)
+	_symbol_grid.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	_symbol_grid.size_flags_vertical = Control.SIZE_EXPAND_FILL
+	_symbol_grid.add_theme_constant_override("h_separation", SYMBOL_H_SEP)
+	_symbol_grid.add_theme_constant_override("v_separation", SYMBOL_V_SEP)
+	_symbol_panel.add_child(_symbol_grid)
 	_symbol_labels.clear()
-	for _i in 64:
-		var cell := Label.new()
-		cell.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-		cell.custom_minimum_size = Vector2(22, 18)
-		cell.add_theme_font_size_override("font_size", 14)
-		cell.add_theme_color_override("font_color", GamePalette.PHOSPHOR_ACTIVE)
-		cell.text = SYMBOL_POOL[randi() % SYMBOL_POOL.size()]
-		_symbol_grid.add_child(cell)
-		_symbol_labels.append(cell)
 
 	var right := VBoxContainer.new()
 	right.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	right.size_flags_stretch_ratio = 0.58
+	right.size_flags_stretch_ratio = 0.517
 	split.add_child(right)
 
 	var log_frame := PanelContainer.new()
@@ -556,14 +654,13 @@ func _build_phase3() -> void:
 	for _c in MATRIX_COLS:
 		var wrap := Control.new()
 		wrap.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+		wrap.size_flags_vertical = Control.SIZE_EXPAND_FILL
 		wrap.clip_contents = true
 		row.add_child(wrap)
+		## Free-positioned column (no anchors) so crawl via position.y is reliable.
 		var col := VBoxContainer.new()
-		col.alignment = BoxContainer.ALIGNMENT_CENTER
-		col.add_theme_constant_override("separation", 10)
-		col.set_anchors_preset(Control.PRESET_TOP_WIDE)
-		col.anchor_bottom = 0.0
-		col.offset_left = 0.0
-		col.offset_right = 0.0
+		col.alignment = BoxContainer.ALIGNMENT_BEGIN
+		col.add_theme_constant_override("separation", MATRIX_LINE_SEP)
+		col.mouse_filter = Control.MOUSE_FILTER_IGNORE
 		wrap.add_child(col)
 		_matrix_columns.append(col)
