@@ -25,6 +25,16 @@ func _ready() -> void:
 	if _overlay:
 		_overlay.gui_input.connect(_on_overlay_gui_input)
 	_style_dialog()
+	if get_parent() is CanvasLayer:
+		UiOverlayLayer.fit_fullscreen(self)
+	var vp := get_viewport()
+	if vp != null and not vp.size_changed.is_connected(_on_viewport_size_changed):
+		vp.size_changed.connect(_on_viewport_size_changed)
+
+
+func _on_viewport_size_changed() -> void:
+	if _is_open or (get_parent() is CanvasLayer):
+		UiOverlayLayer.fit_fullscreen(self)
 
 
 func _style_close_button() -> void:
@@ -43,6 +53,20 @@ func is_open() -> bool:
 
 func open() -> void:
 	UiOverlayLayer.mount(self)
+	UiOverlayLayer.fit_fullscreen(self)
+	## Defer one frame so CanvasLayer layout cannot zero-out size after open.
+	if is_inside_tree():
+		call_deferred("_deferred_finish_open")
+	else:
+		_finish_open()
+
+
+func _deferred_finish_open() -> void:
+	UiOverlayLayer.fit_fullscreen(self)
+	_finish_open()
+
+
+func _finish_open() -> void:
 	visible = true
 	_is_open = true
 	set_process_unhandled_input(true)

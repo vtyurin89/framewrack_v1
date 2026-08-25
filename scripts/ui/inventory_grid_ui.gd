@@ -224,7 +224,10 @@ func _ensure_context_menu() -> void:
 	_context_menu.name = "ItemContextMenu"
 	_context_menu.inspect_pressed.connect(_on_context_inspect_pressed)
 	_context_menu.use_pressed.connect(_on_context_use_pressed)
+	## Mount with inventory as tree anchor (menu is not in the tree yet).
 	UiOverlayLayer.mount(_context_menu, self)
+	if not _context_menu.is_inside_tree():
+		add_child(_context_menu)
 
 
 func _hide_hover_tooltip() -> void:
@@ -552,6 +555,13 @@ func open_item_context_menu(item: ItemData) -> void:
 		return
 	_hide_hover_tooltip()
 	_ensure_context_menu()
+	if _context_menu == null:
+		return
+	## Ensure the menu is in the scene tree before opening (await needs SceneTree).
+	if not _context_menu.is_inside_tree():
+		UiOverlayLayer.mount(_context_menu, self)
+	if not _context_menu.is_inside_tree():
+		add_child(_context_menu)
 	var in_combat := combat_click_mode
 	if combat_manager != null and combat_manager.has_method("is_in_combat"):
 		in_combat = combat_manager.is_in_combat()

@@ -36,7 +36,8 @@ func open_for_item(item: ItemData, global_pos: Vector2, in_combat: bool = false)
 	if item == null:
 		close()
 		return
-	UiOverlayLayer.mount(self)
+	var tree := UiOverlayLayer.get_scene_tree(self)
+	UiOverlayLayer.mount(self, tree.current_scene if tree != null else null)
 	_item = item
 	allow_out_of_combat_use = not in_combat
 	_refresh_labels()
@@ -45,7 +46,9 @@ func open_for_item(item: ItemData, global_pos: Vector2, in_combat: bool = false)
 	_open = true
 	set_process_unhandled_input(true)
 	global_position = global_pos
-	await get_tree().process_frame
+	tree = UiOverlayLayer.get_scene_tree(self)
+	if tree != null:
+		await tree.process_frame
 	if not is_instance_valid(self) or not _open:
 		return
 	_clamp_to_viewport()

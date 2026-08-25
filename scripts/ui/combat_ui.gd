@@ -510,8 +510,13 @@ func _open_enemy_context_menu(index: int, global_pos: Vector2) -> void:
 	if enemy == null or not enemy.is_alive():
 		return
 	_ensure_enemy_context_menu()
-	if _enemy_context_menu:
-		_enemy_context_menu.open_for_enemy(enemy, global_pos)
+	if _enemy_context_menu == null:
+		return
+	if not _enemy_context_menu.is_inside_tree():
+		UiOverlayLayer.mount(_enemy_context_menu, self)
+	if not _enemy_context_menu.is_inside_tree():
+		add_child(_enemy_context_menu)
+	_enemy_context_menu.open_for_enemy(enemy, global_pos)
 
 
 func _ensure_enemy_context_menu() -> void:
@@ -521,6 +526,8 @@ func _ensure_enemy_context_menu() -> void:
 	_enemy_context_menu.name = "EnemyContextMenuUI"
 	_enemy_context_menu.inspect_pressed.connect(_on_enemy_context_inspect_pressed)
 	UiOverlayLayer.mount(_enemy_context_menu, self)
+	if not _enemy_context_menu.is_inside_tree():
+		add_child(_enemy_context_menu)
 
 
 func _on_enemy_context_inspect_pressed(enemy: EnemyInstance) -> void:

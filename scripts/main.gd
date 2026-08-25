@@ -201,6 +201,8 @@ func _ensure_overlays() -> void:
 	if _settings == null:
 		_settings = SETTINGS_SCENE.instantiate() as SettingsModal
 		UiOverlayLayer.mount(_settings, self)
+		if not _settings.is_inside_tree():
+			add_child(_settings)
 	if _announcer_ui == null:
 		_announcer_ui = ANNOUNCER_SCENE.instantiate() as AnnouncerUI
 		_announcer_ui.name = "AnnouncerUI"
@@ -467,8 +469,12 @@ func _on_combat_log_pressed() -> void:
 
 
 func _on_settings_requested() -> void:
-	if _settings:
-		_settings.open_settings()
+	if _settings == null:
+		_settings = SETTINGS_SCENE.instantiate() as SettingsModal
+	UiOverlayLayer.mount(_settings, self)
+	if not _settings.is_inside_tree():
+		add_child(_settings)
+	_settings.open_settings()
 
 
 func _on_continue_requested() -> void:

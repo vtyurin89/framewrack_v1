@@ -32,14 +32,17 @@ func open_for_enemy(enemy: EnemyInstance, global_pos: Vector2) -> void:
 	if enemy == null or not enemy.is_alive():
 		close()
 		return
-	UiOverlayLayer.mount(self)
+	var tree := UiOverlayLayer.get_scene_tree(self)
+	UiOverlayLayer.mount(self, tree.current_scene if tree != null else null)
 	_enemy = enemy
 	_refresh_labels()
 	visible = true
 	_open = true
 	set_process_unhandled_input(true)
 	global_position = global_pos
-	await get_tree().process_frame
+	tree = UiOverlayLayer.get_scene_tree(self)
+	if tree != null:
+		await tree.process_frame
 	if not is_instance_valid(self) or not _open:
 		return
 	_clamp_to_viewport()
