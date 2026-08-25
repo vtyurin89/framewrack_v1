@@ -60,11 +60,13 @@ func show_menu() -> void:
 	_apply_locale()
 	refresh_continue_visibility()
 	visible = true
+	z_index = 120
 	move_to_front()
 
 
 func hide_menu() -> void:
 	visible = false
+	z_index = 0
 
 
 func refresh_continue_visibility() -> void:

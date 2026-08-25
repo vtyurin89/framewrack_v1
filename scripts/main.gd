@@ -20,6 +20,7 @@ const REWARD_SCREEN_SCENE := preload("res://scenes/UI/reward_screen.tscn")
 const CHEST_REWARD_SCENE := preload("res://scenes/UI/chest_reward_ui.tscn")
 const FORCED_ITEM_SCREEN_SCENE := preload("res://scenes/UI/forced_item_screen.tscn")
 const ANNOUNCER_SCENE := preload("res://scenes/UI/announcer_ui.tscn")
+const BOOT_SEQUENCE_SCENE := preload("res://scenes/UI/boot_sequence.tscn")
 const CRT_OVERLAY_SCRIPT := preload("res://scripts/ui/crt_overlay.gd")
 const HUMANITY_GAME_OVER_REASON_KEY := "KEY_GAME_OVER_INSANITY"
 
@@ -60,6 +61,8 @@ var _reward_screen: RewardScreen
 var _chest_reward_ui: ChestRewardUI
 var _forced_item_screen: ForcedItemScreen
 var _announcer_ui: AnnouncerUI
+var _boot_sequence: BootSequence
+var _boot_generation: int = 0
 var _post_combat_reward_active: bool = false
 var _chest_site_active: bool = false
 var _chest_loot_active: bool = false
@@ -150,6 +153,10 @@ func _unhandled_input(event: InputEvent) -> void:
 		var key := event as InputEventKey
 		if key.pressed and not key.echo and key.keycode == KEY_M:
 			if GameManager.get_state() == GameManager.GameState.GAMEPLAY:
+				## Don't toggle map under an active boot cutscene.
+				if _boot_sequence != null and _boot_sequence.is_playing():
+					get_viewport().set_input_as_handled()
+					return
 				_map_ui.visible = not _map_ui.visible
 				get_viewport().set_input_as_handled()
 			return
@@ -177,6 +184,7 @@ func _unhandled_input(event: InputEvent) -> void:
 		return
 	match GameManager.get_state():
 		GameManager.GameState.GAMEPLAY:
+			## Boot sequence: ESC opens pause menu and freezes the cutscene.
 			GameManager.request_pause_to_menu()
 			get_viewport().set_input_as_handled()
 		GameManager.GameState.MAIN_MENU:
@@ -411,6 +419,9 @@ func _enter_main_menu() -> void:
 			_inventory_ui.set_combat_mode(false)
 		_set_gameplay_ui_visible(false)
 		_combat_ui.visible = false
+		if _boot_sequence != null and _boot_sequence.is_playing():
+			_boot_generation += 1
+			_boot_sequence.stop()
 	if _main_menu:
 		_main_menu.show_menu()
 	_hide_inventory_overlay()
@@ -424,12 +435,55 @@ func _enter_gameplay() -> void:
 	_set_gameplay_ui_visible(true)
 	if _fresh_run_pending:
 		_fresh_run_pending = false
-		## Start a fresh act map immediately.
-		_map_ui.visible = true
-		_combat_ui.visible = false
-		_status_banner.text = tr("KEY_STATUS_ONLINE")
-		_run_flow.start_new_run()
+		## CRT boot, then opening dialogue via act intro.
+		_play_boot_then_start_run()
+		return
 
+
+func _play_boot_then_start_run() -> void:
+	_ensure_boot_sequence()
+	_boot_generation += 1
+	var token := _boot_generation
+	if _boot_sequence.is_playing():
+		_boot_sequence.stop()
+	## Hide map/combat under the boot overlay; HUD stays for pause affordance.
+	if _map_ui:
+		_map_ui.visible = false
+	if _combat_ui:
+		_combat_ui.visible = false
+	if _status_banner:
+		_status_banner.text = ""
+	_boot_sequence.play()
+	await _boot_sequence.finished
+	if not is_instance_valid(self) or token != _boot_generation:
+		return
+	## Soft-pause during boot must not skip the opening dialogue.
+	if GameManager != null and GameManager.get_state() != GameManager.GameState.GAMEPLAY:
+		while (
+			is_instance_valid(self)
+			and token == _boot_generation
+			and GameManager != null
+			and GameManager.get_state() != GameManager.GameState.GAMEPLAY
+		):
+			await get_tree().process_frame
+	if not is_instance_valid(self) or token != _boot_generation:
+		return
+	if _map_ui:
+		_map_ui.visible = true
+	if _combat_ui:
+		_combat_ui.visible = false
+	if _status_banner:
+		_status_banner.text = tr("KEY_STATUS_ONLINE")
+	_run_flow.start_new_run()
+
+
+func _ensure_boot_sequence() -> void:
+	if _boot_sequence != null and is_instance_valid(_boot_sequence):
+		return
+	_boot_sequence = BOOT_SEQUENCE_SCENE.instantiate() as BootSequence
+	_boot_sequence.name = "BootSequence"
+	add_child(_boot_sequence)
+	## ESC is handled by Main → pause menu; boot freezes via GameManager.state_changed.
 
 func _enter_game_over() -> void:
 	if _inventory_ui.has_method("set_combat_mode"):
