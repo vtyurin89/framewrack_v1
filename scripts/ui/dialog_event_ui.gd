@@ -28,6 +28,7 @@ const END_ENCOUNTER_ID := "end_encounter"
 @onready var _image_placeholder: ColorRect = %ImagePlaceholder
 @onready var _left_panel: MarginContainer = %LeftPanel
 @onready var _right_panel: Control = %RightPanel
+@onready var _backdrop: ColorRect = %Backdrop
 
 var _dialog: DialogEventData
 var _encounter_manager: EncounterManager
@@ -57,7 +58,40 @@ func _ready() -> void:
 		LocalizationManager.language_changed.connect(_on_language_changed)
 	if not get_viewport().size_changed.is_connected(_on_viewport_resized):
 		get_viewport().size_changed.connect(_on_viewport_resized)
+	_apply_crt_chrome()
 	_apply_responsive_layout()
+
+
+func _apply_crt_chrome() -> void:
+	if _backdrop:
+		_backdrop.color = GamePalette.BACKGROUND_DARK
+	if _image_placeholder:
+		_image_placeholder.color = GamePalette.PANEL_BG
+	_wrap_left_panel_frame()
+
+
+func _wrap_left_panel_frame() -> void:
+	## PANEL_BG + MUTED_GREEN border around narrative column.
+	if _left_panel == null or _left_panel.has_meta("crt_wrapped"):
+		return
+	var left_vbox := _left_panel.get_node_or_null("LeftVBox") as Control
+	if left_vbox == null:
+		return
+	var frame := PanelContainer.new()
+	frame.name = "CrtFrame"
+	frame.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	frame.size_flags_vertical = Control.SIZE_EXPAND_FILL
+	frame.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	frame.add_theme_stylebox_override(
+		"panel",
+		GamePalette.make_panel_stylebox(
+			GamePalette.PANEL_BG, GamePalette.MUTED_GREEN, 1, 0, 12.0, false
+		)
+	)
+	_left_panel.remove_child(left_vbox)
+	frame.add_child(left_vbox)
+	_left_panel.add_child(frame)
+	_left_panel.set_meta("crt_wrapped", true)
 
 
 func bind_encounter_manager(manager: EncounterManager) -> void:
@@ -182,7 +216,7 @@ func _apply_responsive_layout() -> void:
 
 	if _title_label:
 		_title_label.add_theme_font_size_override("font_size", title_size)
-		_title_label.add_theme_color_override("font_color", Color(0.95, 0.95, 0.97))
+		_title_label.add_theme_color_override("font_color", GamePalette.PHOSPHOR_BRIGHT)
 		_title_label.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 	if _story_badge:
 		_story_badge.add_theme_font_size_override("font_size", int(round(12 * s)))
@@ -196,11 +230,11 @@ func _apply_responsive_layout() -> void:
 		_story_text.add_theme_font_size_override("normal_font_size", story_size)
 		_story_text.add_theme_font_size_override("bold_font_size", story_size)
 		_story_text.add_theme_font_size_override("italics_font_size", int(round(ITALICS_FONT_BASE * s)))
-		_story_text.add_theme_color_override("default_color", Color(0.82, 0.82, 0.86))
+		_story_text.add_theme_color_override("default_color", GamePalette.CRT_TEXT_MAIN)
 		_story_text.add_theme_constant_override("line_separation", int(round(4 * s)))
 	if _result_label:
 		_result_label.add_theme_font_size_override("font_size", result_size)
-		_result_label.add_theme_color_override("font_color", Color(0.95, 0.82, 0.45))
+		_result_label.add_theme_color_override("font_color", GamePalette.COLOR_WARN)
 		_result_label.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 	if _choices_box:
 		_choices_box.add_theme_constant_override("separation", int(round(8 * s)))
@@ -293,11 +327,11 @@ func _make_choice_button(label: String) -> Button:
 	btn.text = label
 	btn.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	btn.custom_minimum_size = Vector2(0, min_h)
-	btn.add_theme_font_size_override("font_size", font_size)
 	btn.mouse_default_cursor_shape = Control.CURSOR_POINTING_HAND
 	btn.alignment = HORIZONTAL_ALIGNMENT_LEFT
 	btn.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 	btn.clip_text = false
+	GamePalette.apply_button_theme(btn, font_size)
 	return btn
 
 
@@ -676,13 +710,13 @@ class _BbcodeTooltipButton extends Button:
 		tip.custom_minimum_size = Vector2(240, 0)
 		tip.text = for_text
 		tip.add_theme_font_size_override("normal_font_size", 12)
+		tip.add_theme_color_override("default_color", GamePalette.CRT_TEXT_MAIN)
 		var panel := PanelContainer.new()
-		var style := StyleBoxFlat.new()
-		style.bg_color = Color(0.08, 0.08, 0.09, 0.96)
-		style.set_border_width_all(1)
-		style.border_color = Color(0.45, 0.45, 0.5)
-		style.set_content_margin_all(8)
-		style.set_corner_radius_all(4)
-		panel.add_theme_stylebox_override("panel", style)
+		panel.add_theme_stylebox_override(
+			"panel",
+			GamePalette.make_panel_stylebox(
+				GamePalette.PANEL_BG, GamePalette.MUTED_GREEN, 1, 0, 8.0, false
+			)
+		)
 		panel.add_child(tip)
 		return panel

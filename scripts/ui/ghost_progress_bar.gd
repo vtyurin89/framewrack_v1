@@ -1,6 +1,7 @@
 class_name GhostProgressBar
 extends Control
-## Dual HP bar: phosphor fill + delayed ghost drain, drawn as CRT block segments.
+## Dual HP bar: phosphor fill + delayed ghost drain.
+## `segmented` draws CRT block segments; otherwise a smooth solid fill.
 
 const GHOST_HOLD := 0.2
 const GHOST_TWEEN_DURATION := 0.45
@@ -11,6 +12,8 @@ const MAX_SEGMENTS := 28
 
 @export var bar_min_size: Vector2 = Vector2(170, 20)
 @export var show_label: bool = true
+## When false, draws a smooth solid fill (enemy bars).
+@export var segmented: bool = true
 
 var _ghost: ProgressBar
 var _main: ProgressBar
@@ -42,7 +45,7 @@ func _ensure_built() -> void:
 	custom_minimum_size = bar_min_size
 	clip_contents = true
 
-	## ProgressBars store animated values only; visuals are custom-drawn segments.
+	## ProgressBars store animated values only; visuals are custom-drawn.
 	_ghost = ProgressBar.new()
 	_ghost.name = "GhostBar"
 	_ghost.show_percentage = false
@@ -69,7 +72,7 @@ func _ensure_built() -> void:
 		_label.add_theme_font_size_override("font_size", 13)
 		_label.add_theme_color_override("font_color", GamePalette.PHOSPHOR_BRIGHT)
 		_label.add_theme_color_override("font_outline_color", GamePalette.BACKGROUND_DARK)
-		_label.add_theme_constant_override("outline_size", 3)
+		_label.add_theme_constant_override("outline_size", 4)
 		_label.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
 		add_child(_label)
 	elif _label != null:
@@ -80,27 +83,53 @@ func _apply_styles() -> void:
 	_ensure_built()
 	if _label:
 		_label.add_theme_color_override("font_color", GamePalette.PHOSPHOR_BRIGHT)
+		_label.add_theme_color_override("font_outline_color", GamePalette.BACKGROUND_DARK)
+		_label.add_theme_constant_override("outline_size", 4)
+		_label.z_index = 2
 
 
 func _draw() -> void:
 	var rect := Rect2(Vector2.ZERO, size)
 	if rect.size.x <= 1.0 or rect.size.y <= 1.0:
 		return
-	## Outer frame.
-	draw_rect(rect, GamePalette.BACKGROUND_DARK, true)
+	## Outer frame: PANEL_BG + MUTED_GREEN border.
+	draw_rect(rect, GamePalette.PANEL_BG, true)
 	draw_rect(rect, GamePalette.MUTED_GREEN, false, 1.0)
 
 	var inner := rect.grow(-2.0)
 	if inner.size.x <= 1.0 or inner.size.y <= 1.0:
 		return
-	var segments := clampi(int(round(inner.size.x / 7.0)), MIN_SEGMENTS, MAX_SEGMENTS)
-	var total_gap := SEGMENT_GAP * float(segments - 1)
-	var seg_w := (inner.size.x - total_gap) / float(segments)
+
 	var ratio_ghost := 0.0
 	var ratio_main := 0.0
 	if _maximum > 0.0:
 		ratio_ghost = clampf(_ghost.value / _maximum, 0.0, 1.0) if _ghost else 0.0
 		ratio_main = clampf(_main.value / _maximum, 0.0, 1.0) if _main else 0.0
+
+	if segmented:
+		_draw_segmented(inner, ratio_ghost, ratio_main)
+	else:
+		_draw_smooth(inner, ratio_ghost, ratio_main)
+
+
+func _draw_smooth(inner: Rect2, ratio_ghost: float, ratio_main: float) -> void:
+	## Empty track already PANEL_BG from outer; ghost then solid phosphor fill.
+	if ratio_ghost > 0.0:
+		var ghost_w := inner.size.x * ratio_ghost
+		draw_rect(Rect2(inner.position, Vector2(ghost_w, inner.size.y)), GamePalette.COLOR_HP_GHOST, true)
+	if ratio_main > 0.0:
+		var main_w := inner.size.x * ratio_main
+		draw_rect(
+			Rect2(inner.position, Vector2(main_w, inner.size.y)),
+			GamePalette.PHOSPHOR_ACTIVE,
+			true
+		)
+
+
+func _draw_segmented(inner: Rect2, ratio_ghost: float, ratio_main: float) -> void:
+	var segments := clampi(int(round(inner.size.x / 7.0)), MIN_SEGMENTS, MAX_SEGMENTS)
+	var total_gap := SEGMENT_GAP * float(segments - 1)
+	var seg_w := (inner.size.x - total_gap) / float(segments)
 	var filled_ghost := int(ceil(ratio_ghost * float(segments) - 0.001))
 	var filled_main := int(ceil(ratio_main * float(segments) - 0.001))
 
@@ -112,7 +141,7 @@ func _draw() -> void:
 		else:
 			draw_rect(seg, GamePalette.INACTIVE_ELEMENT, true)
 		if i < filled_main:
-			draw_rect(seg, GamePalette.COLOR_HP_MAIN, true)
+			draw_rect(seg, GamePalette.PHOSPHOR_ACTIVE, true)
 
 
 func set_hp_animated(new_hp: int, max_hp: int, duration: float = MAIN_TWEEN_DURATION) -> void:

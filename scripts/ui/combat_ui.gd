@@ -43,6 +43,7 @@ var _hp_flash_tween: Tween
 var _stats_row_base_position: Vector2 = Vector2.ZERO
 var _hp_bar_base_modulate: Color = Color.WHITE
 var _damage_vignette: DamageVignette
+var _target_reticle: TargetReticle
 
 @onready var _enemy_row: HBoxContainer = %EnemyRow
 @onready var _loot_stage: Control = %LootStage
@@ -442,6 +443,9 @@ func _rebuild_enemies() -> void:
 			card.set_intentions_hidden(true)
 		elif enemy.current_intention != null:
 			card.set_intention(enemy.current_intention)
+	## Refresh shared reticle after roster rebuild.
+	if combat != null:
+		_on_enemy_selected(combat.target_index)
 
 
 func _find_card_by_index(index: int) -> EnemyCardUI:
@@ -529,11 +533,38 @@ func _open_enemy_inspect(index: int) -> void:
 func _on_enemy_selected(index: int) -> void:
 	if combat == null:
 		return
+	var selected_card: EnemyCardUI = null
 	for child in _enemy_row.get_children():
 		var card: EnemyCardUI = child as EnemyCardUI
 		if card == null:
 			continue
-		card.set_selected(card.enemy_index == index)
+		var is_sel := card.enemy_index == index
+		card.set_selected(is_sel)
+		if is_sel:
+			selected_card = card
+	_ensure_target_reticle()
+	if selected_card == null:
+		_target_reticle.clear_target()
+	else:
+		## Defer so layout is settled after roster rebuilds.
+		call_deferred("_lock_reticle_on_card", selected_card)
+
+
+func _ensure_target_reticle() -> void:
+	if _target_reticle != null and is_instance_valid(_target_reticle):
+		return
+	_target_reticle = TargetReticle.new()
+	_target_reticle.name = "TargetReticle"
+	## Parent to self so global→local mapping stays stable while cards layout.
+	add_child(_target_reticle)
+
+
+func _lock_reticle_on_card(card: EnemyCardUI) -> void:
+	_ensure_target_reticle()
+	if card == null or not is_instance_valid(card) or not card.is_inside_tree():
+		_target_reticle.clear_target()
+		return
+	_target_reticle.lock_on(card)
 
 
 func _on_ap_changed(current: int, maximum: int) -> void:

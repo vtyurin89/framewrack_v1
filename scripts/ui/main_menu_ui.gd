@@ -13,6 +13,7 @@ signal exit_pressed
 @onready var _new_game_btn: Button = %NewGameButton
 @onready var _settings_btn: Button = %SettingsButton
 @onready var _exit_btn: Button = %ExitButton
+@onready var _overlay: ColorRect = $Overlay
 
 
 func _ready() -> void:
@@ -26,8 +27,33 @@ func _ready() -> void:
 		btn.mouse_default_cursor_shape = Control.CURSOR_POINTING_HAND
 	if not LocalizationManager.language_changed.is_connected(_apply_locale):
 		LocalizationManager.language_changed.connect(_apply_locale)
+	_apply_crt_theme()
 	_apply_locale()
 	refresh_continue_visibility()
+
+
+func _apply_crt_theme() -> void:
+	if _overlay:
+		_overlay.color = Color(
+			GamePalette.BACKGROUND_DARK.r,
+			GamePalette.BACKGROUND_DARK.g,
+			GamePalette.BACKGROUND_DARK.b,
+			0.96
+		)
+	if _title:
+		_title.add_theme_color_override("font_color", GamePalette.PHOSPHOR_BRIGHT)
+		_title.add_theme_color_override("font_outline_color", GamePalette.PANEL_BG)
+		_title.add_theme_constant_override("outline_size", 6)
+		_title.add_theme_font_size_override("font_size", 52)
+		GamePalette.apply_phosphor_glow(_title, true)
+	if _tagline:
+		_tagline.add_theme_color_override("font_color", GamePalette.CRT_TEXT_MAIN)
+		_tagline.add_theme_font_size_override("font_size", 14)
+	for btn: Button in [_continue_btn, _new_game_btn, _settings_btn, _exit_btn]:
+		if btn == null:
+			continue
+		btn.custom_minimum_size = Vector2(220, 44)
+		GamePalette.apply_button_theme(btn, 16)
 
 
 func show_menu() -> void:

@@ -6,15 +6,16 @@ signal card_gui_input(event: InputEvent, enemy_index: int)
 signal death_fade_finished(card: EnemyCardUI)
 signal attack_impact
 
-const SELECT_COLOR := Color("#A8F0A8") ## PHOSPHOR_BRIGHT
+const SELECT_COLOR := Color("#A8F0A8") ## PHOSPHOR_BRIGHT (legacy; reticle is shared)
 const BAR_HEIGHT := 20.0
 const BAR_MIN_WIDTH := 170.0
 const SPRITE_DIR := "res://assets/sprites/enemies/"
 const HIT_FX_TEXTURE := preload("res://assets/sprites/fx/hit_slash.png")
 const HIT_FX_DURATION := 0.35
-const BRACKET_THICKNESS := 2.5
-const BRACKET_SPAN := 0.5
-const BRACKET_PAD := 8.0
+## Local brackets disabled — CombatUI owns the shared TargetReticle.
+const BRACKET_THICKNESS := 1.25
+const BRACKET_SPAN := 0.22
+const BRACKET_PAD := 3.0
 const DEATH_FADE_DURATION := 0.45
 const ATTACK_LUNGE_DURATION := 0.15
 const ATTACK_RETURN_DURATION := 0.2
@@ -81,7 +82,10 @@ func _ready() -> void:
 		_placeholder.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	if _selection_overlay:
 		_selection_overlay.mouse_filter = Control.MOUSE_FILTER_IGNORE
-		_selection_overlay.draw.connect(_draw_selection_brackets)
+		## Brackets drawn by CombatUI TargetReticle (animated shared reticle).
+	if _ghost_hp:
+		_ghost_hp.segmented = false
+		_ghost_hp.show_label = true
 	gui_input.connect(_on_gui_input)
 
 
@@ -93,6 +97,10 @@ func setup(enemy: EnemyInstance, index: int, selected: bool) -> void:
 		await ready
 	_ensure_intention_ui()
 	_ensure_statuses_ui()
+	if _ghost_hp:
+		_ghost_hp.segmented = false
+		_ghost_hp.show_label = true
+		_ghost_hp.bar_min_size = Vector2(BAR_MIN_WIDTH, BAR_HEIGHT)
 	_refresh_presentation(selected)
 	if enemy != null:
 		set_hp(enemy.current_hp, enemy.max_hp, false)
@@ -118,8 +126,7 @@ func get_combat_text_host() -> Control:
 
 func set_selected(selected: bool) -> void:
 	_is_selected = selected and not _is_dying
-	if _selection_overlay:
-		_selection_overlay.queue_redraw()
+	## Shared TargetReticle in CombatUI handles bracket visuals.
 
 
 func set_hp(current: int, maximum: int, animate: bool = true) -> void:
@@ -438,22 +445,8 @@ func _refresh_presentation(selected: bool) -> void:
 
 
 func _draw_selection_brackets() -> void:
-	if not _is_selected or _selection_overlay == null:
-		return
-	var w := _selection_overlay.size.x
-	var h := _selection_overlay.size.y
-	if w <= 0.0 or h <= 0.0:
-		return
-	var left := -BRACKET_PAD
-	var top := -BRACKET_PAD
-	var right := w + BRACKET_PAD
-	var bottom := h + BRACKET_PAD
-	var arm := w * BRACKET_SPAN
-	var t := BRACKET_THICKNESS
-	_selection_overlay.draw_line(Vector2(left, top), Vector2(left + arm, top), SELECT_COLOR, t, true)
-	_selection_overlay.draw_line(Vector2(left, top), Vector2(left, top + arm), SELECT_COLOR, t, true)
-	_selection_overlay.draw_line(Vector2(right - arm, bottom), Vector2(right, bottom), SELECT_COLOR, t, true)
-	_selection_overlay.draw_line(Vector2(right, bottom - arm), Vector2(right, bottom), SELECT_COLOR, t, true)
+	## Deprecated: shared TargetReticle draws selection corners.
+	pass
 
 
 func _apply_enemy_sprite() -> void:
