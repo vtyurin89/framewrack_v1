@@ -23,7 +23,7 @@ const PHOSPHOR_BRIGHT := Color("#A8F0A8")
 const COLOR_WARN := Color("#B6B35A")
 ## Muted rust red — danger / critical / damage.
 const COLOR_DANGER := Color("#A84D4D")
-## Cool grey-teal green — special system UI / debug coords.
+## Cool grey-teal green — system UI accents / shields / intro.
 const COLOR_CYAN_SYSTEM := Color("#5FAF91")
 
 # Short aliases (older call sites).
