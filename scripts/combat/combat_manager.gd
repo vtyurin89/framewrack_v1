@@ -513,7 +513,8 @@ func activate_item(placed: PlacedItem) -> bool:
 			var killed := _resolve_single_enemy(placed)
 			_consume_charge_if_needed(placed)
 			if killed and _should_reset_cooldown_on_kill(data):
-				data.current_cd = 0
+				## Nail Gun: clear COOLDOWN ItemStatus so the weapon can fire again.
+				data.clear_status(ItemStatus.Type.COOLDOWN)
 				EventBus.combat_log_message.emit(
 					tr("KEY_LOG_NAIL_KILL_RESET") % data.get_localized_name()
 				)
