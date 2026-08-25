@@ -87,6 +87,7 @@ func _ready() -> void:
 	EventBus.block_changed.connect(_on_block_changed)
 	EventBus.combat_log_message.connect(_on_log)
 	EventBus.enemy_hp_changed.connect(_on_enemy_hp)
+	EventBus.enemy_block_changed.connect(_on_enemy_block)
 	EventBus.enemy_healed.connect(_on_enemy_healed)
 	EventBus.enemy_selected.connect(_on_enemy_selected)
 	EventBus.enemy_roster_changed.connect(_rebuild_enemies)
@@ -98,6 +99,7 @@ func _ready() -> void:
 	EventBus.enemy_died.connect(_on_enemy_died)
 	EventBus.damage_popup_requested.connect(_on_damage_popup_requested)
 	EventBus.inventory_changed.connect(_on_inventory_changed_for_block)
+	EventBus.item_stolen_by_enemy.connect(_on_item_stolen_by_enemy)
 	LocalizationManager.language_changed.connect(_on_language_changed)
 	_apply_static_locale()
 	_bind_damage_popup_manager()
@@ -884,6 +886,19 @@ func _on_enemy_hp(index: int, current: int, maximum: int) -> void:
 	if card == null:
 		return
 	card.set_hp(current, maximum)
+	## Keep block badge in sync even if a separate block signal was skipped.
+	var enemy := card.get_enemy()
+	if enemy != null:
+		card.set_block(enemy.current_block)
+
+
+func _on_enemy_block(index: int, amount: int) -> void:
+	if _dying_indices.get(index, false):
+		return
+	var card := _find_card_by_index(index)
+	if card == null:
+		return
+	card.set_block(amount)
 
 
 func _on_enemy_healed(index: int, amount: int) -> void:
@@ -909,20 +924,31 @@ func _scroll_log_to_end() -> void:
 		_log.scroll_to_line(_log.get_line_count())
 
 
-func set_reward_phase(active: bool) -> void:
+func set_reward_phase(active: bool, hint_key: String = "KEY_REWARD_SELECT_UP_TO_3") -> void:
 	## Swap the enemy stage for floating loot; keep the existing Continue button.
 	_reward_phase = active
 	if active:
 		_harmful_insertion_phase = false
-	_apply_space_stage_layout(active, tr("KEY_REWARD_SELECT_UP_TO_3"))
+	_apply_space_stage_layout(active, tr(hint_key))
 
 
-func set_harmful_insertion_phase(active: bool) -> void:
-	## Mid-combat forced placement of a harmful item into the Body Grid.
+func set_chest_phase(active: bool, hint_key: String = "KEY_CHEST_HINT") -> void:
+	## Swap the enemy stage for the chest interaction UI.
+	_reward_phase = active
+	if active:
+		_harmful_insertion_phase = false
+	_apply_space_stage_layout(active, tr(hint_key))
+	if _continue_btn and active:
+		_continue_btn.disabled = false
+
+
+func set_harmful_insertion_phase(active: bool, banner_text: String = "") -> void:
+	## Mid-combat forced placement into the Body Grid (parasite or returned steal).
 	_harmful_insertion_phase = active
 	if active:
 		_reward_phase = false
-	_apply_space_stage_layout(active, tr("KEY_FORCED_INSERT_BANNER"))
+	var banner := banner_text if not banner_text.is_empty() else tr("KEY_FORCED_INSERT_BANNER")
+	_apply_space_stage_layout(active, banner)
 	if _continue_btn:
 		if active:
 			_continue_btn.text = tr("KEY_CONTINUE")
@@ -1060,3 +1086,45 @@ func _spawn_floating_combat_text(host: Control, text: String, kind: String) -> v
 	)
 	tween.tween_property(label, "modulate:a", 0.0, 0.85).set_delay(0.25)
 	tween.chain().tween_callback(label.queue_free)
+
+
+func _on_item_stolen_by_enemy(enemy_index: int, item: ItemData) -> void:
+	## Visual only: fly a temporary icon from the Body Grid toward the thief's card.
+	if item == null:
+		return
+	var card := _find_card_by_index(enemy_index)
+	var start := _estimate_body_grid_center()
+	var end := start + Vector2(0, -120)
+	if card != null and is_instance_valid(card):
+		end = card.get_global_rect().get_center()
+	var tex: Texture2D = item.get_texture()
+	var fly := TextureRect.new()
+	fly.texture = tex
+	fly.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
+	fly.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
+	fly.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	fly.z_index = 120
+	fly.size = Vector2(48, 48)
+	fly.pivot_offset = fly.size * 0.5
+	add_child(fly)
+	fly.global_position = start - fly.size * 0.5
+	var tween := create_tween()
+	tween.set_trans(Tween.TRANS_CUBIC).set_ease(Tween.EASE_IN_OUT)
+	tween.set_parallel(true)
+	tween.tween_property(fly, "global_position", end - fly.size * 0.5, 0.55)
+	tween.tween_property(fly, "scale", Vector2(0.55, 0.55), 0.55)
+	tween.tween_property(fly, "modulate:a", 0.15, 0.55).set_delay(0.2)
+	tween.chain().tween_callback(fly.queue_free)
+
+
+func _estimate_body_grid_center() -> Vector2:
+	## Prefer a live InventoryGridUI if present in the scene; else viewport mid-left.
+	var root := get_tree().current_scene
+	if root != null:
+		var grids := root.find_children("*", "InventoryGridUI", true, false)
+		for node: Node in grids:
+			var grid_ui := node as Control
+			if grid_ui != null and grid_ui.visible:
+				return grid_ui.get_global_rect().get_center()
+	var vp := get_viewport().get_visible_rect()
+	return Vector2(vp.position.x + vp.size.x * 0.28, vp.position.y + vp.size.y * 0.55)

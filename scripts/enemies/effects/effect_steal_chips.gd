@@ -41,7 +41,7 @@ func apply(caster: EnemyInstance, target: Node, params: Array) -> void:
 		amount = caster.statuses.modify_outgoing_damage(amount)
 	amount = maxi(1, amount)
 	if target.has_method("apply_enemy_damage_to_player"):
-		var dealt: int = target.call("apply_enemy_damage_to_player", amount)
+		var dealt: int = target.call("apply_enemy_damage_to_player", amount, caster, "physical")
 		EventBus.combat_log_message.emit(
 			tr("KEY_LOG_CHIP_THEFT") % [caster.get_localized_name(), stolen, amount, dealt]
 		)

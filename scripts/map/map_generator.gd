@@ -30,8 +30,13 @@ static func generate_for_act(act_data: ActData) -> MapData:
 	var finale_layer := total_layers - 2
 	var stairs_layer := total_layers - 1
 
-	## Layer 0 — single MAIN_STORY start.
-	var start := _create_node(act_data, 0, START_COLUMN, MapNodeData.MapNodeType.MAIN_STORY)
+	## Layer 0 — Act 1 opens with INTRO (gods); later acts open with MAIN_STORY.
+	var start_type := (
+		MapNodeData.MapNodeType.INTRO
+		if act_data.act_index == 1
+		else MapNodeData.MapNodeType.MAIN_STORY
+	)
+	var start := _create_node(act_data, 0, START_COLUMN, start_type)
 	start.state = MapNodeData.NodeState.AVAILABLE
 	out.nodes[start.id] = start
 
@@ -360,6 +365,8 @@ static func _create_node(
 
 static func _build_encounter_for_node(act_data: ActData, node: MapNodeData) -> EncounterData:
 	match node.node_type:
+		MapNodeData.MapNodeType.INTRO:
+			return _build_intro_encounter(act_data, node)
 		MapNodeData.MapNodeType.MAIN_STORY:
 			return _build_story_encounter(act_data, node)
 		MapNodeData.MapNodeType.COMBAT:
@@ -382,18 +389,38 @@ static func _build_encounter_for_node(act_data: ActData, node: MapNodeData) -> E
 			)
 		MapNodeData.MapNodeType.STAIRS:
 			return _build_basic_encounter(node.id, EncounterData.EncounterType.STAIRS, "Stairs")
+		MapNodeData.MapNodeType.REWARD:
+			return _build_chest_encounter(act_data, node)
 		_:
 			return _build_basic_encounter(node.id, EncounterData.EncounterType.UNKNOWN, "Unknown")
 
 
+static func _build_intro_encounter(act_data: ActData, node: MapNodeData) -> EncounterData:
+	## Act 1 opening: random starting-god INTRO dialog.
+	var god := StartingGodRegistry.pick_random_god_encounter()
+	if god != null:
+		var copy := god.duplicate(true) as EncounterData
+		copy.payload["map_node_id"] = node.id
+		copy.payload["prologue"] = false
+		copy.payload["act"] = act_data.act_index if act_data != null else 1
+		return copy
+	var fallback := IntroEncounterData.new()
+	fallback.id = "%s_intro" % node.id
+	fallback.title_key = "KEY_TYPE_INTRO"
+	fallback.payload = {
+		"map_node_id": node.id,
+		"act": act_data.act_index if act_data != null else 1,
+	}
+	return fallback
+
+
 static func _build_story_encounter(act_data: ActData, node: MapNodeData) -> EncounterData:
-	## Opening beat (layer 0): god / prologue pool for Act 1.
-	if node.layer == 0 and act_data.act_index == 1:
-		var god := StartingGodRegistry.pick_random_god_encounter()
-		if god != null:
-			var copy := god.duplicate(true) as EncounterData
+	## Opening beat (layer 0): MAIN_STORY stubs for acts 2+.
+	if node.layer == 0:
+		var opening := MainStoryRegistry.load_opening_for_act(act_data.act_index)
+		if opening != null:
+			var copy := opening.duplicate(true) as EncounterData
 			copy.payload["map_node_id"] = node.id
-			copy.payload["prologue"] = false
 			copy.payload["act"] = act_data.act_index
 			return copy
 	var story := MainStoryEncounterData.new()
@@ -418,6 +445,7 @@ static func _build_event_encounter(act_data: ActData, node: MapNodeData) -> Enco
 		if story_enc != null:
 			story_enc.payload["map_node_id"] = node.id
 			story_enc.payload["act"] = act_index
+			story_enc.payload["layer"] = node.layer
 			return story_enc
 	var encounter := EncounterData.new()
 	encounter.id = node.id
@@ -474,6 +502,17 @@ static func _build_shop_encounter(act_data: ActData, node: MapNodeData) -> Encou
 	return encounter
 
 
+static func _build_chest_encounter(act_data: ActData, node: MapNodeData) -> EncounterData:
+	## Rare map reward site — locked chests need a Lockpick.
+	var encounter := _build_basic_encounter(node.id, EncounterData.EncounterType.CHEST, "Reward")
+	var act_index := act_data.act_index if act_data != null else 1
+	encounter.payload["act"] = maxi(1, act_index)
+	encounter.payload["layer"] = node.layer
+	## ~55% locked — encourages carrying a lockpick.
+	encounter.payload["locked"] = randf() < 0.55
+	return encounter
+
+
 static func _faction_for_act(act_data: ActData) -> String:
 	if act_data != null and not act_data.primary_faction.strip_edges().is_empty():
 		return act_data.primary_faction.strip_edges().to_lower()
@@ -516,6 +555,8 @@ static func _title_key_for_type(kind: EncounterData.EncounterType) -> String:
 			return "KEY_TYPE_BOSS"
 		EncounterData.EncounterType.EVENT:
 			return "KEY_TYPE_EVENT"
+		EncounterData.EncounterType.INTRO:
+			return "KEY_TYPE_INTRO"
 		EncounterData.EncounterType.REST_SITE:
 			return "KEY_TYPE_REPAIR"
 		EncounterData.EncounterType.SHOP:
@@ -524,6 +565,8 @@ static func _title_key_for_type(kind: EncounterData.EncounterType) -> String:
 			return "KEY_TYPE_MAIN_STORY"
 		EncounterData.EncounterType.STAIRS:
 			return "KEY_TYPE_STAIRS"
+		EncounterData.EncounterType.CHEST:
+			return "KEY_TYPE_REWARD"
 		_:
 			return ""
 
@@ -547,7 +590,7 @@ static func _pick_middle_type(
 	layer_type_counts: Dictionary
 ) -> MapNodeData.MapNodeType:
 	## Weighted pick with layer caps and Act 1 early-layer exclusions.
-	## MAIN_STORY / STAIRS / BOSS are never rolled here — fixed at act ends.
+	## INTRO / MAIN_STORY / STAIRS / BOSS are never rolled here — fixed at act ends.
 	for _attempt in 24:
 		var candidate := _roll_middle_type(act_data, layer)
 		if int(layer_type_counts.get(candidate, 0)) >= 3:
@@ -567,28 +610,37 @@ static func _allowed_middle_types(act_data: ActData, layer: int) -> Array:
 		MapNodeData.MapNodeType.SHOP,
 		MapNodeData.MapNodeType.REPAIR,
 		MapNodeData.MapNodeType.ELITE,
+		MapNodeData.MapNodeType.REWARD,
 	]
 	if act_data != null and act_data.act_index == 1 and layer <= 2:
 		types.erase(MapNodeData.MapNodeType.ELITE)
 		types.erase(MapNodeData.MapNodeType.REPAIR)
+		types.erase(MapNodeData.MapNodeType.REWARD)
 	return types
 
 
 static func _roll_middle_type(act_data: ActData, layer: int) -> MapNodeData.MapNodeType:
 	var exclude_elite_repair := act_data != null and act_data.act_index == 1 and layer <= 2
 	## Re-roll until we land on an allowed type (keeps original weight feel).
+	## REWARD is the rarest bucket (~4%).
 	for _attempt in 16:
 		var roll := randf()
 		var picked: MapNodeData.MapNodeType
-		if roll < 0.45:
+		if roll < 0.44:
 			picked = MapNodeData.MapNodeType.COMBAT
-		elif roll < 0.70:
+		elif roll < 0.68:
 			picked = MapNodeData.MapNodeType.EVENT
-		elif roll < 0.85:
+		elif roll < 0.82:
 			picked = MapNodeData.MapNodeType.REPAIR if randf() < 0.5 else MapNodeData.MapNodeType.SHOP
-		else:
+		elif roll < 0.96:
 			picked = MapNodeData.MapNodeType.ELITE
-		if exclude_elite_repair and picked in [MapNodeData.MapNodeType.ELITE, MapNodeData.MapNodeType.REPAIR]:
+		else:
+			picked = MapNodeData.MapNodeType.REWARD
+		if exclude_elite_repair and picked in [
+			MapNodeData.MapNodeType.ELITE,
+			MapNodeData.MapNodeType.REPAIR,
+			MapNodeData.MapNodeType.REWARD,
+		]:
 			continue
 		return picked
 	return MapNodeData.MapNodeType.COMBAT

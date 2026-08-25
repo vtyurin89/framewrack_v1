@@ -20,7 +20,17 @@ func apply(caster: EnemyInstance, target: Node, params: Array) -> void:
 	var subjects: Array[EnemyInstance] = []
 	match ability.target_type.strip_edges().to_lower():
 		"ally":
-			if target != null and target.has_method("get_random_living_ally"):
+			## Stasis Pod Left always prioritizes Elder Vaeron.
+			if (
+				caster.data != null
+				and caster.data.id == ElderVaeron.ID_POD_LEFT
+				and target != null
+				and target.has_method("find_enemy_by_id")
+			):
+				var vaeron: EnemyInstance = target.call("find_enemy_by_id", ElderVaeron.ID_VAERON)
+				if vaeron != null and vaeron.is_alive():
+					subjects.append(vaeron)
+			if subjects.is_empty() and target != null and target.has_method("get_random_living_ally"):
 				var ally: EnemyInstance = target.call("get_random_living_ally", caster)
 				if ally != null:
 					subjects.append(ally)

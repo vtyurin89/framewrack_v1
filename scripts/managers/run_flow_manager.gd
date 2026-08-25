@@ -172,7 +172,12 @@ func _start_act_intro() -> void:
 		return
 	var intro_node: MapNodeData = null
 	for node: MapNodeData in current_map_data.get_available_nodes():
-		if node.layer == 0 and node.node_type == MapNodeData.MapNodeType.MAIN_STORY:
+		if node.layer != 0:
+			continue
+		if (
+			node.node_type == MapNodeData.MapNodeType.INTRO
+			or node.node_type == MapNodeData.MapNodeType.MAIN_STORY
+		):
 			intro_node = node
 			break
 	if intro_node == null:

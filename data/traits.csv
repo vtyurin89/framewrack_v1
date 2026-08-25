@@ -3,16 +3,18 @@ TRAIT_BASIC_BLUDGEON,TRAIT_BASIC_BLUDGEON_NAME,TRAIT_BASIC_BLUDGEON_DESC,,0,Enem
 TRAIT_BLEED_NO_BIO,TRAIT_BLEED_NO_BIO_NAME,TRAIT_BLEED_NO_BIO_DESC,,0,Bleed on enemies. Disabled when adjacent to biomorphic modules.
 TRAIT_STUN_IMPACT,TRAIT_STUN_IMPACT_NAME,TRAIT_STUN_IMPACT_DESC,,0,Stuns the targeted enemy. Never damages or corrupts player cells.
 TRAIT_BIO_RESONANCE,TRAIT_BIO_RESONANCE_NAME,TRAIT_BIO_RESONANCE_DESC,DAMAGE,3,Bonus damage when adjacent to biomorphic modules.
-TRAIT_NAIL_BURST,TRAIT_NAIL_BURST_NAME,TRAIT_NAIL_BURST_DESC,,0,Consumes ammo to fire a nail burst at the enemy.
+TRAIT_STACKABLE_DAMAGE_BOOST,TRAIT_STACKABLE_DAMAGE_BOOST_NAME,TRAIT_STACKABLE_DAMAGE_BOOST_DESC,,1,Each attack with this weapon grants +1 damage to this weapon for the rest of this turn.
+TRAIT_NAIL_KILL_RESET,TRAIT_NAIL_KILL_RESET_NAME,TRAIT_NAIL_KILL_RESET_DESC,,0,Killing an enemy with this shot resets the weapon cooldown.
 TRAIT_REACTOR_CHAIN,TRAIT_REACTOR_CHAIN_NAME,TRAIT_REACTOR_CHAIN_DESC,DAMAGE,2,Chains bonus damage when adjacent to a reactor.
 TRAIT_ARMOR_PIERCE,TRAIT_ARMOR_PIERCE_NAME,TRAIT_ARMOR_PIERCE_DESC,,0,Ignores a portion of enemy Block / armor.
 TRAIT_FUEL_BURST,TRAIT_FUEL_BURST_NAME,TRAIT_FUEL_BURST_DESC,,2,Applies 2 Burn (turns) to hit enemies. No self-burn or cell corruption.
 TRAIT_APPLY_BURN,TRAIT_APPLY_BURN_NAME,TRAIT_APPLY_BURN_DESC,,2,Applies 2 Burn (turns) to all hit enemies.
+TRAIT_APPLY_RUST,TRAIT_APPLY_RUST_NAME,TRAIT_APPLY_RUST_DESC,,3,Applies 3 Rust stacks (flat 25% miss; stacks tick down; cap 5).
 TRAIT_HEAVY_SOLO,TRAIT_HEAVY_SOLO_NAME,TRAIT_HEAVY_SOLO_DESC,DAMAGE,4,Bonus damage when not adjacent to other weapons.
 TRAIT_DRAIN_LIFE,TRAIT_DRAIN_LIFE_NAME,TRAIT_DRAIN_LIFE_DESC,,0,Heals the frame on hit. Does not drain or damage inventory cells.
-TRAIT_ARMOR_EDGE,TRAIT_ARMOR_EDGE_NAME,TRAIT_ARMOR_EDGE_DESC,ARMOR,1,Edge-mounted armor gains stability bonus.
-TRAIT_ARMOR_CHAIN,TRAIT_ARMOR_CHAIN_NAME,TRAIT_ARMOR_CHAIN_DESC,ARMOR,1,Adjacent armor pieces reinforce each other.
-TRAIT_SPIKES_OUTER,TRAIT_SPIKES_OUTER_NAME,TRAIT_SPIKES_OUTER_DESC,DAMAGE,2,Reflective spikes punish close enemies.
+TRAIT_ARMOR_EDGE,TRAIT_ARMOR_EDGE_NAME,TRAIT_ARMOR_EDGE_DESC,ARMOR,1,Edge-mounted shields gain stability bonus.
+TRAIT_ARMOR_CHAIN,TRAIT_ARMOR_CHAIN_NAME,TRAIT_ARMOR_CHAIN_DESC,ARMOR,1,Adjacent shields reinforce each other.
+TRAIT_SPIKES_OUTER,TRAIT_SPIKES_OUTER_NAME,TRAIT_SPIKES_OUTER_DESC,,2,At combat start grants Sharp Spikes to the player (2 stacks by default).
 TRAIT_HEAT_DISSIPATION,TRAIT_HEAT_DISSIPATION_NAME,TRAIT_HEAT_DISSIPATION_DESC,ARMOR,2,Cooling loops improve armor output.
 TRAIT_REACTIVE_CLEANSE,TRAIT_REACTIVE_CLEANSE_NAME,TRAIT_REACTIVE_CLEANSE_DESC,ARMOR,1,Reactive weave shrugs off corruption residue.
 TRAIT_ARMOR_CORE_TRIGGER,TRAIT_ARMOR_CORE_TRIGGER_NAME,TRAIT_ARMOR_CORE_TRIGGER_DESC,,0,Activating core chains nearby usable armor.
@@ -20,12 +22,17 @@ TRAIT_HELMET_LOW,TRAIT_HELMET_LOW_NAME,TRAIT_HELMET_LOW_DESC,,0,Passive: +0.5 ar
 TRAIT_HELMET_HIGH,TRAIT_HELMET_HIGH_NAME,TRAIT_HELMET_HIGH_DESC,,0,Passive: +1 armor per cell below.
 TRAIT_LEG_LOW,TRAIT_LEG_LOW_NAME,TRAIT_LEG_LOW_DESC,,0,Passive: +0.5 armor per cell above.
 TRAIT_LEG_HIGH,TRAIT_LEG_HIGH_NAME,TRAIT_LEG_HIGH_DESC,,0,Passive: +1 armor per cell above.
+TRAIT_GREAVES_BASE,TRAIT_GREAVES_BASE_NAME,TRAIT_GREAVES_BASE_DESC,,2,Greaves Frame passive armor base per turn.
+TRAIT_GREAVES_BELOW_PENALTY,TRAIT_GREAVES_BELOW_PENALTY_NAME,TRAIT_GREAVES_BELOW_PENALTY_DESC,,1,Greaves Frame penalty per unlocked cell below.
 TRAIT_HELMET_ROW_PENALTY,TRAIT_HELMET_ROW_PENALTY_NAME,TRAIT_HELMET_ROW_PENALTY_DESC,,0,-1 passive armor per other helmet to the right in the same row.
 TRAIT_LEG_ROW_PENALTY,TRAIT_LEG_ROW_PENALTY_NAME,TRAIT_LEG_ROW_PENALTY_DESC,,0,-1 passive armor per other leg armor to the right in the same row.
 TRAIT_BIO_GEL_HEAL,TRAIT_BIO_GEL_HEAL_NAME,TRAIT_BIO_GEL_HEAL_DESC,,8,Heals 8 HP instantly when consumed.
 TRAIT_GIVE_AP,TRAIT_GIVE_AP_NAME,TRAIT_GIVE_AP_DESC,,1,Instantly restores 1 AP for the current turn.
 TRAIT_NEURO_STIM,TRAIT_NEURO_STIM_NAME,TRAIT_NEURO_STIM_DESC,,2,+2 AP in combat or +4d6 on a dialog check.
 TRAIT_SYNAPSE_BOOSTER,TRAIT_SYNAPSE_BOOSTER_NAME,TRAIT_SYNAPSE_BOOSTER_DESC,,4,+4 AP in combat or guarantees a dialog check.
+TRAIT_PERM_STRENGTH,TRAIT_PERM_STRENGTH_NAME,TRAIT_PERM_STRENGTH_DESC,,1,On use: permanently +1 Strength.
+TRAIT_PERM_INTELLIGENCE,TRAIT_PERM_INTELLIGENCE_NAME,TRAIT_PERM_INTELLIGENCE_DESC,,1,On use: permanently +1 Intelligence.
+TRAIT_PERM_ENDURANCE,TRAIT_PERM_ENDURANCE_NAME,TRAIT_PERM_ENDURANCE_DESC,,1,On use: permanently +1 Endurance and recalculate Max HP.
 TRAIT_BURN_DAMAGE,TRAIT_BURN_DAMAGE_NAME,TRAIT_BURN_DAMAGE_DESC,,0,Hit damage comes from item min/max; applies 3 Burn to selected enemy.
 TRAIT_CLEANSE_DEBUFFS,TRAIT_CLEANSE_DEBUFFS_NAME,TRAIT_CLEANSE_DEBUFFS_DESC,,0,Cleanses active debuffs/corruption pressure.
 TRAIT_EYE_OF_PALE_MAIDEN,TRAIT_EYE_OF_PALE_MAIDEN_NAME,TRAIT_EYE_OF_PALE_MAIDEN_DESC,,0,+1 AP on combat turn 1; -1 AP instead if adjacent to a weapon.
@@ -44,4 +51,8 @@ TRAIT_WAR_LUCK,TRAIT_WAR_LUCK_NAME,TRAIT_WAR_LUCK_DESC,LCK,1,Passive +1 Luck whi
 TRAIT_VIP_LUCK,TRAIT_VIP_LUCK_NAME,TRAIT_VIP_LUCK_DESC,LCK,1,Passive +1 Luck while the fake VIP card is implanted.
 TRAIT_DOT_MULTIPLIER,TRAIT_DOT_MULTIPLIER_NAME,TRAIT_DOT_MULTIPLIER_DESC,,3,Triples all current DoT stacks on target enemy.
 TRAIT_ORACLE_KILL_SCALING,TRAIT_ORACLE_KILL_SCALING_NAME,TRAIT_ORACLE_KILL_SCALING_DESC,,1,Gain +1 permanent damage whenever this weapon kills an enemy.
+TRAIT_ARMOR_PIERCE,TRAIT_ARMOR_PIERCE_NAME,TRAIT_ARMOR_PIERCE_DESC,,0,Ignores target Block and deals damage directly to HP.
 TRAIT_STATUS_ANALYZER,TRAIT_STATUS_ANALYZER_NAME,TRAIT_STATUS_ANALYZER_DESC,AGI,1,Whenever any status is applied to an enemy, deal 1 direct damage.
+TRAIT_AUTO_SCATTER,TRAIT_AUTO_SCATTER_NAME,TRAIT_AUTO_SCATTER_DESC,,3,Fires 3 shots: first hits the selected target, the rest scatter to random living enemies.
+TRAIT_PLIERS_EXTRACT,TRAIT_PLIERS_EXTRACT_NAME,TRAIT_PLIERS_EXTRACT_DESC,,1,Removes the first harmful item to the right in the same row; grants +1 Strength for the rest of combat.
+TRAIT_TOOL_LOCKPICK,TRAIT_TOOL_LOCKPICK_NAME,TRAIT_TOOL_LOCKPICK_DESC,,1,Can open locked containers and doors (consumed on use).

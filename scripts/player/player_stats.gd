@@ -34,6 +34,8 @@ var base_humanity: int = 5
 var _flat_bonuses: Dictionary = {}
 ## Rebuilt from BodyGrid equipment on recalculate_from_equipment().
 var _equipment_bonuses: Dictionary = {}
+## Combat-only stackable buffs (cleared when the fight ends). Same model as EnemyInstance.
+var _combat_bonuses: Dictionary = {}
 
 var level: int = 1
 var current_exp: int = 0
@@ -60,6 +62,7 @@ func _apply_protagonist_defaults() -> void:
 	base_humanity = 5
 	_flat_bonuses.clear()
 	_equipment_bonuses.clear()
+	_combat_bonuses.clear()
 
 
 func get_player_max_hp() -> int:
@@ -85,6 +88,50 @@ func add_stat_bonus(stat_name: String, value: int) -> void:
 		return
 	_flat_bonuses[key] = int(_flat_bonuses.get(key, 0)) + value
 	recalculate_stats()
+
+
+func apply_stackable_stat_buff(stat_key: String, delta: int) -> int:
+	## Combat-duration stackable buff (mirrors EnemyInstance). Cleared via clear_combat_stat_buffs().
+	if delta == 0:
+		return get_stat_value(stat_key)
+	var key := _normalize_stat_key(stat_key)
+	if key.is_empty():
+		return 0
+	_combat_bonuses[key] = int(_combat_bonuses.get(key, 0)) + delta
+	recalculate_stats()
+	return get_stat_value(key)
+
+
+func clear_combat_stat_buffs() -> void:
+	if _combat_bonuses.is_empty():
+		return
+	_combat_bonuses.clear()
+	recalculate_stats()
+
+
+func get_combat_stat_buff(stat_key: String) -> int:
+	var key := _normalize_stat_key(stat_key)
+	if key.is_empty():
+		return 0
+	return int(_combat_bonuses.get(key, 0))
+
+
+func get_stat_value(stat_key: String) -> int:
+	match _normalize_stat_key(stat_key):
+		"strength":
+			return strength
+		"agility":
+			return agility
+		"endurance":
+			return endurance
+		"intelligence":
+			return intelligence
+		"luck":
+			return luck
+		"humanity":
+			return humanity
+		_:
+			return 0
 
 
 func set_base_stat(stat_name: String, value: int) -> void:
@@ -170,7 +217,11 @@ func format_stats_tooltip_body() -> String:
 
 
 func _bonus_total(stat_key: String) -> int:
-	return int(_flat_bonuses.get(stat_key, 0)) + int(_equipment_bonuses.get(stat_key, 0))
+	return (
+		int(_flat_bonuses.get(stat_key, 0))
+		+ int(_equipment_bonuses.get(stat_key, 0))
+		+ int(_combat_bonuses.get(stat_key, 0))
+	)
 
 
 func _normalize_stat_key(raw: String) -> String:

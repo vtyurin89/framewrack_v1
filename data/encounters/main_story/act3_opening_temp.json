@@ -1,0 +1,27 @@
+{
+	"id": "act3_opening_temp",
+	"title_key": "",
+	"god_name": "[TEMP] Act 3 Opening",
+	"god_name_ru": "[ВРЕМЕННО] Начало акта 3",
+	"chapter_title_en": "Act III — Temporary Stub",
+	"chapter_title_ru": "Акт III — временная заглушка",
+	"story_act": 3,
+	"temporary_stub": true,
+	"prologue": false,
+	"image_path": "",
+	"dialogs": {
+		"start": {
+			"narrator_text_en": "[i]TEMPORARY PLACEHOLDER — replace this MAIN_STORY beat before ship.[/i]\n\nAct 3 opens on unfinished ground. Treat this node as a narrative bookmark, not final lore.",
+			"narrator_text_ru": "[i]ВРЕМЕННАЯ ЗАГЛУШКА — замените этот MAIN_STORY-бит до релиза.[/i]\n\nТретий акт открывается на недописанной земле. Этот узел — закладка, а не финальный лор.",
+			"speech_text_en": "«…Hold the line. The true ascent of Act 3 will overwrite these words.»",
+			"speech_text_ru": "«…Держи строй. Настоящее восхождение третьего акта перезапишет эти слова.»",
+			"choices": [
+				{
+					"text_en": "[TEMP] Continue into Act 3",
+					"text_ru": "[ВРЕМЕННО] Продолжить в третий акт",
+					"next_dialog_id": "end_encounter"
+				}
+			]
+		}
+	}
+}

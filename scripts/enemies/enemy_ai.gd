@@ -173,6 +173,108 @@ static func commit_main_action(
 	return result
 
 
+static func should_recommit_intention(
+	enemy: EnemyInstance, combat: Node = null, trigger: String = "hp_damage"
+) -> bool:
+	## True only when mid-turn circumstances invalidate / override the telegraphed plan.
+	## Normal hits keep the original intention. Mad enemies always reroll on HP damage.
+	if enemy == null or not enemy.is_alive():
+		return false
+
+	var trigger_key := trigger.strip_edges().to_lower()
+	if trigger_key == "hp_damage" and enemy.has_always_reroll_intent():
+		return true
+
+	## Flee telegraph must stick once panic is applied (e.g. master death).
+	if enemy.statuses != null and enemy.statuses.has_status("fleeing"):
+		if enemy.current_intention != null and enemy.current_intention.is_flee:
+			return false
+		if enemy.planned_ability != null and enemy.planned_ability.infer_main_effect() == "flee":
+			return false
+		return true
+
+	if enemy.planned_ability == null:
+		return true
+
+	if not _is_ability_still_usable(enemy, enemy.planned_ability):
+		return true
+
+	## Desperate unlock after taking HP damage (or when ally death leaves the plan stale).
+	var desperate := _get_desperate_if_ready(enemy)
+	if (
+		desperate != null
+		and enemy.planned_ability != desperate
+		and enemy.planned_ability.type != EnemyAbility.AbilityType.MULTI_HIT
+	):
+		return true
+
+	var mandatory := _get_mandatory_plan_override(enemy, combat, trigger_key)
+	if mandatory != null and mandatory != enemy.planned_ability:
+		return true
+
+	return false
+
+
+static func _get_mandatory_plan_override(
+	enemy: EnemyInstance, combat: Node, trigger: String
+) -> EnemyAbility:
+	## Deterministic scripted overrides only — no random brand/weight rolls.
+	var followup := _pick_forced_followup(enemy)
+	if followup != null:
+		return followup
+
+	var enemy_id := enemy.data.id if enemy.data != null else ""
+	match enemy_id:
+		"slaver_master":
+			var living_minions := _count_living_minions(combat, enemy, "slaver_minion")
+			if living_minions < 2:
+				var summon := enemy.find_ability(ID_SLAVER_SUMMON)
+				if summon != null and enemy.can_use_ability(summon):
+					return summon
+		"corp_deserter":
+			var player_vuln := _player_has_status(combat, "vulnerability")
+			if player_vuln and enemy.turns_taken <= 1:
+				var snipe := enemy.find_ability(ID_DESERTER_SNIPE)
+				if snipe != null and enemy.can_use_ability(snipe):
+					return snipe
+			if enemy.turns_taken <= 0:
+				var aim := enemy.find_ability(ID_DESERTER_AIM)
+				if aim != null and enemy.can_use_ability(aim):
+					return aim
+			## HP damage / ally death: low HP prefers defense over a stale attack plan.
+			if enemy.get_hp_ratio() < 0.5 and enemy.turns_taken >= 2:
+				if is_offensive_ability(enemy.planned_ability):
+					var defense := _pick_first_usable(enemy, [ID_DESERTER_SHIELD, ID_DESERTER_EVASION])
+					if defense != null:
+						return defense
+		"pocket_thief":
+			if enemy.turns_taken == 2:
+				var scout := enemy.find_ability(ID_THIEF_SCOUT)
+				if scout != null and enemy.can_use_ability(scout):
+					return scout
+			if enemy.turns_taken >= 3:
+				var flee2 := enemy.find_ability(ID_THIEF_FLEE)
+				if flee2 != null:
+					return flee2
+		"field_medic":
+			## Last ally standing: abandon support plans for the weak swing.
+			if trigger == "ally_death" and _count_living_allies(combat, enemy) <= 0:
+				var swing := enemy.find_ability(ID_MEDIC_SWING)
+				if swing != null and enemy.can_use_ability(swing):
+					return swing
+		"faceless_lady":
+			var forced := FacelessLady.pick_scripted_ability(enemy, combat)
+			if forced != null:
+				return forced
+		"elder_vaeron", "stasis_pod_left", "stasis_pod_right":
+			var vaeron_forced := ElderVaeron.pick_scripted_ability(enemy, combat)
+			if vaeron_forced != null:
+				return vaeron_forced
+		_:
+			pass
+	return null
+
+
 static func is_offensive_ability(ability: EnemyAbility) -> bool:
 	if ability == null:
 		return false
@@ -255,6 +357,8 @@ static func _pick_scripted_main(enemy: EnemyInstance, combat: Node) -> EnemyAbil
 			return _ai_field_medic(enemy, combat)
 		"faceless_lady":
 			return FacelessLady.pick_scripted_ability(enemy, combat)
+		"elder_vaeron", "stasis_pod_left", "stasis_pod_right":
+			return ElderVaeron.pick_scripted_ability(enemy, combat)
 		_:
 			return null
 

@@ -3,6 +3,7 @@ extends RefCounted
 ## Canonical status effect IDs used by combat systems.
 ## Runtime blueprints live in res://data/statuses/*.tres (StatusEffectData).
 
+const SENSOR_GLITCH := "sensor_glitch"
 const SUMMONED_CREATURE := "summoned_creature"
 const EVASION := "evasion"
 const FLEEING := "fleeing"

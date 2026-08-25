@@ -1,0 +1,14 @@
+[gd_resource type="Resource" script_class="StatusEffectData" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://scripts/resources/status_effect_data.gd" id="1"]
+
+[resource]
+script = ExtResource("1")
+id = "war_god_corruption"
+title = "War-God Corruption"
+description = "Mol-Vagrit's mark: maximum HP is reduced to 1 for this combat."
+is_debuff = true
+stack_type = 2
+trigger_phase = 0
+base_value = 1
+max_stacks = 1

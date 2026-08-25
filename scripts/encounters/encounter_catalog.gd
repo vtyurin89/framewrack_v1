@@ -7,12 +7,15 @@ const PROLOGUE_ID := "SLEEPER_GOD"
 
 static func get_encounter(encounter_id: String) -> EncounterData:
 	var id := encounter_id.strip_edges()
-	## Prefer god JSON registry, then legacy hardcoded builders.
+	## Prefer god JSON registry (INTRO), then legacy hardcoded builders.
 	var from_gods := StartingGodRegistry.load_god_encounter(id.to_lower())
 	if from_gods == null and id == "SLEEPER_GOD":
 		from_gods = StartingGodRegistry.load_god_encounter("sleeper_god")
 	if from_gods != null:
 		return from_gods
+	var from_story := MainStoryRegistry.load_story_encounter(id.to_lower())
+	if from_story != null:
+		return from_story
 	return null
 
 
@@ -36,6 +39,8 @@ static func from_map_node(node: Dictionary) -> EncounterData:
 			encounter.type = EncounterData.EncounterType.EVENT
 		MapManager.NodeType.MAIN_STORY:
 			encounter.type = EncounterData.EncounterType.MAIN_STORY
+		MapManager.NodeType.INTRO:
+			encounter.type = EncounterData.EncounterType.INTRO
 		_:
 			encounter.type = EncounterData.EncounterType.COMBAT_NORMAL
 	var enemy_ids: Array = node.get("enemy_ids", [])
@@ -53,8 +58,8 @@ static func from_map_node(node: Dictionary) -> EncounterData:
 		var preset := get_encounter(catalog_id)
 		if preset != null:
 			return preset
-	## Starting node MAIN_STORY: pick a random god encounter from pool.
-	if encounter.type == EncounterData.EncounterType.MAIN_STORY:
+	## Starting INTRO node: pick a random god encounter from pool.
+	if encounter.type == EncounterData.EncounterType.INTRO:
 		var god_encounter := StartingGodRegistry.pick_random_god_encounter()
 		if god_encounter != null:
 			god_encounter.payload["map_node_id"] = encounter.id

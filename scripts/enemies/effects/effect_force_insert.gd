@@ -1,6 +1,7 @@
 class_name EffectForceInsert
 extends AbilityEffect
 ## Forces a harmful item into the player's Body Grid via ForcedItemScreen.
+## BIONIC_LARVA prefers an automatic free-cell placement when possible.
 
 
 func apply(caster: EnemyInstance, target: Node, params: Array) -> void:
@@ -22,4 +23,11 @@ func apply(caster: EnemyInstance, target: Node, params: Array) -> void:
 		EventBus.combat_log_message.emit(
 			tr("KEY_LOG_PARASITE_INJECT") % caster.get_localized_name()
 		)
+	## Left pod larva: try direct free-cell insert before opening the UI.
+	if (
+		item_id == ElderVaeron.ITEM_BIONIC_LARVA
+		and target.has_method("try_auto_insert_item")
+		and bool(target.call("try_auto_insert_item", item_id))
+	):
+		return
 	target.call("request_forced_item_insertion", item_id)

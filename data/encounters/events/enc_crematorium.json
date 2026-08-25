@@ -1,0 +1,203 @@
+{
+	"id": "enc_crematorium",
+	"title_key": "EVENT_ENC_CREMATORIUM_TITLE",
+	"god_name": "Biomaterial Reception Point",
+	"god_name_ru": "Пункт приёма биоматериала",
+	"image_path": "res://assets/sprites/story/raim_city.png",
+	"dialogs": {
+		"start": {
+			"narrator_text_en": "Outside a former crematorium, now a biomaterial collection point, a desperate crowd has formed. A surgeon automaton purchases body parts from those who have nothing left to sell but themselves.\n\nThe woman in front of you holds a child in her arms, fighting back tears.\n\nAutomaton: «Child donor tissue exceeds market value. A more rational choice would be donating the child's tissue instead of your own.»\n\nThe woman shakes her head and defiantly offers her own arm — never the child's.",
+			"narrator_text_ru": "Во дворе перед бывшим крематорием, переоборудованным под пункт приёма биоматериала, собралась очередь. Медициский автоматон-хирург принимает на продажу части тела людей, которым больше нечего продать, кроме самих себя.\n\nЖенщина перед вами держит на руках ребёнка и с трудом сдерживает слёзы.\n\nАвтоматон: «Ткань донора младшего возраста стоит дороже. Более рациональным решением было бы донорство органов или конечностей ребёнка, а не ваших».\n\nЖенщина качает головой и упрямо протягивает собственную руку — не ребёнка.",
+			"speech_text_en": "",
+			"speech_text_ru": "",
+			"choices": [
+				{
+					"text_key": "EVENT_ENC_CREMATORIUM_CHOICE_PAY",
+					"text_en": "[Pay 100 Neuro-Chips] Cover the woman",
+					"text_ru": "[Заплатить 100 нейро-чипов] Заплатить за женщину",
+					"require_chips": 100,
+					"cost_chips": 100,
+					"next_dialog_id": "pay_ok",
+					"reward": { "type": "humanity", "amount": 1 }
+				},
+				{
+					"text_key": "EVENT_ENC_CREMATORIUM_CHOICE_INT",
+					"text_en": "[INT Check] Point out a protocol error",
+					"text_ru": "[Проверка ИНТ] Указать на ошибку протокола",
+					"stat_check": "INT",
+					"check_dc": 1,
+					"success_next_dialog_id": "int_ok",
+					"failure_next_dialog_id": "int_fail",
+					"reward": {
+						"type": "compound",
+						"effects": [
+							{ "type": "neuro_chips", "amount": 50 },
+							{ "type": "exp", "amount": 30 }
+						]
+					}
+				},
+				{
+					"text_key": "EVENT_ENC_CREMATORIUM_CHOICE_STR",
+					"text_en": "[STR Check] Smash the control panel",
+					"text_ru": "[Проверка СИЛ] Разбить панель управления",
+					"stat_check": "STR",
+					"check_dc": 1,
+					"success_next_dialog_id": "str_ok",
+					"failure_next_dialog_id": "str_fail",
+					"reward": { "type": "exp", "amount": 30 },
+					"failure_reward": { "type": "damage", "amount": 8 }
+				},
+				{
+					"text_key": "EVENT_ENC_CREMATORIUM_CHOICE_VIP",
+					"text_en": "[Fake VIP Card] Override the system",
+					"text_ru": "[Поддельная VIP-карта] Взломать систему",
+					"require_item": "FAKE_VIP_CARD",
+					"next_dialog_id": "vip_ok",
+					"reward": {
+						"type": "compound",
+						"effects": [
+							{ "type": "intelligence", "amount": 1 },
+							{ "type": "exp", "amount": 30 }
+						]
+					}
+				},
+				{
+					"text_key": "EVENT_ENC_CREMATORIUM_CHOICE_SELL",
+					"text_en": "[Sell END] Stand in line and sell part of yourself",
+					"text_ru": "[Продать ВЫН] Встать в очередь и продать часть себя",
+					"next_dialog_id": "sell_ok",
+					"reward": {
+						"type": "compound",
+						"effects": [
+							{ "type": "neuro_chips", "amount": 100 },
+							{ "type": "endurance", "amount": -1 }
+						]
+					}
+				},
+				{
+					"text_key": "EVENT_ENC_CREMATORIUM_CHOICE_LEAVE",
+					"text_en": "[Leave] Walk past",
+					"text_ru": "[Уйти] Пройти мимо",
+					"next_dialog_id": "leave"
+				}
+			]
+		},
+		"pay_ok": {
+			"narrator_text_en": "You press the chips into the woman's palm and talk her out of selling herself. She flinches at your hideous appearance, but chips are chips. She accepts them without a word, clutching her child tighter to her chest, and leaves without looking back. A strange feeling stirs in your chest. Is it joy? Disappointment? You no longer know the difference. You forgot years ago.",
+			"narrator_text_ru": "Вы кладёте чипы в ладонь женщины и убеждаете её не продавать себя. Её страшит ваша жуткая внешность, но чипы есть чипы. Она принимает их, не проронив ни слова, только крепче прижимает к груди ребёнка. И уходит, не оглядываясь. Вы испытываете странное чувство. Что это — радость или разочарование? Вы не знаете. Вы давно забыли.",
+			"speech_text_en": "",
+			"speech_text_ru": "",
+			"choices": [
+				{
+					"text_key": "EVENT_ENC_CREMATORIUM_CONTINUE",
+					"text_en": "Continue",
+					"text_ru": "Продолжить",
+					"next_dialog_id": "end_encounter"
+				}
+			]
+		},
+		"int_ok": {
+			"narrator_text_en": "Automaton: «Indeed — Clause 12B excludes procedures on donors in the applicant's care. Apologies for the oversight. Please accept these neuro-chips as compensation. Have a nice day.»\n\nThe automaton hands the woman a handful of neuro-chips. Relieved, she hands half of them to you.",
+			"narrator_text_ru": "Автомат: «Действительно — пункт 12-б исключает манипуляции с донорами, находящимися под опекой заявителя. Приношу извинения за ошибку. Примите эти нейро-чипы в качестве компенсации. Хорошего вам дня!»\n\nАвтомат вручает женщине горстку нейро-чипов. Она на радостях отдаёт половину вам.",
+			"speech_text_en": "",
+			"speech_text_ru": "",
+			"choices": [
+				{
+					"text_key": "EVENT_ENC_CREMATORIUM_CONTINUE",
+					"text_en": "Continue",
+					"text_ru": "Продолжить",
+					"next_dialog_id": "end_encounter"
+				}
+			]
+		},
+		"int_fail": {
+			"narrator_text_en": "Automaton: «Clause 12B does not apply in this case. Your input has been noted.»\n\nThe automaton resumes the procedure. Whether your reasoning was flawed or it was never designed to listen — it doesn't matter.",
+			"narrator_text_ru": "Автомат: «Пункт 12-б в данном случае неприменим. Благодарим за понимание!»\n\nАвтоматон невозмутимо продолжает процедуру — ваши аргументы были или неверны, или автоматону просто нет до них дела.",
+			"speech_text_en": "",
+			"speech_text_ru": "",
+			"choices": [
+				{
+					"text_key": "EVENT_ENC_CREMATORIUM_CONTINUE",
+					"text_en": "Continue",
+					"text_ru": "Продолжить",
+					"next_dialog_id": "end_encounter"
+				}
+			]
+		},
+		"str_ok": {
+			"narrator_text_en": "Metal gives way under the strike, sparks fly in all directions, and the automaton goes dark. The impact tears a hole in its casing, revealing a useful item inside. The woman leaves with her child, without looking at you or the machine that was ready to accept her arm. You prevented the sale — but she came here willingly. She walks away with nothing.",
+			"narrator_text_ru": "Металл поддаётся под ударом, искры летят во все стороны, и автоматон умолкает. В его корпусе осталась дыра, и внутри вы видите полезный предмет. Женщина молча уходит, забрав ребёнка — не глядя ни на вас, ни на машину, которая только что была готова забрать её руку. Вы не дали ей совершить продажу — но она пришла сюда добровольно. Теперь у неё нет ничего.",
+			"speech_text_en": "",
+			"speech_text_ru": "",
+			"choices": [
+				{
+					"text_key": "EVENT_ENC_CREMATORIUM_TAKE_SALVAGE",
+					"text_en": "Take the salvage",
+					"text_ru": "Забрать добычу",
+					"next_dialog_id": "end_encounter",
+					"reward": {
+						"type": "item_choice",
+						"pool": "rare_pick_3",
+						"pick_count": 1
+					}
+				}
+			]
+		},
+		"str_fail": {
+			"narrator_text_en": "Before you can land a solid hit on the automaton, it electrocutes you. While you writhe in the dirt, the deal goes through without interruption.",
+			"narrator_text_ru": "Прежде чем вы успеваете нанести автоматону серьёзный урон, он бьёт вас током. Пока вы корчитесь в грязи, сделка завершается своим чередом.",
+			"speech_text_en": "",
+			"speech_text_ru": "",
+			"choices": [
+				{
+					"text_key": "EVENT_ENC_CREMATORIUM_CONTINUE",
+					"text_en": "Continue",
+					"text_ru": "Продолжить",
+					"next_dialog_id": "end_encounter"
+				}
+			]
+		},
+		"vip_ok": {
+			"narrator_text_en": "You use the card to fool the automaton. It freezes for a second, as if thinking, then calmly thanks you, as if you had already made your donation.\n\nAutomaton: «Equivalent substitution accepted. Donor registered: you. Thank you for your cooperation. Have a nice day.»\n\nThe woman receives her neuro-chips, and you feel a little sharper.",
+			"narrator_text_ru": "С помощью карточки вы легко обманываете протокол автоматона. Тот на секунду замирает, будто задумавшись, а затем невозмутимо благодарит вас, будто уже получил от вас часть тела на продажу.\n\nАвтоматон: «Эквивалентная замена принята. Донор — вы. Спасибо за сотрудничество, и хорошего вам дня!»\n\nЖенщина получает свои нейро-чипы, а вы чувствуете, что стали умнее.",
+			"speech_text_en": "",
+			"speech_text_ru": "",
+			"choices": [
+				{
+					"text_key": "EVENT_ENC_CREMATORIUM_CONTINUE",
+					"text_en": "Continue",
+					"text_ru": "Продолжить",
+					"next_dialog_id": "end_encounter"
+				}
+			]
+		},
+		"sell_ok": {
+			"narrator_text_en": "What do you care about other people's problems? Better to earn something for yourself. You get in line, and the automaton accepts your offer without a single question.",
+			"narrator_text_ru": "Какое вам дело до чужих проблем? Лучше заработать самому. Вы встаёте в очередь, и автоматон принимает вас без единого вопроса о причинах.",
+			"speech_text_en": "",
+			"speech_text_ru": "",
+			"choices": [
+				{
+					"text_key": "EVENT_ENC_CREMATORIUM_CONTINUE",
+					"text_en": "Continue",
+					"text_ru": "Продолжить",
+					"next_dialog_id": "end_encounter"
+				}
+			]
+		},
+		"leave": {
+			"narrator_text_en": "You leave without interfering. The noise of the crowd behind you fades into silence.",
+			"narrator_text_ru": "Вы уходите, не вмешиваясь. Шум толпы у вас за спиной постепенно затихает.",
+			"speech_text_en": "",
+			"speech_text_ru": "",
+			"choices": [
+				{
+					"text_key": "EVENT_ENC_CREMATORIUM_CONTINUE",
+					"text_en": "Continue",
+					"text_ru": "Продолжить",
+					"next_dialog_id": "end_encounter"
+				}
+			]
+		}
+	}
+}

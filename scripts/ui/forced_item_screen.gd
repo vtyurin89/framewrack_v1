@@ -70,9 +70,14 @@ func open_session(
 
 
 func confirm_and_finish() -> bool:
-	## Destroys leftover Space items; requires harmful item already in the grid.
+	## Destroys leftover Space items; requires the forced item already in the grid.
 	if not can_continue():
-		notice_requested.emit(tr("KEY_FORCED_INSERT_MUST_PLACE"))
+		var msg := (
+			tr("KEY_FORCED_INSERT_MUST_PLACE")
+			if required_item != null and required_item.is_harmful
+			else tr("KEY_FORCED_INSERT_MUST_RETURN")
+		)
+		notice_requested.emit(msg)
 		return false
 	_destroy_space_items()
 	_shutdown()

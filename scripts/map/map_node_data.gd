@@ -2,6 +2,7 @@ class_name MapNodeData
 extends Resource
 
 enum MapNodeType {
+	INTRO,
 	MAIN_STORY,
 	COMBAT,
 	EVENT,
@@ -10,6 +11,7 @@ enum MapNodeType {
 	ELITE,
 	BOSS,
 	STAIRS,
+	REWARD,
 }
 
 enum NodeState {

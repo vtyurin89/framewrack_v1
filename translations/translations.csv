@@ -10,6 +10,7 @@ KEY_SAVE_AND_EXIT,Save and exit,Сохранить и выйти
 KEY_RESTART,Restart,Заново
 KEY_GAME_OVER_TITLE,SYSTEM FAILURE,СБОЙ СИСТЕМЫ
 KEY_GAME_OVER_SUBTITLE,Frame integrity critical. YOU DIED.,Критические повреждения фрейма. ВЫ ПОГИБЛИ.
+KEY_GAME_OVER_INSANITY,You have gone insane,Вы сошли с ума
 KEY_MAIN_MENU_TAGLINE,Your inventory is your body.,Твой инвентарь — твоё тело.
 KEY_SETTINGS,Settings,Настройки
 KEY_DIFFICULTY,Difficulty,Сложность
@@ -23,6 +24,21 @@ KEY_EXPERIENCE_MAX,Experience: MAX,Опыт: МАКС
 KEY_AP_COST_FMT,%d %s,%d %s
 KEY_USE_COST_FMT,Use: %d %s,Использование: %d %s
 KEY_COOLDOWN_FMT,CD %d,КД %d
+KEY_STATUS_TIP_PERMANENT,Permanent,Постоянный
+KEY_STATUS_TIP_DURATION,Duration: %d,Длительность: %d
+KEY_STATUS_TIP_STACKS,Stacks: %d,Стаки: %d
+KEY_INTENT_TIP_ATTACK,Preparing to strike.,Готовится нанести удар
+KEY_INTENT_TIP_MULTI_ATTACK,Preparing to strike multiple times.,Готовится нанести серию ударов
+KEY_INTENT_TIP_HEAVY_ATTACK,Preparing a devastating attack.,Готовится нанести сокрушительную атаку
+KEY_INTENT_TIP_DEBUFF,Preparing to apply a negative effect.,Собирается наложить отрицательный эффект
+KEY_INTENT_TIP_HEAL,Preparing to heal.,Собирается использовать лечение
+KEY_INTENT_TIP_BUFF,Preparing to apply a positive effect.,Собирается наложить положительный эффект
+KEY_INTENT_TIP_FLEE,Preparing to flee.,Собирается сбежать
+KEY_INTENT_TIP_SUMMON,Summoning reinforcements.,Призывает подкрепление
+KEY_INTENT_TIP_DEFEND,Preparing to defend.,Собирается защищаться
+KEY_INTENT_TIP_CHARGE,Winding up a powerful attack.,Готовится к мощной атаке
+KEY_INTENT_TIP_SECRET,Unknown intent.,Неизвестное намерение
+KEY_INTENT_TIP_UNKNOWN,Observing...,Наблюдает...
 KEY_ADJ_DMG_BONUS_NOTE,"[color=#7dcea0]Adjacency: +%d damage from neighbouring modules[/color]","[color=#7dcea0]Соседство: +%d урона от соседних модулей[/color]"
 KEY_ADJ_DMG_BONUS_NOTE_PLAIN,Adjacency: +%d damage from neighbouring modules,Соседство: +%d урона от соседних модулей
 KEY_ADJ_DOT_BONUS_NOTE,"[color=#e67e22]Adjacency: +%d DoT stack from Amplifiers[/color]","[color=#e67e22]Соседство: +%d стак DoT от усилителей[/color]"
@@ -68,6 +84,7 @@ KEY_TYPE_REPAIR,REPAIR,РЕМОНТ
 KEY_TYPE_EVENT,EVENT,СОБЫТИЕ
 KEY_TYPE_BOSS,BOSS,БОСС
 KEY_TYPE_MAIN_STORY,MAIN STORY,СЮЖЕТ
+KEY_TYPE_INTRO,INTRO,ИНТРО
 KEY_TYPE_SHOP,SHOP,МАГАЗИН
 KEY_TYPE_ELITE,ELITE,ЭЛИТА
 KEY_RARITY_COMMON,Common,Обычный
@@ -78,7 +95,15 @@ KEY_REWARD_SELECT_UP_TO_3,Select up to 3 new items,Выберите до 3 но�
 KEY_REWARD_PICK_LIMIT,Cannot pick more than 3 new items!,Нельзя взять больше 3 новых предметов!
 KEY_REWARD_NOT_DROPPABLE,This item cannot be discarded!,Этот предмет нельзя выбросить!
 KEY_TYPE_STAIRS,STAIRS,ЛЕСТНИЦА
-KEY_MAIN_STORY_BADGE,STORY / GOD,СЮЖЕТ / БОГ
+KEY_TYPE_REWARD,REWARD,НАГРАДА
+KEY_REWARD_SELECT_ONE,Select 1 item,Выберите 1 предмет
+KEY_REWARD_PICK_LIMIT_ONE,You can take only one item!,Можно взять только один предмет!
+KEY_CHEST_HINT,Examine the chest,Осмотрите сундук
+KEY_CHEST_NEED_LOCKPICK,A lockpick is required to unlock this chest.,Чтобы отпереть сундук, требуется отмычка.
+KEY_STATUS_CHEST_OPENED,Chest opened.,Сундук открыт.
+KEY_STATUS_CHEST_LEFT,You leave the chest behind.,Вы оставляете сундук позади.
+KEY_MAIN_STORY_BADGE,MAIN STORY,СЮЖЕТ
+KEY_INTRO_BADGE,INTRO / GOD,ИНТРО / БОГ
 KEY_ATK,ATK,АТК
 KEY_BLK,BLK,БЛК
 KEY_AP_FMT,%s %d / %d,%s %d / %d
@@ -243,6 +268,9 @@ KEY_COMBAT_TEXT_ENEMY_CRIT,Critical hit!,Критический удар!
 KEY_PRICE,Price,Цена
 KEY_DAMAGE,Damage,Урон
 KEY_ARMOR,Armor,Броня
+KEY_SHIELD,Shield,Щит
+KEY_ITEM_TYPE_ARMOR,Armor,Броня
+KEY_ITEM_TYPE_SHIELD,Shield,Щит
 KEY_TRAITS,TRAITS,ТРЕЙТЫ
 KEY_NO_TRAITS,No traits.,Нет трейтов.
 KEY_TRAIT_ACTIVE,ACTIVE,АКТИВЕН
@@ -289,6 +317,8 @@ KEY_LOG_NO_CELL,no cell,нет клетки
 KEY_LOG_VICTORY,Hostiles neutralized.,Противники нейтрализованы.
 KEY_LOG_DEFEAT,Frame integrity critical. Shutdown.,Критические повреждения фрейма. Отключение.
 KEY_LOG_XP_GAINED,You gained %d XP.,Вы получили %d опыта.
+KEY_LOG_BOSS_VICTORY_HEAL,Act boss defeated — frame integrity restored to full.,Босс акта повержен — целостность фрейма полностью восстановлена.
+KEY_LOG_BOSS_VICTORY_PURGE,Purged %d harmful module(s) from the frame.,Из фрейма удалено вредоносных модулей: %d.
 KEY_LOG_TARGETING,Targeting enemy #%d.,Цель: враг #%d.
 KEY_PLACE_NO_DATA,No item data.,Нет данных предмета.
 KEY_PLACE_INVALID_FOOTPRINT,Invalid footprint.,Неверная форма.
@@ -328,13 +358,13 @@ ENEMY_UNKNOWN_NAME,Unknown Host,Неизвестный носитель
 ITEM_NEURO_CHIP_NAME,Neuro-Chips,Нейро-чипы
 ITEM_NEURO_CHIP_DESC,Neuro-Chip currency used in vendors and upgrade stations.,Валютный нейро-чип, который можно потратить у торговцев или на станциях улучшений.
 ITEM_SCRAP_PLATE_NAME,Heavy Scrap Plate,Тяжелая пластина из хлама
-ITEM_SCRAP_PLATE_DESC,Crude reinforced plate. Reliable starter armor.,Грубая усиленная пластина. Надежная стартовая броня.
+ITEM_SCRAP_PLATE_DESC,Crude reinforced plate. Reliable starter shield.,Грубая усиленная пластина. Надёжный стартовый щит.
 ITEM_EXO_FRAME_NAME,Perforated Exo Frame,Перфорированный экзо-фрейм
 ITEM_EXO_FRAME_DESC,Long exo frame distributing impacts along the chassis.,Длинный экзо-фрейм, способный поглощать удары.
 ITEM_SPIKED_BUMPER_NAME,Spiked Bumper,Шипованный бампер
-ITEM_SPIKED_BUMPER_DESC,Outer armor with punishing spikes for close threats.,Внешняя броня с шипами для ближних угроз.
+ITEM_SPIKED_BUMPER_DESC,Compact spiked shield. At combat start grants Sharp Spikes that reflect physical hits.,Компактный шипованный щит. В начале боя даёт «Острые шипы», отражающие физические удары.
 ITEM_COOLING_SHIELD_NAME,Cooling Shield,Охлаждающий щит
-ITEM_COOLING_SHIELD_DESC,Cryo-laced plating that maintains high defensive output.,Крио-пластины с высоким защитным потенциалом.
+ITEM_COOLING_SHIELD_DESC,"A cryo-laced shield module that maintains high Block output.","Криогенный щит с высоким запасом блока."
 ITEM_REACTIVE_COMPOSITE_NAME,Reactive Composite,Реактивный композит
 ITEM_REACTIVE_COMPOSITE_DESC,Adaptive laminate that stabilizes after corruption shock.,Адаптивное покрытие, способное стабилизировать вас после удара током.
 ITEM_ARMOR_CORE_NAME,Armor Core,Защитное ядро
@@ -346,7 +376,7 @@ ITEM_WELDED_DOME_DESC,Wide welded helmet with strong lower-cell scaling.,Шир�
 ITEM_NEURAL_HELM_NAME,Neural Helm,Нейрошлем
 ITEM_NEURAL_HELM_DESC,High-end helmet with superior passive scaling.,Продвинутый шлем с превосходным скейлингом.
 ITEM_GREAVES_FRAME_NAME,Greaves Frame,Фрейм-поножи
-ITEM_GREAVES_FRAME_DESC,Passive leg frame gaining defense from structure above.,Фрейм для ног, усиливается за счёт клеток над ним.
+ITEM_GREAVES_FRAME_DESC,Passive leg frame: +2 armor each turn; -1 armor per unlocked cell below.,Пассивный фрейм для ног: +2 брони каждый ход; -1 брони за каждую открытую клетку под ним.
 ITEM_TRACKED_FOOTING_NAME,Tracked Footing,Гусеничная опора
 ITEM_TRACKED_FOOTING_DESC,Stabilized leg assembly that rewards upper support.,Стабилизированная опора ног, получает бонусы от клеток сверху.
 ITEM_HYDRAULIC_BRACE_NAME,Hydraulic Brace,Гидравлический упор
@@ -386,11 +416,11 @@ ITEM_DAMAGE_ANALYZER_DESC,"Instantly converts instability in the target body int
 ITEM_PURGE_SOLVENT_NAME,Purge Solvent,Очищающий раствор
 ITEM_PURGE_SOLVENT_DESC,Cleanses all negative status effects (Poison, Rust, Burn).,Снимает все негативные эффекты (Яд, Ржавчина, Горение).
 TRAIT_ARMOR_EDGE_NAME,Edge Anchor,Краевой якорь
-TRAIT_ARMOR_EDGE_DESC,Edge-mounted armor gains extra stability.,Краевая броня получает дополнительную устойчивость.
+TRAIT_ARMOR_EDGE_DESC,Edge-mounted shields gain extra stability.,Краевые щиты получают дополнительную устойчивость.
 TRAIT_ARMOR_CHAIN_NAME,Armor Chain,Броня-цепь
-TRAIT_ARMOR_CHAIN_DESC,Adjacent armor pieces reinforce each other.,Соседство с другими предметами брони даёт бонус к броне.
-TRAIT_SPIKES_OUTER_NAME,Outer Spikes,Внешние шипы
-TRAIT_SPIKES_OUTER_DESC,Spikes punish hostile pressure around the frame.,Шипы наносят урон атакующим врагам.
+TRAIT_ARMOR_CHAIN_DESC,Adjacent shields reinforce each other.,Соседние щиты усиливают друг друга.
+TRAIT_SPIKES_OUTER_NAME,Sharp Spikes,Острые шипы
+TRAIT_SPIKES_OUTER_DESC,At combat start grants 2 Sharp Spikes stacks. Each stack deals 1 reflected physical damage to an attacker.,В начале боя даёт 2 стака «Острые шипы». Каждый стак наносит 1 отражённого физического урона атакующему.
 TRAIT_HEAT_DISSIPATION_NAME,Heat Dissipation,Теплоотвод
 TRAIT_HEAT_DISSIPATION_DESC,Cooling channels increase defensive performance.,Охлаждающие каналы повышают защитный потенциал.
 TRAIT_REACTIVE_CLEANSE_NAME,Reactive Cleanse,Реактивная очистка
@@ -405,6 +435,10 @@ TRAIT_LEG_LOW_NAME,Upper Support Greaves,Поножи верхней опоры
 TRAIT_LEG_LOW_DESC,Passive armor scales with cells above (+0.5 each).,Бонус к броне за каждую клетку сверху (+0.5).
 TRAIT_LEG_HIGH_NAME,Upper Support Greaves+,Поножи верхней опоры+
 TRAIT_LEG_HIGH_DESC,Passive armor scales with cells above (+1 each).,Бонус к броне за каждую клетку сверху (+1).
+TRAIT_GREAVES_BASE_NAME,Greaves Core Plating,Базовая бронепластина поножей
+TRAIT_GREAVES_BASE_DESC,Passive +2 armor each turn.,Пассивно даёт +2 брони каждый ход.
+TRAIT_GREAVES_BELOW_PENALTY_NAME,Greaves Understrain,Перегрузка опоры поножей
+TRAIT_GREAVES_BELOW_PENALTY_DESC,-1 passive armor for each unlocked cell below this item.,-1 к пассивной броне за каждую открытую клетку под этим предметом.
 TRAIT_HELMET_ROW_PENALTY_NAME,Crowded Helmet Row,Скученный ряд шлемов
 TRAIT_HELMET_ROW_PENALTY_DESC,"-1 passive armor for each other helmet to the right in the same row.","-1 к пассивной броне за каждый другой шлем справа в том же ряду."
 TRAIT_LEG_ROW_PENALTY_NAME,Crowded Greaves Row,Скученный ряд поножей
@@ -415,6 +449,8 @@ TRAIT_GIVE_AP_NAME,Adrenal Salt,Адреналиновая соль
 TRAIT_GIVE_AP_DESC,Gain AP immediately on use.,Мгновенно дает дополнительные ОД.
 TRAIT_APPLY_BURN_NAME,Incendiary Splash,Зажигательный всплеск
 TRAIT_APPLY_BURN_DESC,"Applies 2 Burn to all hit enemies.","Накладывает 2 Горения на всех поражённых врагов."
+TRAIT_APPLY_RUST_NAME,Rusting Blow,Ржавый удар
+TRAIT_APPLY_RUST_DESC,"Applies 3 Rust (25% miss; stacks are duration, cap 5).","Накладывает 3 стака Ржавчины (25% промах; стаки — длительность, кап 5)."
 TRAIT_NEURO_STIM_NAME,Neuro Surge,Нейро-импульс
 TRAIT_NEURO_STIM_DESC,"+2 AP in combat or +4d6 on a dialog check.","+2 ОД в бою или +4d6 к диалоговой проверке."
 TRAIT_SYNAPSE_BOOSTER_NAME,Synapse Override,Синаптический пробой
@@ -426,17 +462,17 @@ TRAIT_CLEANSE_DEBUFFS_DESC,Cleanses active corruption pressure on use.,Сним�
 ITEM_SCRAP_PIPE_NAME,Scrap Pipe,Обломок трубы
 ITEM_SCRAP_PIPE_DESC,Bent conduit swung as a club. Edge-mounted. Simple; reliable blunt trauma.,Согнутая труба как дубина. Должна лежать на краю инвентаря. Простое и надёжное дробящее оружие.
 ITEM_REBEL_CLEAVER_NAME,Rebel Cleaver,Тесак повстанца
-ITEM_REBEL_CLEAVER_DESC,A scavenged meat cleaver. Bleeds foes; but goes dull beside biomorphic grafts.,Трофейный тесак. Вызывает кровотечение; но теряет эффективность рядом с биоморфными имплантами.
+ITEM_REBEL_CLEAVER_DESC,A scavenged meat cleaver. Each attack with it grants +1 damage to this weapon until end of turn.,Трофейный тесак. Каждая атака этим оружием даёт +1 к его урону до конца хода.
 ITEM_JACKHAMMER_NAME,Pneumatic Jackhammer,Пневматический отбойник
 ITEM_JACKHAMMER_DESC,Industrial breaker arm. Costs 2 AP. Stuns the enemy on impact — never harms your own grid.,Промышленный отбойный рычаг. Стоит 2 ОД. Оглушает врага при ударе — свою сетку не трогает.
 ITEM_BIO_CLAW_NAME,Biomorphic Claw,Биоморфный коготь
 ITEM_BIO_CLAW_DESC,Living talon that can graft inside the frame. Resonates with nearby biomorphic modules.,Живой коготь; можно встроить внутрь каркаса. Резонирует с соседними биоморфными модулями.
 ITEM_NAIL_GUN_NAME,Nail Gun,Гвоздомёт
-ITEM_NAIL_GUN_DESC,Compressed nail driver. Edge-mounted ranged weapon with limited ammo bursts.,Пневматический гвоздомёт. Дальнобойное оружие с ограниченным боезапасом; должно располагаться на краю инвентаря.
+ITEM_NAIL_GUN_DESC,"Nail driver. Deals 2-4 + INT damage for 0 AP, then cools down for 1 turn. Killing the target resets the cooldown.","Гвоздомёт. Наносит 2–4 + INT за 0 AP, затем кулдаун 1 ход. Убийство цели сбрасывает кулдаун."
 ITEM_ARC_DISCHARGER_NAME,Arc Discharger,Дуговой разрядник
 ITEM_ARC_DISCHARGER_DESC,Coiled contacts that arc harder when a reactor shares an edge.,Скрученные провода. Бьют сильнее; если касаются реактора.
-ITEM_SURGICAL_SAW_NAME,Surgical Saw,Хирургическая пила
-ITEM_SURGICAL_SAW_DESC,Precision bone saw. Compact 1x1 edge tool that pierces Block.,Точная костная пила. Компактный инструмент 1x1; должен располагаться на краю инвентаря; пробивает Блок.
+ITEM_RUSTY_CHAIN_NAME,Rusty Chain,Ржавая цепь
+ITEM_RUSTY_CHAIN_DESC,Improvised weighted chain: hits all enemies for 2–3 + STR and applies 3 Rust (25% miss; stacks tick down). Cooldown: 3 turns.,Самодельная утяжелённая цепь: наносит всем врагам 2–3 + STR и накладывает 3 стака Ржавчины (25% промах; стаки сгорают каждый ход). Кулдаун: 3 хода.
 ITEM_FLAMETHROWER_NAME,Flamethrower,Огнемёт
 ITEM_FLAMETHROWER_DESC,"Burns everything ahead. Deals INT-scaling damage to all enemies and applies 2 Burn. Cooldown: 1 turn.","Выжигает всё перед собой. Наносит урон всем врагам (скалируется от INT) и поджигает их на 2 хода. Кулдаун: 1 ход."
 ITEM_REBAR_CUDGEL_NAME,Rebar Cudgel,Кусок арматуры
@@ -462,6 +498,7 @@ KEY_LOG_WAR_MODULE_BUFF,%s overloads %d adjacent weapon(s): +%d damage this turn
 KEY_LOG_DOT_MULTIPLIER_APPLIED,HKR-137 destabilizes %s: %s.,HKR-137 дестабилизирует %s: %s.
 KEY_LOG_DOT_MULTIPLIER_NONE,HKR-137 finds no DoT stacks on target.,HKR-137 не находит DoT-стаков на цели.
 KEY_LOG_ORACLE_KILL_BONUS,"[color=#9B59B6]Oracle MK-IV analyzed the target! Damage permanently +%d.[/color]","[color=#9B59B6]Оракул MK-IV проанализировал цель! Урон перманентно +%d.[/color]"
+KEY_LOG_NAIL_KILL_RESET,"[color=#F0C060]%s: kill resets cooldown![/color]","[color=#F0C060]%s: убийство сбрасывает кулдаун![/color]"
 KEY_LOG_STATUS_ANALYZER_PING,Damage Analyzer shocks %s for 1.,Анализатор урона поражает %s на 1.
 KEY_STAT_CHECK_ROLL,Roll check,Бросить проверку
 KEY_STAT_CHECK_CANCEL,Cancel,Отмена
@@ -483,6 +520,22 @@ EVENT_PALE_MAIDEN_TITLE,Pale Maiden,Бледная дева
 EVENT_WHITE_FOG_TITLE,White Fog,Белый туман
 EVENT_RAIM_GREAT_ASCENT_TITLE,The Great Ascent,Великий подъём
 EVENT_RAIM_HOLLOW_WINDOWS_TITLE,Hollow Windows,Пустые окна
+EVENT_ENC_CREMATORIUM_TITLE,Biomaterial Reception Point,Пункт приёма биоматериала
+EVENT_ENC_CREMATORIUM_CHOICE_PAY,[Pay 100 Neuro-Chips] Cover the woman,[Заплатить 100 нейро-чипов] Оплатить за женщину
+EVENT_ENC_CREMATORIUM_CHOICE_INT,[INT Check] Point out a protocol error,[Проверка ИНТ] Указать на ошибку протокола
+EVENT_ENC_CREMATORIUM_CHOICE_STR,[STR Check] Smash the control panel,[Проверка СИЛ] Разбить панель управления
+EVENT_ENC_CREMATORIUM_CHOICE_VIP,[Fake VIP Card] Override the system,[Поддельная VIP-карта] Переопределить систему
+EVENT_ENC_CREMATORIUM_CHOICE_SELL,[Sell END] Stand in line and sell part of yourself,[Продать ВЫН] Встать в очередь и продать часть себя
+EVENT_ENC_CREMATORIUM_CHOICE_LEAVE,[Leave] Walk past,[Уйти] Пройти мимо
+EVENT_ENC_CREMATORIUM_CONTINUE,Continue,Продолжить
+EVENT_ENC_CREMATORIUM_TAKE_SALVAGE,Take the salvage,Забрать добычу
+EVENT_ENC_COLLECTOR_HOUSE_TITLE,Collector's House,Дом коллекционера
+EVENT_ENC_COLLECTOR_HOUSE_CHOICE_WEAPON,Take experimental weapon,Взять экспериментальное оружие
+EVENT_ENC_COLLECTOR_HOUSE_CHOICE_MODULE,Take rare module,Взять редкий модуль
+EVENT_ENC_COLLECTOR_HOUSE_CHOICE_INT,[INT Check] Look around closely and attempt to grab both rewards,[Проверка ИНТ] Осмотреться внимательно и попытаться забрать оба
+EVENT_ENC_COLLECTOR_HOUSE_CONTINUE,Continue,Продолжить
+EVENT_ENC_COLLECTOR_HOUSE_TAKE_BOTH,Take both rewards,Забрать оба трофея
+EVENT_ENC_COLLECTOR_HOUSE_FIGHT,Defend yourself,Защищаться
 ITEM_EYE_OF_PALE_MAIDEN_NAME,Eye of the Pale Maiden,Глаз Бледной девы
 ITEM_EYE_OF_PALE_MAIDEN_DESC,"+1 AP on combat turn 1. If adjacent to any weapon, -1 AP instead.","+1 ОД в первый ход боя. Если рядом с оружием — вместо этого -1 ОД."
 ITEM_FANG_OF_THE_FORGOTTEN_NAME,Fang of the Forgotten,Клык Забытой
@@ -517,6 +570,8 @@ TRAIT_DOT_MULTIPLIER_NAME,Catalytic Cascade,Каталитический кас�
 TRAIT_DOT_MULTIPLIER_DESC,Triples all current Burn/Poison/Bleed stacks on target.,Утраивает все текущие стаки Горения/Яда/Кровотечения на цели.
 TRAIT_ORACLE_KILL_SCALING_NAME,Oracle Learning Loop,Петля обучения Оракула
 TRAIT_ORACLE_KILL_SCALING_DESC,Whenever this weapon kills an enemy it permanently gains +1 damage.,Каждое убийство этим оружием перманентно даёт ему +1 к урону.
+TRAIT_ARMOR_PIERCE_NAME,Armor Pierce,Пробивает броню
+TRAIT_ARMOR_PIERCE_DESC,Ignores target Block and deals damage directly to HP.,Игнорирует блок цели и наносит урон сразу по здоровью.
 TRAIT_STATUS_ANALYZER_NAME,Status Shock Converter,Конвертер статусного шока
 TRAIT_STATUS_ANALYZER_DESC,Whenever any status effect is applied to an enemy, deal 1 immediate direct damage.,Когда на врага накладывается любой статус, немедленно наносит 1 прямого урона.
 ENEMY_FACELESS_LADY_NAME,Faceless Lady,Безликая дама
@@ -535,6 +590,8 @@ ITEM_BROKEN_SLOT_NAME,Broken Slot,Сломанный слот
 ITEM_BROKEN_SLOT_DESC,Spend 1 AP to clear this ruined body-grid mass.,Потратьте 1 ОД, чтобы очистить это разрушенное место на сетке.
 KEY_FORCED_INSERT_BANNER,"An entity has penetrated your frame! You must place the parasite into your body grid.","Сущность проникла в ваш фрейм! Вы должны поместить паразита в сетку тела."
 KEY_FORCED_INSERT_MUST_PLACE,Place the harmful item into your Body Grid first!,Сначала поместите вредоносный предмет в сетку тела!
+KEY_FORCED_INSERT_RETURN,"Stasis containment ruptured — reclaim your stolen module into the Body Grid.","Стазис разрушен — верните украденный модуль в сетку тела."
+KEY_FORCED_INSERT_MUST_RETURN,Place the returned module into your Body Grid first!,Сначала поместите возвращённый модуль в сетку тела!
 KEY_LOG_PARASITE_DAMAGE,Slimy Parasite drains %d HP.,Склизкий паразит высасывает %d HP.
 KEY_LOG_HARMFUL_SURGERY,You cut out %s.,Вы вырезаете: %s.
 KEY_LOG_PARASITE_INJECT,%s forces a parasite into your frame!,%s вживляет паразита в ваш каркас!
@@ -545,13 +602,81 @@ KEY_LOG_TAINTED_DAMAGE,%s backlash deals %d HP.,Обратная связь %s �
 ABILITY_FACELESS_INJECT_NAME,Parasite Injection,Инъекция паразита
 ABILITY_FACELESS_INJECT_DESC,Forces a Slimy Parasite into the Body Grid.,Вживляет Склизкого паразита в сетку тела.
 ABILITY_FACELESS_INJECT_TEXT,{name} opens a wet seam in the frame.,{name} разрывает влажный шов в каркасе.
+ENEMY_ELDER_VAERON_NAME,Elder Vaeron,Старейшина Ваэрон
+ENEMY_ELDER_VAERON_DESC,"Act 1 boss. Flanked by Stasis Pods; corrupts targeting and forces parasites.","Босс 1 акта. В окружении стазис-подов; сбивает наведение и вживляет паразитов."
+ENEMY_STASIS_POD_LEFT_NAME,Stasis Pod (Left),Стазис-под (левый)
+ENEMY_STASIS_POD_LEFT_DESC,Heals Vaeron each turn and periodically injects a Bionic Larva.,Каждый ход лечит Ваэрона и периодически вживляет Бионическую личинку.
+ENEMY_STASIS_POD_RIGHT_NAME,Stasis Pod (Right),Стазис-под (правый)
+ENEMY_STASIS_POD_RIGHT_DESC,Keeps Vaeron's Block from resetting and can steal a module from your frame.,Не даёт блоку Ваэрона сбрасываться и может украсть модуль из вашего фрейма.
+STATUS_SENSOR_GLITCH_NAME,Sensor Glitch,Глитч сенсоров
+STATUS_SENSOR_GLITCH_DESC,"50% chance attacks retarget to another living enemy. Caps at 3 stacks. Cleared at combat end.","50% шанс, что атака перенацелится на другого живого врага. Кап 3. Снимается в конце боя."
+ITEM_BIONIC_LARVA_NAME,Bionic Larva,Бионическая личинка
+ITEM_BIONIC_LARVA_DESC,"Deals 1 HP at the end of every turn. Spend 1 AP to cut it out.","Наносит 1 HP в конце каждого хода. Потратьте 1 ОД, чтобы вырезать её."
+ITEM_NEURO_TICK_NAME,Neuro Tick,Нейро-клещ
+ITEM_NEURO_TICK_DESC,"Deals 1 HP whenever an adjacent Body Grid module is activated. Spend 1 AP to cut it out.","Наносит 1 HP при активации соседнего модуля сетки. Потратьте 1 ОД, чтобы вырезать его."
+ABILITY_POD_LEFT_HEAL_NAME,Stasis Feed,Питание стазиса
+ABILITY_POD_LEFT_HEAL_DESC,Heals Elder Vaeron.,Лечит Старейшину Ваэрона.
+ABILITY_POD_LEFT_HEAL_TEXT,{name} pulses restorative stasis into Vaeron.,{name} пульсирует восстанавливающим стазисом в Ваэрона.
+ABILITY_POD_LEFT_LARVA_NAME,Larva Injection,Инъекция личинки
+ABILITY_POD_LEFT_LARVA_DESC,Forces a Bionic Larva into a free Body Grid cell.,Вживляет Бионическую личинку в свободную клетку сетки.
+ABILITY_POD_LEFT_LARVA_TEXT,{name} spits a bionic larva into the frame.,{name} выплёвывает бионическую личинку в каркас.
+ABILITY_POD_RIGHT_STEAL_NAME,Module Siphon,Выкачивание модуля
+ABILITY_POD_RIGHT_STEAL_DESC,Steals one consumable (or random module) from the Body Grid.,Крадёт один расходник (или случайный модуль) из сетки тела.
+ABILITY_POD_RIGHT_STEAL_TEXT,{name} tears a module free of the frame.,{name} вырывает модуль из каркаса.
+ABILITY_POD_RIGHT_PULSE_NAME,Containment Pulse,Импульс удержания
+ABILITY_POD_RIGHT_PULSE_DESC,Light damage pulse.,Лёгкий импульс урона.
+ABILITY_POD_RIGHT_PULSE_TEXT,{name} cracks a containment pulse.,{name} бьёт импульсом удержания.
+ABILITY_VAERON_GLITCH_STRIKE_NAME,Glitch Strike,Глитч-удар
+ABILITY_VAERON_GLITCH_STRIKE_DESC,Damages the player and applies Sensor Glitch.,Наносит урон и накладывает Глитч сенсоров.
+ABILITY_VAERON_GLITCH_STRIKE_TEXT,{name} scrambles your targeting suite.,{name} сбивает ваш комплекс наведения.
+ABILITY_VAERON_SYNAPSE_CHARGE_NAME,Synapse Charge,Заряд синапса
+ABILITY_VAERON_SYNAPSE_CHARGE_DESC,Channels a multi-hit blast for the next turn. Interrupt by dealing enough HP damage.,Копит мультиудар на следующий ход. Прерывается достаточным уроном по HP.
+ABILITY_VAERON_SYNAPSE_CHARGE_TEXT,{name} gathers crackling synapse charge.,{name} собирает потрескивающий заряд синапса.
+ABILITY_VAERON_SYNAPSE_BLAST_NAME,Synapse Blast,Взрыв синапса
+ABILITY_VAERON_SYNAPSE_BLAST_DESC,High-damage multi-hit attack after Synapse Charge.,Мощный мультиудар после Заряда синапса.
+ABILITY_VAERON_SYNAPSE_BLAST_TEXT,{name} unleashes the synapse blast!,{name} выпускает взрыв синапса!
+ABILITY_VAERON_NEURO_TICK_NAME,Neuro Infestation,Нейро-заражение
+ABILITY_VAERON_NEURO_TICK_DESC,Forces a Neuro Tick into the Body Grid.,Вживляет Нейро-клеща в сетку тела.
+ABILITY_VAERON_NEURO_TICK_TEXT,{name} nests a neuro tick in the frame.,{name} вживляет нейро-клеща в каркас.
+ABILITY_VAERON_SHIELD_NAME,Stasis Mantle,Мантия стазиса
+ABILITY_VAERON_SHIELD_DESC,Raises personal Block.,Поднимает личный блок.
+ABILITY_VAERON_SHIELD_TEXT,{name} wraps himself in a stasis mantle.,{name} окутывает себя мантией стазиса.
+KEY_LOG_BIONIC_LARVA_DAMAGE,Bionic Larva drains %d HP.,Бионическая личинка высасывает %d HP.
+KEY_LOG_NEURO_TICK_DAMAGE,Neuro Tick bites for %d HP.,Нейро-клещ кусает на %d HP.
+KEY_LOG_SENSOR_GLITCH_RETARGET,Sensor Glitch retargets the hit to %s!,Глитч сенсоров перенацеливает удар на %s!
+KEY_LOG_SYNAPSE_INTERRUPTED,%s's Synapse Charge is interrupted!,Заряд синапса %s прерван!
+KEY_LOG_POD_STEAL,%s steals %s from your frame!,%s крадёт %s из вашего фрейма!
+KEY_LOG_POD_STEAL_FAIL,%s finds nothing worth stealing.,%s не находит ничего для кражи.
+KEY_LOG_POD_STEAL_RETURN,Returned module available: %s. Place it back into your Body Grid.,Возвращённый модуль: %s. Поместите его обратно в сетку тела.
+KEY_LOG_AUTO_INSERT,%s lodges itself into a free cell.,%s занимает свободную клетку.
+ENEMY_JUNKIE_NAME,Chem-Fiend,Обдолбанный торчок
+ENEMY_JUNKIE_DESC,"Erratic melee fighter. Unpredictable intentions and psychosis-fueled strength spikes.","Непредсказуемый боец ближнего боя. Меняет намерения от урона и усиливается в психозе."
+TRAIT_UNPREDICTABLE_NAME,Unpredictable,Непредсказуемость
+TRAIT_UNPREDICTABLE_DESC,Changes intention immediately whenever receiving HP damage.,Мгновенно меняет намерения при получении урона здоровью.
+TRAIT_PSYCHOSIS_NAME,Psychosis,Психоз
+TRAIT_PSYCHOSIS_DESC,Gains +1 STR for the rest of combat after being hit by attacks 3 times in a single turn.,Получает +1 к Силе до конца боя, если получает урон от атак 3 раза за один ход.
+ABILITY_JUNKIE_SHANK_NAME,Junkie Shank,Удар заточкой
+ABILITY_JUNKIE_SHANK_DESC,Basic Strength-scaled melee strike.,Базовый удар ближнего боя от Силы.
+ABILITY_JUNKIE_SHANK_TEXT,{name} jabs with a filthy shank.,{name} бьёт грязной заточкой.
+ABILITY_THRASH_SLASH_NAME,Thrash & Slash,Метаться и атаковать
+ABILITY_THRASH_SLASH_DESC,Gains +6 Block and deals Strength-scaled melee damage.,Получает +6 Блока и наносит урон ближнего боя от Силы.
+ABILITY_THRASH_SLASH_TEXT,{name} thrashes wildly behind scrap cover.,{name} мечется за обрезками металла.
+ABILITY_FRENZIED_SLASH_NAME,Frenzied Slash,Бешеный порез
+ABILITY_FRENZIED_SLASH_DESC,Heavy Strength-scaled slash. If it deals HP damage through Block, applies 3 Poison.,Тяжёлый удар от Силы. Если пробивает Блок и ранит HP — накладывает 3 Яда.
+ABILITY_FRENZIED_SLASH_TEXT,{name} carves a frenzied arc.,{name} рвёт бешеным порезом.
+ABILITY_MAZUT_SHOT_NAME,Mazut Dose,Доза Мазута
+ABILITY_MAZUT_SHOT_DESC,Once every 3 turns: +1 Strength for the rest of combat and +7 Block.,Раз в 3 хода: +1 Силы до конца боя и +7 Блока.
+ABILITY_MAZUT_SHOT_TEXT,{name} mainlines a Mazut dose.,{name} вкалывает дозу Мазута.
+KEY_LOG_PSYCHOSIS_BUFF,%s snaps into psychosis (+%d %s)!,У %s срывает крышу (+%d %s)!
 KEY_ACT1_ANNOUNCE_TITLE,Chapter 1,Глава 1
 KEY_ACT1_ANNOUNCE_SUBTITLE,"Ruins of Ra'im, City of Humans","Развалины Ра'има, города людей"
 KEY_MERCHANT_TITLE,EVERYMART / Bonnie,EVERYMART / Бонни
 KEY_MERCHANT_CHOICE_TRADE,"[Start trade] ""Show me what you've got.""","[Начать торговлю] «Покажи, что у тебя есть»."
 KEY_MERCHANT_CHOICE_TRADE_GOOD_MOOD,"[Start trade] ""I won't say no.""","[Начать торговлю] «Не откажусь»."
 KEY_MERCHANT_CHOICE_BARGAIN,"[Bargain — Intelligence check] ""Your prices are clearly inflated.""","[Поторговаться — проверка интеллекта] «Твои цены явно завышены»."
+KEY_MERCHANT_CHOICE_BARGAIN_ROLL,"[Intelligence check] Continue","[Проверка интеллекта] Продолжить"
 KEY_MERCHANT_CHOICE_LEAVE,"[Leave] ""I don't need this.""","[Уйти] «Мне это не нужно»."
+KEY_MERCHANT_CHOICE_LEAVE_CONTINUE,…,…
 KEY_MERCHANT_CHOICE_OPEN_SHOP,Start trade,Начать торговлю
 KEY_MERCHANT_CHOICE_BACK,Back,Назад
 KEY_SHOP_TITLE,EVERYMART,EVERYMART
@@ -563,3 +688,31 @@ ITEM_FAKE_VIP_CARD_NAME,"Fake VIP Card ""Gold Partner""","Поддельная V
 ITEM_FAKE_VIP_CARD_DESC,"A pre-war plastic card with a forged digital access chip. When EVERYMART scans it, you permanently unlock special pricing.","Пластиковая карта довоенного образца с поддельным цифровым чипом доступа. При сканировании системой EVERYMART навсегда даёт вам доступ к особым ценам."
 TRAIT_VIP_LUCK_NAME,Forged Privilege,Поддельная привилегия
 TRAIT_VIP_LUCK_DESC,Grants +1 Luck while implanted.,Даёт +1 к Удаче пока установлена.
+ITEM_TITAN_STRENGTH_INJECTION_NAME,Titan Strength Injection,Инъекция силы титана
+ITEM_TITAN_STRENGTH_INJECTION_DESC,"A highly concentrated anabolic cocktail from pre-war special services. Permanently increases Strength by +1.","Высококонцентрированный анаболический коктейль довоенных спецслужб. Навсегда увеличивает Силу на +1."
+ITEM_NEURON_INJECTION_NAME,Neuron Injection,Инъекция нейронов
+ITEM_NEURON_INJECTION_DESC,"An experimental neurostimulator. Permanently increases Intelligence by +1.","Экспериментальный нейростимулятор. Навсегда увеличивает Интеллект на +1."
+ITEM_GIANT_ENDURANCE_INJECTION_NAME,Giant Endurance Injection,Инъекция великаньей выносливости
+ITEM_GIANT_ENDURANCE_INJECTION_DESC,"A synthetic cellular regeneration stimulant. Permanently increases Endurance by +1 and recalculates Max HP.","Синтетический стимулятор клеточной регенерации. Навсегда увеличивает Выносливость на +1 и пересчитывает максимальный запас HP."
+TRAIT_PERM_STRENGTH_NAME,Titan Surge,Всплеск титана
+TRAIT_PERM_STRENGTH_DESC,On use: permanently +1 Strength.,При использовании: навсегда +1 к Силе.
+TRAIT_PERM_INTELLIGENCE_NAME,Neural Graft,Нейронный прививок
+TRAIT_PERM_INTELLIGENCE_DESC,On use: permanently +1 Intelligence.,При использовании: навсегда +1 к Интеллекту.
+TRAIT_PERM_ENDURANCE_NAME,Giant Vitality,Великанская живучесть
+TRAIT_PERM_ENDURANCE_DESC,On use: permanently +1 Endurance and recalculate Max HP.,При использовании: навсегда +1 к Выносливости и пересчёт макс. HP.
+KEY_LOG_PERM_STAT_GAIN,%s permanently raises %s by %d.,%s навсегда повышает %s на %d.
+ITEM_AUTO_BLASTER_NAME,Auto-Blaster,Автоматический бластер
+ITEM_AUTO_BLASTER_DESC,"A rapid-fire energy blaster with a faulty stabilizer. Fires 3 shots: the first hits the target, the other two scatter at random.","Скорострельный энерго-бластер с неисправным стабилизатором. Делает 3 выстрела: первый точно в цель, остальные два разлетаются случайным образом."
+TRAIT_AUTO_SCATTER_NAME,Faulty Stabilizer,Неисправный стабилизатор
+TRAIT_AUTO_SCATTER_DESC,Fires 3 shots: first hits the selected target; the rest scatter to random living enemies.,Делает 3 выстрела: первый в выбранную цель, остальные разлетаются по случайным живым врагам.
+ITEM_PLIERS_NAME,Pliers,Клещи
+ITEM_PLIERS_DESC,"Combat extraction tool. Pulls the first harmful module to the right in the same row. On success: +1 Strength until the end of combat. 1-turn cooldown.","Боевой экстрактор. Вырывает первый вредоносный модуль справа в том же ряду. При успехе: +1 к Силе до конца боя. Кулдаун 1 ход."
+TRAIT_PLIERS_EXTRACT_NAME,Field Extraction,Полевой экстракт
+TRAIT_PLIERS_EXTRACT_DESC,Removes the first harmful item to the right in the same row; grants +1 Strength for the rest of combat.,Удаляет первый вредоносный предмет справа в том же ряду; даёт +1 к Силе до конца боя.
+KEY_LOG_PLIERS_EXTRACT,%s extracts %s (+%d %s until end of combat).,%s извлекает %s (+%d %s до конца боя).
+KEY_LOG_PLIERS_MISS,%s finds nothing harmful to the right.,%s не находит вредоносных модулей справа.
+KEY_ITEM_TYPE_QUEST_ITEM,Quest Item,Квестовый предмет
+ITEM_LOCKPICK_NAME,Lockpick,Отмычка
+ITEM_LOCKPICK_DESC,"A slim scavenged pick. Useless in a fight, but opens sealed caches and locked doors. Single use.","Тонкая отмычка. В бою бесполезна, но открывает запертые тайники и двери. Одноразовая."
+TRAIT_TOOL_LOCKPICK_NAME,Lockpick Tool,Инструмент-отмычка
+TRAIT_TOOL_LOCKPICK_DESC,Can open locked containers and doors during narrative events (consumed on use).,Открывает запертые замки и сундуки (расходуется при использовании).

@@ -54,13 +54,15 @@ func is_active() -> bool:
 func open_session(
 	loot: Array[ItemData],
 	p_inventory: InventoryController,
-	p_inventory_ui: Control
+	p_inventory_ui: Control,
+	max_picks: int = -1
 ) -> void:
 	inventory = p_inventory
 	inventory_ui = p_inventory_ui
 	_clear_floating()
 	_pending_space_return.clear()
-	RewardManager.begin_session(loot)
+	var picks := max_picks if max_picks > 0 else RewardManager.MAX_PICKS
+	RewardManager.begin_session(loot, picks)
 	visible = true
 	_active = true
 	if _notice:
@@ -105,7 +107,10 @@ func close_session() -> void:
 func can_accept_item_to_inventory(item: ItemData, show_notice: bool = false) -> bool:
 	if not RewardManager.can_pick_new_item(item):
 		if show_notice:
-			_show_notice(tr("KEY_REWARD_PICK_LIMIT"))
+			if RewardManager.session_max_picks <= 1:
+				_show_notice(tr("KEY_REWARD_PICK_LIMIT_ONE"))
+			else:
+				_show_notice(tr("KEY_REWARD_PICK_LIMIT"))
 			RewardManager.pick_limit_reached.emit()
 		return false
 	return true

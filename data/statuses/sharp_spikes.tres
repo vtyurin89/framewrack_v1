@@ -1,0 +1,14 @@
+[gd_resource type="Resource" script_class="StatusEffectData" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://scripts/resources/status_effect_data.gd" id="1"]
+
+[resource]
+script = ExtResource("1")
+id = "sharp_spikes"
+title = "Острые шипы"
+description = "For each stack, attackers take 1 reflected physical damage when they strike you."
+is_debuff = false
+stack_type = 0
+trigger_phase = 3
+base_value = 1
+max_stacks = -1

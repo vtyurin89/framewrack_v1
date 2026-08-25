@@ -1,0 +1,27 @@
+{
+	"id": "act2_opening_temp",
+	"title_key": "",
+	"god_name": "[TEMP] Act 2 Opening",
+	"god_name_ru": "[ВРЕМЕННО] Начало акта 2",
+	"chapter_title_en": "Act II — Temporary Stub",
+	"chapter_title_ru": "Акт II — временная заглушка",
+	"story_act": 2,
+	"temporary_stub": true,
+	"prologue": false,
+	"image_path": "",
+	"dialogs": {
+		"start": {
+			"narrator_text_en": "[i]TEMPORARY PLACEHOLDER — replace this MAIN_STORY beat before ship.[/i]\n\nYou crest into Act 2. The frame still hums with Act 1's scars; the road ahead is not written yet.",
+			"narrator_text_ru": "[i]ВРЕМЕННАЯ ЗАГЛУШКА — замените этот MAIN_STORY-бит до релиза.[/i]\n\nВы входите во второй акт. Каркас всё ещё гудит шрамами первого; дорога впереди пока не написана.",
+			"speech_text_en": "«…This silence is only scaffolding. When the real chapter arrives, this voice will be gone.»",
+			"speech_text_ru": "«…Эта тишина — всего лишь временный каркас. Настоящее ещё не наступило. Когда появится настоящая глава, этого голоса уже не будет.»",
+			"choices": [
+				{
+					"text_en": "[TEMP] Continue into Act 2",
+					"text_ru": "[ВРЕМЕННО] Продолжить во второй акт",
+					"next_dialog_id": "end_encounter"
+				}
+			]
+		}
+	}
+}

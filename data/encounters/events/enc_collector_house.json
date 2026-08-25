@@ -1,0 +1,85 @@
+{
+	"id": "enc_collector_house",
+	"title_key": "EVENT_ENC_COLLECTOR_HOUSE_TITLE",
+	"god_name": "Collector's House",
+	"god_name_ru": "Дом коллекционера",
+	"image_path": "res://assets/sprites/story/raim_city.png",
+	"dialogs": {
+		"start": {
+			"narrator_text_en": "Among the ruins, you stumble upon a collector's house. Inside, it’s unexpectedly tidy and it's clear that the owner collected valuable items, not junk. However, both locked vaults are alarm-protected; if you open one, you won't have time to search the second.",
+			"narrator_text_ru": "Среди развалин вы случайно наткнулись на домик коллекционера. Внутри — неожиданный порядок, и по всему видно: хозяин коллекционировал не хлам, а ценные вещи. Вот только оба запертых хранилища защищены сигнализацией, и если открыть одно, то обшарить второе вы уже не успеете.",
+			"speech_text_en": "",
+			"speech_text_ru": "",
+			"choices": [
+				{
+					"text_key": "EVENT_ENC_COLLECTOR_HOUSE_CHOICE_WEAPON",
+					"text_en": "Take an experimental weapon",
+					"text_ru": "Взять экспериментальное оружие",
+					"next_dialog_id": "end_encounter",
+					"reward": {
+						"type": "loot",
+						"pool": "rare_weapon",
+						"pick_count": 1
+					}
+				},
+				{
+					"text_key": "EVENT_ENC_COLLECTOR_HOUSE_CHOICE_MODULE",
+					"text_en": "Take a rare module",
+					"text_ru": "Взять редкий модуль",
+					"next_dialog_id": "end_encounter",
+					"reward": {
+						"type": "loot",
+						"pool": "rare_module",
+						"pick_count": 1
+					}
+				},
+				{
+					"text_key": "EVENT_ENC_COLLECTOR_HOUSE_CHOICE_INT",
+					"text_en": "[INT Check] Inspect the room for a way to claim both rewards",
+					"text_ru": "[Проверка ИНТ] Осмотреться внимательно и попытаться забрать оба трофея",
+					"stat_check": "INT",
+					"check_dc": 1,
+					"success_next_dialog_id": "int_ok",
+					"failure_next_dialog_id": "int_fail",
+					"reward": { "type": "exp", "amount": 30 }
+				}
+			]
+		},
+		"int_ok": {
+			"narrator_text_en": "You carefully tamper with the mechanism and bypass the dual-lock system!",
+			"narrator_text_ru": "Вы успешно обходите систему двойной сигнализации!",
+			"speech_text_en": "",
+			"speech_text_ru": "",
+			"choices": [
+				{
+					"text_key": "EVENT_ENC_COLLECTOR_HOUSE_TAKE_BOTH",
+					"text_en": "Take both rewards",
+					"text_ru": "Забрать оба трофея",
+					"next_dialog_id": "end_encounter",
+					"reward": {
+						"type": "loot",
+						"pool": "rare_weapon_and_module",
+						"pick_count": 2
+					}
+				}
+			]
+		},
+		"int_fail": {
+			"narrator_text_en": "You spent too much time fumbling with the shelves and didn't notice enemies creeping up on you!",
+			"narrator_text_ru": "Вы слишком долго возились и не заметили, как сзади подкрались враги!",
+			"speech_text_en": "",
+			"speech_text_ru": "",
+			"choices": [
+				{
+					"text_key": "EVENT_ENC_COLLECTOR_HOUSE_FIGHT",
+					"text_en": "Defend yourself",
+					"text_ru": "Защищаться",
+					"reward": {
+						"type": "combat",
+						"elite_rewards": true
+					}
+				}
+			]
+		}
+	}
+}

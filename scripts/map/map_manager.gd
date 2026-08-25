@@ -8,6 +8,7 @@ enum NodeType {
 	EVENT,
 	BOSS,
 	MAIN_STORY,
+	INTRO,
 }
 
 signal node_entered(node_id: String, node_type: NodeType)
@@ -26,7 +27,7 @@ func _build_default_map() -> void:
 	nodes = [
 		{
 			"id": "n0",
-			"type": NodeType.MAIN_STORY,
+			"type": NodeType.INTRO,
 			"label_key": "MAP_N0_NAME",
 			"label": "Awakening Shrine",
 			"faction": "",

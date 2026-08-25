@@ -67,7 +67,7 @@ func _pick_default_item() -> ItemData:
 		if created != null:
 			return created
 	if ItemDatabase != null:
-		var fallback := ItemDatabase.create_instance("SURGICAL_SAW")
+		var fallback := ItemDatabase.create_instance("RUSTY_CHAIN")
 		if fallback != null:
 			return fallback
 		fallback = ItemDatabase.create_instance("SCRAP_PIPE")

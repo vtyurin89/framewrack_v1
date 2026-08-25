@@ -30,13 +30,19 @@ enum TriggerPhase {
 
 
 func get_display_title() -> String:
+	var key := "STATUS_%s_NAME" % id.strip_edges().to_upper()
+	var translated := TranslationServer.translate(key)
+	if translated != key:
+		return translated
 	if not title.is_empty():
 		return title
 	return id.capitalize()
 
 
 func get_display_description(stacks: int = 1, duration: int = 1) -> String:
-	var text := description
+	var key := "STATUS_%s_DESC" % id.strip_edges().to_upper()
+	var translated := TranslationServer.translate(key)
+	var text: String = translated if translated != key else description
 	if text.is_empty():
 		return ""
 	return (
@@ -70,6 +76,8 @@ func get_ui_glyph() -> String:
 			return "💚"
 		"thorns":
 			return "🌵"
+		"sharp_spikes":
+			return "🗡"
 		"ferocity":
 			return "🩸"
 		"evasion":
@@ -84,5 +92,7 @@ func get_ui_glyph() -> String:
 			return "🩸"
 		"slow":
 			return "🐢"
+		"sensor_glitch":
+			return "📡"
 		_:
 			return "•"

@@ -90,6 +90,10 @@ func layout_below_top_bar(top_bar: Control, extra_pad: float = 0.0) -> void:
 	_apply_responsive_layout()
 
 
+func has_active_event() -> bool:
+	return _dialog != null and not _is_closing
+
+
 func start_event(dialog: DialogEventData) -> void:
 	open_dialog(dialog)
 
@@ -120,6 +124,25 @@ func close_dialog() -> void:
 	_kill_fade_tween()
 	_is_closing = false
 	_choices_locked = false
+	_pending_select_outcome = null
+	visible = false
+	modulate.a = 0.0
+	mouse_filter = Control.MOUSE_FILTER_IGNORE
+	_dialog = null
+	_clear_choices()
+
+
+func abort_on_run_end() -> void:
+	## Hard stop when the run ends mid-dialog (death / insanity). No event_finished.
+	_kill_fade_tween()
+	_is_closing = false
+	_choices_locked = true
+	_pending_select_outcome = null
+	if (
+		_encounter_manager != null
+		and _encounter_manager.item_selection_resolved.is_connected(_on_item_selection_resolved)
+	):
+		_encounter_manager.item_selection_resolved.disconnect(_on_item_selection_resolved)
 	visible = false
 	modulate.a = 0.0
 	mouse_filter = Control.MOUSE_FILTER_IGNORE
@@ -163,10 +186,7 @@ func _apply_responsive_layout() -> void:
 		_title_label.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 	if _story_badge:
 		_story_badge.add_theme_font_size_override("font_size", int(round(12 * s)))
-		_story_badge.add_theme_color_override(
-			"font_color",
-			GamePalette.COLOR_MAIN_STORY if GamePalette != null else Color("#F1C40F")
-		)
+		## Color is applied in _apply_story_badge (INTRO vs MAIN_STORY).
 	_apply_story_badge()
 	if _story_text:
 		_story_text.bbcode_enabled = true
@@ -205,9 +225,21 @@ func _apply_event_image(dialog: DialogEventData) -> void:
 func _apply_story_badge() -> void:
 	if _story_badge == null:
 		return
+	var is_intro := _encounter_type == EncounterData.EncounterType.INTRO
 	var is_main_story := _encounter_type == EncounterData.EncounterType.MAIN_STORY
-	_story_badge.visible = is_main_story
-	_story_badge.text = tr("KEY_MAIN_STORY_BADGE")
+	_story_badge.visible = is_intro or is_main_story
+	if is_intro:
+		_story_badge.text = tr("KEY_INTRO_BADGE")
+		_story_badge.add_theme_color_override(
+			"font_color",
+			GamePalette.COLOR_INTRO if GamePalette != null else Color("#9B59B6")
+		)
+	else:
+		_story_badge.text = tr("KEY_MAIN_STORY_BADGE")
+		_story_badge.add_theme_color_override(
+			"font_color",
+			GamePalette.COLOR_MAIN_STORY if GamePalette != null else Color("#F1C40F")
+		)
 
 
 func _show_node(node_id: String) -> void:
@@ -245,6 +277,10 @@ func _rebuild_choices(node: DialogNodeData) -> void:
 		if choice == null:
 			continue
 		var btn := _make_choice_button(choice.get_display_text())
+		var available := choice.is_available(_get_inventory())
+		btn.disabled = not available
+		if not available:
+			btn.modulate = Color(1, 1, 1, 0.45)
 		var captured := choice
 		btn.pressed.connect(func() -> void: _on_choice_pressed(captured))
 		_choices_box.add_child(btn)
@@ -274,6 +310,8 @@ func _clear_choices() -> void:
 
 func _on_choice_pressed(choice: DialogChoiceData) -> void:
 	if choice == null or _is_closing or _choices_locked:
+		return
+	if not choice.is_available(_get_inventory()):
 		return
 	if choice.has_stat_check():
 		_begin_stat_check_prepare(choice)
@@ -478,14 +516,15 @@ func _resolve_choice_outcome(outcome: DialogOutcomeData) -> void:
 					_on_item_selection_resolved, CONNECT_ONE_SHOT
 				)
 			_pending_select_outcome = outcome
-			_encounter_manager.apply_dialog_outcome(outcome)
+			if not _apply_outcome_via_manager(outcome):
+				return
 		else:
 			_finish_with_outcome(outcome)
 		return
 
 	if _is_continuing_outcome(outcome):
-		if _encounter_manager:
-			_encounter_manager.apply_dialog_outcome(outcome)
+		if _encounter_manager and not _apply_outcome_via_manager(outcome):
+			return
 		if not outcome.message_key.is_empty() and _result_label:
 			_result_label.visible = true
 			_result_label.text = tr(outcome.message_key)
@@ -497,6 +536,18 @@ func _resolve_choice_outcome(outcome: DialogOutcomeData) -> void:
 		return
 
 	_finish_with_outcome(outcome)
+
+
+func _apply_outcome_via_manager(outcome: DialogOutcomeData) -> bool:
+	if _encounter_manager == null:
+		return true
+	if not _encounter_manager.apply_dialog_outcome(outcome):
+		abort_on_run_end()
+		return false
+	if GameManager.is_game_over():
+		abort_on_run_end()
+		return false
+	return true
 
 
 func _on_item_selection_resolved(_item: ItemData) -> void:
@@ -566,8 +617,12 @@ func _finish_with_outcome(outcome: DialogOutcomeData) -> void:
 	_choices_locked = true
 	_set_choices_disabled(true)
 	await _play_exit_fade()
-	if _encounter_manager:
-		_encounter_manager.apply_dialog_outcome(outcome)
+	if GameManager.is_game_over():
+		abort_on_run_end()
+		return
+	if _encounter_manager and not _encounter_manager.apply_dialog_outcome(outcome):
+		abort_on_run_end()
+		return
 	choice_resolved.emit(outcome)
 	event_finished.emit(outcome)
 	_dialog = null

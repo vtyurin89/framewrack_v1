@@ -10,7 +10,9 @@ signal request_show_dialog(dialog: DialogEventData, encounter: EncounterData)
 signal request_show_placeholder(encounter: EncounterData, message_key: String)
 signal request_show_rest_site(encounter: EncounterData)
 signal request_show_shop(encounter: EncounterData, price_multiplier: float)
+signal request_show_chest_reward(encounter: EncounterData)
 signal request_item_selection(item_pool: Array, title: String)
+signal request_dialog_loot(items: Array, pick_count: int, title_key: String)
 signal item_selection_resolved(item: ItemData)
 signal request_post_combat_rewards(encounter: EncounterData)
 
@@ -70,7 +72,7 @@ func start_prologue() -> void:
 	start_encounter(god_encounter)
 
 
-func get_random_god_encounter() -> MainStoryEncounterData:
+func get_random_god_encounter() -> IntroEncounterData:
 	## Prefer the curated starting pool; fall back to full gods directory.
 	var pool: Array[String] = []
 	for god_id in STARTING_GOD_IDS:
@@ -85,12 +87,12 @@ func get_random_god_encounter() -> MainStoryEncounterData:
 	return encounter
 
 
-func load_random_starting_god() -> MainStoryEncounterData:
+func load_random_starting_god() -> IntroEncounterData:
 	## Public loader for the starting-god pool under data/encounters/gods/.
 	return get_random_god_encounter()
 
 
-func load_starting_god(god_id: String) -> MainStoryEncounterData:
+func load_starting_god(god_id: String) -> IntroEncounterData:
 	return StartingGodRegistry.load_god_encounter(god_id)
 
 
@@ -139,9 +141,26 @@ func notify_combat_finished(victory: bool) -> void:
 		_pending_rewards["failed"] = true
 		_finish_encounter(_pending_rewards)
 		return
+	## Act-boss victory: full heal + purge harmful modules before loot.
+	_apply_act_boss_victory_recovery()
 	## Victory: open floating loot reward screen before completing the encounter.
 	_pending_post_combat_finish = true
 	request_post_combat_rewards.emit(active_encounter)
+
+
+func _apply_act_boss_victory_recovery() -> void:
+	## Mandatory post-fight effect for the act's final boss node.
+	if active_encounter == null:
+		return
+	if active_encounter.type != EncounterData.EncounterType.COMBAT_BOSS:
+		return
+	if inventory != null:
+		inventory.heal_full()
+		EventBus.combat_log_message.emit(tr("KEY_LOG_BOSS_VICTORY_HEAL"))
+		var removed := inventory.remove_all_harmful_items()
+		if removed > 0:
+			EventBus.combat_log_message.emit(tr("KEY_LOG_BOSS_VICTORY_PURGE") % removed)
+			EventBus.inventory_changed.emit()
 
 
 func complete_post_combat_rewards() -> void:
@@ -152,17 +171,39 @@ func complete_post_combat_rewards() -> void:
 	_finish_encounter(_pending_rewards)
 
 
-func apply_dialog_outcome(outcome: DialogOutcomeData) -> void:
+## Drop the active encounter without encounter_completed (run ended mid-event).
+func abort_active_encounter() -> void:
+	active_encounter = null
+	_awaiting_combat_resolution = false
+	_awaiting_item_selection = false
+	_pending_select_outcome = null
+	_pending_post_combat_finish = false
+	_pending_rewards.clear()
+
+
+func _run_ended_mid_encounter() -> bool:
+	return GameManager != null and GameManager.is_game_over()
+
+
+func apply_dialog_outcome(outcome: DialogOutcomeData) -> bool:
+	## Returns false when HP/humanity death aborted the encounter mid-flow.
 	if active_encounter == null:
-		return
+		return true
 	if outcome == null:
 		_finish_encounter(_pending_rewards)
-		return
+		return not _run_ended_mid_encounter()
 	## Compound story rewards (multi-stat / mixed) are fully applied here once.
 	var compound_applied := (
 		outcome.payload_effects is Array and not outcome.payload_effects.is_empty()
 	)
+	_apply_outcome_side_effects(outcome)
+	if _run_ended_mid_encounter():
+		abort_active_encounter()
+		return false
 	_apply_outcome_buff(outcome)
+	if _run_ended_mid_encounter():
+		abort_active_encounter()
+		return false
 	match outcome.kind:
 		DialogOutcomeData.OutcomeKind.END, DialogOutcomeData.OutcomeKind.SKIP:
 			if not outcome.message_key.is_empty():
@@ -174,6 +215,9 @@ func apply_dialog_outcome(outcome: DialogOutcomeData) -> void:
 				_pending_rewards["message_key"] = outcome.message_key
 		DialogOutcomeData.OutcomeKind.HEAL:
 			_apply_heal(outcome.heal_amount)
+			if _run_ended_mid_encounter():
+				abort_active_encounter()
+				return false
 			if not outcome.message_key.is_empty():
 				_pending_rewards["message_key"] = outcome.message_key
 			_pending_rewards["healed"] = outcome.heal_amount
@@ -181,6 +225,9 @@ func apply_dialog_outcome(outcome: DialogOutcomeData) -> void:
 				_finish_encounter(_pending_rewards)
 		DialogOutcomeData.OutcomeKind.DAMAGE:
 			_apply_damage(outcome.damage_amount)
+			if _run_ended_mid_encounter():
+				abort_active_encounter()
+				return false
 			if not outcome.message_key.is_empty():
 				_pending_rewards["message_key"] = outcome.message_key
 			_pending_rewards["damage_taken"] = outcome.damage_amount
@@ -189,6 +236,9 @@ func apply_dialog_outcome(outcome: DialogOutcomeData) -> void:
 		DialogOutcomeData.OutcomeKind.GRANT_ITEM:
 			if not compound_applied:
 				_grant_item(outcome.item_id, outcome.item_amount)
+			if _run_ended_mid_encounter():
+				abort_active_encounter()
+				return false
 			if not outcome.message_key.is_empty():
 				_pending_rewards["message_key"] = outcome.message_key
 			_pending_rewards["item_id"] = outcome.item_id
@@ -198,6 +248,9 @@ func apply_dialog_outcome(outcome: DialogOutcomeData) -> void:
 		DialogOutcomeData.OutcomeKind.GRANT_STAT:
 			if not compound_applied:
 				_grant_stat(outcome.stat_name, outcome.stat_amount)
+				if _run_ended_mid_encounter():
+					abort_active_encounter()
+					return false
 			if not outcome.message_key.is_empty():
 				_pending_rewards["message_key"] = outcome.message_key
 			_pending_rewards["stat_name"] = outcome.stat_name
@@ -207,10 +260,16 @@ func apply_dialog_outcome(outcome: DialogOutcomeData) -> void:
 		DialogOutcomeData.OutcomeKind.SELECT_ITEM:
 			if not outcome.message_key.is_empty():
 				_pending_rewards["message_key"] = outcome.message_key
+			if _try_open_dialog_loot(outcome):
+				return not _run_ended_mid_encounter()
+			if _try_resolve_direct_item_pool(outcome, false):
+				return not _run_ended_mid_encounter()
 			_begin_item_selection(outcome, false)
 		DialogOutcomeData.OutcomeKind.COMBAT:
 			if not outcome.message_key.is_empty():
 				_pending_rewards["message_key"] = outcome.message_key
+			if outcome.elite_rewards and active_encounter != null:
+				active_encounter.payload["force_elite_rewards"] = true
 			_start_combat_from_ids(outcome.enemy_ids, outcome.faction, null)
 		DialogOutcomeData.OutcomeKind.SHOP:
 			if not outcome.message_key.is_empty():
@@ -220,6 +279,7 @@ func apply_dialog_outcome(outcome: DialogOutcomeData) -> void:
 				mult = 1.0
 			_pending_rewards["shop_price_multiplier"] = mult
 			request_show_shop.emit(active_encounter, mult)
+	return not _run_ended_mid_encounter()
 
 
 func resolve_item_selection(selected_item: ItemData) -> void:
@@ -238,6 +298,18 @@ func resolve_item_selection(selected_item: ItemData) -> void:
 		_pending_post_combat_finish = false
 		_finish_encounter(_pending_rewards)
 		return
+	if pending != null and pending.next_node_id.is_empty():
+		_finish_encounter(_pending_rewards)
+
+
+func complete_dialog_loot() -> void:
+	## Called by Main after dialog RewardScreen Continue (items already placed).
+	if not _awaiting_item_selection:
+		return
+	_awaiting_item_selection = false
+	var pending := _pending_select_outcome
+	_pending_select_outcome = null
+	item_selection_resolved.emit(null)
 	if pending != null and pending.next_node_id.is_empty():
 		_finish_encounter(_pending_rewards)
 
@@ -276,28 +348,41 @@ func _launch_by_type(data: EncounterData) -> void:
 				_apply_heal(int(data.payload.get("heal_amount", 10)))
 				_pending_rewards["message_key"] = "KEY_STATUS_EVENT"
 				_finish_encounter(_pending_rewards)
-		EncounterData.EncounterType.MAIN_STORY:
-			var story_dialog := data.get_dialog_event()
-			if story_dialog != null:
-				request_show_dialog.emit(story_dialog, data)
-			elif bool(data.payload.get("act_finale", false)):
-				## Post-boss chapter beat — no starting-god re-roll.
-				_pending_rewards["message_key"] = "KEY_TYPE_MAIN_STORY"
-				request_show_placeholder.emit(data, "KEY_TYPE_MAIN_STORY")
-				_finish_encounter(_pending_rewards)
+		EncounterData.EncounterType.INTRO:
+			## Starting-god / prologue dialogs — same UI path as MAIN_STORY.
+			var intro_dialog := data.get_dialog_event()
+			if intro_dialog != null:
+				request_show_dialog.emit(intro_dialog, data)
 			else:
 				var picked := get_random_god_encounter()
 				if picked != null:
 					start_encounter(picked)
 				else:
 					_finish_encounter(_pending_rewards)
+		EncounterData.EncounterType.MAIN_STORY:
+			var story_dialog := data.get_dialog_event()
+			if story_dialog != null:
+				request_show_dialog.emit(story_dialog, data)
+			elif bool(data.payload.get("act_finale", false)):
+				## Post-boss chapter beat — placeholder until authored.
+				_pending_rewards["message_key"] = "KEY_TYPE_MAIN_STORY"
+				request_show_placeholder.emit(data, "KEY_TYPE_MAIN_STORY")
+				_finish_encounter(_pending_rewards)
+			else:
+				## Opening MAIN_STORY without dialog: try act stub, else placeholder.
+				var act := int(data.payload.get("act", 1))
+				var stub := MainStoryRegistry.load_opening_for_act(act)
+				if stub != null and stub.get_dialog_event() != null:
+					stub.payload["map_node_id"] = str(data.payload.get("map_node_id", ""))
+					start_encounter(stub)
+				else:
+					_pending_rewards["message_key"] = "KEY_TYPE_MAIN_STORY"
+					request_show_placeholder.emit(data, "KEY_TYPE_MAIN_STORY")
+					_finish_encounter(_pending_rewards)
 		EncounterData.EncounterType.REST_SITE:
 			request_show_rest_site.emit(data)
 		EncounterData.EncounterType.CHEST:
-			_grant_item(str(data.payload.get("item_id", "BIO_GEL")))
-			_pending_rewards["message_key"] = "KEY_STATUS_CHEST"
-			request_show_placeholder.emit(data, "KEY_STATUS_CHEST")
-			_finish_encounter(_pending_rewards)
+			request_show_chest_reward.emit(data)
 		EncounterData.EncounterType.SHOP:
 			var act := int(data.payload.get("act", 1))
 			var dialog := MerchantEncounter.build_dialog(maxi(1, act), null, inventory)
@@ -350,16 +435,29 @@ func _start_combat_from_ids(
 	if datas.is_empty() and active_encounter != null:
 		if active_encounter.type == EncounterData.EncounterType.COMBAT_BOSS:
 			var act := int(active_encounter.payload.get("act", 1))
-			var resolved_faction := faction.strip_edges().to_lower()
-			if resolved_faction.is_empty():
-				resolved_faction = _default_faction_for_act(act)
-			var boss: EnemyData = null
-			if not resolved_faction.is_empty():
-				boss = EnemyDatabase.get_random_boss_for_faction(resolved_faction)
-			if boss == null:
-				boss = EnemyDatabase.get_random_boss()
-			if boss != null:
-				datas.append(boss)
+			## Act 1 finale: Elder Vaeron flanked by both Stasis Pods.
+			if act <= 1:
+				var vaeron_ids: Array[String] = [
+					"stasis_pod_left",
+					"elder_vaeron",
+					"stasis_pod_right",
+				]
+				for vid: String in vaeron_ids:
+					if EnemyDatabase != null and EnemyDatabase.has_enemy(vid):
+						var bp := EnemyDatabase.create_blueprint(vid)
+						if bp != null:
+							datas.append(bp)
+			if datas.is_empty():
+				var resolved_faction := faction.strip_edges().to_lower()
+				if resolved_faction.is_empty():
+					resolved_faction = _default_faction_for_act(act)
+				var boss: EnemyData = null
+				if not resolved_faction.is_empty():
+					boss = EnemyDatabase.get_random_boss_for_faction(resolved_faction)
+				if boss == null:
+					boss = EnemyDatabase.get_random_boss()
+				if boss != null:
+					datas.append(boss)
 		else:
 			## Last-resort group pick when payload lacked layer / ids.
 			var layer := int(active_encounter.payload.get("layer", 1))
@@ -381,6 +479,15 @@ func _start_combat_from_ids(
 		max_attackers = maxi(1, group.max_attackers_per_turn)
 	elif active_encounter != null:
 		max_attackers = maxi(1, int(active_encounter.payload.get("max_attackers_per_turn", 2)))
+	## Vaeron trio needs three attack slots so pods can support every turn.
+	if datas.size() >= 3:
+		var has_vaeron := false
+		for d: EnemyData in datas:
+			if d != null and d.id == "elder_vaeron":
+				has_vaeron = true
+				break
+		if has_vaeron:
+			max_attackers = maxi(max_attackers, 3)
 
 	datas = _apply_cripple_buff_to_enemies(datas)
 	if StoryEventManager != null:
@@ -420,12 +527,66 @@ func _apply_cripple_buff_to_enemies(datas: Array[EnemyData]) -> Array[EnemyData]
 		if copy != null:
 			copy.base_hp = 1
 			copy.max_hp = 1
+			if not copy.trait_ids.has("war_god_corruption"):
+				copy.trait_ids.append("war_god_corruption")
 			out.append(copy)
 		else:
 			out.append(data)
 	crippled_foe_battles_remaining = maxi(0, crippled_foe_battles_remaining - 1)
 	_pending_rewards["cripple_buff_applied"] = true
 	return out
+
+
+func _try_open_dialog_loot(outcome: DialogOutcomeData) -> bool:
+	if outcome == null or RewardManager == null:
+		return false
+	var pool_key := outcome.item_pool_id.strip_edges().to_lower()
+	var pick_count := maxi(1, outcome.loot_pick_count)
+	var loot: Array[ItemData] = []
+	match pool_key:
+		"rare_pick_3", "rare_item_pick_3":
+			loot = RewardManager.generate_rare_offer(3)
+			pick_count = 1
+		"rare_weapon", "collector_weapon":
+			var weapon := RewardManager.generate_rare_weapon()
+			if weapon != null:
+				loot.append(weapon)
+			pick_count = 1
+		"rare_module", "collector_module":
+			var module := RewardManager.generate_rare_module()
+			if module != null:
+				loot.append(module)
+			pick_count = 1
+		"rare_weapon_and_module", "collector_both":
+			var w := RewardManager.generate_rare_weapon()
+			var m := RewardManager.generate_rare_module()
+			if w != null:
+				loot.append(w)
+			if m != null:
+				loot.append(m)
+			pick_count = maxi(2, loot.size())
+		_:
+			return false
+	if loot.is_empty():
+		return false
+	_awaiting_item_selection = true
+	_pending_select_outcome = outcome
+	_pending_post_combat_finish = false
+	_pending_rewards["dialog_loot"] = true
+	_pending_rewards["loot_pick_count"] = pick_count
+	request_dialog_loot.emit(loot, pick_count, "KEY_REWARD_SELECT_ONE")
+	return true
+
+
+func _apply_outcome_side_effects(outcome: DialogOutcomeData) -> void:
+	if outcome == null:
+		return
+	if outcome.spend_chips > 0 and GameManager != null:
+		GameManager.spend_chips(outcome.spend_chips)
+		_pending_rewards["spent_chips"] = outcome.spend_chips
+	if outcome.exp_amount > 0 and player_stats != null:
+		player_stats.add_exp(outcome.exp_amount)
+		_pending_rewards["exp"] = outcome.exp_amount
 
 
 func _begin_item_selection(outcome: DialogOutcomeData, post_combat: bool) -> void:
@@ -437,6 +598,33 @@ func _begin_item_selection(outcome: DialogOutcomeData, post_combat: bool) -> voi
 	if post_combat:
 		title = "Награда за бой"
 	request_item_selection.emit(pool, title)
+
+
+func _try_resolve_direct_item_pool(outcome: DialogOutcomeData, post_combat: bool) -> bool:
+	if outcome == null:
+		return false
+	var pool_key := outcome.item_pool_id.strip_edges().to_lower()
+	if pool_key not in ["grenade", "grenades", "uncommon_weapon"]:
+		return false
+	var pool: Array = _build_item_pool_from_outcome(outcome)
+	if pool.is_empty():
+		return false
+	var picked := pool[randi() % pool.size()] as ItemData
+	if picked == null:
+		return false
+	_grant_item_data(picked)
+	_pending_rewards["item_id"] = picked.id
+	_pending_rewards["item_amount"] = 1
+	_awaiting_item_selection = false
+	_pending_select_outcome = null
+	_pending_post_combat_finish = post_combat
+	item_selection_resolved.emit(picked)
+	if _pending_post_combat_finish:
+		_pending_post_combat_finish = false
+		_finish_encounter(_pending_rewards)
+	elif outcome.next_node_id.is_empty():
+		_finish_encounter(_pending_rewards)
+	return true
 
 
 func _build_item_pool_from_outcome(outcome: DialogOutcomeData) -> Array:
@@ -486,6 +674,21 @@ func _apply_payload_effects(effects: Array) -> void:
 				_grant_item(str(effect.get("item_id", "")), maxi(1, amount if amount > 0 else 1))
 			"neuro_chips", "neuro_chip", "neurochip":
 				_grant_item("NEURO_CHIP", amount if amount > 0 else 10)
+			"exp", "experience", "xp":
+				if player_stats != null and amount > 0:
+					player_stats.add_exp(amount)
+					_pending_rewards["exp"] = int(_pending_rewards.get("exp", 0)) + amount
+			"spend_chips", "cost_chips":
+				var cost := amount if amount > 0 else maxi(0, int(effect.get("spend_chips", 0)))
+				if cost > 0 and GameManager != null:
+					GameManager.spend_chips(cost)
+					_pending_rewards["spent_chips"] = int(_pending_rewards.get("spent_chips", 0)) + cost
+			"damage":
+				## Applied only when DAMAGE is not the primary outcome kind.
+				pass
+			"item_choice", "select_item", "loot", "loot_offer", "reward_loot", "combat", "fight":
+				## Control-flow effects — handled by outcome.kind.
+				pass
 			"pale_maiden_pact":
 				if StoryEventManager != null:
 					StoryEventManager.mark_pale_maiden_pact()
@@ -509,6 +712,9 @@ func _grant_item_data(item: ItemData) -> void:
 
 
 func _finish_encounter(rewards: Dictionary) -> void:
+	if _run_ended_mid_encounter():
+		abort_active_encounter()
+		return
 	var finished := active_encounter
 	active_encounter = null
 	_awaiting_combat_resolution = false
@@ -535,7 +741,8 @@ func _apply_unknown_defaults(data: EncounterData) -> void:
 				data.payload["item_id"] = "REBEL_CLEAVER"
 				data.payload["heal_amount"] = 10
 		EncounterData.EncounterType.CHEST:
-			data.payload["item_id"] = "BIO_GEL"
+			if not data.payload.has("locked"):
+				data.payload["locked"] = randf() < 0.55
 		_:
 			pass
 
@@ -583,6 +790,21 @@ func complete_shop_site() -> void:
 		return
 	if not _pending_rewards.has("message_key"):
 		_pending_rewards["message_key"] = "KEY_STATUS_SHOP"
+	_finish_encounter(_pending_rewards)
+
+
+func complete_chest_site(opened: bool = false) -> void:
+	## Called by Main after leaving the chest / chest-loot flow.
+	if active_encounter == null:
+		return
+	if active_encounter.type != EncounterData.EncounterType.CHEST:
+		return
+	if opened:
+		_pending_rewards["message_key"] = "KEY_STATUS_CHEST_OPENED"
+		_pending_rewards["chest_opened"] = true
+	elif not _pending_rewards.has("message_key"):
+		_pending_rewards["message_key"] = "KEY_STATUS_CHEST_LEFT"
+		_pending_rewards["chest_opened"] = false
 	_finish_encounter(_pending_rewards)
 
 

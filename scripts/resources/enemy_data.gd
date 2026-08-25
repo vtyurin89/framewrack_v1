@@ -21,6 +21,23 @@ const ROLE_DAMAGE := "damage"
 const ROLE_SUPPORT := "support"
 const ROLE_BOSS := "boss"
 
+## Hidden enemy trait: Block does not expire at the start of this enemy's turn.
+const TRAIT_PERMANENT_SHIELD := "permanent_shield"
+## Hidden enemy trait: always reroll telegraphed intention after taking HP damage.
+const TRAIT_ALWAYS_REROLL_INTENT := "always_reroll_intent"
+## Chem-Junkie: same as always_reroll_intent (localized as Unpredictable).
+const TRAIT_UNPREDICTABLE := "unpredictable"
+## Chem-Junkie: +1 STR after 3 direct attack HP hits in one player turn.
+const TRAIT_PSYCHOSIS := "psychosis"
+## Trait ids that are combat mechanics, not StatusEffectData blueprints.
+const MECHANIC_TRAIT_IDS: Array[String] = [
+	TRAIT_PERMANENT_SHIELD,
+	TRAIT_ALWAYS_REROLL_INTENT,
+	TRAIT_UNPREDICTABLE,
+	TRAIT_PSYCHOSIS,
+	"stasis_pod",
+]
+
 @export var id: String = ""
 
 ## Localization keys (preferred). Fallbacks: display_name / description.

@@ -15,11 +15,15 @@ signal forced_insertion_requested(item_id: String)
 signal forced_insertion_completed
 
 const SLIMY_PARASITE_ID := "SLIMY_PARASITE"
+const BIONIC_LARVA_ID := "BIONIC_LARVA"
 const NEURO_TICK_ID := "NEURO_TICK"
 const PARASITE_TURN_DAMAGE := 3
+const BIONIC_LARVA_TURN_DAMAGE := 1
+const NEURO_TICK_ACTIVATION_DAMAGE := 1
 const PARASITE_AP_CAP := 3
 const WAR_MODULE_TEMP_DMG := 2
 const TAINTED_DEFAULT_DAMAGE := 1
+const SENSOR_GLITCH_RETARGET_CHANCE := 0.5
 
 var inventory: InventoryController
 var player_stats: PlayerStats
@@ -44,6 +48,10 @@ var player_turn_index: int = 0
 var _parasite_at_combat_start: bool = false
 ## Mid-enemy-turn pause while ForcedItemScreen is open.
 var awaiting_forced_insertion: bool = false
+## Optional prebuilt ItemData for forced insertion (stolen item return).
+var _pending_forced_item: ItemData = null
+## HP damage dealt to charging Vaeron during the current player turn.
+var _vaeron_charge_damage: int = 0
 ## Presentation hooks bound by CombatUI (async Callables).
 var _play_enemy_attack_fx: Callable
 var _play_enemy_flee_fx: Callable
@@ -51,6 +59,12 @@ var _play_player_hit_fx: Callable
 var _play_enemy_cast_fx: Callable
 const ENEMY_ACTION_GAP := 0.25
 const ENEMY_HEAL_BEAT := 0.4
+const PLAYER_MULTI_SHOT_GAP := 0.22
+
+## True while a multi-shot player resolution is awaiting presentation beats.
+var _player_action_busy: bool = false
+## Enemy currently resolving a physical attack against the player.
+var _active_player_attacker: EnemyInstance = null
 
 
 func setup(p_inventory: InventoryController, p_stats: PlayerStats = null) -> void:
@@ -89,6 +103,9 @@ func is_in_combat() -> bool:
 
 func start_combat(enemy_datas: Array[EnemyData], max_attackers: int = -1) -> void:
 	_ensure_ability_executor()
+	_player_action_busy = false
+	if player_stats != null:
+		player_stats.clear_combat_stat_buffs()
 	if player_statuses == null:
 		player_statuses = StatusController.new()
 	player_statuses.clear_combat_statuses()
@@ -109,6 +126,7 @@ func start_combat(enemy_datas: Array[EnemyData], max_attackers: int = -1) -> voi
 	player_turn_index = 0
 	_reset_all_item_combat_uses()
 	_clear_all_item_statuses()
+	_apply_start_of_combat_player_buffs()
 	_parasite_at_combat_start = _has_item_in_grid(SLIMY_PARASITE_ID)
 	_select_first_living_enemy()
 	EventBus.combat_started.emit(ids)
@@ -123,6 +141,16 @@ func set_group_attack_cap(cap: int) -> void:
 
 func reset_attacker_slots() -> void:
 	_attacker_slots_used = 0
+
+
+func recount_attacker_slots_from_plans() -> void:
+	## Rebuild reservation count from living telegraphed offensive plans.
+	_attacker_slots_used = 0
+	for enemy: EnemyInstance in enemies:
+		if enemy == null or not enemy.is_alive():
+			continue
+		if EnemyAI.is_offensive_ability(enemy.planned_ability):
+			_attacker_slots_used += 1
 
 
 func try_reserve_attacker_slot() -> bool:
@@ -157,6 +185,8 @@ func _set_state(next: CombatState) -> void:
 
 func _begin_player_turn() -> void:
 	## Strict player turn pipeline.
+	_vaeron_charge_damage = 0
+	_reset_psychosis_hit_counters()
 	_reset_player_resources()
 	if not _apply_slimy_parasite_turn_damage():
 		return
@@ -172,6 +202,12 @@ func _begin_player_turn() -> void:
 	_set_state(CombatState.PLAYER_TURN)
 	EventBus.combat_log_message.emit(tr("KEY_LOG_YOUR_TURN") % current_ap)
 	## Action phase is interactive (activate_item / end_player_turn).
+
+
+func _reset_psychosis_hit_counters() -> void:
+	for enemy: EnemyInstance in enemies:
+		if enemy != null:
+			enemy.reset_psychosis_turn_tracking()
 
 
 func _reset_player_resources() -> void:
@@ -232,6 +268,24 @@ func _apply_slimy_parasite_turn_damage() -> bool:
 	return true
 
 
+func _apply_bionic_larva_turn_damage() -> bool:
+	## End of every player turn while a Bionic Larva is lodged.
+	if not _has_item_in_grid(BIONIC_LARVA_ID) or inventory == null:
+		return true
+	var dealt := inventory.apply_damage(BIONIC_LARVA_TURN_DAMAGE, 0)
+	_request_player_popup(dealt if dealt > 0 else BIONIC_LARVA_TURN_DAMAGE, "poison")
+	if dealt > 0 or BIONIC_LARVA_TURN_DAMAGE > 0:
+		_trigger_player_hit_feedback(maxi(dealt, BIONIC_LARVA_TURN_DAMAGE))
+	EventBus.combat_log_message.emit(
+		tr("KEY_LOG_BIONIC_LARVA_DAMAGE") % BIONIC_LARVA_TURN_DAMAGE
+	)
+	EventBus.player_hp_changed.emit(inventory.current_hp, inventory.max_hp)
+	if inventory.is_dead():
+		_lose()
+		return false
+	return true
+
+
 func _eye_of_pale_maiden_turn1_ap_mod() -> int:
 	## +1 AP on turn 1, or -1 if the eye sits adjacent to any weapon.
 	if inventory == null or inventory.grid == null:
@@ -268,6 +322,8 @@ func _player_pre_turn_phase() -> bool:
 	if bool(result.get("skip_turn", false)):
 		EventBus.combat_log_message.emit(tr("KEY_LOG_STUNNED"))
 		_player_post_turn_phase()
+		if not _apply_bionic_larva_turn_damage():
+			return false
 		_begin_enemy_turn()
 		return false
 	return true
@@ -306,7 +362,11 @@ func _player_post_turn_phase() -> void:
 func end_player_turn() -> void:
 	if state != CombatState.PLAYER_TURN:
 		return
+	if _player_action_busy:
+		return
 	_player_post_turn_phase()
+	if not _apply_bionic_larva_turn_damage():
+		return
 	_begin_enemy_turn()
 
 
@@ -328,13 +388,28 @@ func _plan_all_intentions(force_reroll: bool = true) -> void:
 
 
 func reevaluate_enemy_intention(index: int) -> void:
+	## Soft mid-turn check for one enemy after it took HP damage.
+	_try_reevaluate_enemy_intention_at(index, "hp_damage")
+
+
+func _try_reevaluate_enemy_intention_at(index: int, trigger: String) -> void:
 	if index < 0 or index >= enemies.size():
 		return
 	var enemy: EnemyInstance = enemies[index]
 	if enemy == null or not enemy.is_alive():
 		return
-	## Full replan so group attacker caps stay consistent with telegraphs.
-	_plan_all_intentions(true)
+	if not enemy.reevaluate_intention_for_trigger(trigger, self):
+		return
+	EventBus.enemy_intention_changed.emit(index, enemy.current_intention)
+
+
+func _reevaluate_allies_after_death(dead: EnemyInstance) -> void:
+	## Living allies always reason-check after a death (e.g. slaves panic when master falls).
+	for i in enemies.size():
+		var other: EnemyInstance = enemies[i]
+		if other == null or other == dead or not other.is_alive():
+			continue
+		_try_reevaluate_enemy_intention_at(i, "ally_death")
 
 
 func plan_intentions_for_living(force_reroll: bool = true) -> void:
@@ -375,6 +450,8 @@ func _apply_selection(index: int) -> void:
 
 func can_activate_item(placed: PlacedItem) -> bool:
 	if state != CombatState.PLAYER_TURN:
+		return false
+	if _player_action_busy:
 		return false
 	if placed == null or placed.data == null:
 		return false
@@ -425,20 +502,47 @@ func activate_item(placed: PlacedItem) -> bool:
 		ItemData.TargetType.ALL_ENEMIES:
 			_resolve_all_enemies(placed)
 		_:
-			_resolve_single_enemy(placed)
+			if _is_auto_scatter_weapon(data):
+				_consume_charge_if_needed(placed)
+				data.start_cooldown()
+				if was_tainted and taint_damage > 0:
+					_apply_tainted_activation_damage(data, taint_damage)
+				EventBus.combat_item_availability_changed.emit()
+				_resolve_auto_scatter_async(placed)
+				return true
+			var killed := _resolve_single_enemy(placed)
+			_consume_charge_if_needed(placed)
+			if killed and _should_reset_cooldown_on_kill(data):
+				data.current_cd = 0
+				EventBus.combat_log_message.emit(
+					tr("KEY_LOG_NAIL_KILL_RESET") % data.get_localized_name()
+				)
+			else:
+				data.start_cooldown()
+			if was_tainted and taint_damage > 0:
+				_apply_tainted_activation_damage(data, taint_damage)
+			EventBus.combat_item_availability_changed.emit()
+			_apply_neuro_tick_adjacent_damage(placed)
+			_finish_player_activation()
+			return true
 
 	_consume_charge_if_needed(placed)
 	data.start_cooldown()
 	if was_tainted and taint_damage > 0:
 		_apply_tainted_activation_damage(data, taint_damage)
 	EventBus.combat_item_availability_changed.emit()
+	_apply_neuro_tick_adjacent_damage(placed)
 
+	_finish_player_activation()
+	return true
+
+
+func _finish_player_activation() -> void:
 	if inventory != null and inventory.is_dead():
 		_lose()
-		return true
+		return
 	if _all_enemies_dead():
 		_win()
-	return true
 
 
 func _log_activation_failure(placed: PlacedItem) -> void:
@@ -467,22 +571,114 @@ func _log_activation_failure(placed: PlacedItem) -> void:
 		EventBus.combat_log_message.emit(tr("KEY_LOG_NO_CHARGES"))
 
 
-func _resolve_single_enemy(placed: PlacedItem) -> void:
+func _resolve_single_enemy(placed: PlacedItem) -> bool:
+	## Returns true if the primary target was killed by this activation.
 	_ensure_valid_selection()
 	if target_index < 0:
-		return
+		return false
 	var data := placed.data
 	if data.item_type != null and data.item_type.id.to_upper() == "CONSUMABLE":
 		_resolve_consumable_enemy(placed, target_index)
-		return
+		return false
 	var dmg := _calc_damage(placed)
 	var trait_bonus := _consume_attack_trait_bonus(placed)
 	dmg += trait_bonus
-	var killed := _deal_damage_to(target_index, dmg, data.get_localized_name())
+	var pierce := TraitManager.has_trait(data, "TRAIT_ARMOR_PIERCE")
+	var killed := _deal_damage_to(
+		target_index, dmg, data.get_localized_name(), true, "physical", pierce
+	)
 	if killed:
 		_apply_oracle_kill_bonus(placed, 1)
+	_apply_stackable_damage_boost_on_attack(placed)
 	_apply_on_hit_weapon_statuses(placed, target_index)
 	_apply_armorless_adjacent_heal_on_hit(placed)
+	return killed
+
+
+func _should_reset_cooldown_on_kill(data: ItemData) -> bool:
+	return data != null and TraitManager.has_trait(data, "TRAIT_NAIL_KILL_RESET")
+
+
+func _is_auto_scatter_weapon(data: ItemData) -> bool:
+	return data != null and TraitManager.has_trait(data, "TRAIT_AUTO_SCATTER")
+
+
+func _apply_stackable_damage_boost_on_attack(placed: PlacedItem) -> void:
+	## +N damage to this exact weapon for the rest of the current turn.
+	if placed == null or placed.data == null:
+		return
+	var data := placed.data
+	if not data.is_weapon():
+		return
+	if not TraitManager.has_trait(data, "TRAIT_STACKABLE_DAMAGE_BOOST"):
+		return
+	var gain := maxi(1, TraitManager.get_trait_value(data, "TRAIT_STACKABLE_DAMAGE_BOOST", 1))
+	data.temp_flat_damage_bonus += gain
+	EventBus.inventory_changed.emit()
+
+
+func _resolve_auto_scatter_async(placed: PlacedItem) -> void:
+	## 3-shot scatter: shot 1 guaranteed on selected target; shots 2–3 random living enemies.
+	if placed == null or placed.data == null:
+		_finish_player_activation()
+		return
+	_player_action_busy = true
+	EventBus.combat_item_availability_changed.emit()
+
+	var data := placed.data
+	var shot_count := maxi(1, TraitManager.get_trait_value(data, "TRAIT_AUTO_SCATTER", 3))
+	var source_name := data.get_localized_name()
+	var trait_bonus := _consume_attack_trait_bonus(placed)
+	var killed_count := 0
+	var any_hit := false
+
+	for shot_i in shot_count:
+		if state != CombatState.PLAYER_TURN:
+			break
+		if shot_i > 0:
+			if _living_enemy_indices().is_empty():
+				break
+			await get_tree().create_timer(PLAYER_MULTI_SHOT_GAP).timeout
+			if state != CombatState.PLAYER_TURN:
+				break
+
+		var idx := -1
+		if shot_i == 0:
+			_ensure_valid_selection()
+			idx = target_index
+			if idx < 0 or idx >= enemies.size() or not enemies[idx].is_alive():
+				idx = _pick_random_living_enemy_index()
+		else:
+			idx = _pick_random_living_enemy_index()
+
+		if idx < 0:
+			break
+
+		var dmg := _calc_damage(placed)
+		if shot_i == 0:
+			dmg += trait_bonus
+		any_hit = true
+		var pierce := TraitManager.has_trait(data, "TRAIT_ARMOR_PIERCE")
+		if _deal_damage_to(idx, dmg, source_name, true, "physical", pierce):
+			killed_count += 1
+		_apply_on_hit_weapon_statuses(placed, idx)
+
+	if killed_count > 0:
+		_apply_oracle_kill_bonus(placed, killed_count)
+	if any_hit:
+		_apply_armorless_adjacent_heal_on_hit(placed)
+	_apply_neuro_tick_adjacent_damage(placed)
+
+	_player_action_busy = false
+	EventBus.combat_item_availability_changed.emit()
+	_finish_player_activation()
+
+
+func _pick_random_living_enemy_index() -> int:
+	var living := _living_enemy_indices()
+	if living.is_empty():
+		return -1
+	return living[randi() % living.size()]
 
 
 func _resolve_all_enemies(placed: PlacedItem) -> void:
@@ -492,9 +688,10 @@ func _resolve_all_enemies(placed: PlacedItem) -> void:
 	dmg += trait_bonus
 	var living := _living_enemy_indices()
 	var damage_type := "burn" if _item_applies_burn(data) else "physical"
+	var pierce := TraitManager.has_trait(data, "TRAIT_ARMOR_PIERCE")
 	var killed_count := 0
 	for idx: int in living:
-		if _deal_damage_to(idx, dmg, data.get_localized_name(), true, damage_type):
+		if _deal_damage_to(idx, dmg, data.get_localized_name(), true, damage_type, pierce):
 			killed_count += 1
 		_apply_on_hit_weapon_statuses(placed, idx)
 	if killed_count > 0:
@@ -547,6 +744,32 @@ func _perform_harmful_surgery(placed: PlacedItem) -> void:
 		EventBus.ap_changed.emit(current_ap, max_ap)
 
 
+func _resolve_pliers_extract(placed: PlacedItem) -> void:
+	## Remove the first harmful item in the same row to the right; grant combat +1 STR on success.
+	if placed == null or placed.data == null or inventory == null or inventory.grid == null:
+		return
+	var tool_name := placed.data.get_localized_name()
+	var target := inventory.grid.find_first_harmful_right_in_row(placed)
+	if target == null or target.data == null:
+		EventBus.combat_log_message.emit(tr("KEY_LOG_PLIERS_MISS") % tool_name)
+		return
+	var removed_name := target.data.get_localized_name()
+	var removed_id := target.data.id
+	inventory.grid.remove_item(target, true)
+	EventBus.item_removed.emit(removed_id)
+	EventBus.inventory_changed.emit()
+	EventBus.combat_item_availability_changed.emit()
+	if not _has_item_in_grid(SLIMY_PARASITE_ID):
+		max_ap = inventory.get_max_ap()
+		EventBus.ap_changed.emit(current_ap, max_ap)
+	var str_gain := maxi(1, TraitManager.get_trait_value(placed.data, "TRAIT_PLIERS_EXTRACT", 1))
+	if player_stats != null:
+		player_stats.apply_stackable_stat_buff("strength", str_gain)
+	EventBus.combat_log_message.emit(
+		tr("KEY_LOG_PLIERS_EXTRACT") % [tool_name, removed_name, str_gain, tr("KEY_STR")]
+	)
+
+
 func _calc_damage(placed: PlacedItem) -> int:
 	var adjacency_bonus: int = inventory.grid.get_adjacency_damage_bonus_for(placed)
 	var raw: int = placed.data.roll_damage(player_stats) + adjacency_bonus
@@ -575,8 +798,13 @@ func _deal_damage_to(
 	dmg: int,
 	source_name: String,
 	allow_crit: bool = true,
-	damage_type: String = "physical"
+	damage_type: String = "physical",
+	pierce_block: bool = false
 ) -> bool:
+	if index < 0 or index >= enemies.size():
+		return false
+	## Sensor Glitch: 50% chance to retarget to another living enemy.
+	index = _maybe_sensor_glitch_retarget(index)
 	if index < 0 or index >= enemies.size():
 		return false
 	var enemy: EnemyInstance = enemies[index]
@@ -601,12 +829,15 @@ func _deal_damage_to(
 	)
 	var hp_before := enemy.current_hp
 	var block_before := enemy.current_block
-	enemy.apply_incoming_damage(final_dmg)
+	enemy.apply_incoming_damage(final_dmg, pierce_block)
 	var dealt := maxi(0, hp_before - enemy.current_hp)
+	var block_absorbed := maxi(0, block_before - enemy.current_block)
+	if ElderVaeron.is_vaeron(enemy) and ElderVaeron.is_pod_right_alive(self):
+		ElderVaeron.clamp_vaeron_block(enemy)
 	if (
 		had_evasion
 		and dealt <= 0
-		and enemy.current_block == block_before
+		and block_absorbed <= 0
 		and final_dmg > 0
 	):
 		_request_enemy_popup(index, 0, damage_type, false, true)
@@ -614,8 +845,11 @@ func _deal_damage_to(
 			tr("KEY_LOG_EVASION_NEGATE_ENEMY") % enemy.get_localized_name()
 		)
 		EventBus.enemy_hp_changed.emit(index, enemy.current_hp, enemy.max_hp)
+		EventBus.enemy_block_changed.emit(index, enemy.current_block)
 		return false
-	_request_enemy_popup(index, dealt if dealt > 0 else final_dmg, damage_type, is_crit, false)
+	var popup_amount := dealt if dealt > 0 else (block_absorbed if block_absorbed > 0 else final_dmg)
+	var popup_type := "block" if dealt <= 0 and block_absorbed > 0 else damage_type
+	_request_enemy_popup(index, popup_amount, popup_type, is_crit, false)
 	## Thorns on enemy reflect to player.
 	if enemy.statuses != null:
 		var thorns := enemy.statuses.get_thorns_reflect()
@@ -632,6 +866,21 @@ func _deal_damage_to(
 			tr("KEY_LOG_DAMAGE") % [source_name, final_dmg, adjacency_note, enemy.get_localized_name()]
 		)
 	EventBus.enemy_hp_changed.emit(index, enemy.current_hp, enemy.max_hp)
+	EventBus.enemy_block_changed.emit(index, enemy.current_block)
+	if dealt > 0 and state == CombatState.PLAYER_TURN:
+		_register_vaeron_charge_damage(enemy, dealt)
+		if enemy.register_direct_attack_hit():
+			EventBus.combat_log_message.emit(
+				tr("KEY_LOG_PSYCHOSIS_BUFF") % [
+					enemy.get_localized_name(),
+					1,
+					tr("KEY_STR"),
+				]
+			)
+			## Refresh telegraph numbers for the new STR even if the ability stays.
+			if enemy.planned_ability != null:
+				enemy.current_intention = CombatIntention.from_ability(enemy, enemy.planned_ability)
+				EventBus.enemy_intention_changed.emit(index, enemy.current_intention)
 	if not enemy.is_alive():
 		enemy.clear_intention()
 		EventBus.enemy_intention_changed.emit(index, enemy.current_intention)
@@ -639,7 +888,9 @@ func _deal_damage_to(
 		EventBus.enemy_died.emit(index)
 		_ensure_valid_selection()
 		return true
-	elif state == CombatState.PLAYER_TURN:
+	elif state == CombatState.PLAYER_TURN and dealt > 0:
+		## Block-only hits keep the telegraph; HP damage may reason-check.
+		## Unpredictable Chem-Junkies fully reroll here after Psychosis updates STR.
 		reevaluate_enemy_intention(index)
 	return false
 
@@ -697,6 +948,29 @@ func _apply_self_use_traits(placed: PlacedItem) -> void:
 	if TraitManager.has_trait(data, "TRAIT_SYNAPSE_BOOSTER"):
 		current_ap += TraitManager.get_trait_value(data, "TRAIT_SYNAPSE_BOOSTER", 4)
 		EventBus.ap_changed.emit(current_ap, max_ap)
+	if TraitManager.has_trait(data, "TRAIT_PERM_STRENGTH"):
+		var str_amt := TraitManager.get_trait_value(data, "TRAIT_PERM_STRENGTH", 1)
+		if player_stats != null and str_amt != 0:
+			player_stats.add_stat_bonus("strength", str_amt)
+			EventBus.combat_log_message.emit(
+				tr("KEY_LOG_PERM_STAT_GAIN") % [data.get_localized_name(), tr("KEY_STR"), str_amt]
+			)
+	if TraitManager.has_trait(data, "TRAIT_PERM_INTELLIGENCE"):
+		var int_amt := TraitManager.get_trait_value(data, "TRAIT_PERM_INTELLIGENCE", 1)
+		if player_stats != null and int_amt != 0:
+			player_stats.add_stat_bonus("intelligence", int_amt)
+			EventBus.combat_log_message.emit(
+				tr("KEY_LOG_PERM_STAT_GAIN") % [data.get_localized_name(), tr("KEY_INT"), int_amt]
+			)
+	if TraitManager.has_trait(data, "TRAIT_PERM_ENDURANCE"):
+		var end_amt := TraitManager.get_trait_value(data, "TRAIT_PERM_ENDURANCE", 1)
+		if player_stats != null and end_amt != 0:
+			player_stats.add_stat_bonus("endurance", end_amt)
+			if inventory != null:
+				inventory.apply_actor_stats(player_stats)
+			EventBus.combat_log_message.emit(
+				tr("KEY_LOG_PERM_STAT_GAIN") % [data.get_localized_name(), tr("KEY_END"), end_amt]
+			)
 	if TraitManager.has_trait(data, "TRAIT_CLEANSE_DEBUFFS"):
 		if player_statuses != null:
 			player_statuses.clear_debuffs()
@@ -720,6 +994,8 @@ func _apply_self_use_traits(placed: PlacedItem) -> void:
 				tr("KEY_LOG_WAR_MODULE_BUFF") % [data.get_localized_name(), affected, WAR_MODULE_TEMP_DMG]
 			)
 			EventBus.inventory_changed.emit()
+	if TraitManager.has_trait(data, "TRAIT_PLIERS_EXTRACT"):
+		_resolve_pliers_extract(placed)
 
 
 func _resolve_consumable_enemy(placed: PlacedItem, enemy_index: int) -> void:
@@ -884,17 +1160,31 @@ func _commit_passive_armor_into_block() -> void:
 
 
 func _run_enemy_actions() -> void:
-	## Sequential enemy acts with awaited attack/flee presentation.
-	for i in enemies.size():
-		var enemy: EnemyInstance = enemies[i]
+	## Snapshot living actors: flee/death can remove roster entries mid-loop.
+	var actors: Array[EnemyInstance] = []
+	for enemy: EnemyInstance in enemies:
+		if enemy != null and enemy.is_alive():
+			actors.append(enemy)
+	for enemy: EnemyInstance in actors:
 		if enemy == null or not enemy.is_alive():
 			continue
+		var i: int = enemies.find(enemy)
+		if i < 0:
+			continue
+		## Expire Block at the start of this enemy's turn (like the player),
+		## unless they have the hidden permanent_shield trait.
+		_expire_enemy_block_for_turn_start(i, enemy)
 		## 1. Pre-turn (DoT / Stun / Flee check)
 		var pre := await _enemy_pre_turn_phase_async(i, enemy)
 		if not pre:
 			if inventory != null and inventory.is_dead():
 				_lose()
 				return
+			await get_tree().create_timer(ENEMY_ACTION_GAP).timeout
+			continue
+		## Roster may have shifted during awaits (flee / death fade).
+		i = enemies.find(enemy)
+		if i < 0 or not enemy.is_alive():
 			await get_tree().create_timer(ENEMY_ACTION_GAP).timeout
 			continue
 		_enemy_start_turn_phase(i, enemy)
@@ -909,7 +1199,9 @@ func _run_enemy_actions() -> void:
 		if inventory != null and inventory.is_dead():
 			_lose()
 			return
-		_enemy_post_turn_phase(i, enemy)
+		i = enemies.find(enemy)
+		if i >= 0 and enemy.is_alive():
+			_enemy_post_turn_phase(i, enemy)
 		## 4. Short pause between enemy turns.
 		await get_tree().create_timer(ENEMY_ACTION_GAP).timeout
 
@@ -1091,26 +1383,105 @@ func _enemy_main_action_phase(index: int, enemy: EnemyInstance) -> void:
 		_request_player_popup(0, "rust", false, true)
 		return
 
+	_active_player_attacker = enemy
 	if ability != null:
 		_ability_executor.execute(enemy, index, ability)
 	else:
 		_enemy_act_legacy_fallback(index, enemy)
+	_active_player_attacker = null
 
 
-func request_forced_item_insertion(item_id: String) -> void:
+func request_forced_item_insertion(item_id: String, existing: ItemData = null) -> void:
 	## Called by EffectForceInsert mid-enemy-turn; Main opens ForcedItemScreen.
 	var id := item_id.strip_edges()
 	if id.is_empty():
 		id = SLIMY_PARASITE_ID
+	_pending_forced_item = existing
 	awaiting_forced_insertion = true
 	forced_insertion_requested.emit(id)
+
+
+func take_pending_forced_item() -> ItemData:
+	var item := _pending_forced_item
+	_pending_forced_item = null
+	return item
 
 
 func complete_forced_item_insertion() -> void:
 	if not awaiting_forced_insertion:
 		return
 	awaiting_forced_insertion = false
+	_pending_forced_item = null
 	forced_insertion_completed.emit()
+
+
+func try_auto_insert_item(item_id: String) -> bool:
+	## Place a fresh instance into the first free footprint; returns false if no fit.
+	if inventory == null or ItemDatabase == null:
+		return false
+	var inst := ItemDatabase.create_instance(item_id)
+	if inst == null:
+		return false
+	inst.enforce_harmful_constraints()
+	if not inventory.try_place_anywhere(inst):
+		return false
+	EventBus.combat_log_message.emit(
+		tr("KEY_LOG_AUTO_INSERT") % inst.get_localized_name()
+	)
+	EventBus.inventory_changed.emit()
+	return true
+
+
+func find_enemy_by_id(enemy_id: String) -> EnemyInstance:
+	var needle := enemy_id.strip_edges().to_lower()
+	for enemy: EnemyInstance in enemies:
+		if enemy == null or enemy.data == null:
+			continue
+		if enemy.data.id.strip_edges().to_lower() == needle and enemy.is_alive():
+			return enemy
+	return null
+
+
+func steal_item_from_player_grid(caster: EnemyInstance) -> ItemData:
+	## Prefer a consumable; otherwise any non-harmful module. Returns null if nothing.
+	if inventory == null or inventory.grid == null:
+		return null
+	var consumables: Array[PlacedItem] = []
+	var fallback: Array[PlacedItem] = []
+	for placed: PlacedItem in inventory.grid.items:
+		if placed == null or placed.data == null:
+			continue
+		if placed.data.is_harmful:
+			continue
+		if placed.data.is_currency():
+			continue
+		if (
+			placed.data.item_type != null
+			and placed.data.item_type.id.strip_edges().to_upper() == "CONSUMABLE"
+		):
+			consumables.append(placed)
+		else:
+			fallback.append(placed)
+	var pool: Array[PlacedItem] = consumables if not consumables.is_empty() else fallback
+	if pool.is_empty():
+		return null
+	var pick: PlacedItem = pool[randi() % pool.size()]
+	var data: ItemData = pick.data
+	inventory.grid.remove_item(pick, true)
+	return data
+
+
+func _expire_enemy_block_for_turn_start(index: int, enemy: EnemyInstance) -> void:
+	if enemy == null:
+		return
+	## Right Stasis Pod keeps Elder Vaeron's Block across his turns (capped).
+	if ElderVaeron.is_vaeron(enemy) and ElderVaeron.is_pod_right_alive(self):
+		ElderVaeron.clamp_vaeron_block(enemy)
+		EventBus.enemy_block_changed.emit(index, enemy.current_block)
+		return
+	if not enemy.clear_block_for_new_turn():
+		return
+	EventBus.enemy_block_changed.emit(index, enemy.current_block)
 
 
 func _enemy_start_turn_phase(index: int, enemy: EnemyInstance) -> void:
@@ -1143,6 +1514,7 @@ func _enemy_post_turn_phase(_index: int, enemy: EnemyInstance) -> void:
 
 func _enemy_act(index: int, enemy: EnemyInstance) -> void:
 	## Legacy entry retained for any external callers — routes through phased pipeline.
+	_expire_enemy_block_for_turn_start(index, enemy)
 	if not _enemy_pre_turn_phase(index, enemy):
 		return
 	_enemy_start_turn_phase(index, enemy)
@@ -1179,7 +1551,7 @@ func _enemy_act_legacy_fallback(index: int, enemy: EnemyInstance) -> void:
 		dmg = enemy.statuses.modify_outgoing_damage(dmg)
 	if GameSettings != null:
 		dmg = int(round(float(dmg) * GameSettings.get_enemy_damage_multiplier()))
-	var dealt := apply_enemy_damage_to_player(dmg)
+	var dealt := apply_enemy_damage_to_player(dmg, enemy, "physical")
 	EventBus.combat_log_message.emit(
 		tr("KEY_LOG_ENEMY_STRIKE") % [enemy.get_localized_name(), dmg, dealt]
 	)
@@ -1188,7 +1560,14 @@ func _enemy_act_legacy_fallback(index: int, enemy: EnemyInstance) -> void:
 
 ## --- AbilityEffect combat hooks ---------------------------------------------
 
-func apply_enemy_damage_to_player(damage: int) -> int:
+func apply_enemy_damage_to_player(
+	damage: int,
+	attacker: EnemyInstance = null,
+	damage_type: String = "physical"
+) -> int:
+	if attacker == null:
+		attacker = _active_player_attacker
+	_apply_player_spike_reflect(attacker, damage_type)
 	var incoming := damage
 	## Player evasion (if ever applied) negates the hit fully.
 	if player_statuses != null and player_statuses.try_consume_evasion():
@@ -1204,6 +1583,39 @@ func apply_enemy_damage_to_player(damage: int) -> int:
 		_request_player_popup(dealt, "physical")
 		_trigger_player_hit_feedback(dealt)
 	return dealt
+
+
+func _apply_start_of_combat_player_buffs() -> void:
+	if inventory == null or inventory.grid == null:
+		return
+	var sharp_stacks := 0
+	for placed: PlacedItem in inventory.grid.items:
+		if placed == null or placed.data == null:
+			continue
+		if not inventory.grid.is_item_functional(placed):
+			continue
+		if not TraitManager.has_trait(placed.data, "TRAIT_SPIKES_OUTER"):
+			continue
+		sharp_stacks += maxi(1, TraitManager.get_trait_value(placed.data, "TRAIT_SPIKES_OUTER", 2))
+	if sharp_stacks > 0:
+		apply_player_status("sharp_spikes", sharp_stacks)
+
+
+func _apply_player_spike_reflect(attacker: EnemyInstance, damage_type: String) -> void:
+	if attacker == null or not attacker.is_alive():
+		return
+	if damage_type.strip_edges().to_lower() != "physical":
+		return
+	if player_statuses == null:
+		return
+	var reflected := player_statuses.get_stacks("sharp_spikes")
+	if reflected <= 0:
+		return
+	attacker.apply_incoming_damage(reflected)
+	EventBus.combat_log_message.emit(
+		tr("KEY_LOG_THORNS") % [tr("TRAIT_SPIKES_OUTER_NAME"), reflected]
+	)
+	emit_enemy_hp_for(attacker)
 
 
 func _trigger_player_hit_feedback(dealt: int) -> void:
@@ -1230,6 +1642,14 @@ func emit_enemy_hp_for(enemy: EnemyInstance) -> void:
 	if idx < 0:
 		return
 	EventBus.enemy_hp_changed.emit(idx, enemy.current_hp, enemy.max_hp)
+	EventBus.enemy_block_changed.emit(idx, enemy.current_block)
+
+
+func emit_enemy_block_for(enemy: EnemyInstance) -> void:
+	var idx := enemies.find(enemy)
+	if idx < 0:
+		return
+	EventBus.enemy_block_changed.emit(idx, enemy.current_block)
 
 
 func notify_enemy_healed(enemy: EnemyInstance, amount: int) -> void:
@@ -1280,8 +1700,84 @@ func _on_enemy_defeated(enemy: EnemyInstance, _index: int) -> void:
 	if enemy.data != null and enemy.data.id.strip_edges().to_lower() == "faceless_lady":
 		if StoryEventManager != null:
 			StoryEventManager.mark_faceless_lady_defeated()
+	## Right Stasis Pod death: return any stolen grid item via ForcedItemScreen.
+	if ElderVaeron.is_pod_right(enemy) and enemy.stolen_grid_item != null:
+		var stolen: ItemData = enemy.stolen_grid_item
+		enemy.stolen_grid_item = null
+		EventBus.combat_log_message.emit(
+			tr("KEY_LOG_POD_STEAL_RETURN") % stolen.get_localized_name()
+		)
+		request_forced_item_insertion(stolen.id, stolen)
 	## Summoned creatures break and prepare to flee when their master dies.
 	_break_summons_of(enemy)
+	## Other living enemies reason-check (keep plan unless a real override applies).
+	_reevaluate_allies_after_death(enemy)
+
+
+func _apply_neuro_tick_adjacent_damage(activated: PlacedItem) -> void:
+	## Neuro Tick: 1 HP whenever an orthogonally adjacent module is activated.
+	if activated == null or inventory == null or inventory.grid == null:
+		return
+	if state != CombatState.PLAYER_TURN:
+		return
+	var ticks := 0
+	for neighbour: PlacedItem in inventory.grid.get_adjacent_items(activated):
+		if neighbour == null or neighbour.data == null:
+			continue
+		if neighbour.data.id.strip_edges().to_upper() != NEURO_TICK_ID:
+			continue
+		ticks += 1
+	if ticks <= 0:
+		return
+	var total := ticks * NEURO_TICK_ACTIVATION_DAMAGE
+	var dealt := inventory.apply_damage(total, 0)
+	_request_player_popup(dealt if dealt > 0 else total, "poison")
+	_trigger_player_hit_feedback(maxi(dealt, total))
+	EventBus.combat_log_message.emit(tr("KEY_LOG_NEURO_TICK_DAMAGE") % total)
+	EventBus.player_hp_changed.emit(inventory.current_hp, inventory.max_hp)
+	if inventory.is_dead():
+		_lose()
+
+
+func _maybe_sensor_glitch_retarget(intended_index: int) -> int:
+	if player_statuses == null or player_statuses.get_stacks("sensor_glitch") <= 0:
+		return intended_index
+	if randf() >= SENSOR_GLITCH_RETARGET_CHANCE:
+		return intended_index
+	var living := _living_enemy_indices()
+	var alternatives: Array[int] = []
+	for idx: int in living:
+		if idx != intended_index:
+			alternatives.append(idx)
+	if alternatives.is_empty():
+		return intended_index
+	var picked: int = alternatives[randi() % alternatives.size()]
+	EventBus.combat_log_message.emit(
+		tr("KEY_LOG_SENSOR_GLITCH_RETARGET") % enemies[picked].get_localized_name()
+	)
+	## Keep selection synced with the actual hit target.
+	_apply_selection(picked)
+	return picked
+
+
+func _register_vaeron_charge_damage(enemy: EnemyInstance, dealt: int) -> void:
+	if dealt <= 0 or not ElderVaeron.is_vaeron(enemy):
+		return
+	if not enemy.is_ability_prepared(ElderVaeron.ID_SYNAPSE_BLAST):
+		return
+	_vaeron_charge_damage += dealt
+	if _vaeron_charge_damage < ElderVaeron.SYNAPSE_INTERRUPT_DAMAGE:
+		return
+	enemy.consume_prepared_ability(ElderVaeron.ID_SYNAPSE_BLAST)
+	_vaeron_charge_damage = 0
+	EventBus.combat_log_message.emit(
+		tr("KEY_LOG_SYNAPSE_INTERRUPTED") % enemy.get_localized_name()
+	)
+	## Force a fresh telegraph after the charge is broken.
+	var idx := enemies.find(enemy)
+	if idx >= 0:
+		enemy.evaluate_intention({"block": current_block}, self)
+		EventBus.enemy_intention_changed.emit(idx, enemy.current_intention)
 
 
 func _apply_on_hit_weapon_statuses(placed: PlacedItem, enemy_index: int) -> void:
@@ -1297,6 +1793,9 @@ func _apply_on_hit_weapon_statuses(placed: PlacedItem, enemy_index: int) -> void
 			BurnStatus.STATUS_ID,
 			_dot_stacks_with_amplify(placed, burn_stacks)
 		)
+	if TraitManager.has_trait(placed.data, "TRAIT_APPLY_RUST"):
+		var rust_stacks := TraitManager.get_trait_value(placed.data, "TRAIT_APPLY_RUST", 3)
+		apply_status_to_enemy(enemy_index, "rust", maxi(1, rust_stacks))
 
 
 func _dot_stacks_with_amplify(placed: PlacedItem, base_stacks: int) -> int:
@@ -1531,11 +2030,15 @@ func _emit_enemy_hp() -> void:
 	for i in enemies.size():
 		var enemy: EnemyInstance = enemies[i]
 		EventBus.enemy_hp_changed.emit(i, enemy.current_hp, enemy.max_hp)
+		EventBus.enemy_block_changed.emit(i, enemy.current_block)
 	if target_index >= 0:
 		EventBus.enemy_selected.emit(target_index)
 
 
 func _win() -> void:
+	_player_action_busy = false
+	if player_stats != null:
+		player_stats.clear_combat_stat_buffs()
 	if player_statuses != null:
 		player_statuses.clear_combat_statuses()
 	for enemy: EnemyInstance in enemies:
@@ -1561,6 +2064,9 @@ func _run_on_combat_end_triggers() -> void:
 
 func _lose() -> void:
 	## Abort combat and hand control to the global GAME_OVER state.
+	_player_action_busy = false
+	if player_stats != null:
+		player_stats.clear_combat_stat_buffs()
 	_set_state(CombatState.DEFEAT)
 	EventBus.combat_log_message.emit(tr("KEY_LOG_DEFEAT"))
 	EventBus.combat_ended.emit(false)
@@ -1577,6 +2083,9 @@ func abort_combat() -> void:
 	current_ap = 0
 	current_block = 0
 	target_index = -1
+	_player_action_busy = false
+	if player_stats != null:
+		player_stats.clear_combat_stat_buffs()
 	if player_statuses != null:
 		player_statuses.clear_combat_statuses()
 	state_changed.emit(state)

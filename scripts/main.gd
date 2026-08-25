@@ -17,8 +17,10 @@ const REST_SITE_SCENE := preload("res://scenes/UI/rest_site_ui.tscn")
 const SHOP_SCREEN_SCENE := preload("res://scenes/UI/shop_screen.tscn")
 const SELECT_ITEM_SCENE := preload("res://scenes/UI/select_item_ui.tscn")
 const REWARD_SCREEN_SCENE := preload("res://scenes/UI/reward_screen.tscn")
+const CHEST_REWARD_SCENE := preload("res://scenes/UI/chest_reward_ui.tscn")
 const FORCED_ITEM_SCREEN_SCENE := preload("res://scenes/UI/forced_item_screen.tscn")
 const ANNOUNCER_SCENE := preload("res://scenes/UI/announcer_ui.tscn")
+const HUMANITY_GAME_OVER_REASON_KEY := "KEY_GAME_OVER_INSANITY"
 
 @onready var _map_ui: Control = %MapUI
 @onready var _inventory_ui: Control = %InventoryUI
@@ -54,9 +56,13 @@ var _rest_site_ui: RestSiteUI
 var _shop_screen: ShopScreen
 var _select_item_ui: SelectItemUI
 var _reward_screen: RewardScreen
+var _chest_reward_ui: ChestRewardUI
 var _forced_item_screen: ForcedItemScreen
 var _announcer_ui: AnnouncerUI
 var _post_combat_reward_active: bool = false
+var _chest_site_active: bool = false
+var _chest_loot_active: bool = false
+var _dialog_loot_active: bool = false
 var _forced_insertion_active: bool = false
 var _encounter_combat_active: bool = false
 var _shop_active: bool = false
@@ -67,6 +73,7 @@ func _ready() -> void:
 	inventory = InventoryController.new()
 	player_stats = PlayerStats.new()
 	player_stats.pending_level_ups_changed.connect(_on_pending_level_ups_changed)
+	player_stats.stats_changed.connect(_on_player_stats_changed)
 	inventory.apply_actor_stats(player_stats)
 	inventory.heal_full()
 	_combat.setup(inventory, player_stats)
@@ -78,7 +85,9 @@ func _ready() -> void:
 	_encounters.request_show_placeholder.connect(_on_encounter_placeholder)
 	_encounters.request_show_rest_site.connect(_on_encounter_request_rest_site)
 	_encounters.request_show_shop.connect(_on_encounter_request_shop)
+	_encounters.request_show_chest_reward.connect(_on_encounter_request_chest_reward)
 	_encounters.request_item_selection.connect(_on_encounter_request_item_selection)
+	_encounters.request_dialog_loot.connect(_on_encounter_request_dialog_loot)
 	_encounters.request_post_combat_rewards.connect(_on_encounter_request_post_combat_rewards)
 	_style_body_grid_pane()
 	_style_inventory_modal_panel()
@@ -461,12 +470,37 @@ func _on_player_died() -> void:
 	## HP hit zero — stop combat interactions and open game over.
 	if _inventory_ui.has_method("set_combat_mode"):
 		_inventory_ui.set_combat_mode(false)
+	_abort_active_encounter_on_run_end()
 	GameManager.trigger_game_over()
+
+
+func _on_player_stats_changed() -> void:
+	## Humanity at zero means the protagonist has irreversibly lost control.
+	if player_stats == null or player_stats.humanity > 0:
+		return
+	if not GameManager.is_session_active or GameManager.is_game_over():
+		return
+	if _combat != null and _combat.has_method("abort_combat"):
+		_combat.abort_combat()
+	_abort_active_encounter_on_run_end()
+	GameManager.trigger_game_over(HUMANITY_GAME_OVER_REASON_KEY)
+
+
+func _abort_active_encounter_on_run_end() -> void:
+	if _encounters != null and _encounters.has_method("abort_active_encounter"):
+		_encounters.abort_active_encounter()
+	if _dialog_event_ui != null and is_instance_valid(_dialog_event_ui) and _dialog_event_ui.visible:
+		_dialog_event_ui.abort_on_run_end()
 
 
 func _show_exploring() -> void:
 	_set_flow(GameFlowState.State.EXPLORING)
 	_shop_active = false
+	_chest_site_active = false
+	_chest_loot_active = false
+	_dialog_loot_active = false
+	if _chest_reward_ui != null and is_instance_valid(_chest_reward_ui):
+		_chest_reward_ui.close_session()
 	if _shop_screen != null and is_instance_valid(_shop_screen) and _shop_screen.is_active():
 		_shop_screen.close_session()
 	elif ShopManager != null:
@@ -675,11 +709,17 @@ func _on_encounter_request_shop(_encounter: EncounterData, price_multiplier: flo
 		return
 	_shop_active = true
 	_map_ui.visible = false
-	_combat_ui.visible = false
-	_mount_inventory_combat_dock()
+	_combat_ui.visible = true
+	if not _inventory_combat_docked:
+		_mount_inventory_combat_dock()
+	_hide_inventory_overlay()
 	if _inventory_ui.has_method("set_combat_mode"):
 		_inventory_ui.set_combat_mode(false)
 	_inventory_ui.refresh()
+	if _combat_ui.has_method("set_reward_phase"):
+		_combat_ui.set_reward_phase(true, "KEY_STATUS_SHOP_OPEN")
+	if _combat_ui.has_method("set_continue_enabled"):
+		_combat_ui.set_continue_enabled(true)
 	var act := 1
 	if _run_flow != null:
 		act = maxi(_run_flow.current_act, 1)
@@ -692,6 +732,83 @@ func _on_encounter_request_shop(_encounter: EncounterData, price_multiplier: flo
 	_shop_screen.open_session(inventory, _inventory_ui)
 
 
+func _on_encounter_request_chest_reward(encounter: EncounterData) -> void:
+	_chest_site_active = true
+	_chest_loot_active = false
+	_map_ui.visible = false
+	_combat_ui.visible = true
+	if not _inventory_combat_docked:
+		_mount_inventory_combat_dock()
+	_hide_inventory_overlay()
+	if _inventory_ui.has_method("set_combat_mode"):
+		_inventory_ui.set_combat_mode(false)
+	_inventory_ui.refresh()
+	if _combat_ui.has_method("set_chest_phase"):
+		_combat_ui.set_chest_phase(true)
+	_ensure_chest_reward_ui()
+	var locked := true
+	if encounter != null:
+		locked = bool(encounter.payload.get("locked", true))
+	_status_banner.text = tr("KEY_TYPE_REWARD")
+	if _chest_reward_ui != null:
+		_chest_reward_ui.open_session(inventory, locked)
+
+
+func _ensure_chest_reward_ui() -> void:
+	var host: Control = null
+	if _combat_ui != null and _combat_ui.has_method("get_loot_stage"):
+		host = _combat_ui.get_loot_stage()
+	if host == null:
+		host = _combat_ui
+	if _chest_reward_ui != null and is_instance_valid(_chest_reward_ui):
+		if _chest_reward_ui.get_parent() != host and host != null:
+			_chest_reward_ui.reparent(host)
+			_chest_reward_ui.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+		return
+	_chest_reward_ui = CHEST_REWARD_SCENE.instantiate() as ChestRewardUI
+	_chest_reward_ui.name = "ChestRewardUI"
+	if host != null:
+		host.add_child(_chest_reward_ui)
+	else:
+		add_child(_chest_reward_ui)
+	_chest_reward_ui.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+	_chest_reward_ui.loot_opened.connect(_on_chest_loot_opened)
+
+
+func _on_chest_loot_opened() -> void:
+	if not _chest_site_active:
+		return
+	_ensure_reward_screen()
+	var act_depth := 1
+	if _run_flow != null:
+		act_depth = maxi(_run_flow.current_act, 1)
+		if _run_flow.current_map_data != null:
+			var cur := _run_flow.current_map_data.get_node(_run_flow.current_map_data.current_node_id)
+			if cur != null:
+				act_depth = maxi(cur.layer, 0)
+	var loot := RewardManager.generate_chest_rewards(act_depth)
+	_chest_loot_active = true
+	if _combat_ui.has_method("set_reward_phase"):
+		_combat_ui.set_reward_phase(true, "KEY_REWARD_SELECT_ONE")
+	_status_banner.text = tr("KEY_REWARD_SELECT_ONE")
+	_reward_screen.open_session(loot, inventory, _inventory_ui, RewardManager.CHEST_PICKS)
+
+
+func _finish_chest_site(opened: bool) -> void:
+	if _chest_reward_ui != null:
+		_chest_reward_ui.close_session()
+	if _reward_screen != null and _reward_screen.is_active():
+		_reward_screen.close_session()
+	_chest_site_active = false
+	_chest_loot_active = false
+	_post_combat_reward_active = false
+	if _combat_ui != null and _combat_ui.has_method("set_reward_phase"):
+		_combat_ui.set_reward_phase(false)
+	if _inventory_ui != null and _inventory_ui.has_method("set_reward_handler"):
+		_inventory_ui.set_reward_handler(null)
+	_encounters.complete_chest_site(opened)
+
+
 func _on_encounter_placeholder(_encounter: EncounterData, message_key: String) -> void:
 	if not message_key.is_empty():
 		_status_banner.text = tr(message_key)
@@ -701,6 +818,31 @@ func _on_encounter_request_item_selection(item_pool: Array, title: String) -> vo
 	_ensure_select_item_ui()
 	if _select_item_ui:
 		_select_item_ui.open_item_selection(item_pool, title)
+
+
+func _on_encounter_request_dialog_loot(items: Array, pick_count: int, title_key: String) -> void:
+	## Story-event loot uses the same RewardScreen as chests / post-combat.
+	_dialog_loot_active = true
+	if _dialog_event_ui != null and is_instance_valid(_dialog_event_ui):
+		_dialog_event_ui.visible = false
+	_show_combat()
+	if not _inventory_combat_docked:
+		_mount_inventory_combat_dock()
+	_hide_inventory_overlay()
+	if _inventory_ui != null and _inventory_ui.has_method("set_combat_mode"):
+		_inventory_ui.set_combat_mode(false)
+	_ensure_reward_screen()
+	var loot: Array[ItemData] = []
+	for entry in items:
+		if entry is ItemData:
+			loot.append(entry as ItemData)
+	var picks := maxi(1, pick_count)
+	if _combat_ui != null and _combat_ui.has_method("set_reward_phase"):
+		_combat_ui.set_reward_phase(true, title_key if not title_key.is_empty() else "KEY_REWARD_SELECT_ONE")
+	_status_banner.text = tr(title_key if not title_key.is_empty() else "KEY_REWARD_SELECT_ONE")
+	if picks >= 2:
+		_status_banner.text = tr("KEY_REWARD_SELECT_UP_TO_3")
+	_reward_screen.open_session(loot, inventory, _inventory_ui, picks)
 
 
 func _ensure_select_item_ui() -> void:
@@ -722,13 +864,16 @@ func _on_encounter_request_post_combat_rewards(encounter: EncounterData) -> void
 	_ensure_reward_screen()
 	var encounter_kind := "NORMAL"
 	if encounter != null:
-		match encounter.type:
-			EncounterData.EncounterType.COMBAT_ELITE:
-				encounter_kind = "ELITE"
-			EncounterData.EncounterType.COMBAT_BOSS:
-				encounter_kind = "BOSS"
-			_:
-				encounter_kind = "NORMAL"
+		if bool(encounter.payload.get("force_elite_rewards", false)):
+			encounter_kind = "ELITE"
+		else:
+			match encounter.type:
+				EncounterData.EncounterType.COMBAT_ELITE:
+					encounter_kind = "ELITE"
+				EncounterData.EncounterType.COMBAT_BOSS:
+					encounter_kind = "BOSS"
+				_:
+					encounter_kind = "NORMAL"
 	var act_depth := 1
 	if _run_flow != null:
 		act_depth = maxi(_run_flow.current_act, 1)
@@ -737,6 +882,8 @@ func _on_encounter_request_post_combat_rewards(encounter: EncounterData) -> void
 			if cur != null:
 				act_depth = maxi(cur.layer, 0)
 	var loot := RewardManager.generate_rewards(encounter_kind, act_depth)
+	if encounter_kind == "ELITE":
+		loot = RewardManager.ensure_at_least_one_rare(loot)
 	if GameManager != null:
 		var chips_gained: int = GameManager.award_combat_chips(encounter_kind, act_depth)
 		if chips_gained > 0:
@@ -783,6 +930,26 @@ func _on_reward_notice(message: String) -> void:
 
 
 func _on_reward_screen_finished() -> void:
+	if _dialog_loot_active:
+		_dialog_loot_active = false
+		if _combat_ui != null and _combat_ui.has_method("set_reward_phase"):
+			_combat_ui.set_reward_phase(false)
+		_encounters.complete_dialog_loot()
+		## Encounter already finished (loot ended the event) — stay on map.
+		if _encounters.active_encounter == null:
+			return
+		if (
+			_dialog_event_ui != null
+			and is_instance_valid(_dialog_event_ui)
+			and _dialog_event_ui.has_active_event()
+		):
+			_show_exploring()
+			_dialog_event_ui.visible = true
+			_layout_dialog_event_under_top_bar()
+		return
+	if _chest_loot_active or _chest_site_active:
+		_finish_chest_site(true)
+		return
 	_post_combat_reward_active = false
 	_encounter_combat_active = false
 	if _combat_ui != null and _combat_ui.has_method("set_reward_phase"):
@@ -812,9 +979,17 @@ func _ensure_rest_site_ui() -> void:
 
 
 func _ensure_shop_screen() -> void:
+	## Host inside CombatUI LootStage — same left-side Space as post-combat rewards.
+	var host: Control = null
+	if _combat_ui != null and _combat_ui.has_method("get_loot_stage"):
+		host = _combat_ui.get_loot_stage()
+	if host == null:
+		host = _combat_ui
 	if _shop_screen != null and is_instance_valid(_shop_screen):
+		if _shop_screen.get_parent() != host and host != null:
+			_shop_screen.reparent(host)
+			_shop_screen.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
 		return
-	var host := get_node_or_null("%MainStage") as Control
 	_shop_screen = SHOP_SCREEN_SCENE.instantiate() as ShopScreen
 	_shop_screen.name = "ShopScreen"
 	if host != null:
@@ -853,6 +1028,8 @@ func _on_rest_site_continue() -> void:
 
 func _on_shop_screen_finished() -> void:
 	_shop_active = false
+	if _combat_ui != null and _combat_ui.has_method("set_reward_phase"):
+		_combat_ui.set_reward_phase(false)
 	if _inventory_ui:
 		if _inventory_ui.has_method("set_reward_handler"):
 			_inventory_ui.set_reward_handler(null)
@@ -947,6 +1124,21 @@ func _on_combat_continue() -> void:
 	if _forced_insertion_active and _forced_item_screen != null and _forced_item_screen.is_active():
 		_forced_item_screen.confirm_and_finish()
 		return
+	## Shop: same Continue as post-combat rewards.
+	if _shop_active and _shop_screen != null and _shop_screen.is_active():
+		_shop_screen.confirm_and_finish()
+		return
+	## Chest site: leave without opening, or finish after single-pick loot.
+	if _chest_site_active:
+		if _chest_loot_active and _reward_screen != null and _reward_screen.is_active():
+			_reward_screen.confirm_and_finish()
+			return
+		_finish_chest_site(false)
+		return
+	## Dialog event loot (crematorium / collector house).
+	if _dialog_loot_active and _reward_screen != null and _reward_screen.is_active():
+		_reward_screen.confirm_and_finish()
+		return
 	## Reward phase: the same Continue discards leftover Space loot and returns to map.
 	if _post_combat_reward_active and _reward_screen != null and _reward_screen.is_active():
 		_reward_screen.confirm_and_finish()
@@ -965,19 +1157,28 @@ func _on_combat_continue() -> void:
 
 func _on_forced_insertion_requested(item_id: String) -> void:
 	var instance: ItemData = null
-	if ItemDatabase != null:
+	if _combat != null and _combat.has_method("take_pending_forced_item"):
+		instance = _combat.take_pending_forced_item() as ItemData
+	if instance == null and ItemDatabase != null:
 		instance = ItemDatabase.create_instance(item_id)
 	if instance == null:
 		push_warning("Main: forced insertion missing item '%s'" % item_id)
 		if _combat.has_method("complete_forced_item_insertion"):
 			_combat.complete_forced_item_insertion()
 		return
-	instance.enforce_harmful_constraints()
+	## Harmful parasites keep drop/use constraints; returned stolen loot does not.
+	if instance.is_harmful:
+		instance.enforce_harmful_constraints()
 	_ensure_forced_item_screen()
 	if _inventory_ui.has_method("set_combat_mode"):
 		_inventory_ui.set_combat_mode(false)
 	if _combat_ui.has_method("set_harmful_insertion_phase"):
-		_combat_ui.set_harmful_insertion_phase(true)
+		var banner := (
+			tr("KEY_FORCED_INSERT_BANNER")
+			if instance.is_harmful
+			else tr("KEY_FORCED_INSERT_RETURN")
+		)
+		_combat_ui.set_harmful_insertion_phase(true, banner)
 	_forced_insertion_active = true
 	_forced_item_screen.open_session(instance, inventory, _inventory_ui)
 

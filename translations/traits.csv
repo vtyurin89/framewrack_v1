@@ -7,8 +7,10 @@ TRAIT_STUN_IMPACT_NAME,Stun Impact,Оглушающий удар
 TRAIT_STUN_IMPACT_DESC,Heavy impact stuns the targeted enemy for 1 turn. Purely offensive — never damages; blocks; or corrupts your own inventory cells.,Тяжёлый удар оглушает выбранного врага на 1 ход. Только наступательный эффект — никогда не повреждает; не блокирует и не искажает ваши клетки инвентаря.
 TRAIT_BIO_RESONANCE_NAME,Bio Resonance,Биорезонанс
 TRAIT_BIO_RESONANCE_DESC,Gains bonus damage while adjacent to biomorphic modules.,Получает бонус урона рядом с биоморфными модулями.
-TRAIT_NAIL_BURST_NAME,Nail Burst,Очередь гвоздей
-TRAIT_NAIL_BURST_DESC,Spends ammo to fire a burst of nails at the enemy.,Тратит боезапас; чтобы выпустить очередь гвоздей во врага.
+TRAIT_STACKABLE_DAMAGE_BOOST_NAME,Stacking Damage,Накапливающийся урон
+TRAIT_STACKABLE_DAMAGE_BOOST_DESC,Each attack with this weapon grants +1 damage to this weapon for the rest of this turn.,Каждая атака этим оружием даёт +1 к урону именно этого оружия до конца хода.
+TRAIT_NAIL_KILL_RESET_NAME,Execution Cycle,Цикл казни
+TRAIT_NAIL_KILL_RESET_DESC,Killing an enemy resets the cooldown.,Убийство врага сбрасывает кулдаун.
 TRAIT_REACTOR_CHAIN_NAME,Reactor Chain,Цепь реактора
 TRAIT_REACTOR_CHAIN_DESC,When adjacent to a reactor; arcs bonus damage through the strike.,Рядом с реактором дуга добавляет бонусный урон к удару.
 TRAIT_ARMOR_PIERCE_NAME,Armor Pierce,Пробитие брони
@@ -17,6 +19,8 @@ TRAIT_FUEL_BURST_NAME,Fuel Burst,Топливный выброс
 TRAIT_FUEL_BURST_DESC,"Applies 2 Burn to hit enemies (2 damage per turn). Never scorches your body grid.","Накладывает 2 Горения на поражённых врагов (2 урона за ход). Не опаляет вашу сетку тела."
 TRAIT_APPLY_BURN_NAME,Incendiary Splash,Зажигательный всплеск
 TRAIT_APPLY_BURN_DESC,"Applies 2 Burn to all hit enemies.","Накладывает 2 Горения на всех поражённых врагов."
+TRAIT_APPLY_RUST_NAME,Rusting Blow,Ржавый удар
+TRAIT_APPLY_RUST_DESC,"Applies 3 Rust (25% miss; stacks are duration, cap 5).","Накладывает 3 стака Ржавчины (25% промах; стаки — длительность, кап 5)."
 TRAIT_HEAVY_SOLO_NAME,Heavy Solo,Тяжёлый соло
 TRAIT_HEAVY_SOLO_DESC,Deals bonus damage when no other weapon shares an adjacent edge.,Наносит бонусный урон; если никакое другое оружие не касается по ребру.
 TRAIT_DRAIN_LIFE_NAME,Life Drain,Выкачка жизни
@@ -25,11 +29,11 @@ TRAIT_STUN_IMPACT,Heavy impact stuns the targeted enemy for 1 turn. Purely offen
 TRAIT_FUEL_BURST,"Applies 2 Burn to hit enemies (2 damage per turn). Never scorches your body grid.","Накладывает 2 Горения на поражённых врагов (2 урона за ход). Не опаляет вашу сетку тела."
 TRAIT_DRAIN_LIFE,On hit; restores Frame HP equal to a portion of damage dealt. Beneficial only — never drains; blocks; or corrupts your own inventory cells. Self-corruption remains exclusive to enemy attacks.,При попадании восстанавливает ОЗ каркаса от части нанесённого урона. Только польза — никогда не выкачивает; не блокирует и не искажает ваши клетки. Самоискажение остаётся только у атак врагов.
 TRAIT_ARMOR_EDGE_NAME,Edge Anchor,Краевой якорь
-TRAIT_ARMOR_EDGE_DESC,Edge-mounted armor gains extra stability.,Краевая броня получает дополнительную устойчивость.
+TRAIT_ARMOR_EDGE_DESC,Edge-mounted shields gain extra stability.,Краевые щиты получают дополнительную устойчивость.
 TRAIT_ARMOR_CHAIN_NAME,Armor Chain,Цепь брони
-TRAIT_ARMOR_CHAIN_DESC,Adjacent armor pieces reinforce each other.,Соседние бронемодули усиливают друг друга.
-TRAIT_SPIKES_OUTER_NAME,Outer Spikes,Внешние шипы
-TRAIT_SPIKES_OUTER_DESC,Spikes punish hostile pressure around the frame.,Шипы наказывают вражеское давление вокруг каркаса.
+TRAIT_ARMOR_CHAIN_DESC,Adjacent shields reinforce each other.,Соседние щиты усиливают друг друга.
+TRAIT_SPIKES_OUTER_NAME,Sharp Spikes,Острые шипы
+TRAIT_SPIKES_OUTER_DESC,At combat start grants 2 Sharp Spikes stacks. Each stack deals 1 reflected physical damage to an attacker.,В начале боя даёт 2 стака «Острые шипы». Каждый стак наносит 1 отражённого физического урона атакующему.
 TRAIT_HEAT_DISSIPATION_NAME,Heat Dissipation,Теплоотвод
 TRAIT_HEAT_DISSIPATION_DESC,Cooling channels increase defensive performance.,Охлаждающие каналы повышают защитный потенциал.
 TRAIT_REACTIVE_CLEANSE_NAME,Reactive Cleanse,Реактивная очистка
@@ -44,6 +48,10 @@ TRAIT_LEG_LOW_NAME,Upper Support Greaves,Поножи верхней опоры
 TRAIT_LEG_LOW_DESC,Passive armor scales with cells above (+0.5 each).,Пассивная броня масштабируется от клеток сверху (+0.5).
 TRAIT_LEG_HIGH_NAME,Upper Support Greaves+,Поножи верхней опоры+
 TRAIT_LEG_HIGH_DESC,Passive armor scales with cells above (+1 each).,Пассивная броня масштабируется от клеток сверху (+1).
+TRAIT_GREAVES_BASE_NAME,Greaves Core Plating,Базовая бронепластина поножей
+TRAIT_GREAVES_BASE_DESC,Passive +2 armor each turn.,Пассивно даёт +2 брони каждый ход.
+TRAIT_GREAVES_BELOW_PENALTY_NAME,Greaves Understrain,Перегрузка опоры поножей
+TRAIT_GREAVES_BELOW_PENALTY_DESC,-1 passive armor for each unlocked cell below this item.,-1 к пассивной броне за каждую открытую клетку под этим предметом.
 TRAIT_HELMET_ROW_PENALTY_NAME,Crowded Helmet Row,Скученный ряд шлемов
 TRAIT_HELMET_ROW_PENALTY_DESC,"-1 passive armor for each other helmet to the right in the same row.","-1 к пассивной броне за каждый другой шлем справа в том же ряду."
 TRAIT_LEG_ROW_PENALTY_NAME,Crowded Greaves Row,Скученный ряд поножей
@@ -86,5 +94,13 @@ TRAIT_DOT_MULTIPLIER_NAME,Catalytic Cascade,Каталитический кас�
 TRAIT_DOT_MULTIPLIER_DESC,Triples all current Burn/Poison/Bleed stacks on target.,Утраивает все текущие стаки Горения/Яда/Кровотечения на цели.
 TRAIT_ORACLE_KILL_SCALING_NAME,Oracle Learning Loop,Петля обучения Оракула
 TRAIT_ORACLE_KILL_SCALING_DESC,Whenever this weapon kills an enemy it permanently gains +1 damage.,Каждое убийство этим оружием перманентно даёт ему +1 к урону.
+TRAIT_ARMOR_PIERCE_NAME,Armor Pierce,Пробивает броню
+TRAIT_ARMOR_PIERCE_DESC,Ignores target Block and deals damage directly to HP.,Игнорирует блок цели и наносит урон сразу по здоровью.
 TRAIT_STATUS_ANALYZER_NAME,Status Shock Converter,Конвертер статусного шока
 TRAIT_STATUS_ANALYZER_DESC,Whenever any status effect is applied to an enemy, deal 1 immediate direct damage.,Когда на врага накладывается любой статус, немедленно наносит 1 прямого урона.
+TRAIT_AUTO_SCATTER_NAME,Faulty Stabilizer,Неисправный стабилизатор
+TRAIT_AUTO_SCATTER_DESC,Fires 3 shots: first hits the selected target; the rest scatter to random living enemies.,Делает 3 выстрела: первый в выбранную цель, остальные разлетаются по случайным живым врагам.
+TRAIT_PLIERS_EXTRACT_NAME,Field Extraction,Полевой экстракт
+TRAIT_PLIERS_EXTRACT_DESC,Removes the first harmful item to the right in the same row; grants +1 Strength for the rest of combat.,Удаляет первый вредоносный предмет справа в том же ряду; даёт +1 к Силе до конца боя.
+TRAIT_TOOL_LOCKPICK_NAME,Lockpick Tool,Инструмент-отмычка
+TRAIT_TOOL_LOCKPICK_DESC,Can open locked containers and doors (consumed on use).,Открывает запертые замки и сундуки (расходуется при использовании).

@@ -159,11 +159,13 @@ func maybe_inject_faceless_lady(
 
 func _rebuild_catalog() -> void:
 	_catalog.clear()
-	## Pale Maiden is a starting god (data/encounters/gods/), not a map event.
+	## Pale Maiden is a starting god (data/encounters/gods/, INTRO), not a map event.
 	_register_event(WHITE_FOG_ID, StoryEvent.Faction.HUMAN, WHITE_FOG_ID, true)
 	## Act 1 city beats — travel through the ruins of Ra'im.
 	_register_event("raim_great_ascent", StoryEvent.Faction.HUMAN, "raim_great_ascent", false)
 	_register_event("raim_hollow_windows", StoryEvent.Faction.HUMAN, "raim_hollow_windows", false)
+	_register_event("enc_crematorium", StoryEvent.Faction.HUMAN, "enc_crematorium", false)
+	_register_event("enc_collector_house", StoryEvent.Faction.HUMAN, "enc_collector_house", false)
 
 
 func _register_event(
@@ -238,3 +240,29 @@ func _roll_faction(weights: Dictionary) -> String:
 		if roll <= acc:
 			return key
 	return "human"
+
+
+# ---------------------------------------------------------------------------
+# Narrative inventory helpers (Body Grid quest / tool items)
+# ---------------------------------------------------------------------------
+
+func has_item(inventory: InventoryController, item_id: String) -> bool:
+	## Convenience for dialog / event scripts.
+	if inventory == null:
+		return false
+	return inventory.has_item(item_id)
+
+
+func consume_item(inventory: InventoryController, item_id: String) -> bool:
+	## Spend one charge / remove the item when an event consumes it.
+	if inventory == null:
+		return false
+	return inventory.consume_item_charge(item_id)
+
+
+func has_lockpick(inventory: InventoryController) -> bool:
+	return has_item(inventory, "LOCKPICK")
+
+
+func consume_lockpick(inventory: InventoryController) -> bool:
+	return consume_item(inventory, "LOCKPICK")
