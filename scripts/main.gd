@@ -200,7 +200,7 @@ func _ensure_overlays() -> void:
 		_game_over.main_menu_pressed.connect(_on_game_over_main_menu)
 	if _settings == null:
 		_settings = SETTINGS_SCENE.instantiate() as SettingsModal
-		add_child(_settings)
+		UiOverlayLayer.mount(_settings, self)
 	if _announcer_ui == null:
 		_announcer_ui = ANNOUNCER_SCENE.instantiate() as AnnouncerUI
 		_announcer_ui.name = "AnnouncerUI"
@@ -248,6 +248,7 @@ func _style_body_grid_pane() -> void:
 	)
 	_body_grid_pane.add_theme_stylebox_override("panel", style)
 	_body_grid_pane.mouse_filter = Control.MOUSE_FILTER_STOP
+	_ensure_crt_grid_noise(_body_grid_pane)
 
 
 func _style_inventory_modal_panel() -> void:
@@ -265,8 +266,46 @@ func _style_inventory_modal_panel() -> void:
 	)
 	_inventory_panel.add_theme_stylebox_override("panel", style)
 	_inventory_panel.mouse_filter = Control.MOUSE_FILTER_STOP
+	_ensure_crt_grid_noise(_inventory_panel)
 	if _inventory_ui:
 		_inventory_ui.mouse_filter = Control.MOUSE_FILTER_STOP
+
+
+func _ensure_crt_grid_noise(host: Control) -> void:
+	## Full-rect translucent overlay ABOVE cells/items so grain hits the whole panel.
+	if host == null:
+		return
+	var existing := host.get_node_or_null("CrtGridNoise") as ColorRect
+	if existing != null:
+		existing.z_index = 5
+		_keep_crt_grid_noise_on_top(host)
+		return
+	var shader := load("res://shaders/crt_grid_noise.gdshader") as Shader
+	if shader == null:
+		push_warning("Main: failed to load crt_grid_noise shader")
+		return
+	var noise := ColorRect.new()
+	noise.name = "CrtGridNoise"
+	noise.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	noise.color = Color(1, 1, 1, 1)
+	## Only need to sit above Body Grid content within this panel — not above modals.
+	noise.z_index = 5
+	noise.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+	noise.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	noise.size_flags_vertical = Control.SIZE_EXPAND_FILL
+	var mat := ShaderMaterial.new()
+	mat.shader = shader
+	noise.material = mat
+	host.add_child(noise)
+	_keep_crt_grid_noise_on_top(host)
+
+
+func _keep_crt_grid_noise_on_top(host: Control) -> void:
+	if host == null:
+		return
+	var noise := host.get_node_or_null("CrtGridNoise") as ColorRect
+	if noise != null:
+		host.move_child(noise, host.get_child_count() - 1)
 
 
 func _set_inventory_close_visible(visible_flag: bool) -> void:
@@ -282,6 +321,7 @@ func _mount_inventory_combat_dock() -> void:
 	_hide_inventory_overlay()
 	if _inventory_ui != null and _body_grid_pane != null and _inventory_ui.get_parent() != _body_grid_pane:
 		_inventory_ui.reparent(_body_grid_pane)
+	_keep_crt_grid_noise_on_top(_body_grid_pane)
 	_set_inventory_close_visible(false)
 	if _stage_divider:
 		_stage_divider.visible = true
@@ -301,6 +341,7 @@ func _mount_inventory_modal_host() -> void:
 		_body_grid_pane.visible = false
 	if _inventory_ui != null and _inventory_panel != null and _inventory_ui.get_parent() != _inventory_panel:
 		_inventory_ui.reparent(_inventory_panel)
+	_keep_crt_grid_noise_on_top(_inventory_panel)
 	_set_inventory_close_visible(true)
 	_inventory_combat_docked = false
 	var body_btn := get_node_or_null("%ToggleInventoryButton") as CanvasItem

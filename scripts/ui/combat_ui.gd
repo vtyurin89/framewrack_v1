@@ -415,10 +415,7 @@ func _ensure_enemy_inspect() -> void:
 	if _enemy_inspect != null and is_instance_valid(_enemy_inspect):
 		return
 	_enemy_inspect = ENEMY_INSPECT_SCENE.instantiate() as EnemyInspectUI
-	var host: Node = get_tree().current_scene
-	if host == null:
-		host = self
-	host.add_child(_enemy_inspect)
+	UiOverlayLayer.mount(_enemy_inspect, self)
 
 
 func _rebuild_enemies() -> void:
@@ -507,6 +504,8 @@ func _on_enemy_panel_input(event: InputEvent, index: int, card: EnemyCardUI = nu
 func _open_enemy_context_menu(index: int, global_pos: Vector2) -> void:
 	if combat == null or index < 0 or index >= combat.enemies.size():
 		return
+	if _enemy_inspect != null and is_instance_valid(_enemy_inspect) and _enemy_inspect.is_open():
+		return
 	var enemy: EnemyInstance = combat.enemies[index]
 	if enemy == null or not enemy.is_alive():
 		return
@@ -521,15 +520,14 @@ func _ensure_enemy_context_menu() -> void:
 	_enemy_context_menu = EnemyContextMenuUI.new()
 	_enemy_context_menu.name = "EnemyContextMenuUI"
 	_enemy_context_menu.inspect_pressed.connect(_on_enemy_context_inspect_pressed)
-	var host: Node = get_tree().current_scene
-	if host == null:
-		host = self
-	host.add_child(_enemy_context_menu)
+	UiOverlayLayer.mount(_enemy_context_menu, self)
 
 
 func _on_enemy_context_inspect_pressed(enemy: EnemyInstance) -> void:
 	if enemy == null:
 		return
+	if _enemy_context_menu:
+		_enemy_context_menu.close()
 	_ensure_enemy_inspect()
 	if _enemy_inspect:
 		_enemy_inspect.open_enemy(enemy)

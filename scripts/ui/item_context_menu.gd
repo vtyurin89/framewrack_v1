@@ -36,6 +36,7 @@ func open_for_item(item: ItemData, global_pos: Vector2, in_combat: bool = false)
 	if item == null:
 		close()
 		return
+	UiOverlayLayer.mount(self)
 	_item = item
 	allow_out_of_combat_use = not in_combat
 	_refresh_labels()

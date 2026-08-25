@@ -21,14 +21,14 @@ const DRAG_TYPE := "framewrack_item"
 const INSPECT_MODAL_SCENE := preload("res://scenes/UI/item_inspect_modal.tscn")
 ## Level-up overlay dimmer — CRT dark green veil.
 const LEVEL_UP_OVERLAY_COLOR := Color(0.031, 0.051, 0.039, 0.82)
-## CRT warning CTA against the dark overlay.
-const LEVEL_UP_BTN_BG := Color("#111C16")
-const LEVEL_UP_BTN_BG_HOVER := Color("#173323")
-const LEVEL_UP_BTN_BG_PRESSED := Color("#0D1511")
+## Phosphor CTA against the dark overlay.
+const LEVEL_UP_BTN_BG := Color("#111C16") ## PANEL_BG_ALT
+const LEVEL_UP_BTN_BG_HOVER := Color("#285A3A") ## MUTED_GREEN
+const LEVEL_UP_BTN_BG_PRESSED := Color("#173323") ## INACTIVE_ELEMENT
 const LEVEL_UP_BTN_BG_DISABLED := Color(0.05, 0.08, 0.06, 0.85)
-const LEVEL_UP_BTN_BORDER := Color("#B6B35A")
-const LEVEL_UP_BTN_BORDER_HOVER := Color("#A8F0A8")
-const LEVEL_UP_BTN_FONT := Color("#A8F0A8")
+const LEVEL_UP_BTN_BORDER := Color("#A8F0A8") ## PHOSPHOR_BRIGHT
+const LEVEL_UP_BTN_FONT := Color("#A8F0A8") ## PHOSPHOR_BRIGHT
+const LEVEL_UP_BTN_FONT_DIM := Color("#79D88A") ## PHOSPHOR_ACTIVE — idle soft glow
 
 var inventory: InventoryController
 var player_stats: PlayerStats
@@ -199,16 +199,6 @@ func _ensure_hover_tooltip() -> void:
 	add_child(_hover_tooltip)
 
 
-func _ensure_context_menu() -> void:
-	if _context_menu != null and is_instance_valid(_context_menu):
-		return
-	_context_menu = ItemContextMenu.new()
-	_context_menu.name = "ItemContextMenu"
-	_context_menu.inspect_pressed.connect(_on_context_inspect_pressed)
-	_context_menu.use_pressed.connect(_on_context_use_pressed)
-	add_child(_context_menu)
-
-
 func _ensure_inspect_modal() -> void:
 	if _inspect_modal != null and is_instance_valid(_inspect_modal):
 		_inspect_modal.actor_stats = player_stats
@@ -223,11 +213,18 @@ func _ensure_inspect_modal() -> void:
 	_inspect_modal.offset_top = 0
 	_inspect_modal.offset_right = 0
 	_inspect_modal.offset_bottom = 0
-	## Parent to the current scene root so the overlay covers the whole UI.
-	var host: Node = get_tree().current_scene
-	if host == null:
-		host = self
-	host.add_child(_inspect_modal)
+	## High CanvasLayer so grain / target reticle cannot paint over the dialog.
+	UiOverlayLayer.mount(_inspect_modal, self)
+
+
+func _ensure_context_menu() -> void:
+	if _context_menu != null and is_instance_valid(_context_menu):
+		return
+	_context_menu = ItemContextMenu.new()
+	_context_menu.name = "ItemContextMenu"
+	_context_menu.inspect_pressed.connect(_on_context_inspect_pressed)
+	_context_menu.use_pressed.connect(_on_context_use_pressed)
+	UiOverlayLayer.mount(_context_menu, self)
 
 
 func _hide_hover_tooltip() -> void:
@@ -254,37 +251,47 @@ func _apply_level_up_visuals() -> void:
 		return
 	_level_up_button.custom_minimum_size = Vector2(200, 52)
 	_level_up_button.add_theme_font_size_override("font_size", 20)
-	_level_up_button.add_theme_color_override("font_color", LEVEL_UP_BTN_FONT)
+	## Idle: soft phosphor text; hover/focus snaps to full bright.
+	_level_up_button.add_theme_color_override("font_color", LEVEL_UP_BTN_FONT_DIM)
 	_level_up_button.add_theme_color_override("font_hover_color", LEVEL_UP_BTN_FONT)
 	_level_up_button.add_theme_color_override("font_pressed_color", LEVEL_UP_BTN_FONT)
-	_level_up_button.add_theme_color_override("font_disabled_color", Color(0.2, 0.18, 0.12, 0.7))
+	_level_up_button.add_theme_color_override("font_focus_color", LEVEL_UP_BTN_FONT)
+	_level_up_button.add_theme_color_override("font_disabled_color", Color(0.16, 0.22, 0.18, 0.7))
 	_level_up_button.add_theme_stylebox_override(
-		"normal", _make_level_up_button_style(LEVEL_UP_BTN_BG, LEVEL_UP_BTN_BORDER)
+		"normal", _make_level_up_button_style(LEVEL_UP_BTN_BG, LEVEL_UP_BTN_BORDER, false)
 	)
 	_level_up_button.add_theme_stylebox_override(
-		"hover", _make_level_up_button_style(LEVEL_UP_BTN_BG_HOVER, LEVEL_UP_BTN_BORDER_HOVER)
+		"hover", _make_level_up_button_style(LEVEL_UP_BTN_BG_HOVER, LEVEL_UP_BTN_BORDER, true)
 	)
 	_level_up_button.add_theme_stylebox_override(
-		"pressed", _make_level_up_button_style(LEVEL_UP_BTN_BG_PRESSED, LEVEL_UP_BTN_BORDER)
+		"pressed", _make_level_up_button_style(LEVEL_UP_BTN_BG_PRESSED, LEVEL_UP_BTN_BORDER, false)
 	)
 	_level_up_button.add_theme_stylebox_override(
-		"disabled", _make_level_up_button_style(LEVEL_UP_BTN_BG_DISABLED, Color(0.55, 0.48, 0.2, 0.6))
+		"disabled",
+		_make_level_up_button_style(LEVEL_UP_BTN_BG_DISABLED, Color(0.16, 0.25, 0.2, 0.55), false)
 	)
 	_level_up_button.add_theme_stylebox_override(
-		"focus", _make_level_up_button_style(LEVEL_UP_BTN_BG_HOVER, LEVEL_UP_BTN_BORDER_HOVER)
+		"focus", _make_level_up_button_style(LEVEL_UP_BTN_BG_HOVER, LEVEL_UP_BTN_BORDER, true)
 	)
+	GamePalette.apply_phosphor_glow(_level_up_button, true)
 
 
-func _make_level_up_button_style(bg: Color, border: Color) -> StyleBoxFlat:
+func _make_level_up_button_style(bg: Color, border: Color, with_glow: bool) -> StyleBoxFlat:
 	var style := StyleBoxFlat.new()
 	style.bg_color = bg
 	style.set_border_width_all(2)
 	style.border_color = border
-	style.set_corner_radius_all(4)
+	style.set_corner_radius_all(0)
 	style.content_margin_left = 18
 	style.content_margin_right = 18
 	style.content_margin_top = 10
 	style.content_margin_bottom = 10
+	if with_glow:
+		style.shadow_color = Color(LEVEL_UP_BTN_BORDER.r, LEVEL_UP_BTN_BORDER.g, LEVEL_UP_BTN_BORDER.b, 0.35)
+		style.shadow_size = 6
+		style.shadow_offset = Vector2.ZERO
+	else:
+		style.shadow_size = 0
 	return style
 
 
@@ -294,7 +301,7 @@ func _apply_static_locale() -> void:
 	if _close_button:
 		_close_button.text = "✕"
 	if _level_up_button:
-		_level_up_button.text = tr("KEY_LEVEL_UP")
+		_level_up_button.text = tr("KEY_LEVEL_UP").to_upper()
 	_on_stats_changed()
 
 
@@ -540,6 +547,9 @@ func open_item_context_menu(item: ItemData) -> void:
 		return
 	if item == null:
 		return
+	## Don't stack menus under an open inspect dialog.
+	if _inspect_modal != null and is_instance_valid(_inspect_modal) and _inspect_modal.is_open():
+		return
 	_hide_hover_tooltip()
 	_ensure_context_menu()
 	var in_combat := combat_click_mode
@@ -600,6 +610,8 @@ func _show_inventory_toast(bbcode_or_text: String) -> void:
 func inspect_item(item: ItemData) -> void:
 	if item == null:
 		return
+	_close_context_menu()
+	_hide_hover_tooltip()
 	if inventory != null:
 		inventory.grid.recalculate_grid_adjacencies()
 	_ensure_inspect_modal()

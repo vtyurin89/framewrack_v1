@@ -32,6 +32,7 @@ func open_for_enemy(enemy: EnemyInstance, global_pos: Vector2) -> void:
 	if enemy == null or not enemy.is_alive():
 		close()
 		return
+	UiOverlayLayer.mount(self)
 	_enemy = enemy
 	_refresh_labels()
 	visible = true

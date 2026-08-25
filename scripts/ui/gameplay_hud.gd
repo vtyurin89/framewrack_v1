@@ -61,8 +61,7 @@ func _ready() -> void:
 		_btn_debug_level_up.add_to_group("debug_ui")
 		_btn_debug_level_up.pressed.connect(_on_debug_level_up_pressed)
 		_btn_debug_level_up.visible = not GameSettings.hide_debug_tools
-		GamePalette.apply_button_theme(_btn_debug_level_up, 13)
-		_btn_debug_level_up.add_theme_color_override("font_color", GamePalette.COLOR_CYAN_SYSTEM)
+		_apply_level_up_button_theme(_btn_debug_level_up)
 	if _btn_menu:
 		_btn_menu.pressed.connect(func() -> void: menu_pressed.emit())
 		_btn_menu.mouse_default_cursor_shape = Control.CURSOR_POINTING_HAND
@@ -120,6 +119,50 @@ func _configure_menu_button() -> void:
 	_btn_menu.modulate = GamePalette.CRT_TEXT_MAIN
 
 
+func _apply_level_up_button_theme(btn: Button) -> void:
+	## Phosphor CTA: bright outline, dark fill, muted-green hover.
+	if btn == null:
+		return
+	var bright := GamePalette.PHOSPHOR_BRIGHT
+	var fill := GamePalette.PANEL_BG_ALT
+	var hover_fill := GamePalette.MUTED_GREEN
+	var pressed_fill := GamePalette.INACTIVE_ELEMENT
+	btn.add_theme_font_size_override("font_size", 13)
+	btn.add_theme_color_override("font_color", GamePalette.PHOSPHOR_ACTIVE)
+	btn.add_theme_color_override("font_hover_color", bright)
+	btn.add_theme_color_override("font_pressed_color", bright)
+	btn.add_theme_color_override("font_focus_color", bright)
+	btn.add_theme_color_override("font_disabled_color", GamePalette.INACTIVE_ELEMENT)
+	btn.add_theme_stylebox_override("normal", _make_level_up_style(fill, bright, false))
+	btn.add_theme_stylebox_override("hover", _make_level_up_style(hover_fill, bright, true))
+	btn.add_theme_stylebox_override("pressed", _make_level_up_style(pressed_fill, bright, false))
+	btn.add_theme_stylebox_override("focus", _make_level_up_style(hover_fill, bright, true))
+	btn.add_theme_stylebox_override(
+		"disabled",
+		_make_level_up_style(Color(fill.r, fill.g, fill.b, 0.85), GamePalette.INACTIVE_ELEMENT, false)
+	)
+	GamePalette.apply_phosphor_glow(btn, true)
+
+
+func _make_level_up_style(bg: Color, border: Color, with_glow: bool) -> StyleBoxFlat:
+	var style := StyleBoxFlat.new()
+	style.bg_color = bg
+	style.border_color = border
+	style.set_border_width_all(2)
+	style.set_corner_radius_all(0)
+	style.content_margin_left = 10
+	style.content_margin_right = 10
+	style.content_margin_top = 6
+	style.content_margin_bottom = 6
+	if with_glow:
+		style.shadow_color = Color(border.r, border.g, border.b, 0.35)
+		style.shadow_size = 5
+		style.shadow_offset = Vector2.ZERO
+	else:
+		style.shadow_size = 0
+	return style
+
+
 func _apply_locale(_locale: String = "") -> void:
 	if _btn_body:
 		_btn_body.text = tr("KEY_BODY_GRID")
@@ -129,7 +172,7 @@ func _apply_locale(_locale: String = "") -> void:
 		_btn_menu.text = ""
 		_btn_menu.tooltip_text = tr("KEY_MENU")
 	if _btn_debug_level_up:
-		_btn_debug_level_up.text = tr("KEY_DEBUG_LEVEL_UP")
+		_btn_debug_level_up.text = tr("KEY_DEBUG_LEVEL_UP").to_upper()
 	if _chip_label:
 		_chip_label.tooltip_text = tr("KEY_NEURO_CHIPS")
 	if _chip_icon:

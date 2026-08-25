@@ -42,6 +42,7 @@ func is_open() -> bool:
 
 
 func open() -> void:
+	UiOverlayLayer.mount(self)
 	visible = true
 	_is_open = true
 	set_process_unhandled_input(true)
