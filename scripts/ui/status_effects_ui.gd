@@ -61,12 +61,12 @@ func _make_icon(status: StatusInstance) -> Control:
 		return UITooltip.create_from_status(status)
 
 	var style := StyleBoxFlat.new()
-	style.bg_color = Color(0.12, 0.12, 0.14, 0.92)
+	style.bg_color = GamePalette.PANEL_BG_ALT
 	style.set_border_width_all(1)
 	style.border_color = (
-		Color(0.75, 0.35, 0.35) if status.data.is_debuff else Color(0.35, 0.7, 0.45)
+		GamePalette.COLOR_DANGER if status.data.is_debuff else GamePalette.PHOSPHOR_ACTIVE
 	)
-	style.set_corner_radius_all(3)
+	style.set_corner_radius_all(0)
 	style.set_content_margin_all(2)
 	wrap.add_theme_stylebox_override("panel", style)
 
@@ -96,7 +96,7 @@ func _make_icon(status: StatusInstance) -> Control:
 	else:
 		count.text = str(status.get_display_count())
 	count.add_theme_font_size_override("font_size", 12)
-	count.add_theme_color_override("font_color", Color(0.92, 0.92, 0.94))
+	count.add_theme_color_override("font_color", GamePalette.PHOSPHOR_BRIGHT)
 	count.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	row.add_child(count)
 	return wrap

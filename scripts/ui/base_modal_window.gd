@@ -32,10 +32,9 @@ func _style_close_button() -> void:
 	_close_btn.add_theme_font_size_override("font_size", 22)
 	_close_btn.mouse_default_cursor_shape = Control.CURSOR_POINTING_HAND
 	_close_btn.focus_mode = Control.FOCUS_NONE
-	## Slightly brighter on hover so the hit target feels clickable.
-	_close_btn.add_theme_color_override("font_hover_color", Color(1, 1, 1))
-	_close_btn.add_theme_color_override("font_color", Color(0.82, 0.82, 0.85))
-	_close_btn.add_theme_color_override("font_pressed_color", Color(0.7, 0.7, 0.75))
+	_close_btn.add_theme_color_override("font_hover_color", GamePalette.PHOSPHOR_BRIGHT)
+	_close_btn.add_theme_color_override("font_color", GamePalette.CRT_TEXT_MAIN)
+	_close_btn.add_theme_color_override("font_pressed_color", GamePalette.PHOSPHOR_ACTIVE)
 
 
 func is_open() -> bool:
@@ -90,12 +89,14 @@ func _on_overlay_gui_input(event: InputEvent) -> void:
 func _style_dialog() -> void:
 	if _dialog == null:
 		return
-	var style := StyleBoxFlat.new()
-	style.bg_color = Color(0.12, 0.12, 0.13, 1)
-	style.set_border_width_all(1)
-	style.border_color = Color(0.4, 0.4, 0.45)
-	style.set_corner_radius_all(6)
-	style.set_content_margin_all(0)
-	style.shadow_color = Color(0, 0, 0, 0.5)
-	style.shadow_size = 12
+	var style := GamePalette.make_panel_stylebox(
+		GamePalette.PANEL_BG, GamePalette.MUTED_GREEN, 1, 0, 0.0, false
+	)
 	_dialog.add_theme_stylebox_override("panel", style)
+	if _overlay:
+		_overlay.color = Color(
+			GamePalette.BACKGROUND_DARK.r,
+			GamePalette.BACKGROUND_DARK.g,
+			GamePalette.BACKGROUND_DARK.b,
+			0.75
+		)

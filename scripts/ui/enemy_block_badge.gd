@@ -3,9 +3,9 @@ extends Control
 ## Blue hexagon armor / Block badge that sits on the left edge of an enemy HP bar.
 
 const BADGE_SIZE := Vector2(30, 30)
-const FILL_COLOR := Color("#2E86C1")
-const BORDER_COLOR := Color("#85C1E9")
-const TEXT_COLOR := Color(0.95, 0.97, 1.0)
+const FILL_COLOR := Color("#5FAF91") ## COLOR_CYAN_SYSTEM
+const BORDER_COLOR := Color("#79D88A") ## PHOSPHOR_ACTIVE
+const TEXT_COLOR := Color("#A8F0A8") ## PHOSPHOR_BRIGHT
 
 var _label: Label
 var _amount: int = 0
@@ -38,7 +38,7 @@ func _ensure_label() -> void:
 	_label.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
 	_label.add_theme_font_size_override("font_size", 13)
 	_label.add_theme_color_override("font_color", TEXT_COLOR)
-	_label.add_theme_color_override("font_outline_color", Color(0.05, 0.12, 0.22, 0.9))
+	_label.add_theme_color_override("font_outline_color", GamePalette.BACKGROUND_DARK)
 	_label.add_theme_constant_override("outline_size", 3)
 	add_child(_label)
 

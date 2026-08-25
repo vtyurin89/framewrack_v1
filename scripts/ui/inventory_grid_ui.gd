@@ -19,16 +19,16 @@ const RESERVED_ROWS_TOP := 0
 const RESERVED_ROWS_BOTTOM := 0
 const DRAG_TYPE := "framewrack_item"
 const INSPECT_MODAL_SCENE := preload("res://scenes/UI/item_inspect_modal.tscn")
-## Level-up overlay dimmer — dark enough to mute the grid underneath.
-const LEVEL_UP_OVERLAY_COLOR := Color(0.039, 0.039, 0.063, 0.8)
-## Industrial amber CTA against the dark overlay.
-const LEVEL_UP_BTN_BG := Color(0.831, 0.675, 0.051, 1.0) ## #D4AC0D
-const LEVEL_UP_BTN_BG_HOVER := Color(0.92, 0.78, 0.18, 1.0)
-const LEVEL_UP_BTN_BG_PRESSED := Color(0.7, 0.55, 0.04, 1.0)
-const LEVEL_UP_BTN_BG_DISABLED := Color(0.45, 0.38, 0.12, 0.85)
-const LEVEL_UP_BTN_BORDER := Color(0.98, 0.9, 0.45, 0.95)
-const LEVEL_UP_BTN_BORDER_HOVER := Color(1.0, 0.96, 0.7, 1.0)
-const LEVEL_UP_BTN_FONT := Color(0.12, 0.1, 0.05, 1.0)
+## Level-up overlay dimmer — CRT dark green veil.
+const LEVEL_UP_OVERLAY_COLOR := Color(0.031, 0.051, 0.039, 0.82)
+## CRT warning CTA against the dark overlay.
+const LEVEL_UP_BTN_BG := Color("#111C16")
+const LEVEL_UP_BTN_BG_HOVER := Color("#173323")
+const LEVEL_UP_BTN_BG_PRESSED := Color("#0D1511")
+const LEVEL_UP_BTN_BG_DISABLED := Color(0.05, 0.08, 0.06, 0.85)
+const LEVEL_UP_BTN_BORDER := Color("#B6B35A")
+const LEVEL_UP_BTN_BORDER_HOVER := Color("#A8F0A8")
+const LEVEL_UP_BTN_FONT := Color("#A8F0A8")
 
 var inventory: InventoryController
 var player_stats: PlayerStats
@@ -150,6 +150,7 @@ func bind_player_stats(stats: PlayerStats) -> void:
 func _on_stats_changed() -> void:
 	if _stats_label == null:
 		return
+	GamePalette.apply_label_primary(_stats_label)
 	if player_stats == null:
 		_stats_label.text = "STR: — | AGI: — | END: — | INT: — | LCK: — | HUM: —"
 		return
@@ -931,7 +932,7 @@ func _rebuild_preview_node(preview: Control, item: ItemData, footprint: Vector2i
 	var caption := Label.new()
 	caption.text = item.get_localized_name() if item else ""
 	caption.position = Vector2(4, 4)
-	caption.add_theme_color_override("font_color", Color(0.05, 0.05, 0.05))
+	caption.add_theme_color_override("font_color", GamePalette.PHOSPHOR_BRIGHT)
 	caption.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	preview.add_child(caption)
 

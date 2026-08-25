@@ -4,8 +4,8 @@ extends Control
 signal node_pressed(node_data: MapNodeData)
 
 @export var node_scene: PackedScene
-@export var dash_length: float = 9.0
-@export var gap_length: float = 7.0
+@export var dash_length: float = 6.0
+@export var gap_length: float = 5.0
 @export var curve_samples: int = 18
 @export var curve_side_offset: float = 28.0
 
@@ -42,7 +42,7 @@ func _draw() -> void:
 			if next == null:
 				continue
 			var color := GamePalette.COLOR_MAP_PATH_LOCKED
-			var width := 2.0
+			var width := 1.5
 			var is_forward := (
 				node.state == MapNodeData.NodeState.VISITED
 				and next.state == MapNodeData.NodeState.AVAILABLE
@@ -53,18 +53,11 @@ func _draw() -> void:
 			)
 			if is_forward:
 				color = GamePalette.COLOR_MAP_PATH_ACTIVE
-				width = 2.5
+				width = 2.0
 			elif is_traveled:
 				color = GamePalette.COLOR_MAP_PATH_TRAVELED
-				width = 2.0
+				width = 1.5
 			_draw_dashed_bezier(node.position, next.position, color, width, node.id, next.id)
-	for node: MapNodeData in map_data.get_all_nodes():
-		var dot_color := GamePalette.COLOR_MISS
-		if node.state == MapNodeData.NodeState.AVAILABLE:
-			dot_color = GamePalette.COLOR_MAP_NODE_AVAILABLE
-		elif node.state == MapNodeData.NodeState.VISITED:
-			dot_color = GamePalette.COLOR_MAP_NODE_VISITED
-		draw_circle(node.position, 7.0, dot_color)
 
 
 func _draw_dashed_bezier(
@@ -96,7 +89,8 @@ func _draw_dashed_bezier(
 			var p0 := a + dir * traveled
 			var p1 := a + dir * (traveled + step)
 			if draw_on:
-				draw_line(p0, p1, color, width, true)
+				## Aliased pixel dashes — CRT terminal look.
+				draw_line(p0, p1, color, width, false)
 			traveled += step
 			leftover = 0.0
 			if is_equal_approx(traveled, seg_len):

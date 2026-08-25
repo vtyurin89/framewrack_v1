@@ -32,31 +32,44 @@ func _ready() -> void:
 		_heart_icon.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
 		_heart_icon.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
 		_heart_icon.size_flags_vertical = Control.SIZE_SHRINK_CENTER
+		_heart_icon.modulate = GamePalette.PHOSPHOR_ACTIVE
 	if _chip_icon:
 		_chip_icon.texture = CHIP_ICON
 		_chip_icon.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
 		_chip_icon.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
 		_chip_icon.size_flags_vertical = Control.SIZE_SHRINK_CENTER
 		_chip_icon.custom_minimum_size = Vector2(22, 22)
+		_chip_icon.modulate = GamePalette.COLOR_CYAN_SYSTEM
 	if _chip_label:
 		_chip_label.size_flags_vertical = Control.SIZE_SHRINK_CENTER
 		_chip_label.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
+		GamePalette.apply_label_value(_chip_label)
 	if _hp_label:
 		_hp_label.size_flags_vertical = Control.SIZE_SHRINK_CENTER
 		_hp_label.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
+		GamePalette.apply_label_value(_hp_label)
+	if _level_label:
+		GamePalette.apply_label_primary(_level_label)
 	if _btn_body:
 		_btn_body.pressed.connect(func() -> void: body_grid_pressed.emit())
+		GamePalette.apply_button_theme(_btn_body, 13)
 	if _btn_combat_log:
 		_btn_combat_log.pressed.connect(func() -> void: combat_log_pressed.emit())
+		GamePalette.apply_button_theme(_btn_combat_log, 13)
 	# TODO: удалить на продакшене
 	if _btn_debug_level_up:
 		_btn_debug_level_up.add_to_group("debug_ui")
 		_btn_debug_level_up.pressed.connect(_on_debug_level_up_pressed)
 		_btn_debug_level_up.visible = not GameSettings.hide_debug_tools
+		GamePalette.apply_button_theme(_btn_debug_level_up, 13)
+		_btn_debug_level_up.add_theme_color_override("font_color", GamePalette.COLOR_CYAN_SYSTEM)
 	if _btn_menu:
 		_btn_menu.pressed.connect(func() -> void: menu_pressed.emit())
 		_btn_menu.mouse_default_cursor_shape = Control.CURSOR_POINTING_HAND
 		_configure_menu_button()
+	if _xp_bar:
+		_xp_bar.add_theme_stylebox_override("background", GamePalette.make_progress_bg_stylebox())
+		_xp_bar.add_theme_stylebox_override("fill", GamePalette.make_progress_fill_stylebox())
 	if not LocalizationManager.language_changed.is_connected(_apply_locale):
 		LocalizationManager.language_changed.connect(_apply_locale)
 	if not EventBus.player_hp_changed.is_connected(_on_hp_changed):
@@ -104,6 +117,7 @@ func _configure_menu_button() -> void:
 	_btn_menu.add_theme_constant_override("icon_max_width", 22)
 	_btn_menu.flat = true
 	_btn_menu.focus_mode = Control.FOCUS_NONE
+	_btn_menu.modulate = GamePalette.CRT_TEXT_MAIN
 
 
 func _apply_locale(_locale: String = "") -> void:

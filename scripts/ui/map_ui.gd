@@ -5,6 +5,7 @@ signal node_chosen(node_id: String)
 
 var map_manager: Node
 var _cached_map_data: MapData
+var _coords_label: Label
 
 @onready var _scroll_map: ScrollMapContainer = %ScrollMap
 
@@ -23,7 +24,48 @@ func setup(p_map: Node) -> void:
 			map_manager.placeholder_requested.connect(_on_placeholder_requested)
 	if not _scroll_map.placeholder_continue_pressed.is_connected(_on_placeholder_continue):
 		_scroll_map.placeholder_continue_pressed.connect(_on_placeholder_continue)
+	_ensure_coords_panel()
 	refresh()
+
+
+func _process(_delta: float) -> void:
+	_update_coords_panel()
+
+
+func _ensure_coords_panel() -> void:
+	if _coords_label != null and is_instance_valid(_coords_label):
+		return
+	var panel := PanelContainer.new()
+	panel.name = "CoordsPanel"
+	panel.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	panel.set_anchors_preset(Control.PRESET_BOTTOM_RIGHT)
+	panel.offset_left = -220.0
+	panel.offset_top = -36.0
+	panel.offset_right = -12.0
+	panel.offset_bottom = -12.0
+	panel.add_theme_stylebox_override(
+		"panel",
+		GamePalette.make_panel_stylebox(
+			GamePalette.PANEL_BG, GamePalette.MUTED_GREEN, 1, 0, 6.0, false
+		)
+	)
+	_coords_label = Label.new()
+	_coords_label.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	_coords_label.add_theme_font_size_override("font_size", 12)
+	GamePalette.apply_label_system(_coords_label)
+	_coords_label.text = "X: 00.00  Y: 00.00  Z: 00.00"
+	panel.add_child(_coords_label)
+	add_child(panel)
+
+
+func _update_coords_panel() -> void:
+	if _coords_label == null:
+		return
+	var mouse := get_local_mouse_position()
+	var x := fmod(absf(mouse.x) * 0.07, 100.0)
+	var y := fmod(absf(mouse.y) * 0.05, 100.0) * -1.0
+	var z := fmod((absf(mouse.x) + absf(mouse.y)) * 0.02, 20.0)
+	_coords_label.text = "X: %05.2f  Y: %06.2f  Z: %05.2f" % [x, y, z]
 
 
 func _on_language_changed(_locale: String) -> void:

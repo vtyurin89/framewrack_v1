@@ -6,7 +6,7 @@ signal card_gui_input(event: InputEvent, enemy_index: int)
 signal death_fade_finished(card: EnemyCardUI)
 signal attack_impact
 
-const SELECT_COLOR := Color(0.95, 0.8, 0.25)
+const SELECT_COLOR := Color("#A8F0A8") ## PHOSPHOR_BRIGHT
 const BAR_HEIGHT := 20.0
 const BAR_MIN_WIDTH := 170.0
 const SPRITE_DIR := "res://assets/sprites/enemies/"
@@ -23,7 +23,7 @@ const ATTACK_LUNGE_Y := 18.0
 const FLEE_DURATION := 0.5
 const FLEE_SLIDE_X := 300.0
 const HEAL_FLASH_DURATION := 0.4
-const HEAL_FLASH_COLOR := Color(0.4, 1.3, 0.4, 1.0)
+const HEAL_FLASH_COLOR := Color(1.15, 1.35, 1.15, 1.0)
 const CAST_PULSE_DURATION := 0.28
 const CAST_PULSE_SCALE := 1.08
 const INTENTION_SCENE := preload("res://scenes/UI/enemy_intention_ui.tscn")
@@ -196,8 +196,8 @@ func _spawn_heal_float(amount: int) -> void:
 	label.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	label.z_index = 90
 	label.add_theme_font_size_override("font_size", 16)
-	label.add_theme_color_override("font_color", Color(0.45, 1.0, 0.55))
-	label.add_theme_color_override("font_outline_color", Color(0, 0, 0, 0.85))
+	label.add_theme_color_override("font_color", GamePalette.PHOSPHOR_ACTIVE)
+	label.add_theme_color_override("font_outline_color", GamePalette.BACKGROUND_DARK)
 	label.add_theme_constant_override("outline_size", 4)
 	host.add_child(label)
 	await get_tree().process_frame

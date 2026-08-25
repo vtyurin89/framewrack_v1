@@ -44,10 +44,10 @@ func _ensure_vignette_texture() -> void:
 	var gradient := Gradient.new()
 	gradient.offsets = PackedFloat32Array([0.0, 0.72, 0.88, 1.0])
 	gradient.colors = PackedColorArray([
-		Color(1.0, 0.0, 0.0, 0.0),
-		Color(1.0, 0.0, 0.0, 0.0),
-		Color(1.0, 0.0, 0.0, 0.28),
-		Color(0.55, 0.0, 0.0, 0.55),
+		Color(GamePalette.COLOR_DANGER.r, GamePalette.COLOR_DANGER.g, GamePalette.COLOR_DANGER.b, 0.0),
+		Color(GamePalette.COLOR_DANGER.r, GamePalette.COLOR_DANGER.g, GamePalette.COLOR_DANGER.b, 0.0),
+		Color(GamePalette.COLOR_DANGER.r, GamePalette.COLOR_DANGER.g, GamePalette.COLOR_DANGER.b, 0.32),
+		Color(GamePalette.COLOR_DANGER.r, GamePalette.COLOR_DANGER.g, GamePalette.COLOR_DANGER.b, 0.55),
 	])
 	var tex := GradientTexture2D.new()
 	tex.gradient = gradient

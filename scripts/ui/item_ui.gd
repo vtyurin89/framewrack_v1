@@ -94,8 +94,8 @@ func _build_visual() -> void:
 	_cd_label.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
 	_cd_label.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
 	_cd_label.add_theme_font_size_override("font_size", 18)
-	_cd_label.add_theme_color_override("font_color", Color(1.0, 0.85, 0.35, 1))
-	_cd_label.add_theme_color_override("font_outline_color", Color(0, 0, 0, 0.95))
+	_cd_label.add_theme_color_override("font_color", GamePalette.COLOR_WARN)
+	_cd_label.add_theme_color_override("font_outline_color", GamePalette.BACKGROUND_DARK)
 	_cd_label.add_theme_constant_override("outline_size", 5)
 	_cd_label.visible = false
 	add_child(_cd_label)
@@ -176,12 +176,15 @@ func set_combat_visual(usable: bool) -> void:
 	if style == null:
 		return
 	if combat_click_mode and usable:
-		style.border_color = Color(0.45, 0.95, 0.55)
+		style.border_color = GamePalette.PHOSPHOR_ACTIVE
 		modulate = Color(1, 1, 1, 1)
+		GamePalette.apply_phosphor_glow(self, true)
 	elif combat_click_mode:
-		modulate = Color(0.62, 0.62, 0.62, 1)
+		modulate = Color(0.7, 0.75, 0.7, 1)
+		GamePalette.apply_phosphor_glow(self, false)
 	else:
 		modulate = Color(1, 1, 1, 1)
+		GamePalette.apply_phosphor_glow(self, false)
 	_panel.add_theme_stylebox_override("panel", style)
 	_refresh_status_overlay()
 
@@ -202,14 +205,14 @@ func _refresh_status_overlay() -> void:
 	match primary.type:
 		ItemStatus.Type.OVERLOAD:
 			_status_icon.text = "⚡"
-			_status_icon.add_theme_color_override("font_color", Color(1.0, 0.92, 0.35, 1))
+			_status_icon.add_theme_color_override("font_color", GamePalette.COLOR_WARN)
 			_status_icon.visible = true
 		ItemStatus.Type.COOLDOWN:
 			_cd_label.text = str(primary.remaining_turns)
 			_cd_label.visible = true
 		ItemStatus.Type.TAINTED:
 			_status_icon.text = "☣"
-			_status_icon.add_theme_color_override("font_color", Color(0.72, 0.95, 0.35, 1))
+			_status_icon.add_theme_color_override("font_color", GamePalette.COLOR_DANGER)
 			_status_icon.visible = true
 
 

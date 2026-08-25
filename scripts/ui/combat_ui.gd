@@ -12,10 +12,10 @@ const STATUS_EFFECTS_SCENE := preload("res://scenes/UI/status_effects_ui.tscn")
 const DAMAGE_VIGNETTE_SCENE := preload("res://scenes/UI/damage_vignette.tscn")
 const INTENTION_STAGGER_DELAY := 0.15
 
-const AP_FLASH_SPEND := Color(0.75, 0.95, 1.0)
-const AP_FLASH_DENY := Color(1.0, 0.25, 0.25)
-const BLOCK_FLASH_GAIN := Color("3498db")
-const PLAYER_HIT_FLASH := Color(1.0, 0.35, 0.35, 1.0)
+const AP_FLASH_SPEND := Color("#A8F0A8") ## PHOSPHOR_BRIGHT
+const AP_FLASH_DENY := Color("#A84D4D") ## COLOR_DANGER
+const BLOCK_FLASH_GAIN := Color("#5FAF91") ## COLOR_CYAN_SYSTEM
+const PLAYER_HIT_FLASH := Color(1.35, 0.55, 0.55, 1.0)
 const HUD_SHAKE_DURATION := 0.15
 const HUD_SHAKE_PIXELS := 5.0
 const HP_FLASH_DURATION := 0.1
@@ -31,8 +31,8 @@ var _player_statuses_ui: StatusEffectsUI
 var _player_hp_initialized: bool = false
 var _last_ap: int = -1
 var _last_block: int = -1
-var _ap_base_color: Color = Color(0.95, 0.95, 0.97)
-var _block_base_color: Color = Color(0.88, 0.88, 0.92)
+var _ap_base_color: Color = Color("#A8F0A8")
+var _block_base_color: Color = Color("#4FAF68")
 var _ap_juice_tween: Tween
 var _block_juice_tween: Tween
 var _last_passive_armor: int = 0
@@ -80,6 +80,7 @@ func _ready() -> void:
 	_style_log_panel()
 	_configure_log_scroll()
 	_style_action_buttons()
+	_apply_crt_combat_labels()
 	hide_combat_log()
 	EventBus.ap_changed.connect(_on_ap_changed)
 	EventBus.ap_insufficient.connect(_on_ap_insufficient)
@@ -341,14 +342,9 @@ func hide_combat_log() -> void:
 func _style_log_panel() -> void:
 	if _log_panel == null:
 		return
-	var style := StyleBoxFlat.new()
-	style.bg_color = Color(0.12, 0.12, 0.14, 0.96)
-	style.set_border_width_all(1)
-	style.border_color = Color(0.42, 0.42, 0.48, 1)
-	style.set_corner_radius_all(6)
-	style.set_content_margin_all(10)
-	style.shadow_color = Color(0, 0, 0, 0.4)
-	style.shadow_size = 8
+	var style := GamePalette.make_panel_stylebox(
+		GamePalette.PANEL_BG, GamePalette.MUTED_GREEN, 1, 0, 10.0, false
+	)
 	_log_panel.add_theme_stylebox_override("panel", style)
 
 
@@ -361,6 +357,7 @@ func _configure_log_scroll() -> void:
 	_log.scroll_following = true
 	_log.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 	_log.custom_minimum_size.y = 160.0
+	_log.add_theme_color_override("default_color", GamePalette.CRT_TEXT_MAIN)
 
 
 func _style_action_buttons() -> void:
@@ -372,27 +369,45 @@ func _apply_primary_action_style(btn: Button) -> void:
 	if btn == null:
 		return
 	btn.custom_minimum_size = Vector2(220, 52)
-	btn.add_theme_font_size_override("font_size", 18)
-	var normal := StyleBoxFlat.new()
-	normal.bg_color = Color(0.1, 0.1, 0.12, 1)
-	normal.set_border_width_all(2)
-	normal.border_color = Color(0.92, 0.55, 0.18, 1)
-	normal.set_corner_radius_all(4)
-	normal.set_content_margin_all(10)
-	var hover := normal.duplicate() as StyleBoxFlat
-	hover.bg_color = Color(0.16, 0.14, 0.12, 1)
-	hover.border_color = Color(1.0, 0.7, 0.28, 1)
-	var pressed := normal.duplicate() as StyleBoxFlat
-	pressed.bg_color = Color(0.08, 0.08, 0.09, 1)
-	pressed.border_color = Color(0.75, 0.42, 0.12, 1)
-	var disabled := normal.duplicate() as StyleBoxFlat
-	disabled.bg_color = Color(0.08, 0.08, 0.09, 0.7)
-	disabled.border_color = Color(0.4, 0.35, 0.28, 0.8)
+	GamePalette.apply_button_theme(btn, 18)
+	## Bracket-style CTA: brighter border + soft phosphor glow on hover only.
+	var styles := GamePalette.make_button_styleboxes()
+	var normal: StyleBoxFlat = styles["normal"]
+	normal.border_color = GamePalette.PHOSPHOR_ACTIVE
+	normal.set_border_width_all(1)
+	var hover: StyleBoxFlat = styles["hover"]
+	hover.border_color = GamePalette.PHOSPHOR_BRIGHT
 	btn.add_theme_stylebox_override("normal", normal)
 	btn.add_theme_stylebox_override("hover", hover)
-	btn.add_theme_stylebox_override("pressed", pressed)
-	btn.add_theme_stylebox_override("disabled", disabled)
+	btn.add_theme_stylebox_override("pressed", styles["pressed"])
+	btn.add_theme_stylebox_override("disabled", styles["disabled"])
 	btn.add_theme_stylebox_override("focus", hover)
+	btn.add_theme_color_override("font_color", GamePalette.CRT_TEXT_MAIN)
+	btn.add_theme_color_override("font_hover_color", GamePalette.PHOSPHOR_BRIGHT)
+	btn.add_theme_color_override("font_pressed_color", GamePalette.PHOSPHOR_BRIGHT)
+	btn.add_theme_color_override("font_disabled_color", GamePalette.INACTIVE_ELEMENT)
+
+
+func _apply_crt_combat_labels() -> void:
+	GamePalette.apply_label_primary(_turn_label)
+	GamePalette.apply_label_primary(_hp_label)
+	GamePalette.apply_label_value(_ap_label)
+	GamePalette.apply_label_primary(_block_label)
+	GamePalette.apply_label_muted(_hint_label)
+	if _log_title:
+		GamePalette.apply_label_primary(_log_title)
+	if _close_log_btn:
+		GamePalette.apply_button_theme(_close_log_btn, 14)
+	_ap_base_color = GamePalette.PHOSPHOR_BRIGHT
+	_block_base_color = GamePalette.CRT_TEXT_MAIN
+	if _ap_label:
+		_ap_label.add_theme_color_override("font_color", _ap_base_color)
+	if _block_label:
+		_block_label.add_theme_color_override("font_color", _block_base_color)
+	if _block_passive_label:
+		_block_passive_label.positive_color = GamePalette.COLOR_CYAN_SYSTEM
+		_block_passive_label.negative_color = GamePalette.COLOR_DANGER
+		GamePalette.apply_label_system(_block_passive_label)
 
 
 func _ensure_enemy_inspect() -> void:
@@ -1060,17 +1075,17 @@ func _spawn_floating_combat_text(host: Control, text: String, kind: String) -> v
 	label.add_theme_font_size_override("font_size", 15 if kind == "crit" else 14)
 	match kind:
 		"crit":
-			label.add_theme_color_override("font_color", Color(1.0, 0.35, 0.35))
+			label.add_theme_color_override("font_color", GamePalette.COLOR_DANGER)
 		"pre_action":
-			label.add_theme_color_override("font_color", Color(0.95, 0.82, 0.35))
+			label.add_theme_color_override("font_color", GamePalette.COLOR_WARN)
 		"multi_hit":
-			label.add_theme_color_override("font_color", Color(1.0, 0.55, 0.35))
+			label.add_theme_color_override("font_color", GamePalette.COLOR_WARN)
 		"block":
 			label.add_theme_color_override("font_color", BLOCK_FLASH_GAIN)
 		"heal":
-			label.add_theme_color_override("font_color", Color(0.45, 1.0, 0.55))
+			label.add_theme_color_override("font_color", GamePalette.PHOSPHOR_ACTIVE)
 		_:
-			label.add_theme_color_override("font_color", Color(0.92, 0.94, 1.0))
+			label.add_theme_color_override("font_color", GamePalette.PHOSPHOR_BRIGHT)
 	host.add_child(label)
 	await get_tree().process_frame
 	if not is_instance_valid(label):

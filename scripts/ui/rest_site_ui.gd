@@ -54,50 +54,15 @@ func _style_option_button(btn: Button) -> void:
 		return
 	btn.flat = false
 	btn.mouse_default_cursor_shape = Control.CURSOR_POINTING_HAND
-	var normal := StyleBoxFlat.new()
-	normal.bg_color = Color(0.12, 0.12, 0.14, 0.96)
-	normal.set_corner_radius_all(2)
-	normal.set_border_width_all(1)
-	normal.border_color = Color(0.42, 0.42, 0.48, 1)
-	normal.set_content_margin_all(8)
-	var hovered := normal.duplicate() as StyleBoxFlat
-	hovered.bg_color = Color(0.16, 0.16, 0.18, 1)
-	hovered.border_color = Color(0.62, 0.62, 0.68, 1)
-	var pressed := normal.duplicate() as StyleBoxFlat
-	pressed.bg_color = Color(0.09, 0.09, 0.1, 1)
-	pressed.border_color = Color(0.35, 0.35, 0.4, 1)
-	var disabled := normal.duplicate() as StyleBoxFlat
-	disabled.bg_color = Color(0.1, 0.1, 0.11, 0.7)
-	disabled.border_color = Color(0.28, 0.28, 0.32, 0.8)
-	btn.add_theme_stylebox_override("normal", normal)
-	btn.add_theme_stylebox_override("hover", hovered)
-	btn.add_theme_stylebox_override("pressed", pressed)
-	btn.add_theme_stylebox_override("focus", hovered)
-	btn.add_theme_stylebox_override("disabled", disabled)
+	GamePalette.apply_button_theme(btn, 14)
 
 
 func _style_continue_button() -> void:
 	if _continue_btn == null:
 		return
 	_continue_btn.custom_minimum_size = Vector2(220, 52)
-	_continue_btn.add_theme_font_size_override("font_size", 18)
 	_continue_btn.mouse_default_cursor_shape = Control.CURSOR_POINTING_HAND
-	var normal := StyleBoxFlat.new()
-	normal.bg_color = Color(0.1, 0.1, 0.12, 1)
-	normal.set_border_width_all(2)
-	normal.border_color = Color(0.92, 0.55, 0.18, 1)
-	normal.set_corner_radius_all(4)
-	normal.set_content_margin_all(10)
-	var hover := normal.duplicate() as StyleBoxFlat
-	hover.bg_color = Color(0.16, 0.14, 0.12, 1)
-	hover.border_color = Color(1.0, 0.7, 0.28, 1)
-	var pressed := normal.duplicate() as StyleBoxFlat
-	pressed.bg_color = Color(0.08, 0.08, 0.09, 1)
-	pressed.border_color = Color(0.75, 0.42, 0.12, 1)
-	_continue_btn.add_theme_stylebox_override("normal", normal)
-	_continue_btn.add_theme_stylebox_override("hover", hover)
-	_continue_btn.add_theme_stylebox_override("pressed", pressed)
-	_continue_btn.add_theme_stylebox_override("focus", hover)
+	GamePalette.apply_button_theme(_continue_btn, 18)
 
 
 func bind(inventory: InventoryController, manager: EncounterManager) -> void:

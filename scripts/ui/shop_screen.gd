@@ -261,24 +261,8 @@ func _style_continue_button() -> void:
 	if _continue_btn == null:
 		return
 	_continue_btn.custom_minimum_size = Vector2(220, 52)
-	_continue_btn.add_theme_font_size_override("font_size", 18)
 	_continue_btn.mouse_default_cursor_shape = Control.CURSOR_POINTING_HAND
-	var normal := StyleBoxFlat.new()
-	normal.bg_color = Color(0.1, 0.1, 0.12, 1)
-	normal.set_border_width_all(2)
-	normal.border_color = Color(0.92, 0.55, 0.18, 1)
-	normal.set_corner_radius_all(4)
-	normal.set_content_margin_all(10)
-	var hover := normal.duplicate() as StyleBoxFlat
-	hover.bg_color = Color(0.16, 0.14, 0.12, 1)
-	hover.border_color = Color(1.0, 0.7, 0.28, 1)
-	var pressed := normal.duplicate() as StyleBoxFlat
-	pressed.bg_color = Color(0.08, 0.08, 0.09, 1)
-	pressed.border_color = Color(0.75, 0.42, 0.12, 1)
-	_continue_btn.add_theme_stylebox_override("normal", normal)
-	_continue_btn.add_theme_stylebox_override("hover", hover)
-	_continue_btn.add_theme_stylebox_override("pressed", pressed)
-	_continue_btn.add_theme_stylebox_override("focus", hover)
+	GamePalette.apply_button_theme(_continue_btn, 18)
 
 
 func _spawn_stock_in_space(stock: Array[ItemData]) -> void:

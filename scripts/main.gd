@@ -20,6 +20,7 @@ const REWARD_SCREEN_SCENE := preload("res://scenes/UI/reward_screen.tscn")
 const CHEST_REWARD_SCENE := preload("res://scenes/UI/chest_reward_ui.tscn")
 const FORCED_ITEM_SCREEN_SCENE := preload("res://scenes/UI/forced_item_screen.tscn")
 const ANNOUNCER_SCENE := preload("res://scenes/UI/announcer_ui.tscn")
+const CRT_OVERLAY_SCRIPT := preload("res://scripts/ui/crt_overlay.gd")
 const HUMANITY_GAME_OVER_REASON_KEY := "KEY_GAME_OVER_INSANITY"
 
 @onready var _map_ui: Control = %MapUI
@@ -204,6 +205,34 @@ func _ensure_overlays() -> void:
 		_announcer_ui = ANNOUNCER_SCENE.instantiate() as AnnouncerUI
 		_announcer_ui.name = "AnnouncerUI"
 		add_child(_announcer_ui)
+	_ensure_crt_overlay()
+	_apply_crt_root_chrome()
+
+
+func _ensure_crt_overlay() -> void:
+	if get_node_or_null("CrtOverlay") != null:
+		return
+	var overlay: CrtOverlay = CRT_OVERLAY_SCRIPT.new() as CrtOverlay
+	overlay.name = "CrtOverlay"
+	add_child(overlay)
+
+
+func _apply_crt_root_chrome() -> void:
+	var bg := get_node_or_null("Background") as ColorRect
+	if bg:
+		bg.color = GamePalette.BACKGROUND_DARK
+	if _stage_divider:
+		_stage_divider.color = GamePalette.MUTED_GREEN
+	if _status_banner:
+		GamePalette.apply_label_muted(_status_banner)
+	var overlay_dim := get_node_or_null("OverlayLayer/BodyGridOverlay/OverlayDim") as ColorRect
+	if overlay_dim:
+		overlay_dim.color = Color(
+			GamePalette.BACKGROUND_DARK.r,
+			GamePalette.BACKGROUND_DARK.g,
+			GamePalette.BACKGROUND_DARK.b,
+			0.72
+		)
 
 
 func _on_language_changed(_locale: String) -> void:
@@ -214,16 +243,15 @@ func _on_language_changed(_locale: String) -> void:
 func _style_body_grid_pane() -> void:
 	if _body_grid_pane == null:
 		return
-	var style := StyleBoxFlat.new()
-	style.bg_color = Color(0.09, 0.09, 0.11, 1.0)
-	style.set_border_width_all(0)
-	style.set_content_margin_all(12)
+	var style := GamePalette.make_panel_stylebox(
+		GamePalette.PANEL_BG, GamePalette.MUTED_GREEN, 1, 0, 12.0, false
+	)
 	_body_grid_pane.add_theme_stylebox_override("panel", style)
 	_body_grid_pane.mouse_filter = Control.MOUSE_FILTER_STOP
 
 
 func _style_inventory_modal_panel() -> void:
-	## Modal Body Grid outside combat — framed like End Turn.
+	## Modal Body Grid outside combat — CRT framed panel.
 	if _inventory_panel == null:
 		return
 	if _body_grid_overlay:
@@ -232,14 +260,9 @@ func _style_inventory_modal_panel() -> void:
 		if dim:
 			dim.visible = false
 			dim.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	var style := StyleBoxFlat.new()
-	style.bg_color = Color(0.1, 0.1, 0.12, 1.0)
-	style.set_border_width_all(2)
-	style.border_color = Color(0.92, 0.55, 0.18, 1)
-	style.set_corner_radius_all(4)
-	style.set_content_margin_all(10)
-	style.shadow_color = Color(0, 0, 0, 0.4)
-	style.shadow_size = 8
+	var style := GamePalette.make_panel_stylebox(
+		GamePalette.PANEL_BG, GamePalette.PHOSPHOR_ACTIVE, 1, 0, 10.0, true
+	)
 	_inventory_panel.add_theme_stylebox_override("panel", style)
 	_inventory_panel.mouse_filter = Control.MOUSE_FILTER_STOP
 	if _inventory_ui:

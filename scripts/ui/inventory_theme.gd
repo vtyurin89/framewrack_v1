@@ -1,7 +1,7 @@
 class_name InventoryTheme
 extends RefCounted
-## Semi-transparent inventory tile palette by category / status.
-## Background fill stays translucent so grid cells show through; borders stay opaque.
+## CRT monochrome inventory tile palette.
+## Category / rarity encoded as border luminance, not hue.
 
 enum PaletteKind {
 	WEAPON,
@@ -14,44 +14,44 @@ enum PaletteKind {
 }
 
 ## Empty unlocked body-grid cells (blueprint / X-ray).
-const CELL_BG := Color("#1D1F24")
-const CELL_BORDER := Color("#2F333D")
+const CELL_BG := Color("#111C16") ## PANEL_BG_ALT
+const CELL_BORDER := Color("#285A3A") ## MUTED_GREEN
 
 const _PALETTES := {
 	PaletteKind.WEAPON: {
-		"bg": Color("#7D6B56B3"),
-		"border": Color("#A89279"),
-		"text": Color("#E2D8C3"),
+		"bg": Color("#0D1511CC"),
+		"border": Color("#4FAF68"),
+		"text": Color("#79D88A"),
 	},
 	PaletteKind.ARMOR: {
-		"bg": Color("#4B5563B3"),
-		"border": Color("#6B7280"),
-		"text": Color("#E5E7EB"),
+		"bg": Color("#0D1511CC"),
+		"border": Color("#285A3A"),
+		"text": Color("#4FAF68"),
 	},
 	PaletteKind.CONSUMABLE: {
-		"bg": Color("#3B5E53B3"),
-		"border": Color("#528374"),
-		"text": Color("#A7F3D0"),
+		"bg": Color("#0D1511CC"),
+		"border": Color("#5FAF91"),
+		"text": Color("#A8F0A8"),
 	},
 	PaletteKind.JUNK: {
-		"bg": Color("#374151B3"),
-		"border": Color("#4B5563"),
-		"text": Color("#9CA3AF"),
+		"bg": Color("#0D1511B3"),
+		"border": Color("#173323"),
+		"text": Color("#285A3A"),
 	},
 	PaletteKind.RARE: {
-		"bg": Color("#92702DB3"),
-		"border": Color("#F1C40F"),
-		"text": Color("#FEF08A"),
+		"bg": Color("#111C16CC"),
+		"border": Color("#B6B35A"),
+		"text": Color("#B6B35A"),
 	},
 	PaletteKind.VERY_RARE: {
-		"bg": Color("#5B3A72B3"),
-		"border": Color("#9B59B6"),
-		"text": Color("#E9D5FF"),
+		"bg": Color("#111C16CC"),
+		"border": Color("#A8F0A8"),
+		"text": Color("#A8F0A8"),
 	},
 	PaletteKind.HARMFUL: {
-		"bg": Color("#702A30CC"),
-		"border": Color("#B91C1C"),
-		"text": Color("#FECDD3"),
+		"bg": Color("#1A0E0ECC"),
+		"border": Color("#A84D4D"),
+		"text": Color("#A84D4D"),
 	},
 }
 
@@ -91,13 +91,15 @@ static func colors_for_kind(kind: PaletteKind) -> Dictionary:
 
 static func colors_for_item(item: ItemData) -> Dictionary:
 	var colors: Dictionary = colors_for_kind(palette_kind_for_item(item)).duplicate()
-	## Dynamic rarity border / text tint for Rare+ items.
+	## Rare+ keeps CRT warning / bright border (no rainbow rarity hues).
 	if item != null and item.rarity != null:
 		var tier := item.rarity.get_tier()
-		if tier == ItemRarityData.Tier.RARE or tier == ItemRarityData.Tier.VERY_RARE:
-			var rarity_col := item.get_rarity_color()
-			colors["border"] = rarity_col
-			colors["text"] = rarity_col.lightened(0.25)
+		if tier == ItemRarityData.Tier.RARE:
+			colors["border"] = Color("#B6B35A")
+			colors["text"] = Color("#B6B35A")
+		elif tier == ItemRarityData.Tier.VERY_RARE:
+			colors["border"] = Color("#A8F0A8")
+			colors["text"] = Color("#A8F0A8")
 	return colors
 
 
@@ -107,8 +109,7 @@ static func make_item_stylebox(item: ItemData, border_width: int = 1) -> StyleBo
 	style.bg_color = colors["bg"] as Color
 	style.border_color = colors["border"] as Color
 	style.set_border_width_all(maxi(1, border_width))
-	style.set_corner_radius_all(3)
-	## Keep content from sitting under the opaque stroke.
+	style.set_corner_radius_all(0)
 	style.set_content_margin_all(2.0)
 	return style
 
@@ -118,7 +119,7 @@ static func make_empty_cell_stylebox() -> StyleBoxFlat:
 	style.bg_color = CELL_BG
 	style.border_color = CELL_BORDER
 	style.set_border_width_all(1)
-	style.set_corner_radius_all(2)
+	style.set_corner_radius_all(0)
 	return style
 
 

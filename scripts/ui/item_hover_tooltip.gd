@@ -159,15 +159,12 @@ func is_showing_item(item: ItemData) -> bool:
 # ---------------------------------------------------------------------------
 
 func _apply_panel_style() -> void:
-	var style := StyleBoxFlat.new()
-	style.bg_color = Color(0.08, 0.08, 0.09, 0.96)
-	style.set_border_width_all(1)
-	style.border_color = Color(0.35, 0.35, 0.38)
-	style.set_corner_radius_all(4)
-	style.set_content_margin_all(10)
-	style.shadow_color = Color(0, 0, 0, 0.45)
-	style.shadow_size = 6
-	add_theme_stylebox_override("panel", style)
+	add_theme_stylebox_override(
+		"panel",
+		GamePalette.make_panel_stylebox(
+			GamePalette.PANEL_BG, GamePalette.MUTED_GREEN, 1, 0, 10.0, false
+		)
+	)
 
 
 func _build_layout() -> void:

@@ -3,9 +3,9 @@ extends PanelContainer
 ## Shared styled tooltip panel for status icons, intentions, and other UI hosts.
 
 const MAX_WIDTH := 280.0
-const TITLE_COLOR := Color(0.92, 0.92, 0.94)
-const BODY_COLOR := Color(0.78, 0.78, 0.82)
-const META_COLOR := Color(0.62, 0.62, 0.66)
+const TITLE_COLOR := Color("#A8F0A8") ## PHOSPHOR_BRIGHT
+const BODY_COLOR := Color("#4FAF68") ## CRT_TEXT_MAIN
+const META_COLOR := Color("#285A3A") ## MUTED_GREEN
 
 
 static func create(title: String, body_lines: PackedStringArray = PackedStringArray()) -> UITooltip:
@@ -138,15 +138,12 @@ func _populate(title: String, body_lines: PackedStringArray) -> void:
 
 
 func _apply_panel_style() -> void:
-	var style := StyleBoxFlat.new()
-	style.bg_color = Color(0.08, 0.08, 0.09, 0.96)
-	style.set_border_width_all(1)
-	style.border_color = Color(0.35, 0.35, 0.38)
-	style.set_corner_radius_all(4)
-	style.set_content_margin_all(8)
-	style.shadow_color = Color(0, 0, 0, 0.45)
-	style.shadow_size = 4
-	add_theme_stylebox_override("panel", style)
+	add_theme_stylebox_override(
+		"panel",
+		GamePalette.make_panel_stylebox(
+			GamePalette.PANEL_BG, GamePalette.MUTED_GREEN, 1, 0, 8.0, false
+		)
+	)
 
 
 static func _format_status_count_label(status: StatusInstance) -> String:

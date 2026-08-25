@@ -1,10 +1,13 @@
 class_name GhostProgressBar
 extends Control
-## StS-style dual HP bar: smooth main fill (damage + heal) + delayed yellow ghost drain.
+## Dual HP bar: phosphor fill + delayed ghost drain, drawn as CRT block segments.
 
 const GHOST_HOLD := 0.2
 const GHOST_TWEEN_DURATION := 0.45
 const MAIN_TWEEN_DURATION := 0.4
+const SEGMENT_GAP := 1.0
+const MIN_SEGMENTS := 8
+const MAX_SEGMENTS := 28
 
 @export var bar_min_size: Vector2 = Vector2(170, 20)
 @export var show_label: bool = true
@@ -23,6 +26,12 @@ var _built: bool = false
 func _ready() -> void:
 	_ensure_built()
 	_apply_styles()
+	queue_redraw()
+
+
+func _notification(what: int) -> void:
+	if what == NOTIFICATION_RESIZED:
+		queue_redraw()
 
 
 func _ensure_built() -> void:
@@ -33,10 +42,12 @@ func _ensure_built() -> void:
 	custom_minimum_size = bar_min_size
 	clip_contents = true
 
+	## ProgressBars store animated values only; visuals are custom-drawn segments.
 	_ghost = ProgressBar.new()
 	_ghost.name = "GhostBar"
 	_ghost.show_percentage = false
 	_ghost.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	_ghost.modulate = Color(1, 1, 1, 0)
 	_ghost.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
 	add_child(_ghost)
 	move_child(_ghost, 0)
@@ -45,6 +56,7 @@ func _ensure_built() -> void:
 	_main.name = "MainBar"
 	_main.show_percentage = false
 	_main.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	_main.modulate = Color(1, 1, 1, 0)
 	_main.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
 	add_child(_main)
 
@@ -55,7 +67,9 @@ func _ensure_built() -> void:
 		_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 		_label.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
 		_label.add_theme_font_size_override("font_size", 13)
-		_label.add_theme_color_override("font_color", Color.WHITE)
+		_label.add_theme_color_override("font_color", GamePalette.PHOSPHOR_BRIGHT)
+		_label.add_theme_color_override("font_outline_color", GamePalette.BACKGROUND_DARK)
+		_label.add_theme_constant_override("outline_size", 3)
 		_label.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
 		add_child(_label)
 	elif _label != null:
@@ -64,31 +78,41 @@ func _ensure_built() -> void:
 
 func _apply_styles() -> void:
 	_ensure_built()
-	var bg := StyleBoxFlat.new()
-	bg.bg_color = Color("#121212")
-	bg.set_corner_radius_all(2)
-	bg.set_content_margin_all(0)
+	if _label:
+		_label.add_theme_color_override("font_color", GamePalette.PHOSPHOR_BRIGHT)
 
-	var ghost_fill := StyleBoxFlat.new()
-	ghost_fill.bg_color = GamePalette.COLOR_HP_GHOST if GamePalette else Color("#a85a5a")
-	ghost_fill.set_corner_radius_all(2)
-	ghost_fill.set_content_margin_all(0)
 
-	var main_fill := StyleBoxFlat.new()
-	main_fill.bg_color = GamePalette.COLOR_HP_MAIN if GamePalette else Color("#842d2d")
-	main_fill.set_corner_radius_all(2)
-	main_fill.set_content_margin_all(0)
+func _draw() -> void:
+	var rect := Rect2(Vector2.ZERO, size)
+	if rect.size.x <= 1.0 or rect.size.y <= 1.0:
+		return
+	## Outer frame.
+	draw_rect(rect, GamePalette.BACKGROUND_DARK, true)
+	draw_rect(rect, GamePalette.MUTED_GREEN, false, 1.0)
 
-	## Ghost uses opaque bg; main uses transparent bg so ghost shows through.
-	var main_bg := StyleBoxFlat.new()
-	main_bg.bg_color = Color(0, 0, 0, 0)
-	main_bg.set_corner_radius_all(2)
-	main_bg.set_content_margin_all(0)
+	var inner := rect.grow(-2.0)
+	if inner.size.x <= 1.0 or inner.size.y <= 1.0:
+		return
+	var segments := clampi(int(round(inner.size.x / 7.0)), MIN_SEGMENTS, MAX_SEGMENTS)
+	var total_gap := SEGMENT_GAP * float(segments - 1)
+	var seg_w := (inner.size.x - total_gap) / float(segments)
+	var ratio_ghost := 0.0
+	var ratio_main := 0.0
+	if _maximum > 0.0:
+		ratio_ghost = clampf(_ghost.value / _maximum, 0.0, 1.0) if _ghost else 0.0
+		ratio_main = clampf(_main.value / _maximum, 0.0, 1.0) if _main else 0.0
+	var filled_ghost := int(ceil(ratio_ghost * float(segments) - 0.001))
+	var filled_main := int(ceil(ratio_main * float(segments) - 0.001))
 
-	_ghost.add_theme_stylebox_override("background", bg)
-	_ghost.add_theme_stylebox_override("fill", ghost_fill)
-	_main.add_theme_stylebox_override("background", main_bg)
-	_main.add_theme_stylebox_override("fill", main_fill)
+	for i in segments:
+		var x := inner.position.x + float(i) * (seg_w + SEGMENT_GAP)
+		var seg := Rect2(Vector2(x, inner.position.y), Vector2(seg_w, inner.size.y))
+		if i < filled_ghost:
+			draw_rect(seg, GamePalette.COLOR_HP_GHOST, true)
+		else:
+			draw_rect(seg, GamePalette.INACTIVE_ELEMENT, true)
+		if i < filled_main:
+			draw_rect(seg, GamePalette.COLOR_HP_MAIN, true)
 
 
 func set_hp_animated(new_hp: int, max_hp: int, duration: float = MAIN_TWEEN_DURATION) -> void:
@@ -117,27 +141,28 @@ func set_hp(
 		_kill_ghost_tween()
 		_main.value = current
 		_ghost.value = current
+		queue_redraw()
 		return
 
-	## Smooth main fill in both directions.
 	_tween_main_to(current, duration)
 
 	if is_heal or not is_damage:
-		## Heal / init — bring ghost up with the main fill.
 		_kill_ghost_tween()
 		if is_heal:
 			_ghost_tween = create_tween()
 			_ghost_tween.set_trans(Tween.TRANS_SINE)
 			_ghost_tween.set_ease(Tween.EASE_OUT)
 			_ghost_tween.tween_property(_ghost, "value", current, duration)
+			_ghost_tween.tween_callback(queue_redraw)
 		else:
 			_ghost.value = current
+		queue_redraw()
 		return
 
-	## Damage: keep ghost high briefly, then ease down to main.
 	if _ghost.value < previous_main:
 		_ghost.value = previous_main
 	_schedule_ghost_drain()
+	queue_redraw()
 
 
 func snap_hp(current_hp: int, max_hp: int) -> void:
@@ -158,6 +183,7 @@ func _tween_main_to(target: float, duration: float) -> void:
 	_main_tween.tween_property(_main, "value", target, maxf(0.01, duration)).set_trans(
 		Tween.TRANS_SINE
 	).set_ease(Tween.EASE_OUT)
+	_main_tween.parallel().tween_method(func(_v: float) -> void: queue_redraw(), 0.0, 1.0, maxf(0.01, duration))
 
 
 func _schedule_ghost_drain() -> void:
@@ -165,6 +191,7 @@ func _schedule_ghost_drain() -> void:
 	var tree := get_tree()
 	if tree == null:
 		_ghost.value = _current
+		queue_redraw()
 		return
 	_hold_timer = tree.create_timer(GHOST_HOLD)
 	_hold_timer.timeout.connect(_tween_ghost_to_main, CONNECT_ONE_SHOT)
@@ -178,6 +205,9 @@ func _tween_ghost_to_main() -> void:
 	_ghost_tween.set_trans(Tween.TRANS_QUAD)
 	_ghost_tween.set_ease(Tween.EASE_OUT)
 	_ghost_tween.tween_property(_ghost, "value", _current, GHOST_TWEEN_DURATION)
+	_ghost_tween.parallel().tween_method(
+		func(_v: float) -> void: queue_redraw(), 0.0, 1.0, GHOST_TWEEN_DURATION
+	)
 
 
 func _kill_main_tween() -> void:

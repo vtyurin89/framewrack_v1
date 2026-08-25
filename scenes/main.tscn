@@ -44,7 +44,7 @@ anchor_bottom = 1.0
 grow_horizontal = 2
 grow_vertical = 2
 mouse_filter = 2
-color = Color(0.101961, 0.101961, 0.101961, 1)
+color = Color(0.0313726, 0.0509804, 0.0392157, 1)
 
 [node name="RootLayout" type="VBoxContainer" parent="."]
 layout_mode = 1
@@ -213,7 +213,7 @@ custom_minimum_size = Vector2(1, 0)
 layout_mode = 2
 size_flags_vertical = 3
 mouse_filter = 2
-color = Color(0.38, 0.38, 0.42, 1)
+color = Color(0.156863, 0.34902, 0.227451, 1)
 
 [node name="BodyGridPane" type="PanelContainer" parent="RootLayout/Content"]
 unique_name_in_owner = true

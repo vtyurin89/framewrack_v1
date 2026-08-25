@@ -17,7 +17,8 @@ func bind_data(data: MapNodeData) -> void:
 	text = _icon_for_type(node_data.node_type)
 	tooltip_text = _display_name()
 	disabled = node_data.state == MapNodeData.NodeState.LOCKED
-	modulate = _state_color(node_data.state)
+	_apply_crt_chrome()
+	_apply_state_visuals()
 	scale = Vector2.ONE
 	pivot_offset = size * 0.5
 	mouse_default_cursor_shape = Control.CURSOR_POINTING_HAND
@@ -28,7 +29,63 @@ func _ready() -> void:
 	custom_minimum_size = Vector2(56, 56)
 	size = custom_minimum_size
 	pivot_offset = size * 0.5
+	_apply_crt_chrome()
 	pressed.connect(_on_pressed)
+
+
+func _apply_crt_chrome() -> void:
+	## Flat square CRT bezel — no default Godot button chrome.
+	var locked := make_style(GamePalette.PANEL_BG, GamePalette.MUTED_GREEN)
+	var idle := make_style(GamePalette.PANEL_BG_ALT, GamePalette.MUTED_GREEN)
+	var active := make_style(GamePalette.PANEL_BG_ALT, GamePalette.PHOSPHOR_BRIGHT, true)
+	var visited := make_style(GamePalette.PANEL_BG, GamePalette.CRT_TEXT_MAIN)
+	var hover := make_style(GamePalette.PANEL_BG_ALT, GamePalette.PHOSPHOR_ACTIVE, true)
+	add_theme_stylebox_override("normal", idle)
+	add_theme_stylebox_override("hover", hover)
+	add_theme_stylebox_override("pressed", active)
+	add_theme_stylebox_override("disabled", locked)
+	add_theme_stylebox_override("focus", active)
+	## Stash state styles on meta for _apply_state_visuals.
+	set_meta("style_locked", locked)
+	set_meta("style_visited", visited)
+	set_meta("style_available", active)
+	set_meta("style_idle", idle)
+	add_theme_font_size_override("font_size", 22)
+	add_theme_color_override("font_color", GamePalette.CRT_TEXT_MAIN)
+	add_theme_color_override("font_hover_color", GamePalette.PHOSPHOR_ACTIVE)
+	add_theme_color_override("font_pressed_color", GamePalette.PHOSPHOR_BRIGHT)
+	add_theme_color_override("font_disabled_color", GamePalette.MUTED_GREEN)
+
+
+func make_style(bg: Color, border: Color, with_glow: bool = false) -> StyleBoxFlat:
+	return GamePalette.make_panel_stylebox(bg, border, 1, 0, 4.0, with_glow)
+
+
+func _apply_state_visuals() -> void:
+	if node_data == null:
+		return
+	var style: StyleBoxFlat = get_meta("style_idle") as StyleBoxFlat
+	var font_col := GamePalette.CRT_TEXT_MAIN
+	var glow := false
+	match node_data.state:
+		MapNodeData.NodeState.LOCKED:
+			style = get_meta("style_locked") as StyleBoxFlat
+			font_col = GamePalette.MUTED_GREEN
+		MapNodeData.NodeState.VISITED:
+			style = get_meta("style_visited") as StyleBoxFlat
+			font_col = GamePalette.CRT_TEXT_MAIN
+		MapNodeData.NodeState.AVAILABLE:
+			style = get_meta("style_available") as StyleBoxFlat
+			font_col = GamePalette.PHOSPHOR_BRIGHT
+			glow = true
+		_:
+			pass
+	add_theme_stylebox_override("normal", style)
+	add_theme_stylebox_override("disabled", get_meta("style_locked") as StyleBoxFlat)
+	add_theme_color_override("font_color", font_col)
+	add_theme_color_override("font_disabled_color", GamePalette.MUTED_GREEN)
+	GamePalette.apply_phosphor_glow(self, glow)
+	modulate = Color.WHITE
 
 
 func _refresh_pulse() -> void:
@@ -39,7 +96,7 @@ func _refresh_pulse() -> void:
 	if node_data == null or node_data.state != MapNodeData.NodeState.AVAILABLE:
 		return
 	_pulse_tween = create_tween().set_loops()
-	_pulse_tween.tween_property(self, "scale", Vector2(1.08, 1.08), 0.55).set_trans(Tween.TRANS_SINE).set_ease(Tween.EASE_IN_OUT)
+	_pulse_tween.tween_property(self, "scale", Vector2(1.06, 1.06), 0.55).set_trans(Tween.TRANS_SINE).set_ease(Tween.EASE_IN_OUT)
 	_pulse_tween.tween_property(self, "scale", Vector2(1.0, 1.0), 0.55).set_trans(Tween.TRANS_SINE).set_ease(Tween.EASE_IN_OUT)
 
 
@@ -49,40 +106,30 @@ func _on_pressed() -> void:
 	node_pressed.emit(node_data)
 
 
-func _state_color(state: MapNodeData.NodeState) -> Color:
-	match state:
-		MapNodeData.NodeState.LOCKED:
-			return GamePalette.COLOR_MISS
-		MapNodeData.NodeState.VISITED:
-			return GamePalette.COLOR_MAP_NODE_VISITED
-		_:
-			return GamePalette.COLOR_MAP_NODE_AVAILABLE
-
-
 func _icon_for_type(node_type: MapNodeData.MapNodeType) -> String:
 	match node_type:
 		MapNodeData.MapNodeType.INTRO:
-			return "✦"
+			return "+"
 		MapNodeData.MapNodeType.MAIN_STORY:
-			return "📖"
+			return "#"
 		MapNodeData.MapNodeType.COMBAT:
-			return "⚔"
+			return "X"
 		MapNodeData.MapNodeType.EVENT:
 			return "?"
 		MapNodeData.MapNodeType.REPAIR:
-			return "🔧"
+			return "R"
 		MapNodeData.MapNodeType.SHOP:
 			return "$"
 		MapNodeData.MapNodeType.ELITE:
-			return "☠"
+			return "!"
 		MapNodeData.MapNodeType.BOSS:
-			return "👑"
+			return "B"
 		MapNodeData.MapNodeType.STAIRS:
-			return "⬆"
+			return "^"
 		MapNodeData.MapNodeType.REWARD:
-			return "📦"
+			return "*"
 		_:
-			return "•"
+			return "·"
 
 
 func _display_name() -> String:
