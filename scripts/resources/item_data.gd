@@ -54,7 +54,7 @@ const FALLBACK_ICON_PATH := "res://assets/icons/fallback_item.png"
 ## Max activations for the whole combat. -1 or 0 = unlimited.
 @export var uses_per_combat: int = -1
 
-## Combat cooldown in player turns (0 = none). After use, current_cd = cooldown.
+## Combat cooldown in player turns (0 = none). After use, applies a COOLDOWN ItemStatus.
 @export var cooldown: int = 0
 
 ## If true, activating spends a charge (see max_charges / current_charges).
@@ -121,8 +121,8 @@ var current_turn_uses: int = 0
 ## Runtime: uses spent this combat (reset on combat start).
 var current_combat_uses: int = 0
 
-## Runtime: remaining cooldown turns (decremented at player turn start).
-var current_cd: int = 0
+## Runtime statuses (COOLDOWN / OVERLOAD / TAINTED). Append is LIFO for primary display.
+var statuses: Array[ItemStatus] = []
 
 ## Runtime: remaining charges for exhaustable items (-1 = unlimited / not tracked).
 var current_charges: int = -1
@@ -132,6 +132,18 @@ var temp_flat_damage_bonus: int = 0
 var permanent_damage_bonus: int = 0
 
 static var _cached_fallback_icon: Texture2D
+
+## Compat: remaining COOLDOWN turns (0 if none).
+var current_cd: int:
+	get:
+		var s := get_status(ItemStatus.Type.COOLDOWN)
+		return s.remaining_turns if s != null else 0
+	set(value):
+		var turns := maxi(0, value)
+		if turns <= 0:
+			clear_status(ItemStatus.Type.COOLDOWN)
+		else:
+			apply_status(ItemStatus.Type.COOLDOWN, turns)
 
 
 # --- Spec aliases -----------------------------------------------------------
@@ -175,7 +187,7 @@ func initialize_runtime_state() -> void:
 	## Call after duplicating a prototype for a placed / inventory instance.
 	current_turn_uses = 0
 	current_combat_uses = 0
-	current_cd = 0
+	statuses.clear()
 	temp_flat_damage_bonus = 0
 	permanent_damage_bonus = 0
 	if consumable:
@@ -197,18 +209,115 @@ func clear_temporary_combat_bonuses() -> void:
 	temp_flat_damage_bonus = 0
 
 
+func apply_status(
+	status_type: ItemStatus.Type,
+	remaining_turns: int = 1,
+	args: Dictionary = {}
+) -> ItemStatus:
+	## Replace any existing status of the same type, then append (LIFO primary).
+	clear_status(status_type)
+	var status := ItemStatus.new(status_type, maxi(1, remaining_turns), args)
+	statuses.append(status)
+	return status
+
+
+func add_status(status: ItemStatus) -> void:
+	if status == null:
+		return
+	clear_status(status.type)
+	statuses.append(status)
+
+
+func clear_status(status_type: ItemStatus.Type) -> void:
+	var kept: Array[ItemStatus] = []
+	for s: ItemStatus in statuses:
+		if s != null and s.type != status_type:
+			kept.append(s)
+	statuses = kept
+
+
+func get_status(status_type: ItemStatus.Type) -> ItemStatus:
+	## Most recently added status of this type (LIFO scan).
+	for i in range(statuses.size() - 1, -1, -1):
+		var s: ItemStatus = statuses[i]
+		if s != null and s.type == status_type and not s.is_expired():
+			return s
+	return null
+
+
+func has_status(status_type: ItemStatus.Type) -> bool:
+	return get_status(status_type) != null
+
+
+func get_primary_status() -> ItemStatus:
+	## Latest non-expired status drives overlay / primary behavior display.
+	for i in range(statuses.size() - 1, -1, -1):
+		var s: ItemStatus = statuses[i]
+		if s != null and not s.is_expired():
+			return s
+	return null
+
+
+func has_blocking_status() -> bool:
+	for s: ItemStatus in statuses:
+		if s != null and not s.is_expired() and s.blocks_activation():
+			return true
+	return false
+
+
+func get_taint_damage() -> int:
+	var s := get_status(ItemStatus.Type.TAINTED)
+	return s.get_taint_damage() if s != null else 0
+
+
+func tick_statuses() -> void:
+	for s: ItemStatus in statuses:
+		if s != null:
+			s.tick_turn()
+	prune_expired_statuses()
+
+
+func prune_expired_statuses() -> void:
+	var kept: Array[ItemStatus] = []
+	for s: ItemStatus in statuses:
+		if s != null and not s.is_expired():
+			kept.append(s)
+	statuses = kept
+
+
 func tick_cooldown() -> void:
-	if current_cd > 0:
-		current_cd = maxi(0, current_cd - 1)
+	## Legacy alias — ticks all item statuses (end-of-turn pipeline).
+	tick_statuses()
 
 
-func start_cooldown() -> void:
-	if cooldown > 0:
-		current_cd = cooldown
+func start_cooldown(turns: int = -1) -> void:
+	var duration := cooldown if turns < 0 else turns
+	if duration <= 0:
+		return
+	apply_status(ItemStatus.Type.COOLDOWN, duration)
+
+
+func apply_overload(turns: int = 1, args: Dictionary = {}) -> void:
+	var payload := args.duplicate(true)
+	if not payload.has("lightning_icon"):
+		payload["lightning_icon"] = true
+	apply_status(ItemStatus.Type.OVERLOAD, maxi(1, turns), payload)
+
+
+func apply_tainted(turns: int = 1, damage: int = 1) -> void:
+	apply_status(ItemStatus.Type.TAINTED, maxi(1, turns), {"damage": maxi(1, damage)})
 
 
 func is_on_cooldown() -> bool:
-	return current_cd > 0
+	return has_status(ItemStatus.Type.COOLDOWN)
+
+
+func is_overloaded() -> bool:
+	return has_status(ItemStatus.Type.OVERLOAD)
+
+
+func is_tainted() -> bool:
+	return has_status(ItemStatus.Type.TAINTED)
 
 
 func has_unlimited_turn_uses() -> bool:
@@ -220,7 +329,7 @@ func has_unlimited_combat_uses() -> bool:
 
 
 func can_use_this_turn() -> bool:
-	if is_on_cooldown():
+	if has_blocking_status():
 		return false
 	if has_unlimited_turn_uses():
 		return true

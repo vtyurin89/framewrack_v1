@@ -25,6 +25,7 @@ var _panel: Panel
 var _icon: TextureRect
 var _label: Label
 var _cd_label: Label
+var _status_icon: Label
 var _dragging: bool = false
 
 
@@ -99,6 +100,17 @@ func _build_visual() -> void:
 	_cd_label.visible = false
 	add_child(_cd_label)
 
+	_status_icon = Label.new()
+	_status_icon.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	_status_icon.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	_status_icon.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
+	_status_icon.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+	_status_icon.add_theme_font_size_override("font_size", 20)
+	_status_icon.add_theme_color_override("font_outline_color", Color(0, 0, 0, 0.95))
+	_status_icon.add_theme_constant_override("outline_size", 5)
+	_status_icon.visible = false
+	add_child(_status_icon)
+
 	if item != null and item.is_stackable and item.current_stack > 1:
 		var stack := Label.new()
 		stack.text = "×%d" % item.current_stack
@@ -171,18 +183,38 @@ func set_combat_visual(usable: bool) -> void:
 	else:
 		modulate = Color(1, 1, 1, 1)
 	_panel.add_theme_stylebox_override("panel", style)
-	_refresh_cooldown_overlay()
+	_refresh_status_overlay()
+
+
+func _refresh_status_overlay() -> void:
+	## LIFO primary status drives which overlay is shown.
+	if _cd_label == null or _status_icon == null:
+		return
+	_cd_label.visible = false
+	_cd_label.text = ""
+	_status_icon.visible = false
+	_status_icon.text = ""
+	if item == null or not combat_click_mode:
+		return
+	var primary := item.get_primary_status()
+	if primary == null:
+		return
+	match primary.type:
+		ItemStatus.Type.OVERLOAD:
+			_status_icon.text = "⚡"
+			_status_icon.add_theme_color_override("font_color", Color(1.0, 0.92, 0.35, 1))
+			_status_icon.visible = true
+		ItemStatus.Type.COOLDOWN:
+			_cd_label.text = str(primary.remaining_turns)
+			_cd_label.visible = true
+		ItemStatus.Type.TAINTED:
+			_status_icon.text = "☣"
+			_status_icon.add_theme_color_override("font_color", Color(0.72, 0.95, 0.35, 1))
+			_status_icon.visible = true
 
 
 func _refresh_cooldown_overlay() -> void:
-	if _cd_label == null:
-		return
-	var on_cd := item != null and item.is_on_cooldown()
-	_cd_label.visible = on_cd and combat_click_mode
-	if on_cd:
-		_cd_label.text = str(item.current_cd)
-	else:
-		_cd_label.text = ""
+	_refresh_status_overlay()
 
 
 func _gui_input(event: InputEvent) -> void:

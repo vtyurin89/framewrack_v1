@@ -15,9 +15,11 @@ signal forced_insertion_requested(item_id: String)
 signal forced_insertion_completed
 
 const SLIMY_PARASITE_ID := "SLIMY_PARASITE"
+const NEURO_TICK_ID := "NEURO_TICK"
 const PARASITE_TURN_DAMAGE := 3
 const PARASITE_AP_CAP := 3
 const WAR_MODULE_TEMP_DMG := 2
+const TAINTED_DEFAULT_DAMAGE := 1
 
 var inventory: InventoryController
 var player_stats: PlayerStats
@@ -106,6 +108,7 @@ func start_combat(enemy_datas: Array[EnemyData], max_attackers: int = -1) -> voi
 	current_block = 0
 	player_turn_index = 0
 	_reset_all_item_combat_uses()
+	_clear_all_item_statuses()
 	_parasite_at_combat_start = _has_item_in_grid(SLIMY_PARASITE_ID)
 	_select_first_living_enemy()
 	EventBus.combat_started.emit(ids)
@@ -183,7 +186,6 @@ func _reset_player_resources() -> void:
 		current_ap = maxi(0, current_ap)
 	_apply_slimy_parasite_ap_cap()
 	_reset_all_item_turn_uses()
-	_tick_all_item_cooldowns()
 	## Passive spatial armor is previewed as (+N) during the player turn and
 	## committed into real Block at the start of the enemy turn.
 
@@ -279,6 +281,9 @@ func _player_start_turn_phase() -> void:
 		EventBus.player_hp_changed.emit(inventory.current_hp, inventory.max_hp)
 		_request_player_popup(heal_amt, "heal")
 		EventBus.combat_log_message.emit(tr("KEY_LOG_STATUS_HEAL") % heal_amt)
+	## Passive item auras (e.g. NEURO_TICK taints orthogonal neighbours).
+	_apply_item_start_turn_auras()
+	EventBus.combat_item_availability_changed.emit()
 
 
 func _modify_player_healing(amount: int) -> int:
@@ -294,6 +299,7 @@ func _player_post_turn_phase() -> void:
 	## End-of-turn hooks (duration POST_TURN statuses, etc.).
 	player_statuses.tick_post_turn()
 	_clear_temporary_weapon_bonuses()
+	_tick_all_item_statuses()
 	EventBus.inventory_changed.emit()
 
 
@@ -379,11 +385,11 @@ func can_activate_item(placed: PlacedItem) -> bool:
 		return false
 	if current_ap < data.ap_cost:
 		return false
+	if data.has_blocking_status():
+		return false
 	if not data.can_use_this_turn():
 		return false
 	if not data.can_use_this_combat():
-		return false
-	if data.is_on_cooldown():
 		return false
 	if not data.has_charges_remaining():
 		return false
@@ -397,6 +403,8 @@ func activate_item(placed: PlacedItem) -> bool:
 		return false
 
 	var data: ItemData = placed.data
+	var was_tainted := data.is_tainted()
+	var taint_damage := data.get_taint_damage() if was_tainted else 0
 	current_ap -= data.ap_cost
 	data.current_turn_uses += 1
 	data.current_combat_uses += 1
@@ -421,6 +429,8 @@ func activate_item(placed: PlacedItem) -> bool:
 
 	_consume_charge_if_needed(placed)
 	data.start_cooldown()
+	if was_tainted and taint_damage > 0:
+		_apply_tainted_activation_damage(data, taint_damage)
 	EventBus.combat_item_availability_changed.emit()
 
 	if inventory != null and inventory.is_dead():
@@ -444,11 +454,13 @@ func _log_activation_failure(placed: PlacedItem) -> void:
 	elif current_ap < data.ap_cost:
 		EventBus.combat_log_message.emit(tr("KEY_LOG_NOT_ENOUGH_AP"))
 		EventBus.ap_insufficient.emit()
-	elif not data.can_use_this_turn():
-		if data.is_on_cooldown():
-			EventBus.combat_log_message.emit(tr("KEY_LOG_ITEM_COOLDOWN") % data.get_localized_name())
+	elif data.has_blocking_status():
+		if data.is_overloaded():
+			EventBus.combat_log_message.emit(tr("KEY_LOG_ITEM_OVERLOAD") % data.get_localized_name())
 		else:
-			EventBus.combat_log_message.emit(tr("KEY_LOG_NO_USES"))
+			EventBus.combat_log_message.emit(tr("KEY_LOG_ITEM_COOLDOWN") % data.get_localized_name())
+	elif not data.can_use_this_turn():
+		EventBus.combat_log_message.emit(tr("KEY_LOG_NO_USES"))
 	elif not data.can_use_this_combat():
 		EventBus.combat_log_message.emit(tr("KEY_LOG_NO_COMBAT_USES"))
 	elif not data.has_charges_remaining():
@@ -746,6 +758,15 @@ func _reset_all_item_combat_uses() -> void:
 			placed.data.reset_combat_uses()
 
 
+func _clear_all_item_statuses() -> void:
+	if inventory == null or inventory.grid == null:
+		return
+	for placed: PlacedItem in inventory.grid.items:
+		if placed != null and placed.data != null:
+			placed.data.statuses.clear()
+	EventBus.combat_item_availability_changed.emit()
+
+
 func _clear_temporary_weapon_bonuses() -> void:
 	if inventory == null or inventory.grid == null:
 		return
@@ -757,13 +778,83 @@ func _clear_temporary_weapon_bonuses() -> void:
 		placed.data.clear_temporary_combat_bonuses()
 
 
-func _tick_all_item_cooldowns() -> void:
+func _tick_all_item_statuses() -> void:
+	## End-of-turn: tick every ItemStatus on the body grid and prune expired ones.
 	if inventory == null or inventory.grid == null:
 		return
 	for placed: PlacedItem in inventory.grid.items:
-		if placed != null and placed.data != null:
-			placed.data.tick_cooldown()
+		if placed != null:
+			placed.tick_statuses()
 	EventBus.combat_item_availability_changed.emit()
+
+
+func _tick_all_item_cooldowns() -> void:
+	## Legacy alias for end-of-turn item status ticking.
+	_tick_all_item_statuses()
+
+
+func _apply_item_start_turn_auras() -> void:
+	if inventory == null or inventory.grid == null:
+		return
+	var sources: Array[PlacedItem] = []
+	for placed: PlacedItem in inventory.grid.items:
+		if placed == null or placed.data == null:
+			continue
+		if placed.data.id.strip_edges().to_upper() == NEURO_TICK_ID:
+			sources.append(placed)
+	for source: PlacedItem in sources:
+		_apply_neuro_tick_aura(source)
+
+
+func _apply_neuro_tick_aura(source: PlacedItem) -> void:
+	## NEURO_TICK taints orthogonal adjacent modules for 1 turn.
+	if source == null or inventory == null or inventory.grid == null:
+		return
+	for neighbour: PlacedItem in inventory.grid.get_adjacent_items(source):
+		if neighbour == null or neighbour.data == null:
+			continue
+		if neighbour.data.id.strip_edges().to_upper() == NEURO_TICK_ID:
+			continue
+		neighbour.apply_status(
+			ItemStatus.Type.TAINTED,
+			1,
+			{"damage": TAINTED_DEFAULT_DAMAGE}
+		)
+		EventBus.combat_log_message.emit(
+			tr("KEY_LOG_ITEM_TAINTED") % neighbour.data.get_localized_name()
+		)
+
+
+func apply_item_status(
+	placed: PlacedItem,
+	status_type: ItemStatus.Type,
+	remaining_turns: int = 1,
+	args: Dictionary = {}
+) -> void:
+	## Public hook for enemy intents / forced statuses (OVERLOAD, COOLDOWN, …).
+	if placed == null or placed.data == null:
+		return
+	placed.apply_status(status_type, remaining_turns, args)
+	EventBus.combat_item_availability_changed.emit()
+
+
+func apply_overload_to_item(placed: PlacedItem, turns: int = 1) -> void:
+	if placed == null or placed.data == null:
+		return
+	placed.data.apply_overload(turns)
+	EventBus.combat_item_availability_changed.emit()
+
+
+func _apply_tainted_activation_damage(data: ItemData, amount: int) -> void:
+	if inventory == null or amount <= 0:
+		return
+	var dealt := inventory.apply_damage(amount, 0)
+	_request_player_popup(dealt if dealt > 0 else amount, "poison")
+	_trigger_player_hit_feedback(maxi(dealt, amount))
+	EventBus.combat_log_message.emit(
+		tr("KEY_LOG_TAINTED_DAMAGE") % [data.get_localized_name(), amount]
+	)
+	EventBus.player_hp_changed.emit(inventory.current_hp, inventory.max_hp)
 
 
 func _begin_enemy_turn() -> void:
