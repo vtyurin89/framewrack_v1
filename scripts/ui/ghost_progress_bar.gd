@@ -9,7 +9,7 @@ const MAIN_TWEEN_DURATION := 0.4
 const SEGMENT_GAP := 1.0
 const MIN_SEGMENTS := 8
 const MAX_SEGMENTS := 28
-const HACKED_FILL := Color("#0D1511")
+const HACKED_FILL := GamePalette.MUTED_GREEN
 
 @export var bar_min_size: Vector2 = Vector2(170, 20)
 @export var show_label: bool = true
@@ -116,6 +116,10 @@ func _draw() -> void:
 
 func _draw_smooth(inner: Rect2, ratio_ghost: float, ratio_main: float) -> void:
 	## Empty track already PANEL_BG from outer; ghost then solid phosphor fill.
+	if _hacked_visual:
+		## Full opaque plate — hide remaining / lost HP ratio.
+		draw_rect(inner, HACKED_FILL, true)
+		return
 	if ratio_ghost > 0.0:
 		var ghost_w := inner.size.x * ratio_ghost
 		draw_rect(Rect2(inner.position, Vector2(ghost_w, inner.size.y)), GamePalette.COLOR_HP_GHOST, true)
@@ -123,7 +127,7 @@ func _draw_smooth(inner: Rect2, ratio_ghost: float, ratio_main: float) -> void:
 		var main_w := inner.size.x * ratio_main
 		draw_rect(
 			Rect2(inner.position, Vector2(main_w, inner.size.y)),
-			HACKED_FILL if _hacked_visual else GamePalette.PHOSPHOR_ACTIVE,
+			GamePalette.PHOSPHOR_ACTIVE,
 			true
 		)
 
@@ -138,12 +142,16 @@ func _draw_segmented(inner: Rect2, ratio_ghost: float, ratio_main: float) -> voi
 	for i in segments:
 		var x := inner.position.x + float(i) * (seg_w + SEGMENT_GAP)
 		var seg := Rect2(Vector2(x, inner.position.y), Vector2(seg_w, inner.size.y))
+		if _hacked_visual:
+			## Every segment same fill — no readable HP fraction.
+			draw_rect(seg, HACKED_FILL, true)
+			continue
 		if i < filled_ghost:
 			draw_rect(seg, GamePalette.COLOR_HP_GHOST, true)
 		else:
 			draw_rect(seg, GamePalette.INACTIVE_ELEMENT, true)
 		if i < filled_main:
-			draw_rect(seg, HACKED_FILL if _hacked_visual else GamePalette.PHOSPHOR_ACTIVE, true)
+			draw_rect(seg, GamePalette.PHOSPHOR_ACTIVE, true)
 
 
 func set_hacked_visual(active: bool) -> void:
