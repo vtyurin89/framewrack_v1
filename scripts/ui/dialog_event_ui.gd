@@ -18,6 +18,7 @@ const RESULT_FONT_BASE := 13
 const CHOICE_FONT_BASE := 12
 const CHOICE_MIN_HEIGHT_BASE := 36.0
 const END_ENCOUNTER_ID := "end_encounter"
+const STAT_CHECK_ROLL_SCENE := preload("res://scenes/UI/stat_check_roll_modal.tscn")
 
 @onready var _title_label: Label = %TitleLabel
 @onready var _story_badge: Label = %StoryBadge
@@ -38,11 +39,7 @@ var _fade_tween: Tween
 var _is_closing: bool = false
 var _choices_locked: bool = false
 var _pending_select_outcome: DialogOutcomeData
-var _pending_stat_choice: DialogChoiceData
-var _check_boost_ap: int = 0
-var _pending_use_neuro: bool = false
-var _pending_use_synapse: bool = false
-var _pending_use_neuron_amp: bool = false
+var _stat_check_modal: StatCheckRollModal
 
 
 func _ready() -> void:
@@ -311,7 +308,7 @@ func _rebuild_choices(node: DialogNodeData) -> void:
 	for choice: DialogChoiceData in node.choices:
 		if choice == null:
 			continue
-		var btn := _make_choice_button(choice.get_display_text())
+		var btn := _make_choice_button(_choice_button_label(choice))
 		var available := choice.is_available(_get_inventory())
 		btn.disabled = not available
 		if not available:
@@ -319,6 +316,23 @@ func _rebuild_choices(node: DialogNodeData) -> void:
 		var captured := choice
 		btn.pressed.connect(func() -> void: _on_choice_pressed(captured))
 		_choices_box.add_child(btn)
+
+
+func _choice_button_label(choice: DialogChoiceData) -> String:
+	if choice == null:
+		return ""
+	if not choice.has_stat_check():
+		return choice.get_display_text()
+	var effective := maxi(1, _get_stat_for_choice(choice) + choice.stat_pool_bonus)
+	return choice.format_stat_check_label(effective)
+
+
+func _get_stat_for_choice(choice: DialogChoiceData) -> int:
+	if choice == null:
+		return 1
+	if _encounter_manager != null:
+		return _encounter_manager.get_player_stat_value(choice.stat_check)
+	return 1
 
 
 func _make_choice_button(label: String) -> Button:
@@ -349,187 +363,47 @@ func _on_choice_pressed(choice: DialogChoiceData) -> void:
 	if not choice.is_available(_get_inventory()):
 		return
 	if choice.has_stat_check():
-		_begin_stat_check_prepare(choice)
+		_run_stat_check(choice)
 		return
 	_resolve_choice_outcome(choice.success_outcome)
 
 
-func _begin_stat_check_prepare(choice: DialogChoiceData, preserve_boost: bool = false) -> void:
-	_pending_stat_choice = choice
-	if not preserve_boost:
-		_check_boost_ap = 0
-		_pending_use_neuro = false
-		_pending_use_synapse = false
-		_pending_use_neuron_amp = false
-	_clear_choices()
-
-	var guaranteed := (
-		(StatCheckManager != null and StatCheckManager.force_guaranteed_success)
-		or _pending_use_synapse
-	)
+func _run_stat_check(choice: DialogChoiceData) -> void:
+	_choices_locked = true
+	_set_choices_disabled(true)
 	if _result_label:
-		_result_label.visible = true
-		if guaranteed:
-			_result_label.text = tr("KEY_STAT_CHECK_GUARANTEED")
-		elif _check_boost_ap > 0:
-			_result_label.text = "%s  (+%dd6)" % [
-				tr("KEY_STAT_CHECK_PREPARE") % choice.stat_check.to_upper(),
-				_check_boost_ap * 2,
-			]
-		else:
-			_result_label.text = tr("KEY_STAT_CHECK_PREPARE") % choice.stat_check.to_upper()
+		_result_label.visible = false
+		_result_label.text = ""
 
-	var inventory := _get_inventory()
-	if (
-		StatCheckManager != null
-		and not _pending_use_neuro
-		and StatCheckManager.has_neuro_stimulator(inventory)
-	):
-		var neuro_btn := _make_choice_button(tr("KEY_STAT_CHECK_USE_NEURO"))
-		neuro_btn.pressed.connect(_on_use_neuro_for_check)
-		_choices_box.add_child(neuro_btn)
-	if (
-		StatCheckManager != null
-		and not _pending_use_synapse
-		and StatCheckManager.has_synapse_booster(inventory)
-	):
-		var syn_btn := _make_choice_button(tr("KEY_STAT_CHECK_USE_SYNAPSE"))
-		syn_btn.pressed.connect(_on_use_synapse_for_check)
-		_choices_box.add_child(syn_btn)
-	if (
-		StatCheckManager != null
-		and not _pending_use_neuron_amp
-		and StatCheckManager.has_neuron_amplifier(inventory)
-	):
-		_add_neuron_amplifier_choice_button(inventory)
-
-	var roll_label := tr("KEY_STAT_CHECK_ROLL")
-	if guaranteed:
-		roll_label = tr("KEY_STAT_CHECK_GUARANTEED")
-	elif _check_boost_ap > 0:
-		roll_label = "%s (+%dd6)" % [tr("KEY_STAT_CHECK_ROLL"), _check_boost_ap * 2]
-	var roll_btn := _make_choice_button(roll_label)
-	roll_btn.pressed.connect(_on_confirm_stat_check)
-	_choices_box.add_child(roll_btn)
-
-	var cancel_btn := _make_choice_button(tr("KEY_STAT_CHECK_CANCEL"))
-	cancel_btn.pressed.connect(_on_cancel_stat_check)
-	_choices_box.add_child(cancel_btn)
-
-
-func _add_neuron_amplifier_choice_button(inventory: InventoryController) -> void:
-	var cost := 4
-	if inventory != null:
-		cost = inventory.get_neuron_amplifier_hp_cost()
-	var btn := _BbcodeTooltipButton.new()
-	btn.text = tr("KEY_STAT_CHECK_USE_NEURON") % cost
-	btn.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	btn.custom_minimum_size = Vector2(0, float(_choices_box.get_meta("choice_min_h", CHOICE_MIN_HEIGHT_BASE)))
-	btn.add_theme_font_size_override("font_size", int(_choices_box.get_meta("choice_font", CHOICE_FONT_BASE)))
-	btn.mouse_default_cursor_shape = Control.CURSOR_POINTING_HAND
-	btn.alignment = HORIZONTAL_ALIGNMENT_LEFT
-	btn.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
-	btn.clip_text = false
-	var safe := inventory != null and inventory.can_safely_use_neuron_amplifier()
-	if safe:
-		btn.modulate = Color.WHITE
-		btn.tooltip_text = ""
-		btn.set_meta("blocked", false)
-		btn.pressed.connect(_on_use_neuron_amp_for_check)
-	else:
-		## Keep hoverable so the BBCode unsafe tooltip still shows.
-		btn.modulate = Color(0.55, 0.55, 0.55, 1.0)
-		btn.tooltip_text = tr("KEY_NEURON_AMP_UNSAFE")
-		btn.set_meta("blocked", true)
-		btn.pressed.connect(func() -> void: pass)
-	_choices_box.add_child(btn)
-
-
-func _on_use_neuro_for_check() -> void:
-	if _pending_stat_choice == null or StatCheckManager == null:
-		return
-	if not StatCheckManager.has_neuro_stimulator(_get_inventory()):
-		return
-	## Stage consumption until the roll is confirmed (cancel keeps the item).
-	_pending_use_neuro = true
-	_check_boost_ap += StatCheckManager.NEURO_CHECK_AP_VALUE
-	_begin_stat_check_prepare(_pending_stat_choice, true)
-
-
-func _on_use_synapse_for_check() -> void:
-	if _pending_stat_choice == null or StatCheckManager == null:
-		return
-	if not StatCheckManager.has_synapse_booster(_get_inventory()):
-		return
-	_pending_use_synapse = true
-	_begin_stat_check_prepare(_pending_stat_choice, true)
-
-
-func _on_use_neuron_amp_for_check() -> void:
-	if _pending_stat_choice == null or StatCheckManager == null:
-		return
-	var inventory := _get_inventory()
-	if not StatCheckManager.has_neuron_amplifier(inventory):
-		return
-	if inventory == null or not inventory.can_safely_use_neuron_amplifier():
-		return
-	## Stage until roll confirm — cancel keeps HP.
-	_pending_use_neuron_amp = true
-	_check_boost_ap += StatCheckManager.NEURON_CHECK_AP_VALUE
-	_begin_stat_check_prepare(_pending_stat_choice, true)
-
-
-func _on_confirm_stat_check() -> void:
-	var choice := _pending_stat_choice
-	if choice == null:
-		return
-	var inventory := _get_inventory()
-	if _pending_use_neuro and StatCheckManager != null:
-		if StatCheckManager.try_consume_neuro_stimulator(inventory) <= 0:
-			_check_boost_ap = maxi(0, _check_boost_ap - StatCheckManager.NEURO_CHECK_AP_VALUE)
-		_pending_use_neuro = false
-	if _pending_use_synapse and StatCheckManager != null:
-		if not StatCheckManager.try_consume_synapse_booster(inventory):
-			_pending_use_synapse = false
-		else:
-			_pending_use_synapse = false
-	if _pending_use_neuron_amp and StatCheckManager != null:
-		if StatCheckManager.try_use_neuron_amplifier(inventory) <= 0:
-			_check_boost_ap = maxi(0, _check_boost_ap - StatCheckManager.NEURON_CHECK_AP_VALUE)
-		_pending_use_neuron_amp = false
-	_pending_stat_choice = null
 	var required := choice.get_required_successes()
 	var result: StatCheckManager.CheckResult = null
 	if _encounter_manager != null:
 		result = _encounter_manager.resolve_stat_check(
-			choice.stat_check, required, _check_boost_ap, choice.stat_pool_bonus
+			choice.stat_check, required, 0, choice.stat_pool_bonus
 		)
 	elif StatCheckManager != null:
 		var fallback_pool := maxi(1, 1 + choice.stat_pool_bonus)
-		result = StatCheckManager.perform_check(fallback_pool, required, _check_boost_ap)
-	_check_boost_ap = 0
+		result = StatCheckManager.perform_check(fallback_pool, required, 0)
+
+	var modal := _ensure_stat_check_modal()
+	if modal != null and result != null:
+		await modal.present(result)
+	if not is_inside_tree() or _is_closing or _dialog == null:
+		_choices_locked = false
+		return
+
 	var passed := result != null and result.is_success
 	var outcome: DialogOutcomeData = choice.success_outcome if passed else choice.failure_outcome
-	if _result_label:
-		_result_label.visible = true
-		if result != null and result.is_guaranteed:
-			_result_label.text = tr("KEY_STAT_CHECK_GUARANTEED")
-		else:
-			_result_label.text = (
-				tr("KEY_STAT_CHECK_SUCCESS") if passed else tr("KEY_STAT_CHECK_FAILURE")
-			)
+	_choices_locked = false
 	_resolve_choice_outcome(outcome)
 
 
-func _on_cancel_stat_check() -> void:
-	_pending_stat_choice = null
-	_check_boost_ap = 0
-	_pending_use_neuro = false
-	_pending_use_synapse = false
-	_pending_use_neuron_amp = false
-	if _dialog == null:
-		return
-	_show_node(_current_node_id)
+func _ensure_stat_check_modal() -> StatCheckRollModal:
+	if _stat_check_modal != null and is_instance_valid(_stat_check_modal):
+		return _stat_check_modal
+	_stat_check_modal = STAT_CHECK_ROLL_SCENE.instantiate() as StatCheckRollModal
+	_stat_check_modal.name = "StatCheckRollModal"
+	return _stat_check_modal
 
 
 func _get_inventory() -> InventoryController:
@@ -696,28 +570,3 @@ func _on_language_changed(_locale: String = "") -> void:
 	if _dialog == null or not visible:
 		return
 	_show_node(_current_node_id)
-
-
-## Choice button that can render BBCode tooltips (unsafe Neuron Amplifier warning).
-class _BbcodeTooltipButton extends Button:
-	func _make_custom_tooltip(for_text: String) -> Object:
-		if for_text.is_empty():
-			return null
-		var tip := RichTextLabel.new()
-		tip.bbcode_enabled = true
-		tip.fit_content = true
-		tip.scroll_active = false
-		tip.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
-		tip.custom_minimum_size = Vector2(240, 0)
-		tip.text = for_text
-		tip.add_theme_font_size_override("normal_font_size", 12)
-		tip.add_theme_color_override("default_color", GamePalette.CRT_TEXT_MAIN)
-		var panel := PanelContainer.new()
-		panel.add_theme_stylebox_override(
-			"panel",
-			GamePalette.make_panel_stylebox(
-				GamePalette.PANEL_BG, GamePalette.MUTED_GREEN, 1, 0, 8.0, false
-			)
-		)
-		panel.add_child(tip)
-		return panel

@@ -20,8 +20,8 @@
 					"next_dialog_id": "trade_intro"
 				},
 				{
-					"text_en": "[Bargain — Intelligence check] \"Your prices are clearly inflated.\"",
-					"text_ru": "[Поторговаться — проверка интеллекта] «Твои цены явно завышены».",
+					"text_en": "[Bargain] \"Your prices are clearly inflated.\"",
+					"text_ru": "[Поторговаться] «Твои цены явно завышены».",
 					"text_key": "KEY_MERCHANT_CHOICE_BARGAIN",
 					"next_dialog_id": "bargain_prep"
 				},
@@ -54,8 +54,8 @@
 			"speech_text_ru": "О! Дайте-ка проверю ваш статус в программе лояльности... — (голограмма листает несуществующий список)",
 			"choices": [
 				{
-					"text_en": "[Intelligence check] Continue",
-					"text_ru": "[Проверка интеллекта] Продолжить",
+					"text_en": "Continue",
+					"text_ru": "Продолжить",
 					"text_key": "KEY_MERCHANT_CHOICE_BARGAIN_ROLL",
 					"stat_check": "INT",
 					"check_dc": 1,

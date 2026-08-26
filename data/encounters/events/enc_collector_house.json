@@ -35,8 +35,8 @@
 				},
 				{
 					"text_key": "EVENT_ENC_COLLECTOR_HOUSE_CHOICE_INT",
-					"text_en": "[INT Check] Inspect the room for a way to claim both rewards",
-					"text_ru": "[Проверка ИНТ] Осмотреться внимательно и попытаться забрать оба трофея",
+					"text_en": "Look around closely and attempt to grab both rewards",
+					"text_ru": "Осмотреться внимательно и попытаться забрать оба трофея",
 					"stat_check": "INT",
 					"check_dc": 1,
 					"success_next_dialog_id": "int_ok",

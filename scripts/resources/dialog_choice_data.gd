@@ -36,6 +36,53 @@ func get_required_successes() -> int:
 	return maxi(1, check_dc)
 
 
+func get_stat_tag() -> String:
+	return stat_check.strip_edges().to_upper()
+
+
+## effective_stat already includes pool bonus; drives dice count preview.
+func format_stat_check_label(effective_stat: int) -> String:
+	var tag := get_stat_tag()
+	var action := _strip_stat_check_prefix(get_display_text())
+	var dice := 1
+	if StatCheckManager != null:
+		dice = StatCheckManager.preview_dice_count(maxi(1, effective_stat))
+	else:
+		dice = maxi(1, effective_stat)
+	var need := get_required_successes()
+	var need_key := (
+		"KEY_STAT_CHECK_NEED_ONE" if need == 1 else "KEY_STAT_CHECK_NEED_MANY"
+	)
+	var need_str := tr(need_key) % need
+	return tr("KEY_STAT_CHECK_CHOICE_FMT") % [tag, action, tag, dice, need_str]
+
+
+func _strip_stat_check_prefix(raw: String) -> String:
+	var t := raw.strip_edges()
+	var re := RegEx.new()
+	## [STR Check], [INT check], [Проверка СИЛ], [Bargain — …], [Intelligence check]
+	var patterns: PackedStringArray = [
+		"^\\[[A-Za-z]{2,4}\\s*[Cc]heck\\]\\s*",
+		"^\\[Проверка\\s+[^\\]]+\\]\\s*",
+		"^\\[Bargain[^\\]]*\\]\\s*",
+		"^\\[Поторговаться[^\\]]*\\]\\s*",
+		"^\\[Intelligence check\\]\\s*",
+		"^\\[Проверка интеллекта\\]\\s*",
+	]
+	for pattern in patterns:
+		if re.compile(pattern) != OK:
+			continue
+		var m := re.search(t)
+		if m != null and m.get_start() == 0:
+			t = t.substr(m.get_end()).strip_edges()
+			break
+	if re.compile("\\s*\\((INT|STR|AGI|END|LCK|HUM|ИНТ|СИЛ|ЛОВ|ВЫН|УДЧ|ЧЕЛ)\\)\\s*$") == OK:
+		var trail := re.search(t)
+		if trail != null:
+			t = t.substr(0, trail.get_start()).strip_edges()
+	return t if not t.is_empty() else raw.strip_edges()
+
+
 func is_available(inventory: InventoryController = null) -> bool:
 	if require_chips > 0:
 		var chips := 0

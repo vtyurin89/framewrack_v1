@@ -325,8 +325,12 @@ func resolve_stat_check(
 	consumed_ap: int = 0,
 	pool_bonus: int = 0
 ) -> StatCheckManager.CheckResult:
-	var stat_value := maxi(1, _get_player_stat(stat_name) + pool_bonus)
+	var stat_value := maxi(1, get_player_stat_value(stat_name) + pool_bonus)
 	return StatCheckManager.perform_check(stat_value, required_successes, consumed_ap)
+
+
+func get_player_stat_value(stat_name: String) -> int:
+	return _get_player_stat(stat_name)
 
 
 func _launch_by_type(data: EncounterData) -> void:

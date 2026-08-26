@@ -492,6 +492,11 @@ KEY_STATUS_SHOP_OPEN,"EVERYMART is open — drag items into your Body Grid to bu
 KEY_STATUS_STAIRS,Stairs to the next sector.,Лестница в следующий сектор.
 KEY_STAT_CHECK_SUCCESS,Check passed.,Проверка пройдена.
 KEY_STAT_CHECK_FAILURE,Check failed.,Проверка провалена.
+KEY_STAT_CHECK_BANNER_SUCCESS,Success,Успех
+KEY_STAT_CHECK_BANNER_FAILURE,Failure,Провал
+KEY_STAT_CHECK_CHOICE_FMT,"[%s check] %s (%s: %dd6 | %s)","[%s проверка] %s (%s: %dd6 | %s)"
+KEY_STAT_CHECK_NEED_ONE,%d Success,%d успех
+KEY_STAT_CHECK_NEED_MANY,%d Successes,%d успехов
 KEY_STAT_CHECK_GUARANTEED,[100% GUARANTEED SUCCESS],[100% ГАРАНТИРОВАННЫЙ УСПЕХ]
 KEY_STAT_CHECK_USE_NEURO,Use Neuro-Stimulator (+4d6),Использовать нейро-стимулятор (+4d6)
 KEY_STAT_CHECK_USE_SYNAPSE,Use Synapse Booster (100% success),Использовать синапс-бустер (100% успех)
@@ -529,8 +534,8 @@ EVENT_RAIM_GREAT_ASCENT_TITLE,The Great Ascent,Великий подъём
 EVENT_RAIM_HOLLOW_WINDOWS_TITLE,Hollow Windows,Пустые окна
 EVENT_ENC_CREMATORIUM_TITLE,Biomaterial Reception Point,Пункт приёма биоматериала
 EVENT_ENC_CREMATORIUM_CHOICE_PAY,[Pay 100 Neuro-Chips] Cover the woman,[Заплатить 100 нейро-чипов] Оплатить за женщину
-EVENT_ENC_CREMATORIUM_CHOICE_INT,[INT Check] Point out a protocol error,[Проверка ИНТ] Указать на ошибку протокола
-EVENT_ENC_CREMATORIUM_CHOICE_STR,[STR Check] Smash the control panel,[Проверка СИЛ] Разбить панель управления
+EVENT_ENC_CREMATORIUM_CHOICE_INT,Point out a protocol error,Указать на ошибку протокола
+EVENT_ENC_CREMATORIUM_CHOICE_STR,Smash the control panel,Разбить панель управления
 EVENT_ENC_CREMATORIUM_CHOICE_VIP,[Fake VIP Card] Override the system,[Поддельная VIP-карта] Переопределить систему
 EVENT_ENC_CREMATORIUM_CHOICE_SELL,[Sell END] Stand in line and sell part of yourself,[Продать ВЫН] Встать в очередь и продать часть себя
 EVENT_ENC_CREMATORIUM_CHOICE_LEAVE,[Leave] Walk past,[Уйти] Пройти мимо
@@ -539,7 +544,7 @@ EVENT_ENC_CREMATORIUM_TAKE_SALVAGE,Take the salvage,Забрать добычу
 EVENT_ENC_COLLECTOR_HOUSE_TITLE,Collector's House,Дом коллекционера
 EVENT_ENC_COLLECTOR_HOUSE_CHOICE_WEAPON,Take experimental weapon,Взять экспериментальное оружие
 EVENT_ENC_COLLECTOR_HOUSE_CHOICE_MODULE,Take rare module,Взять редкий модуль
-EVENT_ENC_COLLECTOR_HOUSE_CHOICE_INT,[INT Check] Look around closely and attempt to grab both rewards,[Проверка ИНТ] Осмотреться внимательно и попытаться забрать оба
+EVENT_ENC_COLLECTOR_HOUSE_CHOICE_INT,Look around closely and attempt to grab both rewards,Осмотреться внимательно и попытаться забрать оба
 EVENT_ENC_COLLECTOR_HOUSE_CONTINUE,Continue,Продолжить
 EVENT_ENC_COLLECTOR_HOUSE_TAKE_BOTH,Take both rewards,Забрать оба трофея
 EVENT_ENC_COLLECTOR_HOUSE_FIGHT,Defend yourself,Защищаться
@@ -691,8 +696,8 @@ KEY_MAP_LEGEND_PATH_TRAVELED,TRAVELED PATH,ПРОЙДЕННЫЙ ПУТЬ
 KEY_MERCHANT_TITLE,EVERYMART / Bonnie,EVERYMART / Бонни
 KEY_MERCHANT_CHOICE_TRADE,"[Start trade] ""Show me what you've got.""","[Начать торговлю] «Покажи, что у тебя есть»."
 KEY_MERCHANT_CHOICE_TRADE_GOOD_MOOD,"[Start trade] ""I won't say no.""","[Начать торговлю] «Не откажусь»."
-KEY_MERCHANT_CHOICE_BARGAIN,"[Bargain — Intelligence check] ""Your prices are clearly inflated.""","[Поторговаться — проверка интеллекта] «Твои цены явно завышены»."
-KEY_MERCHANT_CHOICE_BARGAIN_ROLL,"[Intelligence check] Continue","[Проверка интеллекта] Продолжить"
+KEY_MERCHANT_CHOICE_BARGAIN,"[Bargain] ""Your prices are clearly inflated.""","[Поторговаться] «Твои цены явно завышены»."
+KEY_MERCHANT_CHOICE_BARGAIN_ROLL,Continue,Продолжить
 KEY_MERCHANT_CHOICE_LEAVE,"[Leave] ""I don't need this.""","[Уйти] «Мне это не нужно»."
 KEY_MERCHANT_CHOICE_LEAVE_CONTINUE,…,…
 KEY_MERCHANT_CHOICE_OPEN_SHOP,Start trade,Начать торговлю

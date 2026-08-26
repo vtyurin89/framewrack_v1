@@ -42,6 +42,7 @@ func open_for_item(item: ItemData, global_pos: Vector2, in_combat: bool = false)
 	allow_out_of_combat_use = not in_combat
 	_refresh_labels()
 	_refresh_use_button()
+	_fit_to_contents()
 	visible = true
 	_open = true
 	set_process_unhandled_input(true)
@@ -51,6 +52,7 @@ func open_for_item(item: ItemData, global_pos: Vector2, in_combat: bool = false)
 		await tree.process_frame
 	if not is_instance_valid(self) or not _open:
 		return
+	_fit_to_contents()
 	_clamp_to_viewport()
 
 
@@ -62,6 +64,14 @@ func close() -> void:
 	visible = false
 	set_process_unhandled_input(false)
 	closed.emit()
+
+
+func _fit_to_contents() -> void:
+	## Hidden rows (e.g. Apply in combat) must not leave blank panel height.
+	reset_size()
+	var min_sz := get_combined_minimum_size()
+	custom_minimum_size = min_sz
+	size = min_sz
 
 
 func _on_language_changed(_locale: String) -> void:
@@ -87,7 +97,11 @@ func _refresh_use_button() -> void:
 		and not _item.is_quest_item()
 	)
 	_use_btn.visible = show_use and allow_out_of_combat_use
-	if not _use_btn.visible:
+	## Drop min-size while hidden so VBox / panel don't keep a blank row.
+	if _use_btn.visible:
+		_use_btn.custom_minimum_size = Vector2(MENU_MIN_WIDTH, 28)
+	else:
+		_use_btn.custom_minimum_size = Vector2.ZERO
 		_use_btn.disabled = true
 		_use_btn.modulate = Color.WHITE
 		_use_btn.tooltip_text = ""
@@ -144,17 +158,32 @@ func _build() -> void:
 	_use_btn = _ContextUseButton.new()
 	_use_btn.custom_minimum_size = Vector2(MENU_MIN_WIDTH, 28)
 	_use_btn.alignment = HORIZONTAL_ALIGNMENT_LEFT
+	_use_btn.focus_mode = Control.FOCUS_NONE
 	_use_btn.pressed.connect(_on_use_pressed)
 	_use_btn.text = tr("KEY_APPLY_ITEM")
 	_use_btn.visible = false
+	_style_menu_button(_use_btn)
 	vbox.add_child(_use_btn)
 
 	_inspect_btn = Button.new()
 	_inspect_btn.custom_minimum_size = Vector2(MENU_MIN_WIDTH, 28)
 	_inspect_btn.alignment = HORIZONTAL_ALIGNMENT_LEFT
+	_inspect_btn.focus_mode = Control.FOCUS_NONE
 	_inspect_btn.pressed.connect(_on_inspect_pressed)
 	_inspect_btn.text = tr("KEY_INSPECT")
+	_style_menu_button(_inspect_btn)
 	vbox.add_child(_inspect_btn)
+
+
+func _style_menu_button(btn: Button) -> void:
+	if btn == null:
+		return
+	btn.flat = true
+	btn.add_theme_font_size_override("font_size", 13)
+	btn.add_theme_color_override("font_color", GamePalette.CRT_TEXT_MAIN)
+	btn.add_theme_color_override("font_hover_color", GamePalette.PHOSPHOR_BRIGHT)
+	btn.add_theme_color_override("font_pressed_color", GamePalette.PHOSPHOR_ACTIVE)
+	btn.add_theme_color_override("font_disabled_color", GamePalette.MUTED_GREEN)
 
 
 func _on_inspect_pressed() -> void:

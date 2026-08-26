@@ -28,16 +28,18 @@ func perform_check(
 	var result := CheckResult.new()
 	result.ap_bonus_applied = maxi(0, consumed_ap)
 
+	var total_dice := maxi(1, stat_value + (result.ap_bonus_applied * 2))
+	result.dice_rolled = total_dice
+
 	if force_guaranteed_success:
 		result.is_success = true
 		result.is_guaranteed = true
-		result.successes_count = maxi(1, required_successes)
+		result.successes_count = total_dice
+		for _i in total_dice:
+			result.rolls.append(6)
 		if not guaranteed_success_locked:
 			force_guaranteed_success = false
 		return result
-
-	var total_dice := maxi(1, stat_value + (result.ap_bonus_applied * 2))
-	result.dice_rolled = total_dice
 
 	for _i in total_dice:
 		var roll := randi_range(1, 6)

@@ -22,8 +22,8 @@
 				},
 				{
 					"text_key": "EVENT_ENC_CREMATORIUM_CHOICE_INT",
-					"text_en": "[INT Check] Point out a protocol error",
-					"text_ru": "[Проверка ИНТ] Указать на ошибку протокола",
+					"text_en": "Point out a protocol error",
+					"text_ru": "Указать на ошибку протокола",
 					"stat_check": "INT",
 					"check_dc": 1,
 					"success_next_dialog_id": "int_ok",
@@ -38,8 +38,8 @@
 				},
 				{
 					"text_key": "EVENT_ENC_CREMATORIUM_CHOICE_STR",
-					"text_en": "[STR Check] Smash the control panel",
-					"text_ru": "[Проверка СИЛ] Разбить панель управления",
+					"text_en": "Smash the control panel",
+					"text_ru": "Разбить панель управления",
 					"stat_check": "STR",
 					"check_dc": 1,
 					"success_next_dialog_id": "str_ok",
