@@ -396,9 +396,11 @@ func _launch_by_type(data: EncounterData) -> void:
 			_finish_encounter(_pending_rewards)
 
 
-func get_encounter_for_node(node_layer: int, is_elite: bool = false) -> EnemyGroup:
+func get_encounter_for_node(
+	node_layer: int, is_elite: bool = false, faction: String = ""
+) -> EnemyGroup:
 	## Public API: hand-crafted group pick for map combat nodes.
-	return EnemyManager.get_encounter_for_node(node_layer, is_elite)
+	return EnemyManager.get_encounter_for_node(node_layer, is_elite, faction)
 
 
 func _start_combat_from_encounter(data: EncounterData) -> void:
@@ -409,7 +411,7 @@ func _start_combat_from_encounter(data: EncounterData) -> void:
 	var group: EnemyGroup = null
 	## Prefer an authored group when the encounter has no fixed enemy_ids.
 	if ids.is_empty() and data.type != EncounterData.EncounterType.COMBAT_BOSS:
-		group = get_encounter_for_node(layer, is_elite)
+		group = get_encounter_for_node(layer, is_elite, faction)
 		if group != null:
 			data.payload["enemy_group_id"] = group.group_id
 			data.payload["max_attackers_per_turn"] = group.max_attackers_per_turn
@@ -462,7 +464,10 @@ func _start_combat_from_ids(
 			## Last-resort group pick when payload lacked layer / ids.
 			var layer := int(active_encounter.payload.get("layer", 1))
 			var is_elite := active_encounter.type == EncounterData.EncounterType.COMBAT_ELITE
-			var fallback := get_encounter_for_node(layer, is_elite)
+			var fallback_faction := faction.strip_edges()
+			if fallback_faction.is_empty():
+				fallback_faction = str(active_encounter.payload.get("faction", ""))
+			var fallback := get_encounter_for_node(layer, is_elite, fallback_faction)
 			if fallback != null:
 				group = fallback
 				datas = fallback.resolve_enemy_datas()

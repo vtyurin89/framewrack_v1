@@ -1,6 +1,6 @@
 class_name EnemyManager
 extends RefCounted
-## Registry for hand-crafted EnemyGroup packs (human Act 1+).
+## Registry for hand-crafted EnemyGroup packs, filtered by act faction + layer.
 ## Enemy blueprints still resolve through EnemyDatabase (CSV).
 
 const GROUPS_DIR := "res://data/enemy_groups/"
@@ -18,12 +18,25 @@ const HUMAN_CORE_IDS: Array[String] = [
 	"scrapper_tank",
 ]
 
+const SYNTHET_CORE_IDS: Array[String] = [
+	"arbiter_guard",
+	"grenadier_drone",
+	"warden",
+	"corrupted_synthet",
+	"scrap_drone",
+	"synthet_overseer",
+]
+
 static var _groups_cache: Array[EnemyGroup] = []
 static var _groups_loaded: bool = false
 
 
 static func get_registered_human_ids() -> Array[String]:
 	return HUMAN_CORE_IDS.duplicate()
+
+
+static func get_registered_synthet_ids() -> Array[String]:
+	return SYNTHET_CORE_IDS.duplicate()
 
 
 static func is_summon_only(enemy_id: String) -> bool:
@@ -47,28 +60,50 @@ static func get_group_by_id(group_id: String) -> EnemyGroup:
 	return null
 
 
-static func get_encounter_for_node(node_layer: int, is_elite: bool) -> EnemyGroup:
+static func get_encounter_for_node(
+	node_layer: int, is_elite: bool, faction: String = ""
+) -> EnemyGroup:
 	## Starter layers 1–2: starter groups only. Layer 3+: mid packs. Elite: elite packs.
 	## Soft fallbacks never promote mid/elite packs onto starter layers.
+	## Faction keeps Act 1 human packs out of Act 2 synthet maps (and vice versa).
 	_ensure_groups_loaded()
 	var layer := maxi(node_layer, 0)
-	var pool: Array[EnemyGroup] = _build_pool(layer, is_elite)
+	var resolved := _normalize_faction(faction)
+	var pool: Array[EnemyGroup] = _build_pool(layer, is_elite, resolved)
 
 	if pool.is_empty():
-		pool = _build_fallback_pool(layer, is_elite)
+		pool = _build_fallback_pool(layer, is_elite, resolved)
+	if pool.is_empty() and resolved == "chimera":
+		## No chimera packs yet — reuse Act 2 synthet robots, never Act 1 humans.
+		pool = _build_pool(layer, is_elite, "synthet")
+		if pool.is_empty():
+			pool = _build_fallback_pool(layer, is_elite, "synthet")
 	if pool.is_empty():
 		push_warning(
-			"EnemyManager: no EnemyGroup for layer=%d elite=%s" % [layer, str(is_elite)]
+			"EnemyManager: no EnemyGroup for layer=%d elite=%s faction=%s"
+			% [layer, str(is_elite), resolved]
 		)
 		return null
 	return pool[randi() % pool.size()]
 
 
-static func _build_pool(layer: int, is_elite: bool) -> Array[EnemyGroup]:
+static func _normalize_faction(faction: String) -> String:
+	var f := faction.strip_edges().to_lower()
+	if f == "robot":
+		return "synthet"
+	## Missing payload faction → Act 1 human packs (never mix all factions).
+	if f.is_empty():
+		return "human"
+	return f
+
+
+static func _build_pool(layer: int, is_elite: bool, faction: String) -> Array[EnemyGroup]:
 	var pool: Array[EnemyGroup] = []
 	if is_elite:
 		for group: EnemyGroup in _groups_cache:
 			if group == null or not group.is_elite:
+				continue
+			if not group.matches_faction(faction):
 				continue
 			if group.matches_layer(layer):
 				pool.append(group)
@@ -78,6 +113,8 @@ static func _build_pool(layer: int, is_elite: bool) -> Array[EnemyGroup]:
 		for group: EnemyGroup in _groups_cache:
 			if group == null or not group.is_starter_group or group.is_elite:
 				continue
+			if not group.matches_faction(faction):
+				continue
 			if group.matches_layer(layer):
 				pool.append(group)
 		return pool
@@ -85,17 +122,23 @@ static func _build_pool(layer: int, is_elite: bool) -> Array[EnemyGroup]:
 	for group: EnemyGroup in _groups_cache:
 		if group == null or group.is_starter_group or group.is_elite:
 			continue
+		if not group.matches_faction(faction):
+			continue
 		if group.matches_layer(layer):
 			pool.append(group)
 	return pool
 
 
-static func _build_fallback_pool(layer: int, is_elite: bool) -> Array[EnemyGroup]:
+static func _build_fallback_pool(
+	layer: int, is_elite: bool, faction: String
+) -> Array[EnemyGroup]:
 	var pool: Array[EnemyGroup] = []
 	if is_elite:
-		## Any elite pack; prefer ones that match a nearby deeper layer.
+		## Any elite pack of this faction; prefer ones that match a nearby deeper layer.
 		for group: EnemyGroup in _groups_cache:
 			if group == null or not group.is_elite:
+				continue
+			if not group.matches_faction(faction):
 				continue
 			if group.matches_layer(maxi(layer, group.min_layer)):
 				pool.append(group)
@@ -104,13 +147,18 @@ static func _build_fallback_pool(layer: int, is_elite: bool) -> Array[EnemyGroup
 	if layer <= STARTER_LAYER_MAX:
 		## Starter layers must stay on starter packs even if layer tags mismatch.
 		for group: EnemyGroup in _groups_cache:
-			if group != null and group.is_starter_group and not group.is_elite:
-				pool.append(group)
+			if group == null or not group.is_starter_group or group.is_elite:
+				continue
+			if not group.matches_faction(faction):
+				continue
+			pool.append(group)
 		return pool
 
-	## Mid layers: any non-elite non-starter pack.
+	## Mid layers: any non-elite non-starter pack of this faction.
 	for group: EnemyGroup in _groups_cache:
 		if group == null or group.is_starter_group or group.is_elite:
+			continue
+		if not group.matches_faction(faction):
 			continue
 		pool.append(group)
 	return pool

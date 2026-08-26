@@ -8,6 +8,8 @@ extends Resource
 @export var enemy_ids: Array[String] = []
 ## Optional embedded EnemyData (id is enough; resolved via EnemyDatabase at spawn).
 @export var enemies: Array[EnemyData] = []
+## Act primary_faction gate: human (Act 1), synthet (Act 2+), chimera (Act 3).
+@export var faction: String = "human"
 @export var min_layer: int = 1
 @export var max_layer: int = 99
 @export var is_starter_group: bool = false
@@ -18,6 +20,22 @@ extends Resource
 
 func matches_layer(layer: int) -> bool:
 	return layer >= min_layer and layer <= max_layer
+
+
+func get_faction() -> String:
+	var f := faction.strip_edges().to_lower()
+	if f == "robot":
+		return "synthet"
+	return f if not f.is_empty() else "human"
+
+
+func matches_faction(wanted: String) -> bool:
+	var w := wanted.strip_edges().to_lower()
+	if w.is_empty():
+		return true
+	if w == "robot":
+		w = "synthet"
+	return get_faction() == w
 
 
 func resolve_enemy_datas() -> Array[EnemyData]:

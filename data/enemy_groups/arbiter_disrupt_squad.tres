@@ -1,0 +1,15 @@
+[gd_resource type="Resource" script_class="EnemyGroup" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://scripts/resources/enemy_group.gd" id="1"]
+
+[resource]
+script = ExtResource("1")
+group_id = "arbiter_disrupt_squad"
+group_name = "Arbiter Disrupt Squad"
+enemy_ids = Array[String](["arbiter_guard", "grenadier_drone"])
+faction = "synthet"
+min_layer = 3
+max_layer = 99
+is_starter_group = false
+is_elite = false
+max_attackers_per_turn = 2
