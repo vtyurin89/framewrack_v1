@@ -16,6 +16,7 @@ var _dragging: bool = false
 var _last_mouse_y: float = 0.0
 var _target_y: float = 0.0
 var _focus_tween: Tween
+var _canvas_height: float = MapGenerator.CANVAS_HEIGHT
 
 
 func _ready() -> void:
@@ -24,21 +25,33 @@ func _ready() -> void:
 	_map_canvas.node_pressed.connect(func(node: MapNodeData) -> void: node_pressed.emit(node))
 	_placeholder_dialog.confirmed.connect(_on_placeholder_continue)
 	resized.connect(_center_canvas_x)
+	resized.connect(_update_scroll_bounds)
 	call_deferred("_center_canvas_x")
 
 
 func set_map_data(data: MapData) -> void:
+	_canvas_height = data.canvas_height if data != null and data.canvas_height > 0.0 else MapGenerator.CANVAS_HEIGHT
+	_map_canvas.custom_minimum_size = Vector2(MapGenerator.CANVAS_WIDTH, _canvas_height)
+	_map_canvas.size = Vector2(MapGenerator.CANVAS_WIDTH, _canvas_height)
 	_map_canvas.set_map_data(data)
+	_update_scroll_bounds()
 	_center_canvas_x()
 	_target_y = _map_canvas.position.y
 
 
 func focus_layer(layer: int) -> void:
 	## Bottom-up layout: higher layers sit higher on the canvas (smaller Y).
-	var focus_y := MapGenerator.CANVAS_HEIGHT - MapGenerator.BOTTOM_PADDING - float(layer) * MapGenerator.Y_SPACING
+	var focus_y := _canvas_height - MapGenerator.BOTTOM_PADDING - float(layer) * MapGenerator.Y_SPACING
 	var target := size.y * 0.55 - focus_y
 	_target_y = clampf(target, canvas_min_y, canvas_max_y)
 	_play_focus_scroll()
+
+
+func _update_scroll_bounds() -> void:
+	if _map_canvas == null:
+		return
+	canvas_max_y = 120.0
+	canvas_min_y = minf(-1900.0, size.y - _canvas_height - 80.0)
 
 
 func _play_focus_scroll() -> void:

@@ -1,4 +1,4 @@
-id,act_index,title_key,map_depth,boss_encounter_id,encounter_pools,event_pools,primary_faction,normal_threat_budget,elite_threat_budget
-act_1,1,ACT_1_TITLE,15,enc_act1_boss,enc_pool_act1,event_pool_act1,human,18,32
-act_2,2,ACT_2_TITLE,18,enc_act2_boss,enc_pool_act2,event_pool_act2,synthet,22,38
-act_3,3,ACT_3_TITLE,20,enc_act3_boss,enc_pool_act3,event_pool_act3,chimera,26,44
+id,act_index,title_key,location_key,map_depth,boss_encounter_id,encounter_pools,event_pools,primary_faction,normal_threat_budget,elite_threat_budget
+act_1,1,ACT_1_TITLE,ACT_1_LOCATION,15,enc_act1_boss,enc_pool_act1,event_pool_act1,human,18,32
+act_2,2,ACT_2_TITLE,ACT_2_LOCATION,18,enc_act2_boss,enc_pool_act2,event_pool_act2,synthet,22,38
+act_3,3,ACT_3_TITLE,ACT_3_LOCATION,20,enc_act3_boss,enc_pool_act3,event_pool_act3,chimera,26,44

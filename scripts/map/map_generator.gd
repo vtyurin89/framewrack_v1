@@ -4,10 +4,11 @@ extends RefCounted
 ## Nodes occupy absolute column indices; connections are limited to adjacent lanes.
 
 const CANVAS_WIDTH := 1000.0
-const CANVAS_HEIGHT := 2500.0
+const CANVAS_HEIGHT := 2500.0  ## Fallback when canvas_height is unset on MapData.
 const X_SPACING := 150.0
 const Y_SPACING := 220.0
 const BOTTOM_PADDING := 220.0
+const TOP_PADDING := 120.0
 
 ## Absolute lane columns: 0 .. MAX_COLUMNS-1
 const MAX_COLUMNS := 6
@@ -89,8 +90,14 @@ static func generate_for_act(act_data: ActData) -> MapData:
 	out.nodes[stairs.id] = stairs
 	finale.next_nodes.append(stairs.id)
 
-	_layout_positions(out)
+	out.canvas_height = canvas_height_for_layers(total_layers)
+	_layout_positions(out, total_layers)
 	return out
+
+
+static func canvas_height_for_layers(layer_count: int) -> float:
+	var max_layer := maxi(0, layer_count - 1)
+	return BOTTOM_PADDING + float(max_layer) * Y_SPACING + TOP_PADDING
 
 
 static func _density_phase(layer: int, boss_layer: int) -> String:
@@ -308,17 +315,17 @@ static func _add_edge(from_node: MapNodeData, to_node: MapNodeData) -> void:
 		from_node.next_nodes.append(to_node.id)
 
 
-static func _layout_positions(map_data: MapData) -> void:
+static func _layout_positions(map_data: MapData, layer_count: int) -> void:
 	## Absolute column layout keeps lanes visually parallel (no per-layer reindexing).
 	const MIN_NODE_SEPARATION := 72.0
 	const JITTER_X := 20.0
 	const JITTER_Y := 15.0
+	var canvas_height := canvas_height_for_layers(layer_count)
 	var origin_x := CANVAS_WIDTH * 0.5 - float(MAX_COLUMNS - 1) * X_SPACING * 0.5
 
 	var by_layer: Dictionary = {}
 	for node: MapNodeData in map_data.get_all_nodes():
-		var y := CANVAS_HEIGHT - BOTTOM_PADDING - float(node.layer) * Y_SPACING
-		y = maxf(y, 80.0)
+		var y := canvas_height - BOTTOM_PADDING - float(node.layer) * Y_SPACING
 		node.position = Vector2(origin_x + float(node.grid_x) * X_SPACING, y)
 		if not by_layer.has(node.layer):
 			by_layer[node.layer] = []

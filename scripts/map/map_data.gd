@@ -3,6 +3,7 @@ extends Resource
 
 @export var nodes: Dictionary = {}
 @export var current_node_id: String = ""
+@export var canvas_height: float = 2500.0
 
 
 func get_node(node_id: String) -> MapNodeData:

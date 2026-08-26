@@ -5,6 +5,7 @@ extends Resource
 @export var id: String = ""
 @export var act_index: int = 1
 @export var title_key: String = ""  ## Localization key (e.g. ACT_1_TITLE)
+@export var location_key: String = ""  ## Localization key for map sidebar (e.g. ACT_1_LOCATION)
 @export var map_depth: int = 15
 @export var boss_encounter_id: String = ""
 @export var encounter_pools: Array[String] = []
@@ -23,6 +24,12 @@ func get_localized_title() -> String:
 	if not title_key.is_empty():
 		return tr(title_key)
 	return "Act %d" % act_index
+
+
+func get_localized_location() -> String:
+	if not location_key.is_empty():
+		return tr(location_key)
+	return get_localized_title()
 
 
 func get_map_layer_count() -> int:

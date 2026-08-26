@@ -6,6 +6,7 @@ signal node_chosen(node_id: String)
 var map_manager: Node
 var _cached_map_data: MapData
 
+@onready var _sidebar: MapSidebar = %Sidebar
 @onready var _scroll_map: ScrollMapContainer = %ScrollMap
 
 
@@ -36,11 +37,21 @@ func refresh() -> void:
 	if map_manager.has_method("get_map_data"):
 		_cached_map_data = map_manager.get_map_data() as MapData
 	_scroll_map.set_map_data(_cached_map_data)
+	_update_sidebar()
 
 
 func set_map_data(data: MapData) -> void:
 	_cached_map_data = data
 	_scroll_map.set_map_data(_cached_map_data)
+
+
+func _update_sidebar() -> void:
+	if _sidebar == null:
+		return
+	var act: ActData = map_manager.get("current_act") as ActData if map_manager != null else null
+	if act != null:
+		_sidebar.set_act_location(act.get_localized_location())
+	_sidebar.refresh_translations()
 
 
 func _on_node_pressed(node_data: MapNodeData) -> void:

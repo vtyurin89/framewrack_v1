@@ -60,7 +60,7 @@ KEY_MUTATE_CELLS,Mutate (+cells),Мутация (+клетки)
 KEY_LANGUAGE,Language,Язык
 KEY_HIDE_DEBUG_TOOLS,Hide Debug Tools,Скрыть debug-инструменты
 KEY_DEBUG_LEVEL_UP,Level Up (Debug),Уровень +1 (Debug)
-KEY_LEVEL_UP,Level Up,Уровень вверх
+KEY_LEVEL_UP,Level Up,Новый уровень
 KEY_TARGET,Target,Цель
 KEY_MODULES,Modules,Модули
 KEY_PASSIVE,PASSIVE,ПАССИВ
@@ -674,6 +674,13 @@ KEY_ACT_ANNOUNCE_CHAPTER,Chapter %d,Глава %d
 ACT_1_TITLE,"Ra'im, the City of Men","Ра'им, город людей"
 ACT_2_TITLE,"Kairit, the Machine Megastructure","Кайрит, мегаструктура машин"
 ACT_3_TITLE,"Skin of the World, the Chimera Hive","Кожа мира, улей химер"
+ACT_1_LOCATION,THE CITY OF RA'IM,ГОРОД РА'ИМ
+ACT_2_LOCATION,KAIRIT,КАЙРИТ
+ACT_3_LOCATION,SKIN OF THE WORLD,КОЖА МИРА
+KEY_MAP_LEGEND,MAP LEGEND,ЛЕГЕНДА КАРТЫ
+KEY_MAP_LEGEND_PATH_AVAILABLE,AVAILABLE PATH,ДОСТУПНЫЙ ПУТЬ
+KEY_MAP_LEGEND_PATH_LOCKED,LOCKED PATH,ЗАБЛОКИРОВАННЫЙ ПУТЬ
+KEY_MAP_LEGEND_PATH_TRAVELED,TRAVELED PATH,ПРОЙДЕННЫЙ ПУТЬ
 KEY_MERCHANT_TITLE,EVERYMART / Bonnie,EVERYMART / Бонни
 KEY_MERCHANT_CHOICE_TRADE,"[Start trade] ""Show me what you've got.""","[Начать торговлю] «Покажи, что у тебя есть»."
 KEY_MERCHANT_CHOICE_TRADE_GOOD_MOOD,"[Start trade] ""I won't say no.""","[Начать торговлю] «Не откажусь»."

@@ -81,6 +81,7 @@ func _row_to_act(row: PackedStringArray, header: Dictionary) -> ActData:
 	act.id = _cell(row, header, "id")
 	act.act_index = maxi(1, _parse_int(_cell(row, header, "act_index"), 1))
 	act.title_key = _cell(row, header, "title_key")
+	act.location_key = _cell(row, header, "location_key")
 	act.map_depth = maxi(5, _parse_int(_cell(row, header, "map_depth"), 15))
 	act.boss_encounter_id = _cell(row, header, "boss_encounter_id")
 	act.encounter_pools = _parse_string_list(_cell(row, header, "encounter_pools"))
