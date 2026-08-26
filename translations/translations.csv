@@ -60,7 +60,13 @@ KEY_MUTATE_CELLS,Mutate (+cells),Мутация (+клетки)
 KEY_LANGUAGE,Language,Язык
 KEY_HIDE_DEBUG_TOOLS,Hide Debug Tools,Скрыть debug-инструменты
 KEY_DEBUG_CELL_DAMAGE,Cell Damage (Debug),Урон по ячейке (Debug)
-KEY_DEBUG_HACK,Hack (Debug),Hack (Debug)
+KEY_DEBUG_STATUS,Status (Debug),Статус (Debug)
+KEY_DEBUG_STATUS_TITLE,Apply Player Status,Наложить статус на игрока
+KEY_DEBUG_ITEMS,Items (Debug),Предметы (Debug)
+KEY_DEBUG_ITEMS_TITLE,Item Catalog,Каталог предметов
+KEY_DEBUG_ITEMS_HINT,Drag an item onto the Body Grid.,Перетащите предмет в сетку тела.
+KEY_DEBUG_ACT,Act (Debug),Акт (Debug)
+KEY_DEBUG_ACT_TITLE,Jump to Act,Перейти к акту
 KEY_LEVEL_UP,Level Up,Новый уровень
 KEY_TARGET,Target,Цель
 KEY_MODULES,Modules,Модули

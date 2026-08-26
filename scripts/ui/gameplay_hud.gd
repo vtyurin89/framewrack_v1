@@ -5,10 +5,15 @@ extends HBoxContainer
 signal menu_pressed
 signal body_grid_pressed
 signal combat_log_pressed
+signal debug_inventory_requested
+signal debug_act_jump_requested(act_index: int)
 
 const HEART_ICON := preload("res://assets/icons/ui/heart.png")
 const GEAR_ICON := preload("res://assets/icons/ui/gear.png")
 const CHIP_ICON := preload("res://assets/icons/ui/neuro_chip.png")
+const STATUS_MODAL_SCENE := preload("res://scenes/UI/debug_status_modal.tscn")
+const ITEMS_MODAL_SCENE := preload("res://scenes/UI/debug_items_modal.tscn")
+const ACT_MODAL_SCENE := preload("res://scenes/UI/debug_act_modal.tscn")
 
 @onready var _hp_label: Label = %HpLabel
 @onready var _heart_icon: TextureRect = %HeartIcon
@@ -17,7 +22,9 @@ const CHIP_ICON := preload("res://assets/icons/ui/neuro_chip.png")
 @onready var _btn_body: Button = %ToggleInventoryButton
 @onready var _btn_combat_log: Button = %CombatLogButton
 @onready var _btn_debug_cell_damage: Button = %DebugCellDamageButton
-@onready var _btn_debug_hack: Button = %DebugHackButton
+@onready var _btn_debug_status: Button = %DebugStatusButton
+@onready var _btn_debug_items: Button = %DebugItemsButton
+@onready var _btn_debug_act: Button = %DebugActButton
 @onready var _btn_menu: Button = %MenuButton
 @onready var _level_label: Label = %LevelLabel
 @onready var _xp_bar: ProgressBar = %XPBar
@@ -25,10 +32,14 @@ const CHIP_ICON := preload("res://assets/icons/ui/neuro_chip.png")
 var _player_stats: PlayerStats
 var _combat: Node
 var _inventory: InventoryController
+var _inventory_ui: Control
 var _chips_initialized: bool = false
 var _last_hp: int = 0
 var _last_max_hp: int = 0
 var _bound_statuses: StatusController
+var _status_modal: DebugStatusModal
+var _items_modal: DebugItemsModal
+var _act_modal: DebugActModal
 
 
 func _ready() -> void:
@@ -63,16 +74,10 @@ func _ready() -> void:
 		_btn_combat_log.pressed.connect(func() -> void: combat_log_pressed.emit())
 		GamePalette.apply_button_theme(_btn_combat_log, 13)
 	# TODO: удалить на продакшене
-	if _btn_debug_cell_damage:
-		_btn_debug_cell_damage.add_to_group("debug_ui")
-		_btn_debug_cell_damage.pressed.connect(_on_debug_cell_damage_pressed)
-		_btn_debug_cell_damage.visible = not GameSettings.hide_debug_tools
-		_apply_debug_button_theme(_btn_debug_cell_damage)
-	if _btn_debug_hack:
-		_btn_debug_hack.add_to_group("debug_ui")
-		_btn_debug_hack.pressed.connect(_on_debug_hack_pressed)
-		_btn_debug_hack.visible = not GameSettings.hide_debug_tools
-		_apply_debug_button_theme(_btn_debug_hack)
+	_wire_debug_button(_btn_debug_cell_damage, _on_debug_cell_damage_pressed)
+	_wire_debug_button(_btn_debug_status, _on_debug_status_pressed)
+	_wire_debug_button(_btn_debug_items, _on_debug_items_pressed)
+	_wire_debug_button(_btn_debug_act, _on_debug_act_pressed)
 	if _btn_menu:
 		_btn_menu.pressed.connect(func() -> void: menu_pressed.emit())
 		_btn_menu.mouse_default_cursor_shape = Control.CURSOR_POINTING_HAND
@@ -128,6 +133,10 @@ func _on_combat_started_for_hud(_enemy_ids: Array) -> void:
 
 func _on_combat_ended_for_hud(_victory: bool) -> void:
 	_refresh_hp_label()
+
+
+func bind_inventory_ui(ui: Control) -> void:
+	_inventory_ui = ui
 
 
 func bind_inventory(inventory: InventoryController) -> void:
@@ -247,8 +256,12 @@ func _apply_locale(_locale: String = "") -> void:
 		_btn_menu.tooltip_text = tr("KEY_MENU")
 	if _btn_debug_cell_damage:
 		_btn_debug_cell_damage.text = tr("KEY_DEBUG_CELL_DAMAGE").to_upper()
-	if _btn_debug_hack:
-		_btn_debug_hack.text = tr("KEY_DEBUG_HACK").to_upper()
+	if _btn_debug_status:
+		_btn_debug_status.text = tr("KEY_DEBUG_STATUS").to_upper()
+	if _btn_debug_items:
+		_btn_debug_items.text = tr("KEY_DEBUG_ITEMS").to_upper()
+	if _btn_debug_act:
+		_btn_debug_act.text = tr("KEY_DEBUG_ACT").to_upper()
 	if _chip_label:
 		_chip_label.tooltip_text = tr("KEY_NEURO_CHIPS")
 	if _chip_icon:
@@ -313,17 +326,67 @@ func _refresh_level_xp() -> void:
 	)
 
 
+func _wire_debug_button(btn: Button, handler: Callable) -> void:
+	if btn == null:
+		return
+	btn.add_to_group("debug_ui")
+	btn.pressed.connect(handler)
+	btn.visible = not GameSettings.hide_debug_tools
+	_apply_debug_button_theme(btn)
+
+
 func _on_debug_cell_damage_pressed() -> void:
 	if _combat == null or not _combat.has_method("apply_cell_damage"):
 		return
 	_combat.call("apply_cell_damage", Vector2i(-1, -1), ItemStatus.Type.OVERLOAD, 2)
 
 
-func _on_debug_hack_pressed() -> void:
-	if _combat == null or not _combat.has_method("apply_player_status"):
+func _on_debug_status_pressed() -> void:
+	_ensure_status_modal()
+	if _status_modal:
+		_status_modal.open_for_combat(_combat)
+		_unbind_player_statuses()
+		_bind_player_statuses()
+		_refresh_hp_label()
+
+
+func _on_debug_items_pressed() -> void:
+	_ensure_items_modal()
+	if _items_modal:
+		_items_modal.open_catalog(_inventory_ui)
+
+
+func _on_debug_act_pressed() -> void:
+	_ensure_act_modal()
+	if _act_modal:
+		_act_modal.open_picker()
+
+
+func _ensure_status_modal() -> void:
+	if _status_modal != null and is_instance_valid(_status_modal):
 		return
-	_combat.call("apply_player_status", "hacked", 2)
-	## StatusController may have been created just now — (re)bind and refresh HUD.
+	_status_modal = STATUS_MODAL_SCENE.instantiate() as DebugStatusModal
+	_status_modal.status_applied.connect(_on_debug_status_applied)
+	UiOverlayLayer.mount(_status_modal, self)
+
+
+func _on_debug_status_applied() -> void:
 	_unbind_player_statuses()
 	_bind_player_statuses()
 	_refresh_hp_label()
+
+
+func _ensure_items_modal() -> void:
+	if _items_modal != null and is_instance_valid(_items_modal):
+		return
+	_items_modal = ITEMS_MODAL_SCENE.instantiate() as DebugItemsModal
+	_items_modal.inventory_open_requested.connect(func() -> void: debug_inventory_requested.emit())
+	UiOverlayLayer.mount(_items_modal, self)
+
+
+func _ensure_act_modal() -> void:
+	if _act_modal != null and is_instance_valid(_act_modal):
+		return
+	_act_modal = ACT_MODAL_SCENE.instantiate() as DebugActModal
+	_act_modal.act_selected.connect(func(act_index: int) -> void: debug_act_jump_requested.emit(act_index))
+	UiOverlayLayer.mount(_act_modal, self)

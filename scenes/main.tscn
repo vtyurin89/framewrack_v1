@@ -158,11 +158,23 @@ layout_mode = 2
 size_flags_vertical = 4
 text = "Cell Damage (Debug)"
 
-[node name="DebugHackButton" type="Button" parent="RootLayout/TopBar"]
+[node name="DebugStatusButton" type="Button" parent="RootLayout/TopBar"]
 unique_name_in_owner = true
 layout_mode = 2
 size_flags_vertical = 4
-text = "Hack (Debug)"
+text = "Status (Debug)"
+
+[node name="DebugItemsButton" type="Button" parent="RootLayout/TopBar"]
+unique_name_in_owner = true
+layout_mode = 2
+size_flags_vertical = 4
+text = "Items (Debug)"
+
+[node name="DebugActButton" type="Button" parent="RootLayout/TopBar"]
+unique_name_in_owner = true
+layout_mode = 2
+size_flags_vertical = 4
+text = "Act (Debug)"
 
 [node name="MenuButton" type="Button" parent="RootLayout/TopBar"]
 unique_name_in_owner = true

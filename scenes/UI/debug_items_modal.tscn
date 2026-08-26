@@ -1,0 +1,11 @@
+[gd_scene load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://scripts/ui/debug_items_modal.gd" id="1"]
+
+[node name="DebugItemsModal" type="Control"]
+layout_mode = 3
+anchors_preset = 0
+offset_right = 360.0
+offset_bottom = 640.0
+mouse_filter = 0
+script = ExtResource("1")

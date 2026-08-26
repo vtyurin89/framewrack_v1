@@ -36,6 +36,21 @@ func setup(encounter_manager: EncounterManager) -> void:
 		_encounter_manager.encounter_completed.connect(_on_encounter_completed)
 
 
+func debug_jump_to_act(act_index: int) -> void:
+	## Abort any in-progress node and regenerate the map at the start of `act_index`.
+	var target := clampi(act_index, 1, _get_max_act_index())
+	_pending_node_id = ""
+	_waiting_placeholder = false
+	if _encounter_manager != null and _encounter_manager.has_method("abort_active_encounter"):
+		_encounter_manager.abort_active_encounter()
+	current_act_index = target
+	current_act = _resolve_act(current_act_index)
+	current_map_data = MapGenerator.generate_for_act(current_act)
+	_set_state(RunState.ACT_INTRO)
+	map_changed.emit(current_map_data)
+	_start_act_intro()
+
+
 func start_new_run() -> void:
 	current_act_index = 1
 	current_act = _resolve_act(current_act_index)

@@ -739,6 +739,33 @@ func commit_external_drop() -> void:
 	_drop_committed = true
 
 
+func begin_debug_item_drag(item: ItemData) -> Dictionary:
+	## Like begin_reward_space_drag, but allowed during combat (debug catalog grants).
+	if level_up_mode or _level_up_busy:
+		return {}
+	if inventory == null or item == null:
+		return {}
+	if not _drag.is_empty():
+		return {}
+	_hide_hover_tooltip()
+	_close_context_menu()
+	_suppress_refresh = true
+	_drop_committed = false
+	_hover_origin = Vector2i(-1, -1)
+	_drag = {
+		"type": DRAG_TYPE,
+		"item": item,
+		"footprint": item.size,
+		"original_size": item.size,
+		"source": "space",
+		"original_origin": Vector2i(-1, -1),
+		"preview": null,
+	}
+	_set_item_uis_pass_through(true)
+	item_drag_started.emit(item, "space")
+	return _drag
+
+
 func begin_reward_space_drag(item: ItemData) -> Dictionary:
 	if combat_click_mode or level_up_mode or _level_up_busy:
 		return {}

@@ -133,7 +133,10 @@ func _ready() -> void:
 		_gameplay_hud.combat_log_pressed.connect(_on_combat_log_pressed)
 		_gameplay_hud.bind_player_stats(player_stats)
 		_gameplay_hud.bind_inventory(inventory)
+		_gameplay_hud.bind_inventory_ui(_inventory_ui)
 		_gameplay_hud.bind_combat(_combat)
+		_gameplay_hud.debug_inventory_requested.connect(_on_debug_inventory_requested)
+		_gameplay_hud.debug_act_jump_requested.connect(_on_debug_act_jump_requested)
 
 	LocalizationManager.language_changed.connect(_on_language_changed)
 
@@ -585,6 +588,7 @@ func _reset_run_to_startup() -> void:
 	if _gameplay_hud:
 		_gameplay_hud.bind_player_stats(player_stats)
 		_gameplay_hud.bind_inventory(inventory)
+		_gameplay_hud.bind_inventory_ui(_inventory_ui)
 		_gameplay_hud.bind_combat(_combat)
 	if _inventory_ui.has_method("set_combat_mode"):
 		_inventory_ui.set_combat_mode(false)
@@ -730,6 +734,35 @@ func _expand_grid_demo() -> void:
 	inventory.grid.expand_by_adjacent_cells(BodyGrid.LEVEL_UP_CELL_GAIN)
 	_status_banner.text = tr("KEY_STATUS_MUTATED")
 	_inventory_ui.refresh()
+
+
+func _on_debug_inventory_requested() -> void:
+	## Items debug catalog needs the Body Grid visible for drops.
+	if _inventory_combat_docked:
+		return
+	if _body_grid_overlay != null and not _body_grid_overlay.visible:
+		_toggle_inventory()
+	if _inventory_ui != null:
+		_inventory_ui.refresh()
+
+
+func _on_debug_act_jump_requested(act_index: int) -> void:
+	## Finish / abort any live event UI, then regenerate the chosen act from its intro.
+	if _combat != null and _combat.has_method("abort_combat"):
+		_combat.abort_combat()
+	_abort_active_encounter_on_run_end()
+	if _reward_screen != null and is_instance_valid(_reward_screen) and _reward_screen.is_active():
+		_reward_screen.close_session()
+	if _forced_item_screen != null and is_instance_valid(_forced_item_screen) and _forced_item_screen.is_active():
+		## Force-close without completing insertion mid-debug jump.
+		if _forced_item_screen.has_method("close_session"):
+			_forced_item_screen.close_session()
+	_forced_insertion_active = false
+	_encounter_combat_active = false
+	_last_announced_act_index = -1
+	_show_exploring()
+	if _run_flow != null and _run_flow.has_method("debug_jump_to_act"):
+		_run_flow.debug_jump_to_act(act_index)
 
 
 func _on_node_chosen(node_id: String) -> void:
