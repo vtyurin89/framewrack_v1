@@ -158,6 +158,12 @@ layout_mode = 2
 size_flags_vertical = 4
 text = "Cell Damage (Debug)"
 
+[node name="DebugHackButton" type="Button" parent="RootLayout/TopBar"]
+unique_name_in_owner = true
+layout_mode = 2
+size_flags_vertical = 4
+text = "Hack (Debug)"
+
 [node name="MenuButton" type="Button" parent="RootLayout/TopBar"]
 unique_name_in_owner = true
 custom_minimum_size = Vector2(36, 32)

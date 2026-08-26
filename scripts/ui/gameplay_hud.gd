@@ -17,13 +17,18 @@ const CHIP_ICON := preload("res://assets/icons/ui/neuro_chip.png")
 @onready var _btn_body: Button = %ToggleInventoryButton
 @onready var _btn_combat_log: Button = %CombatLogButton
 @onready var _btn_debug_cell_damage: Button = %DebugCellDamageButton
+@onready var _btn_debug_hack: Button = %DebugHackButton
 @onready var _btn_menu: Button = %MenuButton
 @onready var _level_label: Label = %LevelLabel
 @onready var _xp_bar: ProgressBar = %XPBar
 
 var _player_stats: PlayerStats
 var _combat: Node
+var _inventory: InventoryController
 var _chips_initialized: bool = false
+var _last_hp: int = 0
+var _last_max_hp: int = 0
+var _bound_statuses: StatusController
 
 
 func _ready() -> void:
@@ -63,6 +68,11 @@ func _ready() -> void:
 		_btn_debug_cell_damage.pressed.connect(_on_debug_cell_damage_pressed)
 		_btn_debug_cell_damage.visible = not GameSettings.hide_debug_tools
 		_apply_debug_button_theme(_btn_debug_cell_damage)
+	if _btn_debug_hack:
+		_btn_debug_hack.add_to_group("debug_ui")
+		_btn_debug_hack.pressed.connect(_on_debug_hack_pressed)
+		_btn_debug_hack.visible = not GameSettings.hide_debug_tools
+		_apply_debug_button_theme(_btn_debug_hack)
 	if _btn_menu:
 		_btn_menu.pressed.connect(func() -> void: menu_pressed.emit())
 		_btn_menu.mouse_default_cursor_shape = Control.CURSOR_POINTING_HAND
@@ -99,16 +109,75 @@ func bind_player_stats(stats: PlayerStats) -> void:
 
 
 func bind_combat(combat: Node) -> void:
+	_unbind_player_statuses()
 	_combat = combat
+	_bind_player_statuses()
+	if not EventBus.combat_started.is_connected(_on_combat_started_for_hud):
+		EventBus.combat_started.connect(_on_combat_started_for_hud)
+	if not EventBus.combat_ended.is_connected(_on_combat_ended_for_hud):
+		EventBus.combat_ended.connect(_on_combat_ended_for_hud)
+	_refresh_hp_label()
+
+
+func _on_combat_started_for_hud(_enemy_ids: Array) -> void:
+	## player_statuses may be created/replaced at combat start.
+	_unbind_player_statuses()
+	_bind_player_statuses()
+	_refresh_hp_label()
+
+
+func _on_combat_ended_for_hud(_victory: bool) -> void:
+	_refresh_hp_label()
 
 
 func bind_inventory(inventory: InventoryController) -> void:
+	_inventory = inventory
 	if inventory == null:
 		_on_hp_changed(0, 0)
 		return
 	_on_hp_changed(inventory.current_hp, inventory.max_hp)
 	if GameManager != null:
 		_on_chips_changed(GameManager.get_chips())
+
+
+func _bind_player_statuses() -> void:
+	if _combat == null:
+		return
+	var statuses = _combat.get("player_statuses")
+	if statuses == null or not (statuses is StatusController):
+		return
+	_bound_statuses = statuses as StatusController
+	if not _bound_statuses.statuses_updated.is_connected(_on_player_statuses_updated):
+		_bound_statuses.statuses_updated.connect(_on_player_statuses_updated)
+
+
+func _unbind_player_statuses() -> void:
+	if _bound_statuses != null and is_instance_valid(_bound_statuses):
+		if _bound_statuses.statuses_updated.is_connected(_on_player_statuses_updated):
+			_bound_statuses.statuses_updated.disconnect(_on_player_statuses_updated)
+	_bound_statuses = null
+
+
+func _on_player_statuses_updated(_active_statuses: Array) -> void:
+	_refresh_hp_label()
+
+
+func _is_player_hacked() -> bool:
+	if _combat == null:
+		return false
+	var statuses = _combat.get("player_statuses")
+	if statuses == null:
+		return false
+	return statuses.has_method("has_status") and bool(statuses.has_status("hacked"))
+
+
+func _refresh_hp_label() -> void:
+	if _hp_label == null:
+		return
+	if _is_player_hacked():
+		_hp_label.text = "?/?"
+	else:
+		_hp_label.text = "%d/%d" % [maxi(_last_hp, 0), maxi(_last_max_hp, 0)]
 
 
 func _configure_menu_button() -> void:
@@ -178,6 +247,8 @@ func _apply_locale(_locale: String = "") -> void:
 		_btn_menu.tooltip_text = tr("KEY_MENU")
 	if _btn_debug_cell_damage:
 		_btn_debug_cell_damage.text = tr("KEY_DEBUG_CELL_DAMAGE").to_upper()
+	if _btn_debug_hack:
+		_btn_debug_hack.text = tr("KEY_DEBUG_HACK").to_upper()
 	if _chip_label:
 		_chip_label.tooltip_text = tr("KEY_NEURO_CHIPS")
 	if _chip_icon:
@@ -186,9 +257,9 @@ func _apply_locale(_locale: String = "") -> void:
 
 
 func _on_hp_changed(current: int, maximum: int) -> void:
-	if _hp_label == null:
-		return
-	_hp_label.text = "%d/%d" % [maxi(current, 0), maxi(maximum, 0)]
+	_last_hp = maxi(current, 0)
+	_last_max_hp = maxi(maximum, 0)
+	_refresh_hp_label()
 
 
 func _on_chips_changed(amount: int) -> void:
@@ -246,3 +317,13 @@ func _on_debug_cell_damage_pressed() -> void:
 	if _combat == null or not _combat.has_method("apply_cell_damage"):
 		return
 	_combat.call("apply_cell_damage", Vector2i(-1, -1), ItemStatus.Type.OVERLOAD, 2)
+
+
+func _on_debug_hack_pressed() -> void:
+	if _combat == null or not _combat.has_method("apply_player_status"):
+		return
+	_combat.call("apply_player_status", "hacked", 2)
+	## StatusController may have been created just now — (re)bind and refresh HUD.
+	_unbind_player_statuses()
+	_bind_player_statuses()
+	_refresh_hp_label()

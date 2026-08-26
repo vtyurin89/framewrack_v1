@@ -60,6 +60,7 @@ KEY_MUTATE_CELLS,Mutate (+cells),Мутация (+клетки)
 KEY_LANGUAGE,Language,Язык
 KEY_HIDE_DEBUG_TOOLS,Hide Debug Tools,Скрыть debug-инструменты
 KEY_DEBUG_CELL_DAMAGE,Cell Damage (Debug),Урон по ячейке (Debug)
+KEY_DEBUG_HACK,Hack (Debug),Hack (Debug)
 KEY_LEVEL_UP,Level Up,Новый уровень
 KEY_TARGET,Target,Цель
 KEY_MODULES,Modules,Модули

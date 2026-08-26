@@ -713,7 +713,9 @@ func _on_block_changed(amount: int) -> void:
 func _refresh_block_passive_hint(animated: bool = true) -> void:
 	if _block_passive_label == null:
 		return
-	if not _passive_preview_visible:
+	## Enemy turn hides preview (passive already folded into Block).
+	## Reward / chest layout still needs live feedback for helmets & greaves.
+	if not _passive_preview_visible and not _reward_phase:
 		_block_passive_label.set_value_instant(0)
 		_last_passive_armor = 0
 		return
@@ -1095,8 +1097,13 @@ func set_reward_phase(active: bool, hint_key: String = "KEY_REWARD_SELECT_UP_TO_
 	_reward_phase = active
 	if active:
 		_harmful_insertion_phase = false
+		## Combat usually ends on an enemy turn (preview hidden). Re-show (+N) so
+		## helmet / greaves placement updates the passive armor readout live.
+		_passive_preview_visible = true
 	_notify_victory_rewards_phase(active)
 	_apply_space_stage_layout(active, tr(hint_key))
+	if active:
+		_refresh_block_passive_hint(false)
 
 
 func set_chest_phase(active: bool, hint_key: String = "KEY_CHEST_HINT") -> void:
@@ -1104,10 +1111,13 @@ func set_chest_phase(active: bool, hint_key: String = "KEY_CHEST_HINT") -> void:
 	_reward_phase = active
 	if active:
 		_harmful_insertion_phase = false
+		_passive_preview_visible = true
 	_notify_victory_rewards_phase(active)
 	_apply_space_stage_layout(active, tr(hint_key))
 	if _continue_btn and active:
 		_continue_btn.disabled = false
+	if active:
+		_refresh_block_passive_hint(false)
 
 
 func set_harmful_insertion_phase(active: bool, banner_text: String = "") -> void:
