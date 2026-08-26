@@ -14,6 +14,7 @@ const CHIP_ICON := preload("res://assets/icons/ui/neuro_chip.png")
 const STATUS_MODAL_SCENE := preload("res://scenes/UI/debug_status_modal.tscn")
 const ITEMS_MODAL_SCENE := preload("res://scenes/UI/debug_items_modal.tscn")
 const ACT_MODAL_SCENE := preload("res://scenes/UI/debug_act_modal.tscn")
+const STAT_CHECK_ROLL_SCENE := preload("res://scenes/UI/stat_check_roll_modal.tscn")
 
 @onready var _hp_label: Label = %HpLabel
 @onready var _heart_icon: TextureRect = %HeartIcon
@@ -25,6 +26,7 @@ const ACT_MODAL_SCENE := preload("res://scenes/UI/debug_act_modal.tscn")
 @onready var _btn_debug_status: Button = %DebugStatusButton
 @onready var _btn_debug_items: Button = %DebugItemsButton
 @onready var _btn_debug_act: Button = %DebugActButton
+@onready var _btn_debug_stat_check: Button = %DebugStatCheckButton
 @onready var _btn_menu: Button = %MenuButton
 @onready var _level_label: Label = %LevelLabel
 @onready var _xp_bar: ProgressBar = %XPBar
@@ -40,6 +42,8 @@ var _bound_statuses: StatusController
 var _status_modal: DebugStatusModal
 var _items_modal: DebugItemsModal
 var _act_modal: DebugActModal
+var _stat_check_modal: StatCheckRollModal
+var _stat_check_busy: bool = false
 
 
 func _ready() -> void:
@@ -78,6 +82,7 @@ func _ready() -> void:
 	_wire_debug_button(_btn_debug_status, _on_debug_status_pressed)
 	_wire_debug_button(_btn_debug_items, _on_debug_items_pressed)
 	_wire_debug_button(_btn_debug_act, _on_debug_act_pressed)
+	_wire_debug_button(_btn_debug_stat_check, _on_debug_stat_check_pressed)
 	if _btn_menu:
 		_btn_menu.pressed.connect(func() -> void: menu_pressed.emit())
 		_btn_menu.mouse_default_cursor_shape = Control.CURSOR_POINTING_HAND
@@ -262,6 +267,8 @@ func _apply_locale(_locale: String = "") -> void:
 		_btn_debug_items.text = tr("KEY_DEBUG_ITEMS").to_upper()
 	if _btn_debug_act:
 		_btn_debug_act.text = tr("KEY_DEBUG_ACT").to_upper()
+	if _btn_debug_stat_check:
+		_btn_debug_stat_check.text = tr("KEY_DEBUG_STAT_CHECK").to_upper()
 	if _chip_label:
 		_chip_label.tooltip_text = tr("KEY_NEURO_CHIPS")
 	if _chip_icon:
@@ -362,6 +369,22 @@ func _on_debug_act_pressed() -> void:
 		_act_modal.open_picker()
 
 
+func _on_debug_stat_check_pressed() -> void:
+	if _stat_check_busy:
+		return
+	if StatCheckManager == null:
+		return
+	var dice := randi_range(2, 8)
+	var threshold := randi_range(1, 4)
+	var result := StatCheckManager.perform_check(dice, threshold, 0)
+	var modal := _ensure_stat_check_modal()
+	if modal == null or result == null:
+		return
+	_stat_check_busy = true
+	await modal.present(result, "STR", threshold)
+	_stat_check_busy = false
+
+
 func _ensure_status_modal() -> void:
 	if _status_modal != null and is_instance_valid(_status_modal):
 		return
@@ -390,3 +413,11 @@ func _ensure_act_modal() -> void:
 	_act_modal = ACT_MODAL_SCENE.instantiate() as DebugActModal
 	_act_modal.act_selected.connect(func(act_index: int) -> void: debug_act_jump_requested.emit(act_index))
 	UiOverlayLayer.mount(_act_modal, self)
+
+
+func _ensure_stat_check_modal() -> StatCheckRollModal:
+	if _stat_check_modal != null and is_instance_valid(_stat_check_modal):
+		return _stat_check_modal
+	_stat_check_modal = STAT_CHECK_ROLL_SCENE.instantiate() as StatCheckRollModal
+	_stat_check_modal.name = "DebugStatCheckRollModal"
+	return _stat_check_modal

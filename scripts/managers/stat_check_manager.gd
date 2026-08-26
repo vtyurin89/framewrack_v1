@@ -51,6 +51,11 @@ func perform_check(
 	return result
 
 
+## Single-die success face (5–6). UI must reuse this — do not hardcode elsewhere.
+func is_face_success(roll: int) -> bool:
+	return roll >= 5
+
+
 func set_guaranteed_success(active: bool, locked: bool = false) -> void:
 	force_guaranteed_success = active
 	guaranteed_success_locked = locked and active

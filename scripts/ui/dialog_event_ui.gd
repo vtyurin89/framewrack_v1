@@ -387,7 +387,7 @@ func _run_stat_check(choice: DialogChoiceData) -> void:
 
 	var modal := _ensure_stat_check_modal()
 	if modal != null and result != null:
-		await modal.present(result)
+		await modal.present(result, choice.get_stat_tag(), required)
 	if not is_inside_tree() or _is_closing or _dialog == null:
 		_choices_locked = false
 		return

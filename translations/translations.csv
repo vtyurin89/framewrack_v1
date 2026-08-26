@@ -67,6 +67,7 @@ KEY_DEBUG_ITEMS_TITLE,Item Catalog,Каталог предметов
 KEY_DEBUG_ITEMS_HINT,Drag an item onto the Body Grid.,Перетащите предмет в сетку тела.
 KEY_DEBUG_ACT,Act (Debug),Акт (Debug)
 KEY_DEBUG_ACT_TITLE,Jump to Act,Перейти к акту
+KEY_DEBUG_STAT_CHECK,Stat Check (Debug),Проверка стата (Debug)
 KEY_LEVEL_UP,Level Up,Новый уровень
 KEY_TARGET,Target,Цель
 KEY_MODULES,Modules,Модули
@@ -494,6 +495,10 @@ KEY_STAT_CHECK_SUCCESS,Check passed.,Проверка пройдена.
 KEY_STAT_CHECK_FAILURE,Check failed.,Проверка провалена.
 KEY_STAT_CHECK_BANNER_SUCCESS,Success,Успех
 KEY_STAT_CHECK_BANNER_FAILURE,Failure,Провал
+KEY_STAT_CHECK_MODAL_TITLE,SKILL CHECK // %s,ПРОВЕРКА // %s
+KEY_STAT_CHECK_DICE_COUNT,DICE COUNT,ЧИСЛО КУБОВ
+KEY_STAT_CHECK_THRESHOLD,THRESHOLD,ПОРОГ
+KEY_STAT_CHECK_SUCCESS_COUNT,SUCCESS COUNT,СЧЁТ УСПЕХОВ
 KEY_STAT_CHECK_CHOICE_FMT,"[%s check] %s (%s: %dd6 | %s)","[%s проверка] %s (%s: %dd6 | %s)"
 KEY_STAT_CHECK_NEED_ONE,%d Success,%d успех
 KEY_STAT_CHECK_NEED_MANY,%d Successes,%d успехов
