@@ -119,6 +119,8 @@ func setup(p_inventory: InventoryController) -> void:
 		EventBus.ap_changed.connect(_on_ap_changed_visuals)
 	if not EventBus.cell_damaged.is_connected(_on_cell_damaged_vfx):
 		EventBus.cell_damaged.connect(_on_cell_damaged_vfx)
+	if not EventBus.sticky_grenade_blast.is_connected(_on_sticky_grenade_blast_vfx):
+		EventBus.sticky_grenade_blast.connect(_on_sticky_grenade_blast_vfx)
 	if _close_button and not _close_button.pressed.is_connected(_on_close_pressed):
 		_close_button.pressed.connect(_on_close_pressed)
 	if _level_up_button and not _level_up_button.pressed.is_connected(_on_level_up_pressed):
@@ -560,6 +562,18 @@ func _on_cell_damaged_vfx(cell: Vector2i) -> void:
 	_ensure_cell_damage_vfx(g, w, h, top_pad)
 	if _cell_damage_vfx != null and is_instance_valid(_cell_damage_vfx):
 		_cell_damage_vfx.play_at(cell)
+
+
+func _on_sticky_grenade_blast_vfx(cell: Vector2i) -> void:
+	if inventory == null or inventory.grid == null or _grid_host == null:
+		return
+	var g: BodyGrid = inventory.grid
+	var w := g.width * CELL_SIZE + maxi(g.width - 1, 0) * CELL_GAP
+	var h := g.height * CELL_SIZE + maxi(g.height - 1, 0) * CELL_GAP
+	var top_pad := RESERVED_ROWS_TOP * (CELL_SIZE + CELL_GAP)
+	_ensure_cell_damage_vfx(g, w, h, top_pad)
+	if _cell_damage_vfx != null and is_instance_valid(_cell_damage_vfx):
+		_cell_damage_vfx.play_blast_at(cell)
 
 
 func _is_player_hacked() -> bool:

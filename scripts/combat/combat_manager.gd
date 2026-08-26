@@ -25,6 +25,7 @@ signal phase_changed(new_phase: Phase)
 signal player_ap_changed(current: int, maximum: int)
 signal forced_insertion_requested(item_id: String)
 signal forced_insertion_completed
+signal sticky_detonation_completed
 
 const SLIMY_PARASITE_ID := "SLIMY_PARASITE"
 const BIONIC_LARVA_ID := "BIONIC_LARVA"
@@ -37,6 +38,9 @@ const PARASITE_AP_CAP := 3
 const WAR_MODULE_TEMP_DMG := 2
 const TAINTED_DEFAULT_DAMAGE := 1
 const SENSOR_GLITCH_RETARGET_CHANCE := 0.5
+## Laser → pause → blast pulse → resolve.
+const STICKY_DETONATION_LASER_HOLD := 0.5
+const STICKY_DETONATION_BLAST_HOLD := 0.42
 
 var inventory: InventoryController
 var player_stats: PlayerStats
@@ -63,6 +67,8 @@ var player_turn_index: int = 0
 var _parasite_at_combat_start: bool = false
 ## Mid-enemy-turn pause while ForcedItemScreen is open.
 var awaiting_forced_insertion: bool = false
+## Mid-turn pause while sticky grenade laser → blast → resolve plays.
+var awaiting_sticky_detonation: bool = false
 ## Optional prebuilt ItemData for forced insertion (stolen item return).
 var _pending_forced_item: ItemData = null
 ## HP damage dealt to charging Vaeron during the current player turn.
@@ -1236,7 +1242,33 @@ func _on_cell_damaged(cell: Vector2i) -> void:
 		return
 	if placed.data.id.strip_edges().to_upper() != STICKY_GRENADE_ID:
 		return
-	_detonate_sticky_grenade(placed)
+	## Keep the bomb on the grid through CellDamage laser + blast pulse, then resolve.
+	_run_sticky_grenade_detonation_sequence(placed, cell)
+
+
+func _run_sticky_grenade_detonation_sequence(placed: PlacedItem, cell: Vector2i) -> void:
+	if awaiting_sticky_detonation:
+		return
+	awaiting_sticky_detonation = true
+	## CellDamage laser is already playing from apply_cell_damage → cell_damaged.
+	await get_tree().create_timer(STICKY_DETONATION_LASER_HOLD).timeout
+	if not is_instance_valid(self):
+		return
+	## Still the same grenade? (grid may have changed mid-wait in rare cases)
+	var still := inventory.grid.get_occupant(cell) if inventory != null and inventory.grid != null else null
+	if still == null or still != placed:
+		awaiting_sticky_detonation = false
+		sticky_detonation_completed.emit()
+		return
+	EventBus.sticky_grenade_blast.emit(cell)
+	await get_tree().create_timer(STICKY_DETONATION_BLAST_HOLD).timeout
+	if not is_instance_valid(self):
+		return
+	still = inventory.grid.get_occupant(cell) if inventory != null and inventory.grid != null else null
+	if still != null and still == placed:
+		_detonate_sticky_grenade(placed)
+	awaiting_sticky_detonation = false
+	sticky_detonation_completed.emit()
 
 
 func _detonate_sticky_grenade(placed: PlacedItem) -> void:
@@ -1252,12 +1284,13 @@ func _detonate_sticky_grenade(placed: PlacedItem) -> void:
 	else:
 		dmg = maxi(1, data.min_damage)
 	grid.remove_item(placed, true)
-	var dealt := inventory.apply_damage(dmg, current_block)
-	current_block = maxi(0, current_block - dmg)
-	EventBus.block_changed.emit(current_block)
+	## Internal blast — pierces Block / armor and hits HP directly.
+	var dealt := inventory.apply_damage(dmg, 0)
 	if dealt > 0:
 		_request_player_popup(dealt, "physical")
 		_trigger_player_hit_feedback(dealt)
+	## Blast residue — 3 Burn stacks on the player.
+	apply_player_status("burn", 3)
 	EventBus.player_hp_changed.emit(inventory.current_hp, inventory.max_hp)
 	EventBus.combat_log_message.emit(tr("KEY_LOG_GRENADE_DETONATE") % [item_name, dealt if dealt > 0 else dmg])
 	for neighbour: PlacedItem in adjacent:
@@ -1368,6 +1401,8 @@ func _run_enemy_actions() -> void:
 		await _enemy_main_action_phase_async(i, enemy)
 		if awaiting_forced_insertion:
 			await forced_insertion_completed
+		if awaiting_sticky_detonation:
+			await sticky_detonation_completed
 		if inventory != null and inventory.is_dead():
 			_lose()
 			return
@@ -1479,7 +1514,7 @@ func _ability_is_offensive(ability: EnemyAbility) -> bool:
 		## Legacy fallback strike.
 		return true
 	var effect := ability.main_effect.strip_edges().to_lower()
-	if effect in ["damage", "multi_hit", "steal_chips", "force_insert"]:
+	if effect in ["damage", "multi_hit", "steal_chips", "force_insert", "cell_damage"]:
 		return true
 	match ability.type:
 		EnemyAbility.AbilityType.DAMAGE, EnemyAbility.AbilityType.MULTI_HIT:

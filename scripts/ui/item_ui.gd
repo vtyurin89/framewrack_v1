@@ -175,10 +175,19 @@ func set_combat_visual(usable: bool) -> void:
 	var style := _panel.get_theme_stylebox("panel") as StyleBoxFlat
 	if style == null:
 		return
+	var harmful := item != null and item.is_harmful
 	if combat_click_mode and usable:
-		style.border_color = GamePalette.PHOSPHOR_ACTIVE
-		modulate = Color(1, 1, 1, 1)
-		GamePalette.apply_phosphor_glow(self, true)
+		if harmful:
+			## Surgery-removable parasites stay danger-red, never usable-green.
+			style.border_color = InventoryTheme.colors_for_kind(
+				InventoryTheme.PaletteKind.HARMFUL
+			)["border"] as Color
+			modulate = Color(1, 1, 1, 1)
+			GamePalette.apply_phosphor_glow(self, false)
+		else:
+			style.border_color = GamePalette.PHOSPHOR_ACTIVE
+			modulate = Color(1, 1, 1, 1)
+			GamePalette.apply_phosphor_glow(self, true)
 	elif combat_click_mode:
 		modulate = Color(0.7, 0.75, 0.7, 1)
 		GamePalette.apply_phosphor_glow(self, false)

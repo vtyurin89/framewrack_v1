@@ -740,7 +740,7 @@ KEY_AP_HACKED_FMT,AP: ?,ОД: ?
 STATUS_HACKED_NAME,Hacked,Взломан
 STATUS_HACKED_DESC,HUD and module readouts are corrupted.,HUD и описания модулей искажены.
 ITEM_STICKY_GRENADE_NAME,Sticky Grenade,Липкая граната
-ITEM_STICKY_GRENADE_DESC,"A hostile charge lodged in your frame. Remove manually for 1 AP. Detonating CellDamage triggers a blast and disables adjacent modules.","Вредоносный заряд в вашем фрейме. Удаляется вручную за 1 ОД. При получении урона взрывается и повреждает соседние модули."
+ITEM_STICKY_GRENADE_DESC,"A hostile charge lodged in your frame. Remove manually for 1 AP. Detonating CellDamage triggers a blast, applies 3 Burn, and disables adjacent modules.","Вредоносный заряд в вашем фрейме. Удаляется вручную за 1 ОД. При получении урона взрывается, накладывает 3 Горения и повреждает соседние модули."
 KEY_LOG_CELL_DAMAGE,%s disrupts a module (%s %d turns).,%s нарушает работу модуля (%s %d ход.).
 KEY_LOG_GRENADE_DETONATE,%s detonates for %d damage!,%s взрывается и наносит %d урона!
 KEY_LOG_GRENADE_NONE,%s finds no grenade to detonate.,%s не находит гранату для подрыва.

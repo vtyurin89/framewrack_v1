@@ -91,6 +91,9 @@ static func colors_for_kind(kind: PaletteKind) -> Dictionary:
 
 static func colors_for_item(item: ItemData) -> Dictionary:
 	var colors: Dictionary = colors_for_kind(palette_kind_for_item(item)).duplicate()
+	## Harmful keeps danger-red even if rarity would brighten the border.
+	if item != null and item.is_harmful:
+		return colors
 	## Rare+ keeps CRT warning / bright border (no rainbow rarity hues).
 	if item != null and item.rarity != null:
 		var tier := item.rarity.get_tier()
