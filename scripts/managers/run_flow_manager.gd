@@ -20,10 +20,10 @@ signal placeholder_requested(title: String, message: String)
 
 @export var act_definitions: Array[ActData] = []
 
-var current_act: int = 1
+var current_act_index: int = 1
+var current_act: ActData
 var state: RunState = RunState.RUN_START
 var current_map_data: MapData
-var current_act_data: ActData
 
 var _encounter_manager: EncounterManager
 var _pending_node_id: String = ""
@@ -37,10 +37,10 @@ func setup(encounter_manager: EncounterManager) -> void:
 
 
 func start_new_run() -> void:
-	current_act = 1
+	current_act_index = 1
+	current_act = _resolve_act(current_act_index)
 	_set_state(RunState.RUN_START)
-	current_act_data = _get_or_build_act_data(current_act)
-	current_map_data = MapGenerator.generate_for_act(current_act_data)
+	current_map_data = MapGenerator.generate_for_act(current_act)
 	map_changed.emit(current_map_data)
 	_start_act_intro()
 
@@ -95,10 +95,11 @@ func complete_current_node() -> void:
 
 func complete_act() -> void:
 	_set_state(RunState.ACT_COMPLETE)
-	if current_act < 3:
-		current_act += 1
-		current_act_data = _get_or_build_act_data(current_act)
-		current_map_data = MapGenerator.generate_for_act(current_act_data)
+	var max_act := _get_max_act_index()
+	if current_act_index < max_act:
+		current_act_index += 1
+		current_act = _resolve_act(current_act_index)
+		current_map_data = MapGenerator.generate_for_act(current_act)
 		_set_state(RunState.ACT_INTRO)
 		map_changed.emit(current_map_data)
 		_start_act_intro()
@@ -125,6 +126,10 @@ func get_map_data() -> MapData:
 	return current_map_data
 
 
+func get_current_act_index() -> int:
+	return current_act_index
+
+
 func _on_encounter_completed(_rewards: Dictionary) -> void:
 	if state != RunState.ENCOUNTER_ACTIVE:
 		return
@@ -139,33 +144,63 @@ func _set_state(new_state: RunState) -> void:
 	run_state_changed.emit(previous, new_state)
 
 
-func _get_or_build_act_data(act_index: int) -> ActData:
+func _get_max_act_index() -> int:
+	if ActDatabase != null and ActDatabase.get_act_count() > 0:
+		return ActDatabase.get_act_count()
+	return 3
+
+
+func _resolve_act(act_index: int) -> ActData:
 	for act in act_definitions:
 		if act != null and act.act_index == act_index:
 			return act
+	if ActDatabase != null:
+		var from_db := ActDatabase.get_act_by_index(act_index)
+		if from_db != null:
+			return from_db
+	return _build_fallback_act(act_index)
+
+
+func _build_fallback_act(act_index: int) -> ActData:
 	var built := ActData.new()
+	built.id = "act_%d" % act_index
 	built.act_index = act_index
-	built.title = "Act %d" % act_index
-	built.layer_count = 10
+	built.title_key = "ACT_%d_TITLE" % act_index
+	built.map_depth = 10
 	match act_index:
 		2:
 			built.primary_faction = "synthet"
 			built.normal_threat_budget = 22
 			built.elite_threat_budget = 38
+			built.map_depth = 18
 		3:
 			built.primary_faction = "chimera"
 			built.normal_threat_budget = 26
 			built.elite_threat_budget = 44
+			built.map_depth = 20
 		_:
 			built.primary_faction = "human"
 			built.normal_threat_budget = 18
 			built.elite_threat_budget = 32
+			built.map_depth = 15
+	built.boss_encounter_id = "enc_act%d_boss" % act_index
+	built.encounter_pools = ["enc_pool_act%d" % act_index]
+	built.event_pools = ["event_pool_act%d" % act_index]
+	if ActDatabase != null:
+		built.boss_encounter_data = ActDatabase.build_boss_encounter(built)
+	else:
+		var enc := EncounterData.new()
+		enc.id = built.boss_encounter_id
+		enc.type = EncounterData.EncounterType.COMBAT_BOSS
+		enc.payload = {"act": act_index, "faction": built.primary_faction}
+		built.boss_encounter_data = enc
 	return built
 
 
 func _is_placeholder_node(_node_type: MapNodeData.MapNodeType) -> bool:
 	## All map node types currently resolve through EncounterManager.
 	return false
+
 
 func _start_act_intro() -> void:
 	if current_map_data == null:

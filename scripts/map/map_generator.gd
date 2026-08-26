@@ -25,7 +25,7 @@ static func generate_for_act(act_data: ActData) -> MapData:
 	var out := MapData.new()
 	## Layout: start story → middle → boss → end story → stairs.
 	## Needs at least 5 layers (0..4).
-	var total_layers := maxi(5, act_data.layer_count)
+	var total_layers := maxi(5, act_data.get_map_layer_count())
 	var boss_layer := total_layers - 3
 	var finale_layer := total_layers - 2
 	var stairs_layer := total_layers - 1

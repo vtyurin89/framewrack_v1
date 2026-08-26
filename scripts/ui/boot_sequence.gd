@@ -91,7 +91,7 @@ const MATRIX_COLS := 5
 const MATRIX_CODE_LEN := 12
 const MATRIX_LINE_SEP := 8
 const MATRIX_FONT_SIZE := 14
-const MATRIX_SPEED := 140.0
+const MATRIX_SPEED := 560.0
 const GRAIN_SHADER := preload("res://shaders/crt_grid_noise.gdshader")
 
 enum Phase { IDLE, INTRO, DIAGNOSTICS, MATRIX, DONE }

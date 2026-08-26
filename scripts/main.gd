@@ -70,7 +70,7 @@ var _dialog_loot_active: bool = false
 var _forced_insertion_active: bool = false
 var _encounter_combat_active: bool = false
 var _shop_active: bool = false
-var _act1_announced: bool = false
+var _last_announced_act_index: int = 0
 
 
 func _ready() -> void:
@@ -561,7 +561,7 @@ func _reset_run_to_startup() -> void:
 	## STARTUP_SETUP: full HP, clear grid, starter weapon/armor/consumable, reset map/combat.
 	if _combat.has_method("abort_combat"):
 		_combat.abort_combat()
-	_act1_announced = false
+	_last_announced_act_index = 0
 	if StoryEventManager != null:
 		StoryEventManager.reset_run()
 	_seed_starting_loadout()
@@ -744,23 +744,22 @@ func _on_run_state_changed(_prev: RunFlowManager.RunState, new_state: RunFlowMan
 	if new_state == RunFlowManager.RunState.MAP_VIEW:
 		_show_exploring()
 	elif new_state == RunFlowManager.RunState.ACT_INTRO:
-		_try_announce_act_one()
+		_try_announce_act()
 	elif new_state == RunFlowManager.RunState.VICTORY:
 		_status_banner.text = tr("KEY_STATUS_RUN_COMPLETE")
 		_set_flow(GameFlowState.State.VICTORY)
 
 
-func _try_announce_act_one() -> void:
-	if _announcer_ui == null:
+func _try_announce_act() -> void:
+	if _announcer_ui == null or _run_flow == null or _run_flow.current_act == null:
 		return
-	if _act1_announced:
+	var act_index := _run_flow.current_act_index
+	if act_index == _last_announced_act_index:
 		return
-	if _run_flow == null or _run_flow.current_act != 1:
-		return
-	_act1_announced = true
+	_last_announced_act_index = act_index
 	var act_text := "%s\n%s" % [
-		tr("KEY_ACT1_ANNOUNCE_TITLE"),
-		tr("KEY_ACT1_ANNOUNCE_SUBTITLE"),
+		tr("KEY_ACT_ANNOUNCE_CHAPTER") % act_index,
+		_run_flow.current_act.get_localized_title(),
 	]
 	_announcer_ui.announce_chapter(act_text)
 
@@ -846,7 +845,7 @@ func _on_encounter_request_shop(_encounter: EncounterData, price_multiplier: flo
 		_combat_ui.set_continue_enabled(true)
 	var act := 1
 	if _run_flow != null:
-		act = maxi(_run_flow.current_act, 1)
+		act = maxi(_run_flow.current_act_index, 1)
 	if _encounter != null:
 		act = maxi(int(_encounter.payload.get("act", act)), 1)
 	var stock: Array[ItemData] = ShopManager.generate_stock(act, ShopManager.STOCK_COUNT)
@@ -905,7 +904,7 @@ func _on_chest_loot_opened() -> void:
 	_ensure_reward_screen()
 	var act_depth := 1
 	if _run_flow != null:
-		act_depth = maxi(_run_flow.current_act, 1)
+		act_depth = maxi(_run_flow.current_act_index, 1)
 		if _run_flow.current_map_data != null:
 			var cur := _run_flow.current_map_data.get_node(_run_flow.current_map_data.current_node_id)
 			if cur != null:
@@ -1000,7 +999,7 @@ func _on_encounter_request_post_combat_rewards(encounter: EncounterData) -> void
 					encounter_kind = "NORMAL"
 	var act_depth := 1
 	if _run_flow != null:
-		act_depth = maxi(_run_flow.current_act, 1)
+		act_depth = maxi(_run_flow.current_act_index, 1)
 		if _run_flow.current_map_data != null:
 			var cur := _run_flow.current_map_data.get_node(_run_flow.current_map_data.current_node_id)
 			if cur != null:

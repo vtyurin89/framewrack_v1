@@ -670,6 +670,10 @@ ABILITY_MAZUT_SHOT_TEXT,{name} mainlines a Mazut dose.,{name} вкалывает
 KEY_LOG_PSYCHOSIS_BUFF,%s snaps into psychosis (+%d %s)!,У %s срывает крышу (+%d %s)!
 KEY_ACT1_ANNOUNCE_TITLE,Chapter 1,Глава 1
 KEY_ACT1_ANNOUNCE_SUBTITLE,"Ruins of Ra'im, City of Humans","Развалины Ра'има, города людей"
+KEY_ACT_ANNOUNCE_CHAPTER,Chapter %d,Глава %d
+ACT_1_TITLE,"Ra'im, the City of Men","Ра'им, город людей"
+ACT_2_TITLE,"Kairit, the Machine Megastructure","Кайрит, мегаструктура машин"
+ACT_3_TITLE,"Skin of the World, the Chimera Hive","Кожа мира, улей химер"
 KEY_MERCHANT_TITLE,EVERYMART / Bonnie,EVERYMART / Бонни
 KEY_MERCHANT_CHOICE_TRADE,"[Start trade] ""Show me what you've got.""","[Начать торговлю] «Покажи, что у тебя есть»."
 KEY_MERCHANT_CHOICE_TRADE_GOOD_MOOD,"[Start trade] ""I won't say no.""","[Начать торговлю] «Не откажусь»."
