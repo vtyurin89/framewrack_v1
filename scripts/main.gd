@@ -133,6 +133,7 @@ func _ready() -> void:
 		_gameplay_hud.combat_log_pressed.connect(_on_combat_log_pressed)
 		_gameplay_hud.bind_player_stats(player_stats)
 		_gameplay_hud.bind_inventory(inventory)
+		_gameplay_hud.bind_combat(_combat)
 
 	LocalizationManager.language_changed.connect(_on_language_changed)
 
@@ -584,6 +585,7 @@ func _reset_run_to_startup() -> void:
 	if _gameplay_hud:
 		_gameplay_hud.bind_player_stats(player_stats)
 		_gameplay_hud.bind_inventory(inventory)
+		_gameplay_hud.bind_combat(_combat)
 	if _inventory_ui.has_method("set_combat_mode"):
 		_inventory_ui.set_combat_mode(false)
 	_combat_ui.setup(_combat, inventory)

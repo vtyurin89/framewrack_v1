@@ -69,6 +69,8 @@ static func apply_passive_armor_from_spatial_traits(
 			continue
 		if not grid.is_item_functional(placed):
 			continue
+		if placed.data.has_passive_bonus_block():
+			continue
 		var trait_bonus := _calc_spatial_passive_armor(placed, grid, true)
 		if trait_bonus > 0:
 			gain_block.call(trait_bonus, placed.data.get_localized_name())
@@ -83,6 +85,8 @@ static func calc_total_spatial_passive_armor(grid: BodyGrid, clamp_non_negative:
 		if placed == null or placed.data == null:
 			continue
 		if not grid.is_item_functional(placed):
+			continue
+		if placed.data.has_passive_bonus_block():
 			continue
 		total += _calc_spatial_passive_armor(placed, grid, clamp_non_negative)
 	return total

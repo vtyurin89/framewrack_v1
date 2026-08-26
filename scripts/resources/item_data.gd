@@ -214,8 +214,8 @@ func apply_status(
 	remaining_turns: int = 1,
 	args: Dictionary = {}
 ) -> ItemStatus:
-	## Replace any existing status of the same type, then append (LIFO primary).
-	clear_status(status_type)
+	## Item statuses never stack — a new one fully replaces any existing status.
+	statuses.clear()
 	var status := ItemStatus.new(status_type, maxi(1, remaining_turns), args)
 	statuses.append(status)
 	return status
@@ -224,7 +224,7 @@ func apply_status(
 func add_status(status: ItemStatus) -> void:
 	if status == null:
 		return
-	clear_status(status.type)
+	statuses.clear()
 	statuses.append(status)
 
 
@@ -249,6 +249,13 @@ func has_status(status_type: ItemStatus.Type) -> bool:
 	return get_status(status_type) != null
 
 
+func has_any_item_status() -> bool:
+	for s: ItemStatus in statuses:
+		if s != null and not s.is_expired():
+			return true
+	return false
+
+
 func get_primary_status() -> ItemStatus:
 	## Latest non-expired status drives overlay / primary behavior display.
 	for i in range(statuses.size() - 1, -1, -1):
@@ -261,6 +268,13 @@ func get_primary_status() -> ItemStatus:
 func has_blocking_status() -> bool:
 	for s: ItemStatus in statuses:
 		if s != null and not s.is_expired() and s.blocks_activation():
+			return true
+	return false
+
+
+func has_passive_bonus_block() -> bool:
+	for s: ItemStatus in statuses:
+		if s != null and not s.is_expired() and s.blocks_passive_bonuses():
 			return true
 	return false
 
@@ -306,6 +320,36 @@ func apply_overload(turns: int = 1, args: Dictionary = {}) -> void:
 
 func apply_tainted(turns: int = 1, damage: int = 1) -> void:
 	apply_status(ItemStatus.Type.TAINTED, maxi(1, turns), {"damage": maxi(1, damage)})
+
+
+func apply_inactive(turns: int = 1, args: Dictionary = {}) -> void:
+	apply_status(ItemStatus.Type.INACTIVE, maxi(1, turns), args)
+
+
+func is_inactive() -> bool:
+	return has_status(ItemStatus.Type.INACTIVE)
+
+
+static func is_active_combat_module(data: ItemData) -> bool:
+	if data == null:
+		return false
+	if not data.usable:
+		return false
+	if data.ap_cost > 0:
+		return true
+	if data.min_damage > 0 or data.max_damage > 0 or data.damage > 0:
+		return true
+	if data.item_type != null:
+		var type_id := data.item_type.id.strip_edges().to_upper()
+		if type_id in ["CONSUMABLE", "ACTIVE_MODULE"]:
+			return true
+	return false
+
+
+static func is_passive_module(data: ItemData) -> bool:
+	if data == null:
+		return false
+	return not is_active_combat_module(data)
 
 
 func is_on_cooldown() -> bool:
@@ -721,6 +765,8 @@ func on_combat_end(player: InventoryController) -> void:
 func get_equipment_stat_modifiers() -> Dictionary:
 	## Flat ActorStats granted while this module is functional on the body grid.
 	## Traits with effect_target STR/AGI/END/INT/LCK/HUM contribute when active.
+	if has_passive_bonus_block():
+		return {}
 	var result: Dictionary = {}
 	for item_trait: TraitData in traits:
 		if item_trait == null or not item_trait.is_active:

@@ -32,6 +32,9 @@ var actor_stats: ActorStats
 var body_grid: BodyGrid
 
 var _adjacency_label: RichTextLabel
+var _hacked_banner: Label
+## When valid, returns whether the player is under the Hacked debuff.
+var is_hacked_fn: Callable
 
 
 func _ready() -> void:
@@ -241,6 +244,15 @@ func _build_layout() -> void:
 	_desc_label.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	root.add_child(_desc_label)
 
+	_hacked_banner = Label.new()
+	_hacked_banner.text = tr("KEY_HACKED_BANNER")
+	_hacked_banner.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	_hacked_banner.add_theme_font_size_override("font_size", 13)
+	_hacked_banner.add_theme_color_override("font_color", GamePalette.COLOR_DANGER)
+	_hacked_banner.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	_hacked_banner.visible = false
+	root.add_child(_hacked_banner)
+
 	_traits_box = VBoxContainer.new()
 	_traits_box.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	_traits_box.add_theme_constant_override("separation", 4)
@@ -248,7 +260,8 @@ func _build_layout() -> void:
 
 
 func _populate(item: ItemData) -> void:
-	_name_label.text = item.get_localized_name()
+	var hacked := _is_hacked()
+	_name_label.text = TextGlitcher.glitchify(item.get_localized_name()) if hacked else item.get_localized_name()
 	if item.rarity != null:
 		_name_label.add_theme_color_override("font_color", item.get_rarity_color())
 	else:
@@ -265,16 +278,20 @@ func _populate(item: ItemData) -> void:
 		_ap_label.text = ""
 
 	_meta_label.visible = true
-	_meta_label.text = _build_meta_line(item)
-	_combat_label.text = _build_combat_line(item)
+	_meta_label.text = TextGlitcher.glitchify(_build_meta_line(item)) if hacked else _build_meta_line(item)
+	_combat_label.text = TextGlitcher.glitchify(_build_combat_line(item)) if hacked else _build_combat_line(item)
 	_combat_label.visible = not _combat_label.text.is_empty()
 	_refresh_adjacency_notes(item)
 
 	var desc := item.get_localized_description()
+	if hacked and not desc.is_empty():
+		desc = TextGlitcher.glitchify(desc)
 	_desc_label.visible = not desc.is_empty()
 	_desc_label.text = desc
+	if _hacked_banner:
+		_hacked_banner.visible = hacked
 
-	_rebuild_traits(item)
+	_rebuild_traits(item, hacked)
 	_force_autosize()
 
 
@@ -334,7 +351,7 @@ func _build_combat_line(item: ItemData) -> String:
 	return "   ".join(parts)
 
 
-func _rebuild_traits(item: ItemData) -> void:
+func _rebuild_traits(item: ItemData, hacked: bool = false) -> void:
 	for child in _traits_box.get_children():
 		child.queue_free()
 
@@ -346,10 +363,10 @@ func _rebuild_traits(item: ItemData) -> void:
 	for item_trait: TraitData in item.traits:
 		if item_trait == null:
 			continue
-		_traits_box.add_child(_make_trait_row(item_trait))
+		_traits_box.add_child(_make_trait_row(item_trait, hacked))
 
 
-func _make_trait_row(item_trait: TraitData) -> RichTextLabel:
+func _make_trait_row(item_trait: TraitData, hacked: bool = false) -> RichTextLabel:
 	var row := RichTextLabel.new()
 	row.bbcode_enabled = true
 	row.fit_content = true
@@ -364,6 +381,8 @@ func _make_trait_row(item_trait: TraitData) -> RichTextLabel:
 	var body := "• [b]%s[/b]" % trait_name
 	if not trait_desc.is_empty():
 		body += ": %s" % trait_desc
+	if hacked:
+		body = TextGlitcher.glitchify(body)
 
 	if item_trait.is_active:
 		row.add_theme_color_override("default_color", TRAIT_ACTIVE_COLOR)
@@ -373,6 +392,10 @@ func _make_trait_row(item_trait: TraitData) -> RichTextLabel:
 		row.text = "[s]%s[/s]" % body
 
 	return row
+
+
+func _is_hacked() -> bool:
+	return is_hacked_fn.is_valid() and bool(is_hacked_fn.call())
 
 
 func _force_autosize() -> void:

@@ -152,11 +152,11 @@ layout_mode = 2
 size_flags_vertical = 4
 text = "Combat Log"
 
-[node name="DebugLevelUpButton" type="Button" parent="RootLayout/TopBar"]
+[node name="DebugCellDamageButton" type="Button" parent="RootLayout/TopBar"]
 unique_name_in_owner = true
 layout_mode = 2
 size_flags_vertical = 4
-text = "Level Up (Debug)"
+text = "Cell Damage (Debug)"
 
 [node name="MenuButton" type="Button" parent="RootLayout/TopBar"]
 unique_name_in_owner = true

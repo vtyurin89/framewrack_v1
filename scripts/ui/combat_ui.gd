@@ -283,9 +283,37 @@ func _ensure_player_statuses_ui() -> void:
 		_player_statuses_ui = STATUS_EFFECTS_SCENE.instantiate() as StatusEffectsUI
 		_player_status_host.add_child(_player_statuses_ui)
 	if combat != null and combat.get("player_statuses") != null:
-		_player_statuses_ui.bind_controller(combat.player_statuses as StatusController)
+		var controller := combat.player_statuses as StatusController
+		_player_statuses_ui.bind_controller(controller)
+		if not controller.statuses_updated.is_connected(_on_player_statuses_updated):
+			controller.statuses_updated.connect(_on_player_statuses_updated)
 	else:
 		_player_statuses_ui.unbind()
+	_refresh_hacked_hud()
+
+
+func _on_player_statuses_updated(_active_statuses: Array) -> void:
+	_refresh_hacked_hud()
+
+
+func _is_player_hacked() -> bool:
+	if combat == null or combat.get("player_statuses") == null:
+		return false
+	return (combat.player_statuses as StatusController).has_status("hacked")
+
+
+func _refresh_hacked_hud() -> void:
+	if inventory == null:
+		return
+	if _is_player_hacked():
+		_on_hp_changed(inventory.current_hp, inventory.max_hp)
+		if combat != null:
+			_on_ap_changed(combat.current_ap, combat.max_ap)
+	elif _player_hp_bar:
+		_player_hp_bar.set_hacked_visual(false)
+		_on_hp_changed(inventory.current_hp, inventory.max_hp)
+		if combat != null:
+			_on_ap_changed(combat.current_ap, combat.max_ap)
 
 
 func _on_language_changed(_locale: String) -> void:
@@ -612,6 +640,11 @@ func _lock_reticle_on_card(card: EnemyCardUI, expected_index: int = -1) -> void:
 
 
 func _on_ap_changed(current: int, maximum: int) -> void:
+	if _is_player_hacked():
+		_ap_label.text = tr("KEY_AP_HACKED_FMT")
+		_last_ap = current
+		_refresh_action_button_pulse()
+		return
 	_ap_label.text = tr("KEY_AP_FMT") % [tr("KEY_AP"), current, maximum]
 	var previous := _last_ap
 	_last_ap = current
@@ -636,6 +669,19 @@ func _on_ap_insufficient() -> void:
 
 
 func _on_hp_changed(current: int, maximum: int) -> void:
+	if _is_player_hacked():
+		_hp_label.text = tr("KEY_FRAME_HP_HACKED_FMT")
+		if _player_hp_bar:
+			_player_hp_bar.show_label = false
+			_player_hp_bar.set_hacked_visual(true)
+			_player_hp_bar.bar_min_size = Vector2(200, 16)
+			_player_hp_bar.custom_minimum_size = Vector2(0, 16)
+			_player_hp_bar.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+			_player_hp_bar.set_hp(current, maximum, _player_hp_initialized)
+			_player_hp_initialized = true
+		return
+	if _player_hp_bar:
+		_player_hp_bar.set_hacked_visual(false)
 	_hp_label.text = tr("KEY_FRAME_HP_FMT") % [tr("KEY_FRAME_HP"), current, maximum]
 	if _player_hp_bar:
 		_player_hp_bar.show_label = false

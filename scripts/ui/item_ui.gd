@@ -197,7 +197,7 @@ func _refresh_status_overlay() -> void:
 	_cd_label.text = ""
 	_status_icon.visible = false
 	_status_icon.text = ""
-	if item == null or not combat_click_mode:
+	if item == null:
 		return
 	var primary := item.get_primary_status()
 	if primary == null:
@@ -207,6 +207,8 @@ func _refresh_status_overlay() -> void:
 			_status_icon.text = "⚡"
 			_status_icon.add_theme_color_override("font_color", GamePalette.COLOR_WARN)
 			_status_icon.visible = true
+			_cd_label.text = str(primary.remaining_turns)
+			_cd_label.visible = true
 		ItemStatus.Type.COOLDOWN:
 			_cd_label.text = str(primary.remaining_turns)
 			_cd_label.visible = true
@@ -214,9 +216,19 @@ func _refresh_status_overlay() -> void:
 			_status_icon.text = "☣"
 			_status_icon.add_theme_color_override("font_color", GamePalette.COLOR_DANGER)
 			_status_icon.visible = true
+		ItemStatus.Type.INACTIVE:
+			_cd_label.text = str(primary.remaining_turns)
+			_cd_label.visible = true
+			_status_icon.text = "OFF"
+			_status_icon.add_theme_color_override("font_color", GamePalette.INACTIVE_ELEMENT)
+			_status_icon.visible = true
 
 
 func _refresh_cooldown_overlay() -> void:
+	_refresh_status_overlay()
+
+
+func refresh_status_overlay() -> void:
 	_refresh_status_overlay()
 
 

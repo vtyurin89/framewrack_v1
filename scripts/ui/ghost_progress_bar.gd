@@ -9,6 +9,7 @@ const MAIN_TWEEN_DURATION := 0.4
 const SEGMENT_GAP := 1.0
 const MIN_SEGMENTS := 8
 const MAX_SEGMENTS := 28
+const HACKED_FILL := Color("#0D1511")
 
 @export var bar_min_size: Vector2 = Vector2(170, 20)
 @export var show_label: bool = true
@@ -24,6 +25,7 @@ var _hold_timer: SceneTreeTimer
 var _current: float = 0.0
 var _maximum: float = 1.0
 var _built: bool = false
+var _hacked_visual: bool = false
 
 
 func _ready() -> void:
@@ -121,7 +123,7 @@ func _draw_smooth(inner: Rect2, ratio_ghost: float, ratio_main: float) -> void:
 		var main_w := inner.size.x * ratio_main
 		draw_rect(
 			Rect2(inner.position, Vector2(main_w, inner.size.y)),
-			GamePalette.PHOSPHOR_ACTIVE,
+			HACKED_FILL if _hacked_visual else GamePalette.PHOSPHOR_ACTIVE,
 			true
 		)
 
@@ -141,7 +143,12 @@ func _draw_segmented(inner: Rect2, ratio_ghost: float, ratio_main: float) -> voi
 		else:
 			draw_rect(seg, GamePalette.INACTIVE_ELEMENT, true)
 		if i < filled_main:
-			draw_rect(seg, GamePalette.PHOSPHOR_ACTIVE, true)
+			draw_rect(seg, HACKED_FILL if _hacked_visual else GamePalette.PHOSPHOR_ACTIVE, true)
+
+
+func set_hacked_visual(active: bool) -> void:
+	_hacked_visual = active
+	queue_redraw()
 
 
 func set_hp_animated(new_hp: int, max_hp: int, duration: float = MAIN_TWEEN_DURATION) -> void:

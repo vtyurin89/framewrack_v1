@@ -25,6 +25,15 @@ const ID_SCRAPPER_BUMPER := "ABILITY_SCRAPPER_BUMPER"
 const ID_SCRAPPER_EXHAUST := "ABILITY_SCRAPPER_EXHAUST"
 const ID_PREPARE_SLAM := "ABILITY_PREPARE_SLAM"
 const ID_MEDIC_SWING := "ABILITY_MEDIC_SWING"
+const ID_ARBITER_STRIKE := "ABILITY_ARBITER_STRIKE"
+const ID_ARBITER_GUARD := "ABILITY_ARBITER_GUARD"
+const ID_ARBITER_DISRUPT := "ABILITY_ARBITER_DISRUPT"
+const ID_ARBITER_FOCUS := "ABILITY_ARBITER_FOCUS"
+const ID_GRENADIER_GRENADE := "ABILITY_GRENADIER_GRENADE"
+const ID_GRENADIER_DETONATE := "ABILITY_GRENADIER_DETONATE"
+const ID_WARDEN_HACK := "ABILITY_WARDEN_HACK"
+const ID_WARDEN_PULSE := "ABILITY_WARDEN_PULSE"
+const ID_SIGNAL_SPIKE := "ABILITY_SIGNAL_SPIKE"
 
 
 static func trigger_pre_action_phase(enemy: EnemyInstance) -> Dictionary:
@@ -35,6 +44,12 @@ static func trigger_pre_action_phase(enemy: EnemyInstance) -> Dictionary:
 		"triggered": false,
 	}
 	if enemy == null or not enemy.is_alive():
+		return result
+
+	var scripted_pre := _pick_scripted_pre_action(enemy)
+	if scripted_pre != null:
+		result["ability"] = scripted_pre
+		result["triggered"] = true
 		return result
 
 	var pre: EnemyAbility = _pick_ready_pre_action(enemy)
@@ -359,6 +374,12 @@ static func _pick_scripted_main(enemy: EnemyInstance, combat: Node) -> EnemyAbil
 			return FacelessLady.pick_scripted_ability(enemy, combat)
 		"elder_vaeron", "stasis_pod_left", "stasis_pod_right":
 			return ElderVaeron.pick_scripted_ability(enemy, combat)
+		"arbiter_guard":
+			return _ai_arbiter_guard(enemy, combat)
+		"grenadier_drone":
+			return _ai_grenadier_drone(enemy, combat)
+		"warden":
+			return _ai_warden(enemy, combat)
 		_:
 			return null
 
@@ -468,6 +489,55 @@ static func _ai_field_medic(enemy: EnemyInstance, combat: Node) -> EnemyAbility:
 			var swing := enemy.find_ability(ID_MEDIC_SWING)
 			if swing != null and enemy.can_use_ability(swing):
 				return swing
+	return null
+
+
+static func _pick_scripted_pre_action(enemy: EnemyInstance) -> EnemyAbility:
+	var enemy_id := enemy.data.id if enemy.data != null else ""
+	if enemy_id == "arbiter_guard" and enemy.get_current_act_number() == 1:
+		var guard := enemy.find_ability(ID_ARBITER_GUARD)
+		if guard != null and enemy.can_use_ability(guard):
+			return guard
+	return null
+
+
+static func _ai_arbiter_guard(enemy: EnemyInstance, _combat: Node) -> EnemyAbility:
+	## Turn 2: Disruptive Shot; other turns: INT-scaled strike.
+	var act := enemy.get_current_act_number()
+	var disrupt := enemy.find_ability(ID_ARBITER_DISRUPT)
+	if act == 2 and disrupt != null and enemy.can_use_ability(disrupt):
+		return disrupt
+	var strike := enemy.find_ability(ID_ARBITER_STRIKE)
+	if strike != null and enemy.can_use_ability(strike):
+		return strike
+	var guard := enemy.find_ability(ID_ARBITER_GUARD)
+	if guard != null and enemy.can_use_ability(guard):
+		return guard
+	return null
+
+
+static func _ai_grenadier_drone(enemy: EnemyInstance, combat: Node) -> EnemyAbility:
+	var detonate := enemy.find_ability(ID_GRENADIER_DETONATE)
+	if detonate != null and enemy.can_use_ability(detonate):
+		if combat != null and combat.has_method("has_sticky_grenade_in_grid"):
+			if bool(combat.call("has_sticky_grenade_in_grid")):
+				return detonate
+	var grenade := enemy.find_ability(ID_GRENADIER_GRENADE)
+	if grenade != null and enemy.can_use_ability(grenade):
+		return grenade
+	var spike := enemy.find_ability(ID_SIGNAL_SPIKE)
+	if spike != null and enemy.can_use_ability(spike):
+		return spike
+	return null
+
+
+static func _ai_warden(enemy: EnemyInstance, _combat: Node) -> EnemyAbility:
+	var hack := enemy.find_ability(ID_WARDEN_HACK)
+	if hack != null and enemy.can_use_ability(hack):
+		return hack
+	var pulse := enemy.find_ability(ID_WARDEN_PULSE)
+	if pulse != null and enemy.can_use_ability(pulse):
+		return pulse
 	return null
 
 

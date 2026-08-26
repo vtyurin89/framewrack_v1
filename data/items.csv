@@ -50,5 +50,6 @@ SLIMY_PARASITE,CONSUMABLE,STANDARD,COMMON,ITEM_SLIMY_PARASITE_NAME,ITEM_SLIMY_PA
 NEURO_TICK,CONSUMABLE,STANDARD,COMMON,ITEM_NEURO_TICK_NAME,ITEM_NEURO_TICK_DESC,1,1,false,true,1,0,0,0,NONE,SELF,1,0,false,0,false,false,1,0,false,"",res://assets/sprites/items/broken_slot.png,true,true
 BROKEN_SLOT,CONSUMABLE,STANDARD,COMMON,ITEM_BROKEN_SLOT_NAME,ITEM_BROKEN_SLOT_DESC,1,1,false,true,1,0,0,0,NONE,SELF,1,0,false,0,false,false,1,0,false,"",res://assets/sprites/items/broken_slot.png,true,true
 BIONIC_LARVA,CONSUMABLE,STANDARD,COMMON,ITEM_BIONIC_LARVA_NAME,ITEM_BIONIC_LARVA_DESC,1,1,false,true,1,0,0,0,NONE,SELF,1,0,false,0,false,false,1,0,false,"",res://assets/sprites/items/slimy_parasite.png,true,true
+STICKY_GRENADE,CONSUMABLE,STANDARD,COMMON,ITEM_STICKY_GRENADE_NAME,ITEM_STICKY_GRENADE_DESC,1,1,false,true,1,8,12,0,NONE,SELF,1,0,false,0,false,false,1,0,false,"",res://assets/sprites/items/thermite_charge.png,true,true
 NEURO_TICK,CONSUMABLE,STANDARD,COMMON,ITEM_NEURO_TICK_NAME,ITEM_NEURO_TICK_DESC,1,1,false,true,1,0,0,0,NONE,SELF,1,0,false,0,false,false,1,0,false,"",res://assets/sprites/items/broken_slot.png,true,true
 LOCKPICK,QUEST_ITEM,,UNCOMMON,ITEM_LOCKPICK_NAME,ITEM_LOCKPICK_DESC,1,1,false,false,0,0,0,0,NONE,SELF,-1,0,true,1,true,false,1,18,true,"TRAIT_TOOL_LOCKPICK",res://assets/sprites/items/lockpick.png,false,false

@@ -1,0 +1,14 @@
+[gd_resource type="Resource" script_class="StatusEffectData" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://scripts/resources/status_effect_data.gd" id="1"]
+
+[resource]
+script = ExtResource("1")
+id = "hacked"
+title = "Hacked"
+description = "Frame HUD and module readouts are corrupted. HP and AP displays show garbage; item tooltips are scrambled."
+is_debuff = true
+stack_type = 1
+trigger_phase = 4
+base_value = 1
+max_stacks = -1

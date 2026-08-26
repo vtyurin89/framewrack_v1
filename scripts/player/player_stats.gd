@@ -164,6 +164,8 @@ func recalculate_from_equipment(grid: BodyGrid) -> void:
 				continue
 			if not grid.is_item_functional(placed):
 				continue
+			if placed.data.has_passive_bonus_block():
+				continue
 			var mods: Dictionary = placed.data.get_equipment_stat_modifiers()
 			for stat_key in mods.keys():
 				var key := _normalize_stat_key(str(stat_key))

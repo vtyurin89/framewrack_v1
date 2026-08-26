@@ -21,6 +21,8 @@ var actor_stats: ActorStats
 var body_grid: BodyGrid
 
 var _adjacency_label: RichTextLabel
+var _hacked_banner: Label
+var is_hacked_fn: Callable
 
 
 func _ready() -> void:
@@ -144,6 +146,14 @@ func _ensure_content() -> void:
 	_desc_label.custom_minimum_size = Vector2(320, 0)
 	right.add_child(_desc_label)
 
+	_hacked_banner = Label.new()
+	_hacked_banner.text = tr("KEY_HACKED_BANNER")
+	_hacked_banner.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	_hacked_banner.add_theme_font_size_override("font_size", 15)
+	_hacked_banner.add_theme_color_override("font_color", GamePalette.COLOR_DANGER)
+	_hacked_banner.visible = false
+	right.add_child(_hacked_banner)
+
 	_traits_box = VBoxContainer.new()
 	_traits_box.add_theme_constant_override("separation", 6)
 	right.add_child(_traits_box)
@@ -152,7 +162,8 @@ func _ensure_content() -> void:
 
 
 func _populate(item: ItemData) -> void:
-	_name_label.text = item.get_localized_name()
+	var hacked := _is_hacked()
+	_name_label.text = TextGlitcher.glitchify(item.get_localized_name()) if hacked else item.get_localized_name()
 	if item.rarity != null:
 		_name_label.add_theme_color_override("font_color", item.get_rarity_color())
 	else:
@@ -176,7 +187,7 @@ func _populate(item: ItemData) -> void:
 		)
 	if item.item_type != null:
 		meta_parts.append(item.item_type.get_localized_name())
-	_meta_label.text = " • ".join(meta_parts)
+	_meta_label.text = TextGlitcher.glitchify(" • ".join(meta_parts)) if hacked else " • ".join(meta_parts)
 
 	var combat_parts: PackedStringArray = []
 	var dmg_line := item.format_damage_display(true, actor_stats)
@@ -185,7 +196,8 @@ func _populate(item: ItemData) -> void:
 		combat_parts.append(dmg_line)
 	if not armor_line.is_empty():
 		combat_parts.append(armor_line)
-	_combat_label.text = "\n".join(combat_parts)
+	var combat_text := "\n".join(combat_parts)
+	_combat_label.text = TextGlitcher.glitchify(combat_text) if hacked and not combat_text.is_empty() else combat_text
 	_combat_label.visible = not _combat_label.text.is_empty()
 
 	var adj_notes := ""
@@ -196,8 +208,12 @@ func _populate(item: ItemData) -> void:
 		_adjacency_label.visible = not adj_notes.is_empty()
 
 	var desc := item.get_localized_description()
+	if hacked and not desc.is_empty():
+		desc = TextGlitcher.glitchify(desc)
 	_desc_label.visible = not desc.is_empty()
 	_desc_label.text = desc
+	if _hacked_banner:
+		_hacked_banner.visible = hacked
 
 	var tex := item.get_texture()
 	if tex != null:
@@ -209,20 +225,24 @@ func _populate(item: ItemData) -> void:
 		_preview.visible = false
 		_preview_fallback.color = item.placeholder_color
 
-	_rebuild_traits(item)
+	_rebuild_traits(item, hacked)
 
 
-func _rebuild_traits(item: ItemData) -> void:
+func _is_hacked() -> bool:
+	return is_hacked_fn.is_valid() and bool(is_hacked_fn.call())
+
+
+func _rebuild_traits(item: ItemData, hacked: bool = false) -> void:
 	for child in _traits_box.get_children():
 		child.queue_free()
 
 	for item_trait: TraitData in item.traits:
 		if item_trait == null:
 			continue
-		_traits_box.add_child(_make_trait_block(item_trait))
+		_traits_box.add_child(_make_trait_block(item_trait, hacked))
 
 
-func _make_trait_block(item_trait: TraitData) -> RichTextLabel:
+func _make_trait_block(item_trait: TraitData, hacked: bool = false) -> RichTextLabel:
 	var row := RichTextLabel.new()
 	row.bbcode_enabled = true
 	row.fit_content = true
@@ -237,6 +257,8 @@ func _make_trait_block(item_trait: TraitData) -> RichTextLabel:
 	var body := "• [b]%s[/b]  ([i]%s[/i])" % [trait_name, status]
 	if not trait_desc.is_empty():
 		body += "\n%s" % trait_desc
+	if hacked:
+		body = TextGlitcher.glitchify(body)
 
 	if item_trait.is_active:
 		row.add_theme_color_override("default_color", Color(0.85, 0.88, 0.9))

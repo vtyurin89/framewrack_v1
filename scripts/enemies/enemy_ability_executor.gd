@@ -21,6 +21,7 @@ func _init(combat: Node = null) -> void:
 		"ally_buff": EffectAllyBuff.new(),
 		"force_insert": EffectForceInsert.new(),
 		"steal_item": EffectStealItem.new(),
+		"cell_damage": EffectCellDamage.new(),
 	}
 
 

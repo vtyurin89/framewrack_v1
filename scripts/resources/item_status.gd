@@ -6,12 +6,14 @@ enum Type {
 	COOLDOWN,
 	OVERLOAD,
 	TAINTED,
+	INACTIVE,
 }
 
 const TYPE_IDS := {
 	Type.COOLDOWN: "COOLDOWN",
 	Type.OVERLOAD: "OVERLOAD",
 	Type.TAINTED: "TAINTED",
+	Type.INACTIVE: "INACTIVE",
 }
 
 var type: Type = Type.COOLDOWN
@@ -41,6 +43,8 @@ static func parse_type_id(type_id: String) -> Type:
 			return Type.OVERLOAD
 		"TAINTED":
 			return Type.TAINTED
+		"INACTIVE":
+			return Type.INACTIVE
 		_:
 			return Type.COOLDOWN
 
@@ -58,7 +62,11 @@ func is_expired() -> bool:
 
 
 func blocks_activation() -> bool:
-	return type == Type.COOLDOWN or type == Type.OVERLOAD
+	return type == Type.COOLDOWN or type == Type.OVERLOAD or type == Type.INACTIVE
+
+
+func blocks_passive_bonuses() -> bool:
+	return type == Type.INACTIVE
 
 
 func get_taint_damage() -> int:

@@ -16,12 +16,13 @@ const CHIP_ICON := preload("res://assets/icons/ui/neuro_chip.png")
 @onready var _chip_icon: TextureRect = %ChipIcon
 @onready var _btn_body: Button = %ToggleInventoryButton
 @onready var _btn_combat_log: Button = %CombatLogButton
-@onready var _btn_debug_level_up: Button = %DebugLevelUpButton
+@onready var _btn_debug_cell_damage: Button = %DebugCellDamageButton
 @onready var _btn_menu: Button = %MenuButton
 @onready var _level_label: Label = %LevelLabel
 @onready var _xp_bar: ProgressBar = %XPBar
 
 var _player_stats: PlayerStats
+var _combat: Node
 var _chips_initialized: bool = false
 
 
@@ -57,11 +58,11 @@ func _ready() -> void:
 		_btn_combat_log.pressed.connect(func() -> void: combat_log_pressed.emit())
 		GamePalette.apply_button_theme(_btn_combat_log, 13)
 	# TODO: удалить на продакшене
-	if _btn_debug_level_up:
-		_btn_debug_level_up.add_to_group("debug_ui")
-		_btn_debug_level_up.pressed.connect(_on_debug_level_up_pressed)
-		_btn_debug_level_up.visible = not GameSettings.hide_debug_tools
-		_apply_level_up_button_theme(_btn_debug_level_up)
+	if _btn_debug_cell_damage:
+		_btn_debug_cell_damage.add_to_group("debug_ui")
+		_btn_debug_cell_damage.pressed.connect(_on_debug_cell_damage_pressed)
+		_btn_debug_cell_damage.visible = not GameSettings.hide_debug_tools
+		_apply_debug_button_theme(_btn_debug_cell_damage)
 	if _btn_menu:
 		_btn_menu.pressed.connect(func() -> void: menu_pressed.emit())
 		_btn_menu.mouse_default_cursor_shape = Control.CURSOR_POINTING_HAND
@@ -97,6 +98,10 @@ func bind_player_stats(stats: PlayerStats) -> void:
 		_refresh_level_xp()
 
 
+func bind_combat(combat: Node) -> void:
+	_combat = combat
+
+
 func bind_inventory(inventory: InventoryController) -> void:
 	if inventory == null:
 		_on_hp_changed(0, 0)
@@ -119,7 +124,7 @@ func _configure_menu_button() -> void:
 	_btn_menu.modulate = GamePalette.CRT_TEXT_MAIN
 
 
-func _apply_level_up_button_theme(btn: Button) -> void:
+func _apply_debug_button_theme(btn: Button) -> void:
 	## Phosphor CTA: bright outline, dark fill, muted-green hover.
 	if btn == null:
 		return
@@ -171,8 +176,8 @@ func _apply_locale(_locale: String = "") -> void:
 	if _btn_menu:
 		_btn_menu.text = ""
 		_btn_menu.tooltip_text = tr("KEY_MENU")
-	if _btn_debug_level_up:
-		_btn_debug_level_up.text = tr("KEY_DEBUG_LEVEL_UP").to_upper()
+	if _btn_debug_cell_damage:
+		_btn_debug_cell_damage.text = tr("KEY_DEBUG_CELL_DAMAGE").to_upper()
 	if _chip_label:
 		_chip_label.tooltip_text = tr("KEY_NEURO_CHIPS")
 	if _chip_icon:
@@ -237,8 +242,7 @@ func _refresh_level_xp() -> void:
 	)
 
 
-func _on_debug_level_up_pressed() -> void:
-	if _player_stats == null:
+func _on_debug_cell_damage_pressed() -> void:
+	if _combat == null or not _combat.has_method("apply_cell_damage"):
 		return
-	var needed_xp := _player_stats.max_exp - _player_stats.current_exp
-	_player_stats.add_exp(maxi(needed_xp, 1))
+	_combat.call("apply_cell_damage", Vector2i(-1, -1), ItemStatus.Type.OVERLOAD, 2)

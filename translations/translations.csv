@@ -59,7 +59,7 @@ KEY_COMBAT_LOG,Combat Log,Боевой лог
 KEY_MUTATE_CELLS,Mutate (+cells),Мутация (+клетки)
 KEY_LANGUAGE,Language,Язык
 KEY_HIDE_DEBUG_TOOLS,Hide Debug Tools,Скрыть debug-инструменты
-KEY_DEBUG_LEVEL_UP,Level Up (Debug),Уровень +1 (Debug)
+KEY_DEBUG_CELL_DAMAGE,Cell Damage (Debug),Урон по ячейке (Debug)
 KEY_LEVEL_UP,Level Up,Новый уровень
 KEY_TARGET,Target,Цель
 KEY_MODULES,Modules,Модули
@@ -727,3 +727,44 @@ ITEM_LOCKPICK_NAME,Lockpick,Отмычка
 ITEM_LOCKPICK_DESC,"A slim scavenged pick. Useless in a fight, but opens sealed caches and locked doors. Single use.","Тонкая отмычка. В бою бесполезна, но открывает запертые тайники и двери. Одноразовая."
 TRAIT_TOOL_LOCKPICK_NAME,Lockpick Tool,Инструмент-отмычка
 TRAIT_TOOL_LOCKPICK_DESC,Can open locked containers and doors during narrative events (consumed on use).,Открывает запертые замки и сундуки (расходуется при использовании).
+KEY_HACKED_BANNER,[ HACKED ],[ ВЗЛОМАНО ]
+KEY_FRAME_HP_HACKED_FMT,Frame HP: ? / ?,HP фрейма: ? / ?
+KEY_AP_HACKED_FMT,AP: ?,ОД: ?
+STATUS_HACKED_NAME,Hacked,Взломан
+STATUS_HACKED_DESC,HUD and module readouts are corrupted.,HUD и описания модулей искажены.
+ITEM_STICKY_GRENADE_NAME,Sticky Grenade,Липкая граната
+ITEM_STICKY_GRENADE_DESC,"A hostile charge lodged in your frame. Remove manually for 1 AP. Detonating CellDamage triggers a blast and disables adjacent modules.","Вредоносный заряд в вашем фрейме. Удаляется вручную за 1 ОД. При получении урона взрывается и повреждает соседние модули."
+KEY_LOG_CELL_DAMAGE,%s disrupts a module (%s %d turns).,%s нарушает работу модуля (%s %d ход.).
+KEY_LOG_GRENADE_DETONATE,%s detonates for %d damage!,%s взрывается и наносит %d урона!
+KEY_LOG_GRENADE_NONE,%s finds no grenade to detonate.,%s не находит гранату для подрыва.
+KEY_LOG_ARBITER_OPENING,%s overloads a random module at battle start.,%s перегружает случайный модуль в начале боя.
+ENEMY_ARBITER_NAME,Arbiter Guard,Страж Арбитра
+ENEMY_ARBITER_DESC,Grid disruptor — opens fights by overloading your gear.,Дизраптор сетки — начинает бой с перегрузки снаряжения.
+ENEMY_GRENADIER_NAME,Grenadier Drone,Дрон-гранатомётчик
+ENEMY_GRENADIER_DESC,Plants sticky grenades then detonates them remotely.,Метает липкие гранаты и подрывает их удалённо.
+ENEMY_WARDEN_NAME,Warden,Надзиратель
+ENEMY_WARDEN_DESC,Corrupts your HUD with a Hack Pulse.,Повреждает ваш интерфейс импульсным взломом.
+ABILITY_ARBITER_STRIKE_NAME,Arbiter Strike,Удар арбитра
+ABILITY_ARBITER_STRIKE_TEXT,Arbiter Strike!,Удар арбитра!
+ABILITY_ARBITER_STRIKE_DESC,INT-scaled physical hit.,Физический удар с масштабом по INT.
+ABILITY_ARBITER_GUARD_NAME,Arbiter Guard,Страж арбитра
+ABILITY_ARBITER_GUARD_TEXT,Arbiter Guard!,Страж арбитра!
+ABILITY_ARBITER_GUARD_DESC,Gain Block.,Получает Блок.
+ABILITY_ARBITER_DISRUPT_NAME,Disruptive Shot,Пробивной выстрел
+ABILITY_ARBITER_DISRUPT_TEXT,Disruptive Shot!,Пробивной выстрел!
+ABILITY_ARBITER_DISRUPT_DESC,CellDamage: Overload target 2 turns.,CellDamage: перегрузка цели на 2 хода.
+ABILITY_ARBITER_FOCUS_NAME,Arbiter Focus,Фокус арбитра
+ABILITY_ARBITER_FOCUS_TEXT,Arbiter Focus!,Фокус арбитра!
+ABILITY_ARBITER_FOCUS_DESC,Every 3 turns: +1 INT.,Каждые 3 хода: +1 ИНТ.
+ABILITY_GRENADIER_GRENADE_NAME,Grenade Shot,Выстрел гранатой
+ABILITY_GRENADIER_GRENADE_TEXT,Grenade Shot!,Выстрел гранатой!
+ABILITY_GRENADIER_GRENADE_DESC,Force-inserts a Sticky Grenade.,Устанавливает липкую гранату.
+ABILITY_GRENADIER_DETONATE_NAME,Detonate,Подрыв
+ABILITY_GRENADIER_DETONATE_TEXT,Detonate!,Подрыв!
+ABILITY_GRENADIER_DETONATE_DESC,Shot on a planted grenade.,Выстрел по установленной гранате.
+ABILITY_WARDEN_HACK_NAME,Hack Pulse,Импульс взлома
+ABILITY_WARDEN_HACK_TEXT,Hack Pulse!,Импульс взлома!
+ABILITY_WARDEN_HACK_DESC,Applies Hacked to the player.,Накладывает статус Взломан на игрока.
+ABILITY_WARDEN_PULSE_NAME,Compliance Pulse,Импульс подчинения
+ABILITY_WARDEN_PULSE_TEXT,Compliance Pulse!,Импульс подчинения!
+ABILITY_WARDEN_PULSE_DESC,INT-scaled hit.,Удар, который масштабируется от ИНТ.

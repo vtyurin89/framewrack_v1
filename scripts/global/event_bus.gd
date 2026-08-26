@@ -47,6 +47,7 @@ signal enemy_intention_changed(enemy_index: int, intention: RefCounted)
 signal enemy_died(enemy_index: int)
 signal block_changed(amount: int)
 signal combat_item_availability_changed
+signal cell_damaged(cell_coords: Vector2i)
 signal player_died
 ## UI: animate an item icon flying from the grid toward an enemy card.
 signal item_stolen_by_enemy(enemy_index: int, item: ItemData)

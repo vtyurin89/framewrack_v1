@@ -29,6 +29,7 @@ signal forced_insertion_completed
 const SLIMY_PARASITE_ID := "SLIMY_PARASITE"
 const BIONIC_LARVA_ID := "BIONIC_LARVA"
 const NEURO_TICK_ID := "NEURO_TICK"
+const STICKY_GRENADE_ID := "STICKY_GRENADE"
 const PARASITE_TURN_DAMAGE := 3
 const BIONIC_LARVA_TURN_DAMAGE := 1
 const NEURO_TICK_ACTIVATION_DAMAGE := 1
@@ -86,6 +87,8 @@ func _ready() -> void:
 	add_to_group("combat_manager")
 	if not EventBus.ap_changed.is_connected(_forward_player_ap_changed):
 		EventBus.ap_changed.connect(_forward_player_ap_changed)
+	if not EventBus.cell_damaged.is_connected(_on_cell_damaged):
+		EventBus.cell_damaged.connect(_on_cell_damaged)
 
 
 func _forward_player_ap_changed(current: int, _maximum: int) -> void:
@@ -168,6 +171,7 @@ func start_combat(enemy_datas: Array[EnemyData], max_attackers: int = -1) -> voi
 	_reset_all_item_combat_uses()
 	_clear_all_item_statuses()
 	_apply_start_of_combat_player_buffs()
+	_apply_enemy_battle_start_passives()
 	_parasite_at_combat_start = _has_item_in_grid(SLIMY_PARASITE_ID)
 	_select_first_living_enemy()
 	EventBus.combat_started.emit(ids)
@@ -1156,6 +1160,130 @@ func apply_item_status(
 		return
 	placed.apply_status(status_type, remaining_turns, args)
 	EventBus.combat_item_availability_changed.emit()
+
+
+func apply_cell_damage(
+	target_cell: Vector2i = Vector2i(-1, -1),
+	status_effect: ItemStatus.Type = ItemStatus.Type.COOLDOWN,
+	duration: int = 0
+) -> void:
+	## Unified grid strike: random non-harmful target, laser VFX, optional item status.
+	if inventory == null or inventory.grid == null:
+		return
+	var placed := _resolve_cell_damage_target(target_cell)
+	if placed == null:
+		return
+	var resolved_cell := _resolve_cell_damage_coords(placed, target_cell)
+	## Emit VFX first; avoid inventory_changed here — full grid rebuild would kill the laser.
+	EventBus.cell_damaged.emit(resolved_cell)
+	if duration > 0 and inventory.grid.items.has(placed):
+		apply_item_status(placed, status_effect, duration)
+
+
+func find_sticky_grenade_cell() -> Vector2i:
+	if inventory == null or inventory.grid == null:
+		return Vector2i(-1, -1)
+	var origins: Array[Vector2i] = []
+	for placed: PlacedItem in inventory.grid.items:
+		if placed == null or placed.data == null:
+			continue
+		if placed.data.id.strip_edges().to_upper() == STICKY_GRENADE_ID:
+			origins.append(placed.origin)
+	if origins.is_empty():
+		return Vector2i(-1, -1)
+	return origins[randi() % origins.size()]
+
+
+func has_sticky_grenade_in_grid() -> bool:
+	return find_sticky_grenade_cell() != Vector2i(-1, -1)
+
+
+func _resolve_cell_damage_target(target_cell: Vector2i) -> PlacedItem:
+	var grid := inventory.grid
+	if target_cell != Vector2i(-1, -1):
+		return grid.get_occupant(target_cell)
+	var clean: Array[PlacedItem] = []
+	var with_status: Array[PlacedItem] = []
+	for placed: PlacedItem in grid.items:
+		if placed == null or placed.data == null:
+			continue
+		if placed.data.is_harmful:
+			continue
+		if not grid.is_item_functional(placed):
+			continue
+		if placed.data.has_any_item_status():
+			with_status.append(placed)
+		else:
+			clean.append(placed)
+	if not clean.is_empty():
+		return clean[randi() % clean.size()]
+	if not with_status.is_empty():
+		return with_status[randi() % with_status.size()]
+	return null
+
+
+func _resolve_cell_damage_coords(placed: PlacedItem, target_cell: Vector2i) -> Vector2i:
+	if target_cell != Vector2i(-1, -1):
+		return target_cell
+	return placed.origin if placed != null else Vector2i(-1, -1)
+
+
+func _on_cell_damaged(cell: Vector2i) -> void:
+	if inventory == null or inventory.grid == null:
+		return
+	var placed := inventory.grid.get_occupant(cell)
+	if placed == null or placed.data == null:
+		return
+	if placed.data.id.strip_edges().to_upper() != STICKY_GRENADE_ID:
+		return
+	_detonate_sticky_grenade(placed)
+
+
+func _detonate_sticky_grenade(placed: PlacedItem) -> void:
+	if placed == null or placed.data == null or inventory == null or inventory.grid == null:
+		return
+	var grid := inventory.grid
+	var adjacent: Array[PlacedItem] = grid.get_adjacent_items(placed)
+	var data := placed.data
+	var item_name := data.get_localized_name()
+	var dmg := data.min_damage
+	if data.max_damage > data.min_damage:
+		dmg = randi_range(data.min_damage, data.max_damage)
+	else:
+		dmg = maxi(1, data.min_damage)
+	grid.remove_item(placed, true)
+	var dealt := inventory.apply_damage(dmg, current_block)
+	current_block = maxi(0, current_block - dmg)
+	EventBus.block_changed.emit(current_block)
+	if dealt > 0:
+		_request_player_popup(dealt, "physical")
+		_trigger_player_hit_feedback(dealt)
+	EventBus.player_hp_changed.emit(inventory.current_hp, inventory.max_hp)
+	EventBus.combat_log_message.emit(tr("KEY_LOG_GRENADE_DETONATE") % [item_name, dealt if dealt > 0 else dmg])
+	for neighbour: PlacedItem in adjacent:
+		if neighbour == null or neighbour.data == null:
+			continue
+		if not grid.is_item_functional(neighbour):
+			continue
+		if ItemData.is_active_combat_module(neighbour.data):
+			apply_item_status(neighbour, ItemStatus.Type.COOLDOWN, 2)
+		elif ItemData.is_passive_module(neighbour.data):
+			apply_item_status(neighbour, ItemStatus.Type.INACTIVE, 2)
+	if player_stats != null:
+		player_stats.recalculate_from_equipment(grid)
+	EventBus.inventory_changed.emit()
+	EventBus.combat_item_availability_changed.emit()
+
+
+func _apply_enemy_battle_start_passives() -> void:
+	for enemy: EnemyInstance in enemies:
+		if enemy == null or not enemy.is_alive() or enemy.data == null:
+			continue
+		if enemy.data.id.strip_edges().to_lower() == "arbiter_guard":
+			apply_cell_damage(Vector2i(-1, -1), ItemStatus.Type.OVERLOAD, 1)
+			EventBus.combat_log_message.emit(
+				tr("KEY_LOG_ARBITER_OPENING") % enemy.get_localized_name()
+			)
 
 
 func apply_overload_to_item(placed: PlacedItem, turns: int = 1) -> void:

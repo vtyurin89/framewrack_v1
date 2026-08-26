@@ -54,6 +54,7 @@ var _hover_tooltip: ItemHoverTooltip
 var _hovered_item_ui: ItemUI
 var _context_menu: ItemContextMenu
 var _inspect_modal: ItemInspectModal
+var _cell_damage_vfx: CellDamageVfx
 
 @onready var _grid_host: Control = %GridHost
 @onready var _grid_root: GridContainer = %GridRoot
@@ -116,6 +117,8 @@ func setup(p_inventory: InventoryController) -> void:
 		EventBus.combat_item_availability_changed.connect(_refresh_combat_item_visuals)
 	if not EventBus.ap_changed.is_connected(_on_ap_changed_visuals):
 		EventBus.ap_changed.connect(_on_ap_changed_visuals)
+	if not EventBus.cell_damaged.is_connected(_on_cell_damaged_vfx):
+		EventBus.cell_damaged.connect(_on_cell_damaged_vfx)
 	if _close_button and not _close_button.pressed.is_connected(_on_close_pressed):
 		_close_button.pressed.connect(_on_close_pressed)
 	if _level_up_button and not _level_up_button.pressed.is_connected(_on_level_up_pressed):
@@ -191,11 +194,13 @@ func _on_ap_changed_visuals(_current: int, _maximum: int) -> void:
 func _ensure_hover_tooltip() -> void:
 	if _hover_tooltip != null and is_instance_valid(_hover_tooltip):
 		_hover_tooltip.body_grid = inventory.grid if inventory != null else null
+		_hover_tooltip.is_hacked_fn = Callable(self, "_is_player_hacked")
 		return
 	_hover_tooltip = ItemHoverTooltip.new()
 	_hover_tooltip.name = "ItemHoverTooltip"
 	_hover_tooltip.actor_stats = player_stats
 	_hover_tooltip.body_grid = inventory.grid if inventory != null else null
+	_hover_tooltip.is_hacked_fn = Callable(self, "_is_player_hacked")
 	add_child(_hover_tooltip)
 
 
@@ -203,11 +208,13 @@ func _ensure_inspect_modal() -> void:
 	if _inspect_modal != null and is_instance_valid(_inspect_modal):
 		_inspect_modal.actor_stats = player_stats
 		_inspect_modal.body_grid = inventory.grid if inventory != null else null
+		_inspect_modal.is_hacked_fn = Callable(self, "_is_player_hacked")
 		return
 	_inspect_modal = INSPECT_MODAL_SCENE.instantiate() as ItemInspectModal
 	_inspect_modal.name = "ItemInspectModal"
 	_inspect_modal.actor_stats = player_stats
 	_inspect_modal.body_grid = inventory.grid if inventory != null else null
+	_inspect_modal.is_hacked_fn = Callable(self, "_is_player_hacked")
 	_inspect_modal.set_anchors_preset(Control.PRESET_FULL_RECT)
 	_inspect_modal.offset_left = 0
 	_inspect_modal.offset_top = 0
@@ -516,6 +523,7 @@ func _fit_layers() -> void:
 		_item_layer.custom_minimum_size = Vector2(w, h)
 		_item_layer.size = Vector2(w, h)
 		_item_layer.mouse_filter = Control.MOUSE_FILTER_IGNORE
+		_ensure_cell_damage_vfx(g, w, h, top_pad)
 	update_minimum_size()
 	var content_min := _padding.get_combined_minimum_size() if _padding else get_combined_minimum_size()
 	custom_minimum_size = content_min
@@ -524,6 +532,43 @@ func _fit_layers() -> void:
 
 func _on_close_pressed() -> void:
 	close_requested.emit()
+
+
+func _ensure_cell_damage_vfx(g: BodyGrid, w: float, h: float, top_pad: float) -> void:
+	## Live on GridHost (not ItemLayer) so item rebuilds do not kill the laser mid-play.
+	if _grid_host == null:
+		return
+	if _cell_damage_vfx == null or not is_instance_valid(_cell_damage_vfx):
+		_cell_damage_vfx = CellDamageVfx.new()
+		_cell_damage_vfx.name = "CellDamageVfx"
+		_grid_host.add_child(_cell_damage_vfx)
+	elif _cell_damage_vfx.get_parent() != _grid_host:
+		_cell_damage_vfx.reparent(_grid_host)
+	_cell_damage_vfx.configure(Vector2i(g.width, g.height), CELL_SIZE, CELL_GAP)
+	_cell_damage_vfx.position = Vector2(0, top_pad)
+	_cell_damage_vfx.size = Vector2(w, h)
+	_grid_host.move_child(_cell_damage_vfx, -1)
+
+
+func _on_cell_damaged_vfx(cell: Vector2i) -> void:
+	if inventory == null or inventory.grid == null or _grid_host == null:
+		return
+	var g: BodyGrid = inventory.grid
+	var w := g.width * CELL_SIZE + maxi(g.width - 1, 0) * CELL_GAP
+	var h := g.height * CELL_SIZE + maxi(g.height - 1, 0) * CELL_GAP
+	var top_pad := RESERVED_ROWS_TOP * (CELL_SIZE + CELL_GAP)
+	_ensure_cell_damage_vfx(g, w, h, top_pad)
+	if _cell_damage_vfx != null and is_instance_valid(_cell_damage_vfx):
+		_cell_damage_vfx.play_at(cell)
+
+
+func _is_player_hacked() -> bool:
+	if combat_manager == null:
+		return false
+	var statuses = combat_manager.get("player_statuses")
+	if statuses == null:
+		return false
+	return statuses.has_method("has_status") and bool(statuses.has_status("hacked"))
 
 
 func _origin_to_layer_pos(origin: Vector2i) -> Vector2:
@@ -640,17 +685,20 @@ func _on_item_activate_requested(item_ui: ItemUI) -> void:
 
 
 func _refresh_combat_item_visuals() -> void:
-	if not combat_click_mode or combat_manager == null or inventory == null:
+	if inventory == null:
 		return
 	for ui: ItemUI in _item_uis:
 		if not is_instance_valid(ui):
 			continue
-		ui.combat_click_mode = true
-		var placed: PlacedItem = inventory.grid.get_occupant(ui.grid_origin)
-		if placed != null and combat_manager.has_method("can_activate_item"):
-			ui.set_combat_visual(combat_manager.can_activate_item(placed))
-		else:
-			ui.set_combat_visual(false)
+		if combat_click_mode and combat_manager != null:
+			ui.combat_click_mode = true
+			var placed: PlacedItem = inventory.grid.get_occupant(ui.grid_origin)
+			if placed != null and combat_manager.has_method("can_activate_item"):
+				ui.set_combat_visual(combat_manager.can_activate_item(placed))
+			else:
+				ui.set_combat_visual(false)
+		elif ui.has_method("refresh_status_overlay"):
+			ui.refresh_status_overlay()
 
 
 func _on_item_pointer_down(_item_ui: ItemUI) -> void:

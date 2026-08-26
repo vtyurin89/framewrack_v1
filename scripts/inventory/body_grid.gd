@@ -445,6 +445,8 @@ func get_total_max_ap_bonus() -> int:
 	var bonus := 0
 	var adj := get_adjacent_bonuses()
 	for item: PlacedItem in get_functional_items():
+		if item.data.has_passive_bonus_block():
+			continue
 		bonus += item.data.max_ap_bonus
 	bonus += int(adj["ap_bonus"])
 	return bonus
