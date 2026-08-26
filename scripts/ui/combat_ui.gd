@@ -61,6 +61,7 @@ var _target_reticle: TargetReticle
 @onready var _close_log_btn: Button = %CloseLogButton
 @onready var _end_turn_btn: Button = %EndTurnButton
 @onready var _continue_btn: Button = %ContinueButton
+@onready var _continue_slot: Control = $VBox/ActionsPanel/ContinueSlot
 @onready var _hint_label: Label = %CombatHint
 @onready var _player_status_host: HBoxContainer = %PlayerStatuses
 @onready var _player_hp_bar: GhostProgressBar = %PlayerHPBar
@@ -73,7 +74,7 @@ var _harmful_insertion_phase: bool = false
 func _ready() -> void:
 	_end_turn_btn.pressed.connect(func() -> void: end_turn_pressed.emit())
 	_continue_btn.pressed.connect(func() -> void: continue_pressed.emit())
-	_continue_btn.visible = false
+	_set_continue_visible(false)
 	if _close_log_btn:
 		_close_log_btn.pressed.connect(hide_combat_log)
 		_close_log_btn.tooltip_text = tr("KEY_CLOSE")
@@ -114,9 +115,10 @@ func setup(p_combat: Node, p_inventory: InventoryController) -> void:
 	_log.clear()
 	_reward_phase = false
 	_harmful_insertion_phase = false
+	_notify_victory_rewards_phase(false)
 	if _loot_stage:
 		_loot_stage.visible = false
-	_continue_btn.visible = false
+	_set_continue_visible(false)
 	_continue_btn.disabled = false
 	_continue_btn.text = tr("KEY_CONTINUE")
 	_end_turn_btn.visible = true
@@ -615,9 +617,18 @@ func _on_ap_changed(current: int, maximum: int) -> void:
 	_last_ap = current
 	if previous < 0:
 		_reset_ap_visuals()
+		_refresh_action_button_pulse()
 		return
 	if current < previous:
 		_play_ap_spend_juice()
+	_refresh_action_button_pulse()
+
+
+func _refresh_action_button_pulse() -> void:
+	if _end_turn_btn and _end_turn_btn.has_method("_eval_pulse_conditions"):
+		_end_turn_btn.call("_eval_pulse_conditions")
+	if _continue_btn and _continue_btn.has_method("_eval_pulse_conditions"):
+		_continue_btn.call("_eval_pulse_conditions")
 
 
 func _on_ap_insufficient() -> void:
@@ -1038,6 +1049,7 @@ func set_reward_phase(active: bool, hint_key: String = "KEY_REWARD_SELECT_UP_TO_
 	_reward_phase = active
 	if active:
 		_harmful_insertion_phase = false
+	_notify_victory_rewards_phase(active)
 	_apply_space_stage_layout(active, tr(hint_key))
 
 
@@ -1046,6 +1058,7 @@ func set_chest_phase(active: bool, hint_key: String = "KEY_CHEST_HINT") -> void:
 	_reward_phase = active
 	if active:
 		_harmful_insertion_phase = false
+	_notify_victory_rewards_phase(active)
 	_apply_space_stage_layout(active, tr(hint_key))
 	if _continue_btn and active:
 		_continue_btn.disabled = false
@@ -1056,17 +1069,18 @@ func set_harmful_insertion_phase(active: bool, banner_text: String = "") -> void
 	_harmful_insertion_phase = active
 	if active:
 		_reward_phase = false
+		_notify_victory_rewards_phase(false)
 	var banner := banner_text if not banner_text.is_empty() else tr("KEY_FORCED_INSERT_BANNER")
 	_apply_space_stage_layout(active, banner)
 	if _continue_btn:
 		if active:
 			_continue_btn.text = tr("KEY_CONTINUE")
-			_continue_btn.visible = true
+			_set_continue_visible(true)
 			_continue_btn.disabled = true  ## Enabled by ForcedItemScreen when placed.
 		else:
 			## Resume enemy/player turn — Continue belongs only to end-of-combat / rewards.
-			_continue_btn.visible = _reward_phase or _is_combat_ended()
-			if not _continue_btn.visible:
+			_set_continue_visible(_reward_phase or _is_combat_ended())
+			if _continue_slot == null or not _continue_slot.visible:
 				_continue_btn.disabled = false
 
 
@@ -1114,7 +1128,7 @@ func _apply_space_stage_layout(active: bool, hint_text: String) -> void:
 	## Continue visibility is owned by set_reward_phase / set_harmful_insertion_phase /
 	## _on_combat_ended — only force-show while a space-stage overlay is active.
 	if _continue_btn and active:
-		_continue_btn.visible = true
+		_set_continue_visible(true)
 	if _hint_label:
 		if active:
 			_hint_label.visible = true
@@ -1134,6 +1148,21 @@ func is_reward_phase() -> bool:
 	return _reward_phase
 
 
+func _set_continue_visible(show_btn: bool) -> void:
+	if _continue_slot:
+		_continue_slot.visible = show_btn
+	if _continue_btn:
+		_continue_btn.visible = true
+		if _continue_btn.has_method("_eval_pulse_conditions"):
+			_continue_btn.call("_eval_pulse_conditions")
+
+
+func _notify_victory_rewards_phase(active: bool) -> void:
+	if combat != null and combat.has_method("set_victory_rewards_active"):
+		combat.set_victory_rewards_active(active)
+	call_deferred("_refresh_action_button_pulse")
+
+
 func _on_combat_ended(victory: bool) -> void:
 	_clear_target_reticle()
 	if _enemy_context_menu and _enemy_context_menu.is_open():
@@ -1141,7 +1170,7 @@ func _on_combat_ended(victory: bool) -> void:
 	_end_turn_btn.disabled = true
 	## During reward phase Continue stays visible from set_reward_phase; otherwise show it now.
 	if not _reward_phase:
-		_continue_btn.visible = true
+		_set_continue_visible(true)
 		_end_turn_btn.visible = true
 	_continue_btn.text = tr("KEY_CONTINUE") if victory else tr("KEY_RETURN_TO_MAP")
 	_turn_label.text = tr("KEY_VICTORY") if victory else tr("KEY_FRAME_FAILURE")

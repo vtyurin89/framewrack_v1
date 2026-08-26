@@ -10,7 +10,19 @@ enum CombatState {
 	DEFEAT,
 }
 
+## UI-facing phase alias (includes post-combat reward selection).
+enum Phase {
+	INACTIVE = 0,
+	PLAYER_TURN = 1,
+	ENEMY_TURN = 2,
+	VICTORY = 3,
+	DEFEAT = 4,
+	VICTORY_REWARDS = 5,
+}
+
 signal state_changed(new_state: CombatState)
+signal phase_changed(new_phase: Phase)
+signal player_ap_changed(current: int, maximum: int)
 signal forced_insertion_requested(item_id: String)
 signal forced_insertion_completed
 
@@ -37,6 +49,8 @@ var _ability_executor: EnemyAbilityExecutor
 
 var current_ap: int = 0
 var max_ap: int = 3
+var current_phase: Phase = Phase.INACTIVE
+var player_current_ap: int = 0
 var current_block: int = 0
 var target_index: int = 0
 ## Group Intent Coordination (from EnemyGroup.max_attackers_per_turn).
@@ -65,6 +79,33 @@ const PLAYER_MULTI_SHOT_GAP := 0.22
 var _player_action_busy: bool = false
 ## Enemy currently resolving a physical attack against the player.
 var _active_player_attacker: EnemyInstance = null
+var _victory_rewards_active: bool = false
+
+
+func _ready() -> void:
+	add_to_group("combat_manager")
+	if not EventBus.ap_changed.is_connected(_forward_player_ap_changed):
+		EventBus.ap_changed.connect(_forward_player_ap_changed)
+
+
+func _forward_player_ap_changed(current: int, _maximum: int) -> void:
+	player_current_ap = current_ap
+	player_ap_changed.emit(current_ap, max_ap)
+
+
+func set_victory_rewards_active(active: bool) -> void:
+	if _victory_rewards_active == active:
+		return
+	_victory_rewards_active = active
+	_sync_current_phase()
+	phase_changed.emit(current_phase)
+
+
+func _sync_current_phase() -> void:
+	if _victory_rewards_active:
+		current_phase = Phase.VICTORY_REWARDS
+	else:
+		current_phase = state as int as Phase
 
 
 func setup(p_inventory: InventoryController, p_stats: PlayerStats = null) -> void:
@@ -167,7 +208,9 @@ func has_attacker_slot() -> bool:
 
 func _set_state(next: CombatState) -> void:
 	state = next
+	_sync_current_phase()
 	state_changed.emit(next)
+	phase_changed.emit(current_phase)
 	match next:
 		CombatState.PLAYER_TURN:
 			EventBus.game_state_changed.emit(GameFlowState.State.PLAYER_TURN)
