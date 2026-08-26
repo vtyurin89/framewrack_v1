@@ -5,6 +5,7 @@ extends PanelContainer
 const ICON_COMBAT := preload("res://assets/icons/ui/map/map_combat.png")
 const ICON_ELITE := preload("res://assets/icons/ui/map/map_elite.png")
 const ICON_BOSS := preload("res://assets/icons/ui/map/map_boss.png")
+const ICON_REPAIR := preload("res://assets/icons/ui/map/map_repair.png")
 const LEGEND_ICON_BOX := 28
 
 @onready var _location_label: Label = $SidebarVBox/LocationLabel
@@ -63,7 +64,7 @@ func _build_legend() -> void:
 		{"kind": "glyph", "glyph": "$", "label": tr("KEY_TYPE_SHOP")},
 		{"kind": "glyph", "glyph": "?", "label": tr("KEY_TYPE_EVENT")},
 		{"kind": "texture", "tex": ICON_BOSS, "label": tr("KEY_TYPE_BOSS")},
-		{"kind": "glyph", "glyph": "R", "label": tr("KEY_TYPE_REPAIR")},
+		{"kind": "texture", "tex": ICON_REPAIR, "label": tr("KEY_TYPE_REPAIR")},
 	]
 	for entry in node_entries:
 		_legend_list.add_child(_make_node_row(entry))

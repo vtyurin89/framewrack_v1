@@ -6,6 +6,7 @@ signal node_pressed(node_data: MapNodeData)
 const ICON_COMBAT := preload("res://assets/icons/ui/map/map_combat.png")
 const ICON_ELITE := preload("res://assets/icons/ui/map/map_elite.png")
 const ICON_BOSS := preload("res://assets/icons/ui/map/map_boss.png")
+const ICON_REPAIR := preload("res://assets/icons/ui/map/map_repair.png")
 const ICON_SIZE := 28
 
 var node_data: MapNodeData
@@ -157,6 +158,8 @@ func _texture_for_type(node_type: MapNodeData.MapNodeType) -> Texture2D:
 			return ICON_ELITE
 		MapNodeData.MapNodeType.BOSS:
 			return ICON_BOSS
+		MapNodeData.MapNodeType.REPAIR:
+			return ICON_REPAIR
 		_:
 			return null
 
@@ -169,8 +172,6 @@ func _glyph_for_type(node_type: MapNodeData.MapNodeType) -> String:
 			return "#"
 		MapNodeData.MapNodeType.EVENT:
 			return "?"
-		MapNodeData.MapNodeType.REPAIR:
-			return "R"
 		MapNodeData.MapNodeType.SHOP:
 			return "$"
 		MapNodeData.MapNodeType.STAIRS:
