@@ -69,8 +69,6 @@ func clear() -> void:
 func _build_stats_line(item: ItemData) -> String:
 	var parts: PackedStringArray = []
 	parts.append("%dx%d" % [item.size.x, item.size.y])
-	if item.requires_edge:
-		parts.append("EDGE")
 	if item.usable:
 		if item.consumable:
 			parts.append(tr("KEY_USE_COST_FMT") % [item.ap_cost, tr("KEY_AP")])

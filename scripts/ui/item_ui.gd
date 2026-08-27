@@ -69,14 +69,16 @@ func _build_visual() -> void:
 
 	if item != null and item.has_custom_shape():
 		_build_shaped_visual()
+		## AABB still spans the bounding box; clip so nested L-holes don't show foreign pixels.
+		clip_contents = true
 	else:
 		_build_rect_visual()
+		clip_contents = false
 
 	_cd_label = Label.new()
 	_cd_label.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	_cd_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	_cd_label.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
-	_cd_label.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
 	_cd_label.add_theme_font_size_override("font_size", 18)
 	_cd_label.add_theme_color_override("font_color", GamePalette.COLOR_WARN)
 	_cd_label.add_theme_color_override("font_outline_color", GamePalette.BACKGROUND_DARK)
@@ -88,12 +90,18 @@ func _build_visual() -> void:
 	_status_icon.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	_status_icon.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	_status_icon.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
-	_status_icon.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
 	_status_icon.add_theme_font_size_override("font_size", 20)
 	_status_icon.add_theme_color_override("font_outline_color", Color(0, 0, 0, 0.95))
 	_status_icon.add_theme_constant_override("outline_size", 5)
 	_status_icon.visible = false
 	add_child(_status_icon)
+
+	if item != null and item.has_custom_shape():
+		_pin_overlay_to_icon_cell(_cd_label)
+		_pin_overlay_to_icon_cell(_status_icon)
+	else:
+		_cd_label.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+		_status_icon.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
 
 	if item != null and item.is_stackable and item.current_stack > 1:
 		var text_col := InventoryTheme.text_color_for_item(item)
@@ -164,18 +172,26 @@ func _build_shaped_visual() -> void:
 		_icon.texture = item.get_texture()
 		_icon.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
 		_icon.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
-		_icon.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
-		_icon.offset_left = 3.0
-		_icon.offset_top = 3.0
-		_icon.offset_right = -3.0
-		_icon.offset_bottom = -3.0
 		_icon.mouse_filter = Control.MOUSE_FILTER_IGNORE
+		place_icon_in_cell(_icon, item.get_icon_anchor_offset(), cell_size, cell_gap, 3.0)
 		add_child(_icon)
 
 	_label = Label.new()
 	_label.visible = false
 	_label.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	add_child(_label)
+
+
+func _pin_overlay_to_icon_cell(control: Control) -> void:
+	if control == null or item == null:
+		return
+	var anchor := item.get_icon_anchor_offset()
+	var stride := cell_size + cell_gap
+	control.set_anchors_preset(Control.PRESET_TOP_LEFT)
+	control.anchor_right = 0.0
+	control.anchor_bottom = 0.0
+	control.position = Vector2(float(anchor.x) * stride, float(anchor.y) * stride)
+	control.size = Vector2(cell_size, cell_size)
 
 
 func _item_has_custom_icon(p_item: ItemData) -> bool:
@@ -324,7 +340,7 @@ func _notification(what: int) -> void:
 			_grid_ui.end_item_drag(success)
 
 
-func _get_drag_data(_at_position: Vector2) -> Variant:
+func _get_drag_data(at_position: Vector2) -> Variant:
 	if combat_click_mode:
 		return null
 	if item == null or _grid_ui == null:
@@ -332,7 +348,8 @@ func _get_drag_data(_at_position: Vector2) -> Variant:
 	if not _grid_ui.has_method("begin_item_drag"):
 		return null
 
-	var session: Dictionary = _grid_ui.begin_item_drag(self)
+	var grab := cell_offset_at(at_position, item, cell_size, cell_gap)
+	var session: Dictionary = _grid_ui.begin_item_drag(self, grab)
 	if session.is_empty():
 		return null
 
@@ -350,6 +367,58 @@ func _get_drag_data(_at_position: Vector2) -> Variant:
 	session["preview"] = preview
 	set_drag_preview(preview)
 	return session
+
+
+static func cell_offset_at(
+	at_position: Vector2,
+	p_item: ItemData,
+	p_cell_size: float,
+	p_cell_gap: float,
+	shape_override: Array = [],
+) -> Vector2i:
+	## Footprint-local cell under the pointer (snapped onto occupied mask cells).
+	var stride := p_cell_size + p_cell_gap
+	if stride <= 0.0:
+		return Vector2i.ZERO
+	var raw := Vector2i(
+		int(floor(at_position.x / stride)),
+		int(floor(at_position.y / stride))
+	)
+	var offsets: Array[Vector2i] = []
+	if shape_override.size() > 0:
+		for entry in shape_override:
+			offsets.append(entry as Vector2i)
+	elif p_item != null and p_item.has_custom_shape():
+		offsets = p_item.get_effective_shape()
+	elif p_item != null:
+		for y in maxi(1, p_item.size.y):
+			for x in maxi(1, p_item.size.x):
+				offsets.append(Vector2i(x, y))
+	if offsets.is_empty():
+		return Vector2i.ZERO
+	for o: Vector2i in offsets:
+		if o == raw:
+			return raw
+	return ItemData.nearest_offset(offsets, raw)
+
+
+static func place_icon_in_cell(
+	icon: TextureRect,
+	anchor: Vector2i,
+	p_cell_size: float,
+	p_cell_gap: float,
+	pad: float = 3.0
+) -> void:
+	## Keep shaped icons inside one hub cell so they don't spill into the mask hole.
+	var stride := p_cell_size + p_cell_gap
+	icon.set_anchors_preset(Control.PRESET_TOP_LEFT)
+	icon.anchor_right = 0.0
+	icon.anchor_bottom = 0.0
+	icon.position = Vector2(
+		float(anchor.x) * stride + pad,
+		float(anchor.y) * stride + pad
+	)
+	icon.size = Vector2(p_cell_size - pad * 2.0, p_cell_size - pad * 2.0)
 
 
 static func build_drag_preview(
@@ -392,13 +461,39 @@ static func build_drag_preview(
 		icon.texture = p_item.get_texture()
 		icon.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
 		icon.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
-		icon.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
-		icon.offset_left = 4.0
-		icon.offset_top = 4.0
-		icon.offset_right = -4.0
-		icon.offset_bottom = -4.0
 		icon.mouse_filter = Control.MOUSE_FILTER_IGNORE
+		var anchor := (
+			ItemData.icon_anchor_of(local_offsets)
+			if not local_offsets.is_empty()
+			else Vector2i.ZERO
+		)
+		place_icon_in_cell(icon, anchor, p_cell_size, p_cell_gap, 4.0)
 		root.add_child(icon)
 
 	root.pivot_offset = Vector2.ZERO
+	return root
+
+
+## Wrap a footprint preview so Godot's drag grab puts cell (0,0) under the cursor.
+static func wrap_preview_origin_at_cursor(preview: Control, at_position: Vector2) -> Control:
+	return wrap_preview_cell_at_cursor(preview, at_position, Vector2i.ZERO, 0.0, 0.0)
+
+
+## Pin a specific footprint cell under the cursor (catalog chips, post-rotate hubs).
+static func wrap_preview_cell_at_cursor(
+	preview: Control,
+	at_position: Vector2,
+	grab_cell: Vector2i,
+	p_cell_size: float,
+	p_cell_gap: float,
+) -> Control:
+	var root := Control.new()
+	root.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	var stride := p_cell_size + p_cell_gap
+	var grab_tl := Vector2(float(grab_cell.x) * stride, float(grab_cell.y) * stride)
+	preview.position = at_position - grab_tl
+	root.add_child(preview)
+	var extent := preview.position + preview.size
+	root.custom_minimum_size = Vector2(maxf(extent.x, 1.0), maxf(extent.y, 1.0))
+	root.size = root.custom_minimum_size
 	return root

@@ -77,6 +77,18 @@ func extract_from_grid(origin: Vector2i) -> ItemData:
 	return data
 
 
+func extract_item(item: ItemData) -> ItemData:
+	## Prefer identity lookup — shaped items may have an empty AABB origin cell.
+	if item == null or grid == null:
+		return null
+	var occ: PlacedItem = grid.find_placed_by_data(item)
+	if occ == null:
+		return null
+	var data: ItemData = occ.data
+	grid.remove_item(occ, false)
+	return data
+
+
 func place_dragged(
 	item: ItemData,
 	origin: Vector2i,

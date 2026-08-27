@@ -15,7 +15,6 @@ item_type = ExtResource("2")
 rarity = ExtResource("3")
 sub_type = "STANDARD"
 size = Vector2i(1, 1)
-requires_edge = false
 ap_cost = 1
 usable = true
 dropable = false

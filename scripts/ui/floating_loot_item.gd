@@ -58,18 +58,20 @@ func _gui_input(event: InputEvent) -> void:
 			accept_event()
 
 
-func _get_drag_data(_at_position: Vector2) -> Variant:
+func _get_drag_data(at_position: Vector2) -> Variant:
 	if item == null or inventory_ui == null:
 		return null
 	if not inventory_ui.has_method("begin_reward_space_drag"):
 		return null
-	var session: Dictionary = inventory_ui.begin_reward_space_drag(item)
+	var shape: Array = item.get_effective_shape() if item.has_custom_shape() else []
+	var grab := ItemUI.cell_offset_at(at_position, item, _cell, _gap, shape)
+	var session: Dictionary = inventory_ui.begin_reward_space_drag(item, grab)
 	if session.is_empty():
 		return null
 	_dragging = true
 	drag_begun.emit(self, item)
 	visible = false
-	var preview := ItemUI.build_drag_preview(item, item.size, _cell, _gap)
+	var preview := ItemUI.build_drag_preview(item, item.size, _cell, _gap, shape)
 	session["preview"] = preview
 	set_drag_preview(preview)
 	return session

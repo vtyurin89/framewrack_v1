@@ -41,8 +41,18 @@ const FALLBACK_ICON_PATH := "res://assets/icons/fallback_item.png"
 ## Empty = solid rectangle of `size`. When set, occupancy uses these cells only.
 @export var shape_offsets: Array[Vector2i] = []
 
-## If true, at least one occupied cell must touch the grid's outer edge.
-@export var requires_edge: bool = false
+## Canonical (unrotated CSV) mask — used by `get_rotated_shape_mask(rotation_index)`.
+var canonical_shape_offsets: Array[Vector2i] = []
+
+## Spec / debug alias for `shape_offsets`.
+var shape_mask: Array[Vector2i]:
+	get:
+		return shape_offsets
+	set(value):
+		apply_shape(value)
+		if canonical_shape_offsets.is_empty() and not shape_offsets.is_empty():
+			canonical_shape_offsets = shape_offsets.duplicate()
+
 
 ## Combat activation cost (0 = passive / always-on).
 @export var ap_cost: int = 0
@@ -157,13 +167,6 @@ var item_name: String:
 		return get_localized_name()
 	set(value):
 		display_name = value
-
-
-var is_edge_only: bool:
-	get:
-		return requires_edge
-	set(value):
-		requires_edge = value
 
 
 var cost_ap: int:
@@ -824,18 +827,118 @@ func get_effective_shape() -> Array[Vector2i]:
 	return cells
 
 
+## Shape offsets transformed by `rotation_index` (0..3) and normalized to (0,0).
+## Uses Framewrack CW `(x, y) -> (y, -x)` — same as inventory RMB rotate.
+func get_rotated_shape_mask(rotation_index: int = 0) -> Array[Vector2i]:
+	var raw: Array[Vector2i] = (
+		canonical_shape_offsets.duplicate()
+		if not canonical_shape_offsets.is_empty()
+		else get_effective_shape()
+	)
+	var turns := posmod(rotation_index, 4)
+	if turns == 0:
+		return normalize_offsets(raw)
+	var out: Array[Vector2i] = raw
+	for _i in turns:
+		out = rotate_offsets_cw(out)
+	return out
+
+
+## Cell offset where the item icon should be drawn (L elbow / polyomino hub).
+func get_icon_anchor_offset(shape_override: Array = []) -> Vector2i:
+	var offsets: Array[Vector2i] = _resolve_shape_offsets(size, shape_override)
+	return icon_anchor_of(offsets)
+
+
 func apply_shape(offsets: Array[Vector2i]) -> void:
 	shape_offsets = normalize_offsets(offsets)
 	if shape_offsets.is_empty():
 		return
+	if canonical_shape_offsets.is_empty():
+		canonical_shape_offsets = shape_offsets.duplicate()
 	size = bounding_size_of(shape_offsets)
 
 
 static func rotate_offsets_cw(offsets: Array[Vector2i]) -> Array[Vector2i]:
+	## 90° CW in y-down grid space: (x, y) -> (y, -x), then normalize to (0,0).
 	var rotated: Array[Vector2i] = []
 	for o: Vector2i in offsets:
 		rotated.append(Vector2i(o.y, -o.x))
 	return normalize_offsets(rotated)
+
+
+## Alternate math-form CW used in some specs: (x, y) -> (-y, x). Same 90° turns as above
+## after normalize for orthogonal polyominoes; kept for debug / parity checks.
+static func rotate_offsets_cw_neg_y(offsets: Array[Vector2i]) -> Array[Vector2i]:
+	var rotated: Array[Vector2i] = []
+	for o: Vector2i in offsets:
+		rotated.append(Vector2i(-o.y, o.x))
+	return normalize_offsets(rotated)
+
+
+## Rotate one footprint-local cell with the same normalize shift as `rotate_offsets_cw`.
+static func rotate_offset_cw_with_shape(point: Vector2i, shape: Array[Vector2i]) -> Vector2i:
+	if shape.is_empty():
+		return Vector2i(point.y, -point.x)
+	var rotated: Array[Vector2i] = []
+	for o: Vector2i in shape:
+		rotated.append(Vector2i(o.y, -o.x))
+	var min_x := rotated[0].x
+	var min_y := rotated[0].y
+	for o: Vector2i in rotated:
+		min_x = mini(min_x, o.x)
+		min_y = mini(min_y, o.y)
+	var rp := Vector2i(point.y, -point.x)
+	return Vector2i(rp.x - min_x, rp.y - min_y)
+
+
+## Hub cell for icons: most connected occupied offset (L elbow), else nearest centroid.
+static func icon_anchor_of(offsets: Array[Vector2i]) -> Vector2i:
+	if offsets.is_empty():
+		return Vector2i.ZERO
+	if offsets.size() == 1:
+		return offsets[0]
+	var occupied: Dictionary = {}
+	var cx := 0.0
+	var cy := 0.0
+	for o: Vector2i in offsets:
+		occupied[o] = true
+		cx += float(o.x)
+		cy += float(o.y)
+	cx /= float(offsets.size())
+	cy /= float(offsets.size())
+	var dirs := [Vector2i.LEFT, Vector2i.RIGHT, Vector2i.UP, Vector2i.DOWN]
+	var best: Vector2i = offsets[0]
+	var best_degree := -1
+	var best_dist := INF
+	for o: Vector2i in offsets:
+		var degree := 0
+		for d: Vector2i in dirs:
+			if occupied.has(o + d):
+				degree += 1
+		var dx := float(o.x) - cx
+		var dy := float(o.y) - cy
+		var dist := dx * dx + dy * dy
+		if degree > best_degree or (degree == best_degree and dist < best_dist):
+			best_degree = degree
+			best_dist = dist
+			best = o
+	return best
+
+
+static func nearest_offset(offsets: Array[Vector2i], target: Vector2i) -> Vector2i:
+	if offsets.is_empty():
+		return Vector2i.ZERO
+	var best: Vector2i = offsets[0]
+	var best_dist := INF
+	for o: Vector2i in offsets:
+		var dx := float(o.x - target.x)
+		var dy := float(o.y - target.y)
+		var dist := dx * dx + dy * dy
+		if dist < best_dist:
+			best_dist = dist
+			best = o
+	return best
 
 
 static func normalize_offsets(offsets: Array[Vector2i]) -> Array[Vector2i]:

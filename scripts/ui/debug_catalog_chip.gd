@@ -56,7 +56,7 @@ func _build_icon() -> void:
 		add_child(lbl)
 
 
-func _get_drag_data(_at_position: Vector2) -> Variant:
+func _get_drag_data(at_position: Vector2) -> Variant:
 	if catalog == null or proto == null or ItemDatabase == null:
 		return null
 	var inv_ui: Control = catalog.inventory_ui
@@ -67,14 +67,33 @@ func _get_drag_data(_at_position: Vector2) -> Variant:
 		return null
 	if inv_ui.has_method("set_reward_handler"):
 		inv_ui.set_reward_handler(catalog)
-	var session: Dictionary = inv_ui.begin_debug_item_drag(inst)
+	var shape: Array = inst.get_effective_shape() if inst.has_custom_shape() else []
+	var grab := (
+		ItemData.icon_anchor_of(inst.get_effective_shape())
+		if inst.has_custom_shape()
+		else Vector2i.ZERO
+	)
+	var session: Dictionary = inv_ui.begin_debug_item_drag(inst, grab)
 	if session.is_empty():
 		return null
 	_dragging = true
-	## Drag preview keeps real footprint so placement matches the grid.
-	var preview := ItemUI.build_drag_preview(inst, inst.size, 40.0, 3.0)
+	## Chip is not footprint-sized — pin the hub/elbow cell under the cursor.
+	var preview := ItemUI.build_drag_preview(
+		inst,
+		inst.size,
+		InventoryGridUI.CELL_SIZE,
+		InventoryGridUI.CELL_GAP,
+		shape
+	)
+	var wrapped := ItemUI.wrap_preview_cell_at_cursor(
+		preview,
+		at_position,
+		grab,
+		InventoryGridUI.CELL_SIZE,
+		InventoryGridUI.CELL_GAP
+	)
 	session["preview"] = preview
-	set_drag_preview(preview)
+	set_drag_preview(wrapped)
 	return session
 
 

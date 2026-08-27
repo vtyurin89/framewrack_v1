@@ -333,7 +333,6 @@ KEY_PLACE_INVALID_FOOTPRINT,Invalid footprint.,Неверная форма.
 KEY_PLACE_OUTSIDE,Outside unlocked body grid.,Вне открытой сетки тела.
 KEY_PLACE_OCCUPIED,Cell occupied.,Клетка занята.
 KEY_PLACE_CORRUPTED,Cell corrupted — repair required.,Клетка искажена — нужен ремонт.
-KEY_PLACE_EDGE,Item requires edge placement.,Предмет требует установки на край.
 ENEMY_DESPERATE_REBEL_NAME,Desperate Rebel,Отчаянный повстанец
 ENEMY_DESPERATE_REBEL_DESC,A starving human with a pipe. Still believes this city has a future.,Голодный человек с трубой. Всё ещё верит; что у города есть будущее.
 ENEMY_CORRUPTED_SYNTHET_NAME,Corrupted Synthet,Искажённый синтет

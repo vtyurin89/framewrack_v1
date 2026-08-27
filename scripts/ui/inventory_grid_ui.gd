@@ -43,8 +43,10 @@ var reward_handler: Node
 ## Active drag session (shared Dictionary mutated for rotation).
 var _drag: Dictionary = {}
 var _drop_committed: bool = false
+var _external_extract: bool = false
 var _suppress_refresh: bool = false
 var _hover_origin: Vector2i = Vector2i(-1, -1)
+var _hover_valid: bool = false
 var _level_up_busy: bool = false
 var _suppress_unlock_reveal: bool = false
 
@@ -692,7 +694,7 @@ func inspect_item(item: ItemData) -> void:
 func _on_item_activate_requested(item_ui: ItemUI) -> void:
 	if not combat_click_mode or item_ui == null or inventory == null:
 		return
-	var placed: PlacedItem = inventory.grid.get_occupant(item_ui.grid_origin)
+	var placed: PlacedItem = inventory.grid.find_placed_by_data(item_ui.item)
 	if placed == null:
 		return
 	item_activated.emit(placed)
@@ -706,7 +708,7 @@ func _refresh_combat_item_visuals() -> void:
 			continue
 		if combat_click_mode and combat_manager != null:
 			ui.combat_click_mode = true
-			var placed: PlacedItem = inventory.grid.get_occupant(ui.grid_origin)
+			var placed: PlacedItem = inventory.grid.find_placed_by_data(ui.item)
 			if placed != null and combat_manager.has_method("can_activate_item"):
 				ui.set_combat_visual(combat_manager.can_activate_item(placed))
 			else:
@@ -751,9 +753,10 @@ func set_reward_handler(handler: Node) -> void:
 func commit_external_drop() -> void:
 	## Mark current drag as successfully consumed outside the grid (e.g. Space).
 	_drop_committed = true
+	_external_extract = true
 
 
-func begin_debug_item_drag(item: ItemData) -> Dictionary:
+func begin_debug_item_drag(item: ItemData, grab_offset: Vector2i = Vector2i.ZERO) -> Dictionary:
 	## Like begin_reward_space_drag, but allowed during combat (debug catalog grants).
 	if level_up_mode or _level_up_busy:
 		return {}
@@ -765,7 +768,9 @@ func begin_debug_item_drag(item: ItemData) -> Dictionary:
 	_close_context_menu()
 	_suppress_refresh = true
 	_drop_committed = false
+	_external_extract = false
 	_hover_origin = Vector2i(-1, -1)
+	_hover_valid = false
 	_drag = {
 		"type": DRAG_TYPE,
 		"item": item,
@@ -773,6 +778,7 @@ func begin_debug_item_drag(item: ItemData) -> Dictionary:
 		"shape": item.get_effective_shape() if item.has_custom_shape() else [],
 		"original_size": item.size,
 		"original_shape": item.get_effective_shape() if item.has_custom_shape() else [],
+		"grab_offset": grab_offset,
 		"source": "space",
 		"original_origin": Vector2i(-1, -1),
 		"preview": null,
@@ -782,7 +788,7 @@ func begin_debug_item_drag(item: ItemData) -> Dictionary:
 	return _drag
 
 
-func begin_reward_space_drag(item: ItemData) -> Dictionary:
+func begin_reward_space_drag(item: ItemData, grab_offset: Vector2i = Vector2i.ZERO) -> Dictionary:
 	if combat_click_mode or level_up_mode or _level_up_busy:
 		return {}
 	if inventory == null or item == null:
@@ -793,7 +799,9 @@ func begin_reward_space_drag(item: ItemData) -> Dictionary:
 	_close_context_menu()
 	_suppress_refresh = true
 	_drop_committed = false
+	_external_extract = false
 	_hover_origin = Vector2i(-1, -1)
+	_hover_valid = false
 	_drag = {
 		"type": DRAG_TYPE,
 		"item": item,
@@ -801,6 +809,7 @@ func begin_reward_space_drag(item: ItemData) -> Dictionary:
 		"shape": item.get_effective_shape() if item.has_custom_shape() else [],
 		"original_size": item.size,
 		"original_shape": item.get_effective_shape() if item.has_custom_shape() else [],
+		"grab_offset": grab_offset,
 		"source": "space",
 		"original_origin": Vector2i(-1, -1),
 		"preview": null,
@@ -810,7 +819,7 @@ func begin_reward_space_drag(item: ItemData) -> Dictionary:
 	return _drag
 
 
-func begin_item_drag(item_ui: ItemUI) -> Dictionary:
+func begin_item_drag(item_ui: ItemUI, grab_offset: Vector2i = Vector2i.ZERO) -> Dictionary:
 	if combat_click_mode or level_up_mode or _level_up_busy:
 		return {}
 	if inventory == null or item_ui == null or item_ui.item == null:
@@ -826,11 +835,15 @@ func begin_item_drag(item_ui: ItemUI) -> Dictionary:
 
 	_suppress_refresh = true
 	_drop_committed = false
+	_external_extract = false
 	_hover_origin = Vector2i(-1, -1)
+	_hover_valid = false
 
 	var original_size := item_ui.item.size
 	var original_origin := item_ui.grid_origin
-	var extracted: ItemData = inventory.extract_from_grid(item_ui.grid_origin)
+	## Resolve by ItemData identity — L-masks can leave AABB origin unoccupied
+	## (neighbor sits in the hole; origin lookup would pick the wrong module).
+	var extracted: ItemData = inventory.extract_item(item_ui.item)
 	if extracted == null:
 		_suppress_refresh = false
 		return {}
@@ -842,6 +855,7 @@ func begin_item_drag(item_ui: ItemUI) -> Dictionary:
 		"shape": extracted.get_effective_shape() if extracted.has_custom_shape() else [],
 		"original_size": original_size,
 		"original_shape": extracted.get_effective_shape() if extracted.has_custom_shape() else [],
+		"grab_offset": grab_offset,
 		"source": "grid",
 		"original_origin": original_origin,
 		"preview": null,
@@ -863,6 +877,7 @@ func end_item_drag(_success: bool) -> bool:
 	var item: ItemData = _drag["item"]
 	var source := str(_drag.get("source", "grid"))
 	var committed := _drop_committed
+	var external := _external_extract
 	## Any failed / off-grid drop cancels and snaps back.
 	if not committed:
 		if source == "space" and reward_handler != null:
@@ -875,12 +890,18 @@ func end_item_drag(_success: bool) -> bool:
 	elif source == "space" and reward_handler != null and reward_handler.has_method("recover_space_item_if_lost"):
 		## Catch rare lost-loot cases (committed without a grid placement).
 		reward_handler.recover_space_item_if_lost(item, get_global_mouse_position())
+	elif source == "grid" and not external and not _item_is_on_grid(item):
+		## Committed flag set but item never landed — never allow silent loss.
+		_restore_drag_item()
+		committed = false
 	item_drag_ended.emit(item, committed)
 
 	_clear_highlights()
 	_drag.clear()
 	_drop_committed = false
+	_external_extract = false
 	_hover_origin = Vector2i(-1, -1)
+	_hover_valid = false
 	_set_item_uis_pass_through(false)
 	_suppress_refresh = false
 	_hide_hover_tooltip()
@@ -889,10 +910,23 @@ func end_item_drag(_success: bool) -> bool:
 	return committed
 
 
+func _item_is_on_grid(item: ItemData) -> bool:
+	if item == null or inventory == null or inventory.grid == null:
+		return false
+	for placed: PlacedItem in inventory.grid.items:
+		if placed != null and placed.data == item:
+			return true
+	return false
+
+
 func _restore_drag_item() -> void:
-	if _drag.is_empty():
+	if _drag.is_empty() or inventory == null:
 		return
 	var item: ItemData = _drag["item"]
+	if item == null:
+		return
+	if _item_is_on_grid(item):
+		return
 	var original_shape: Array = _drag.get("original_shape", [])
 	if original_shape.size() > 0:
 		item.apply_shape(original_shape)
@@ -900,7 +934,39 @@ func _restore_drag_item() -> void:
 		item.size = _drag["original_size"]
 		item.shape_offsets.clear()
 	var origin: Vector2i = _drag["original_origin"]
-	inventory.grid.place_item(item, origin, item.size, original_shape)
+	InventoryDebug.log_inv(
+		"=== [RESTORE] '%s' → origin %s shape %s ==="
+		% [item.id, str(origin), InventoryDebug.format_offsets(original_shape)]
+	)
+	if origin.x >= 0:
+		## Prefer a validated put-back (corruption / occupancy still apply).
+		if inventory.grid.place_item(item, origin, item.size, original_shape) != null:
+			InventoryDebug.log_inv("[RESTORE OK] validated place at %s" % str(origin))
+			return
+		## Extract freed these cells — if still empty, force so cancelled drops
+		## never delete the module.
+		if _restore_cells_clear(item, origin, original_shape):
+			if inventory.grid.force_place_item(item, origin, item.size, original_shape) != null:
+				InventoryDebug.log_inv("[RESTORE OK] force place at %s" % str(origin))
+				return
+	## Never force-overlap another module — that "merges" L-shapes into one AABB.
+	if inventory.try_place_anywhere(item):
+		InventoryDebug.log_inv("[RESTORE OK] try_place_anywhere")
+		return
+	InventoryDebug.log_inv("[RESTORE FAIL] '%s' could not be restored — item lost" % item.id)
+	push_warning(
+		"InventoryGridUI: could not restore '%s' without overlap; item may be lost"
+		% str(item.id)
+	)
+
+
+func _restore_cells_clear(item: ItemData, origin: Vector2i, shape: Array) -> bool:
+	if inventory == null or inventory.grid == null or item == null:
+		return false
+	for cell: Vector2i in item.footprint_for(item.size, origin, shape):
+		if inventory.grid.get_occupant(cell) != null:
+			return false
+	return true
 
 
 func _set_item_uis_pass_through(enabled: bool) -> void:
@@ -919,14 +985,37 @@ func on_slot_drag_hover(cell: Vector2i, data: Variant) -> void:
 		return
 	if not _is_drag(data):
 		return
+	var origin := _find_placeable_origin_for_cell(cell, data)
+	if origin.x >= 0:
+		## Fresh valid footprint under / covering this cell.
+		if (
+			origin == _hover_origin
+			and data.get("footprint") == _drag.get("footprint")
+			and data.get("shape", []) == _drag.get("shape", [])
+		):
+			return
+		_hover_origin = origin
+		_hover_valid = true
+		## Keep grab aligned to the cell under the cursor when possible.
+		_drag["grab_offset"] = cell - origin
+		_update_footprint_highlights(origin, data)
+		return
+
+	## Cursor left the footprint (e.g. onto a neighbour item) — keep last green sticky
+	## so release still commits the highlighted placement.
+	if _hover_valid and _hover_origin.x >= 0 and _is_grid_origin_placeable(_hover_origin, data):
+		return
+
+	var showing := _placement_origin(cell, data)
 	if (
-		cell == _hover_origin
+		showing == _hover_origin
 		and data.get("footprint") == _drag.get("footprint")
 		and data.get("shape", []) == _drag.get("shape", [])
 	):
 		return
-	_hover_origin = cell
-	_update_footprint_highlights(cell, data)
+	_hover_origin = showing
+	_hover_valid = false
+	_update_footprint_highlights(showing, data)
 
 
 func can_drop_on_cell(cell: Vector2i, data: Variant) -> bool:
@@ -934,11 +1023,12 @@ func can_drop_on_cell(cell: Vector2i, data: Variant) -> bool:
 		return false
 	if not _is_drag(data) or inventory == null:
 		return false
-	var item: ItemData = data["item"]
-	var footprint: Vector2i = data["footprint"]
-	var shape: Array = data.get("shape", [])
-	## Pick-limit is enforced in drop_on_cell (so a notice can fire). Grid fit only here.
-	return inventory.grid.can_place_item(item, cell, footprint, shape)
+	## Sticky: while a valid highlight exists, accept drop even if the pointer is
+	## over an occupied neighbour cell (common with L-masks next to 2x2 plates).
+	if _hover_valid and _hover_origin.x >= 0 and _is_grid_origin_placeable(_hover_origin, data):
+		return true
+	## Grid fit only — pick/shop limits are enforced in drop_on_cell so notices can fire.
+	return _find_placeable_origin_for_cell(cell, data).x >= 0
 
 
 func drop_on_cell(cell: Vector2i, data: Variant) -> void:
@@ -947,20 +1037,127 @@ func drop_on_cell(cell: Vector2i, data: Variant) -> void:
 	var item: ItemData = data["item"]
 	var footprint: Vector2i = data["footprint"]
 	var shape: Array = data.get("shape", [])
+	var origin := Vector2i(-1, -1)
+	if _hover_valid and _hover_origin.x >= 0 and _is_grid_origin_placeable(_hover_origin, data):
+		origin = _hover_origin
+	else:
+		origin = _resolve_drop_origin(cell, data)
+	InventoryDebug.log_inv(
+		"=== [DROP] '%s' release_cell=%s resolved_origin=%s hover=%s valid=%s ==="
+		% [item.id if item else "?", str(cell), str(origin), str(_hover_origin), str(_hover_valid)]
+	)
+	if origin.x < 0:
+		InventoryDebug.log_inv("[DROP ABORT] no resolvable origin — will snap back")
+		return
 	if reward_handler != null and reward_handler.has_method("can_accept_item_to_inventory"):
 		if not reward_handler.can_accept_item_to_inventory(item, true):
+			InventoryDebug.log_inv("[DROP ABORT] reward/shop handler rejected item")
 			return
-	if not inventory.place_dragged(item, cell, footprint, shape):
-		## Invalid cell — leave uncommitted so end_item_drag snaps back.
+	if not inventory.place_dragged(item, origin, footprint, shape):
+		InventoryDebug.log_inv("[DROP ABORT] place_dragged failed at %s" % str(origin))
 		return
 
+	InventoryDebug.log_inv("[DROP OK] placed '%s' at %s" % [item.id if item else "?", str(origin)])
 	_drop_committed = true
 	if reward_handler != null and reward_handler.has_method("on_item_placed_in_inventory"):
 		reward_handler.on_item_placed_in_inventory(item)
 	var from_origin: Vector2i = data.get("original_origin", Vector2i(-1, -1))
 	if from_origin.x >= 0:
-		item_moved.emit(item, from_origin, cell)
+		item_moved.emit(item, from_origin, origin)
 	_clear_highlights()
+
+
+func _placement_origin(hover_cell: Vector2i, data: Variant) -> Vector2i:
+	## Hover cell is under the cursor (grabbed footprint cell), not always the AABB origin.
+	var grab: Vector2i = data.get("grab_offset", Vector2i.ZERO) as Vector2i
+	return hover_cell - grab
+
+
+func _resolve_drop_origin(cell: Vector2i, data: Variant) -> Vector2i:
+	var found := _find_placeable_origin_for_cell(cell, data)
+	if found.x >= 0:
+		return found
+	if (
+		_hover_origin.x >= 0
+		and _cell_in_drag_footprint(cell, _hover_origin, data)
+		and _is_grid_origin_placeable(_hover_origin, data)
+	):
+		return _hover_origin
+	return Vector2i(-1, -1)
+
+
+## Prefer grab-aligned origin; otherwise any footprint that covers `cell` (edges / post-rotate).
+func _find_placeable_origin_for_cell(cell: Vector2i, data: Variant) -> Vector2i:
+	var grab_origin := _placement_origin(cell, data)
+	if _is_grid_origin_placeable(grab_origin, data):
+		return grab_origin
+	for origin: Vector2i in _candidate_origins_covering_cell(cell, data):
+		if origin == grab_origin:
+			continue
+		if _is_grid_origin_placeable(origin, data):
+			return origin
+	return Vector2i(-1, -1)
+
+
+func _candidate_origins_covering_cell(cell: Vector2i, data: Variant) -> Array[Vector2i]:
+	var result: Array[Vector2i] = []
+	var seen: Dictionary = {}
+	for offset: Vector2i in _drag_shape_offsets(data):
+		var origin := cell - offset
+		var key := BodyGrid.cell_key(origin)
+		if seen.has(key):
+			continue
+		seen[key] = true
+		result.append(origin)
+	return result
+
+
+func _drag_shape_offsets(data: Variant) -> Array[Vector2i]:
+	var result: Array[Vector2i] = []
+	if not _is_drag(data):
+		return result
+	var shape: Array = data.get("shape", [])
+	if shape.size() > 0:
+		for entry in shape:
+			result.append(entry as Vector2i)
+		return result
+	var item: ItemData = data["item"]
+	var footprint: Vector2i = data["footprint"]
+	if item != null and item.has_custom_shape():
+		return item.get_effective_shape()
+	var size := footprint if footprint != Vector2i.ZERO else (item.size if item else Vector2i.ONE)
+	for y in maxi(1, size.y):
+		for x in maxi(1, size.x):
+			result.append(Vector2i(x, y))
+	return result
+
+
+func _is_grid_origin_placeable(origin: Vector2i, data: Variant) -> bool:
+	if inventory == null or not _is_drag(data):
+		return false
+	var item: ItemData = data["item"]
+	var footprint: Vector2i = data["footprint"]
+	var shape: Array = data.get("shape", [])
+	return inventory.grid.can_place_item(item, origin, footprint, shape)
+
+
+func _is_drag_origin_placeable(origin: Vector2i, data: Variant) -> bool:
+	if not _is_grid_origin_placeable(origin, data):
+		return false
+	if reward_handler != null and reward_handler.has_method("can_accept_item_to_inventory"):
+		if not reward_handler.can_accept_item_to_inventory(data["item"], false):
+			return false
+	return true
+
+
+func _cell_in_drag_footprint(cell: Vector2i, origin: Vector2i, data: Variant) -> bool:
+	if not _is_drag(data):
+		return false
+	var item: ItemData = data["item"]
+	var footprint: Vector2i = data["footprint"]
+	var shape: Array = data.get("shape", [])
+	var cells: Array[Vector2i] = item.footprint_for(footprint, origin, shape)
+	return cell in cells
 
 
 func _update_footprint_highlights(origin: Vector2i, data: Variant) -> void:
@@ -970,16 +1167,13 @@ func _update_footprint_highlights(origin: Vector2i, data: Variant) -> void:
 	var item: ItemData = data["item"]
 	var footprint: Vector2i = data["footprint"]
 	var shape: Array = data.get("shape", [])
-	var valid := inventory.grid.can_place_item(item, origin, footprint, shape)
-	if valid and reward_handler != null and reward_handler.has_method("can_accept_item_to_inventory"):
-		if not reward_handler.can_accept_item_to_inventory(item, false):
-			valid = false
+	var valid := _is_drag_origin_placeable(origin, data)
 	var cells: Array[Vector2i] = item.footprint_for(footprint, origin, shape)
 	var mode := (
 		InventorySlotUI.Highlight.VALID if valid else InventorySlotUI.Highlight.INVALID
 	)
-	for cell: Vector2i in cells:
-		var slot: InventorySlotUI = _slots.get(BodyGrid.cell_key(cell))
+	for highlight_cell: Vector2i in cells:
+		var slot: InventorySlotUI = _slots.get(BodyGrid.cell_key(highlight_cell))
 		if slot:
 			slot.set_highlight(mode)
 
@@ -1020,6 +1214,15 @@ func _rotate_drag() -> void:
 	if _drag.is_empty():
 		return
 	var shape: Array = _drag.get("shape", [])
+	var grab: Vector2i = _drag.get("grab_offset", Vector2i.ZERO) as Vector2i
+	var prev_fp: Vector2i = _drag["footprint"]
+	## Grid cell currently under the cursor (grabbed footprint cell).
+	var cursor_cell := (
+		_hover_origin + grab if _hover_origin.x >= 0 else Vector2i(-1, -1)
+	)
+	var item: ItemData = _drag["item"]
+	var prev_shape_label := InventoryDebug.format_offsets(shape)
+	## Always rotate the drag payload — fit is checked after; invalid just means red highlight.
 	if shape.size() > 0:
 		var typed: Array[Vector2i] = []
 		for entry in shape:
@@ -1027,18 +1230,46 @@ func _rotate_drag() -> void:
 		typed = ItemData.rotate_offsets_cw(typed)
 		_drag["shape"] = typed
 		_drag["footprint"] = ItemData.bounding_size_of(typed)
+		## Keep a stable grab on the icon hub after rotate (preview pixels shift).
+		_drag["grab_offset"] = ItemData.icon_anchor_of(typed)
 	else:
 		var footprint: Vector2i = _drag["footprint"]
+		## Rectangle CW: (x,y) → (y, w-1-x) after normalize into new W=old H, H=old W.
+		_drag["grab_offset"] = Vector2i(grab.y, footprint.x - 1 - grab.x)
 		_drag["footprint"] = Vector2i(footprint.y, footprint.x)
 
+	InventoryDebug.log_rotate_request(
+		item.id if item else "?",
+		cursor_cell,
+		"fp %s mask %s" % [str(prev_fp), prev_shape_label],
+		"fp %s mask %s" % [
+			str(_drag["footprint"]),
+			InventoryDebug.format_offsets(_drag.get("shape", [])),
+		]
+	)
+
 	var preview: Control = _drag.get("preview")
-	var item: ItemData = _drag["item"]
 	var next_footprint: Vector2i = _drag["footprint"]
 	if preview and is_instance_valid(preview):
 		_rebuild_preview_node(preview, item, next_footprint, _drag.get("shape", []))
 
-	if _hover_origin.x >= 0:
-		_update_footprint_highlights(_hover_origin, _drag)
+	if cursor_cell.x < 0:
+		InventoryDebug.log_inv("[ROTATE] No cursor cell yet — preview updated only")
+		InventoryDebug.log_rotate_result(item.id if item else "?", true)
+		return
+
+	var origin := _find_placeable_origin_for_cell(cursor_cell, _drag)
+	var fits := origin.x >= 0
+	if fits:
+		## Sync grab so the covered cursor cell stays the hot cell.
+		_drag["grab_offset"] = cursor_cell - origin
+	else:
+		origin = _placement_origin(cursor_cell, _drag)
+	_hover_origin = origin
+	_hover_valid = fits
+	_update_footprint_highlights(origin, _drag)
+	InventoryDebug.log_rotate_result(item.id if item else "?", true)
+
 
 
 func _rebuild_preview_node(
@@ -1084,6 +1315,21 @@ func _rebuild_preview_node(
 		cell.add_theme_stylebox_override("panel", style)
 		cell.mouse_filter = Control.MOUSE_FILTER_IGNORE
 		preview.add_child(cell)
+
+	if item != null and item.get_texture() != null and not local_offsets.is_empty():
+		var icon := TextureRect.new()
+		icon.texture = item.get_texture()
+		icon.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
+		icon.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
+		icon.mouse_filter = Control.MOUSE_FILTER_IGNORE
+		ItemUI.place_icon_in_cell(
+			icon,
+			ItemData.icon_anchor_of(local_offsets),
+			CELL_SIZE,
+			CELL_GAP,
+			4.0
+		)
+		preview.add_child(icon)
 
 	var caption := Label.new()
 	caption.text = item.get_localized_name() if item else ""

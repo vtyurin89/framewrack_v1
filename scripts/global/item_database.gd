@@ -253,10 +253,7 @@ func _parse_item_row(row: PackedStringArray, col: Dictionary) -> ItemData:
 	if not item.shape_offsets.is_empty():
 		## Keep bounding box in sync with the mask (CSV width/height should match).
 		item.size = ItemData.bounding_size_of(item.shape_offsets)
-
-	item.requires_edge = _parse_bool(_cell(row, col, "is_edge_only"))
-	if _cell(row, col, "is_edge_only").is_empty():
-		item.requires_edge = _parse_bool(_cell(row, col, "requires_edge"))
+		item.canonical_shape_offsets = item.shape_offsets.duplicate()
 
 	item.usable = _parse_bool(_cell(row, col, "usable"), true)
 	item.ap_cost = _parse_int(_cell(row, col, "ap_cost"), 0)

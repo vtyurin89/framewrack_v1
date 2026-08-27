@@ -73,12 +73,22 @@ func is_in_bounds(cell: Vector2i) -> bool:
 	return cell.x >= 0 and cell.y >= 0 and cell.x < width and cell.y < height
 
 
+## Spec alias: strict 0-indexed matrix bounds (locked cells still count as in-bounds).
+func is_cell_valid(cell: Vector2i) -> bool:
+	return is_in_bounds(cell)
+
+
 func is_unlocked(cell: Vector2i) -> bool:
 	return _unlocked.has(cell_key(cell))
 
 
 func is_corrupted(cell: Vector2i) -> bool:
-	return _corruption.get(cell_key(cell), 0) > 0
+	return get_corruption_turns(cell) > 0
+
+
+func get_item_at(cell: Vector2i) -> PlacedItem:
+	## Spec alias for get_occupant.
+	return get_occupant(cell)
 
 
 func get_corruption_turns(cell: Vector2i) -> int:
@@ -223,34 +233,77 @@ func can_place(
 	data: ItemData,
 	origin: Vector2i,
 	footprint: Vector2i = Vector2i.ZERO,
-	shape_override: Array = []
+	shape_override: Array = [],
+	ignore_placed: PlacedItem = null
 ) -> String:
 	## Returns empty string on success, otherwise a translation key for the failure reason.
 	## Optional footprint overrides data.size (used while rotating during drag).
 	## Optional shape_override supplies irregular cell offsets for the drag orientation.
+	## Optional ignore_placed skips occupancy conflicts with that module (in-place rotate).
 	if data == null:
+		InventoryDebug.log_inv("[ABORT] can_place: no item data")
 		return "KEY_PLACE_NO_DATA"
 	var shape: Vector2i = data.size if footprint == Vector2i.ZERO else footprint
 	if shape.x < 1 or shape.y < 1:
+		InventoryDebug.log_inv("[ABORT] can_place: invalid footprint %s" % str(shape))
 		return "KEY_PLACE_INVALID_FOOTPRINT"
 	var cells := data.footprint_for(shape, origin, shape_override)
 	if cells.is_empty():
+		InventoryDebug.log_inv("[ABORT] can_place: empty cell list")
 		return "KEY_PLACE_INVALID_FOOTPRINT"
-	var touches_edge := false
+	var offsets: Array[Vector2i] = []
 	for cell: Vector2i in cells:
-		if not is_in_bounds(cell) or not is_unlocked(cell):
+		offsets.append(cell - origin)
+
+	InventoryDebug.log_check_header(
+		data.id,
+		origin,
+		width,
+		height,
+		offsets,
+		"mask=%d cells" % offsets.size()
+	)
+
+	for i in cells.size():
+		var cell: Vector2i = cells[i]
+		var offset: Vector2i = offsets[i] if i < offsets.size() else cell - origin
+
+		if not is_cell_valid(cell):
+			InventoryDebug.log_cell_fail(
+				"Out of Bounds",
+				"Origin %s + Offset %s -> Cell %s outside [0..%d, 0..%d]"
+				% [str(origin), str(offset), str(cell), width - 1, height - 1]
+			)
 			return "KEY_PLACE_OUTSIDE"
+		if not is_unlocked(cell):
+			InventoryDebug.log_cell_fail(
+				"Locked / Outside Hull",
+				"Cell %s is not unlocked (edge-adjacent placement often hits this)"
+				% str(cell)
+			)
+			return "KEY_PLACE_OUTSIDE"
+
 		match get_cell_state(cell):
 			CellState.OCCUPIED:
-				return "KEY_PLACE_OCCUPIED"
+				var occ := get_occupant(cell)
+				if ignore_placed != null and occ == ignore_placed:
+					InventoryDebug.log_cell_ok(cell, offset, "Self (ignored)")
+				else:
+					var occ_id := occ.data.id if occ != null and occ.data != null else "?"
+					var occ_origin := str(occ.origin) if occ != null else "?"
+					InventoryDebug.log_cell_fail(
+						"Collision",
+						"Cell %s already occupied by '%s' (Item Origin: %s)"
+						% [str(cell), occ_id, occ_origin]
+					)
+					return "KEY_PLACE_OCCUPIED"
 			CellState.CORRUPTED:
+				InventoryDebug.log_cell_fail("Corrupted", "Cell %s is corrupted" % str(cell))
 				return "KEY_PLACE_CORRUPTED"
 			_:
-				pass
-		if is_edge_cell(cell):
-			touches_edge = true
-	if data.is_edge_only and not touches_edge:
-		return "KEY_PLACE_EDGE"
+				InventoryDebug.log_cell_ok(cell, offset)
+
+	InventoryDebug.log_check_success(cells.size())
 	return ""
 
 
@@ -258,10 +311,11 @@ func can_place_item(
 	item: ItemData,
 	top_left_pos: Vector2i,
 	footprint: Vector2i = Vector2i.ZERO,
-	shape_override: Array = []
+	shape_override: Array = [],
+	ignore_placed: PlacedItem = null
 ) -> bool:
-	## Spec API: boundary + EMPTY cells + optional edge-touch for is_edge_only.
-	return can_place(item, top_left_pos, footprint, shape_override) == ""
+	## Spec API: boundary + EMPTY cells inside the unlocked hull.
+	return can_place(item, top_left_pos, footprint, shape_override, ignore_placed) == ""
 
 
 func place_item(
@@ -274,7 +328,42 @@ func place_item(
 	## If footprint/shape is provided from a rotated drag, commits that orientation.
 	var reason := can_place(item, top_left_pos, footprint, shape_override)
 	if reason != "":
+		InventoryDebug.log_inv(
+			"[ABORT] place_item failed for '%s' at %s (%s)"
+			% [item.id if item else "?", str(top_left_pos), reason]
+		)
 		EventBus.placement_failed.emit(reason)
+		return null
+	var placed := _commit_placed_item(item, top_left_pos, footprint, shape_override)
+	if placed != null:
+		_log_grid_writes(placed)
+	return placed
+
+
+func force_place_item(
+	item: ItemData,
+	top_left_pos: Vector2i,
+	footprint: Vector2i = Vector2i.ZERO,
+	shape_override: Array = []
+) -> PlacedItem:
+	## Bypass validation — used to snap a dragged item back after a cancelled drop.
+	InventoryDebug.log_inv(
+		"[FORCE PLACE] '%s' at %s (validation skipped)"
+		% [item.id if item else "?", str(top_left_pos)]
+	)
+	var placed := _commit_placed_item(item, top_left_pos, footprint, shape_override)
+	if placed != null:
+		_log_grid_writes(placed)
+	return placed
+
+
+func _commit_placed_item(
+	item: ItemData,
+	top_left_pos: Vector2i,
+	footprint: Vector2i,
+	shape_override: Array
+) -> PlacedItem:
+	if item == null:
 		return null
 	if shape_override.size() > 0:
 		item.apply_shape(shape_override)
@@ -290,9 +379,25 @@ func place_item(
 	return placed
 
 
+func _log_grid_writes(placed: PlacedItem) -> void:
+	if placed == null or placed.data == null:
+		return
+	for cell: Vector2i in placed.occupied_cells():
+		InventoryDebug.log_inv(
+			"    [GRID WRITE] Written '%s' to cell %s" % [placed.data.id, str(cell)]
+		)
+
+
 func remove_item(placed: PlacedItem, notify: bool = true) -> void:
 	if placed == null:
 		return
+	if placed.data != null:
+		InventoryDebug.log_inv(
+			"--- [REMOVE] Clearing '%s' from Origin %s ---"
+			% [placed.data.id, str(placed.origin)]
+		)
+		for cell: Vector2i in placed.occupied_cells():
+			InventoryDebug.log_inv("    [GRID CLEAR] Cell %s freed" % str(cell))
 	items.erase(placed)
 	_rebuild_cell_states()
 	recalculate_grid_adjacencies()
@@ -307,6 +412,54 @@ func remove_item_at(origin: Vector2i) -> void:
 	var occ := get_occupant(origin)
 	if occ:
 		remove_item(occ)
+
+
+## In-place 90° CW rotate with rollback if the new mask does not fit.
+func try_rotate_item(placed: PlacedItem) -> bool:
+	if placed == null or placed.data == null:
+		return false
+	var item: ItemData = placed.data
+	var prev_shape: Array[Vector2i] = item.get_effective_shape()
+	var prev_size := item.size
+	var next_shape: Array[Vector2i] = (
+		ItemData.rotate_offsets_cw(prev_shape)
+		if item.has_custom_shape() or prev_shape.size() > 1
+		else prev_shape
+	)
+	var next_size := (
+		ItemData.bounding_size_of(next_shape)
+		if item.has_custom_shape()
+		else Vector2i(prev_size.y, prev_size.x)
+	)
+	if not item.has_custom_shape():
+		## Solid rect: just swap size; mask is implied by footprint.
+		next_shape.clear()
+
+	InventoryDebug.log_rotate_request(
+		item.id,
+		placed.origin,
+		"size %s mask %s" % [str(prev_size), InventoryDebug.format_offsets(prev_shape)],
+		"size %s mask %s" % [str(next_size), InventoryDebug.format_offsets(
+			next_shape if not next_shape.is_empty() else item.get_rotated_shape_mask(1)
+		)]
+	)
+
+	var shape_arg: Array = next_shape if item.has_custom_shape() else []
+	if not can_place_item(item, placed.origin, next_size, shape_arg, placed):
+		InventoryDebug.log_rotate_result(item.id, false)
+		return false
+
+	## Commit orientation onto the live ItemData; occupancy rebuilds from shape.
+	if item.has_custom_shape():
+		item.apply_shape(next_shape)
+	else:
+		item.size = next_size
+	_rebuild_cell_states()
+	recalculate_grid_adjacencies()
+	changed.emit()
+	EventBus.inventory_changed.emit()
+	InventoryDebug.log_rotate_result(item.id, true)
+	return true
 
 
 # ---------------------------------------------------------------------------

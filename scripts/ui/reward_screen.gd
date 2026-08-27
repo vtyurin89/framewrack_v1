@@ -148,10 +148,8 @@ func return_floating_to_space(item: ItemData, from_global: Vector2) -> void:
 			target_global = _clamp_global_to_space(from_global, item)
 
 	var entry2: Dictionary = _find_entry(item)
-	var ui: Control = null
-	if not entry2.is_empty():
-		ui = entry2.get("ui") as Control
-	if ui == null or not is_instance_valid(ui):
+	var ui := _entry_ui(entry2)
+	if ui == null:
 		_add_floating_item(item, target_global, RewardManager.is_new_loot(item))
 		return
 
@@ -180,19 +178,16 @@ func recover_space_item_if_lost(item: ItemData, from_global: Vector2) -> void:
 		_detach_floating_entry(item, false)
 		return
 	var entry: Dictionary = _find_entry(item)
-	if not entry.is_empty():
-		var ui: Control = entry.get("ui") as Control
-		if ui != null and is_instance_valid(ui) and ui.visible:
-			return
+	var existing := _entry_ui(entry)
+	if existing != null and existing.visible:
+		return
 	return_floating_to_space(item, from_global)
 
 
 func _on_return_fly_finished(item: ItemData) -> void:
 	var entry: Dictionary = _find_entry(item)
-	if entry.is_empty():
-		return
-	var ui: Control = entry.get("ui") as Control
-	if ui == null or not is_instance_valid(ui):
+	var ui := _entry_ui(entry)
+	if ui == null:
 		return
 	ui.z_index = 0
 	_start_bob(entry)
@@ -244,7 +239,19 @@ func _add_floating_item(item: ItemData, global_pos: Vector2, is_new: bool) -> vo
 		"dragging": false,
 	}
 	_floating_entries.append(entry)
+	ui.tree_exiting.connect(_on_floating_ui_tree_exiting.bind(ui))
 	_start_bob(entry)
+
+
+func _on_floating_ui_tree_exiting(ui: Control) -> void:
+	## Chip may queue_free itself after a successful inventory drop — drop stale entries.
+	var keep: Array[Dictionary] = []
+	for entry in _floating_entries:
+		if entry.get("ui") == ui:
+			_kill_entry_tween(entry)
+			continue
+		keep.append(entry)
+	_floating_entries = keep
 
 
 func _make_floating_item_ui(item: ItemData) -> Control:
@@ -324,23 +331,22 @@ func _drop_data(at_position: Vector2, data: Variant) -> void:
 
 
 func _clear_floating() -> void:
-	for entry in _floating_entries:
-		var tween: Tween = entry.get("tween")
-		if tween != null and tween.is_valid():
-			tween.kill()
-		var ui: Control = entry.get("ui")
-		if ui != null and is_instance_valid(ui):
-			ui.queue_free()
+	var entries := _floating_entries.duplicate()
 	_floating_entries.clear()
+	for entry in entries:
+		_kill_entry_tween(entry)
+		var ui := _entry_ui(entry)
+		if ui != null:
+			ui.queue_free()
 
 
 func _detach_floating_entry(item: ItemData, free_ui: bool) -> void:
 	var keep: Array[Dictionary] = []
 	for entry in _floating_entries:
 		if entry.get("item") == item:
-			_kill_float_tween(entry.get("ui") as Control)
-			var ui: Control = entry.get("ui")
-			if free_ui and ui != null and is_instance_valid(ui):
+			var ui := _entry_ui(entry)
+			_kill_entry_tween(entry)
+			if free_ui and ui != null:
 				ui.queue_free()
 		else:
 			keep.append(entry)
@@ -369,9 +375,28 @@ func _item_in_inventory(item: ItemData) -> bool:
 	return false
 
 
+func _entry_ui(entry: Dictionary) -> Control:
+	## Typed assign from a freed Object ref throws — validate on Variant first.
+	if entry.is_empty():
+		return null
+	var raw: Variant = entry.get("ui")
+	if raw == null or not is_instance_valid(raw):
+		return null
+	return raw as Control
+
+
+func _kill_entry_tween(entry: Dictionary) -> void:
+	var raw: Variant = entry.get("tween")
+	if raw is Tween:
+		var tween := raw as Tween
+		if tween.is_valid():
+			tween.kill()
+	entry["tween"] = null
+
+
 func _start_bob(entry: Dictionary) -> void:
-	var ui: Control = entry.get("ui") as Control
-	if ui == null or not is_instance_valid(ui):
+	var ui := _entry_ui(entry)
+	if ui == null:
 		return
 	_kill_float_tween(ui)
 	var base_y := float(entry.get("base_y", ui.position.y))
@@ -388,10 +413,7 @@ func _kill_float_tween(wrap: Control) -> void:
 	for entry in _floating_entries:
 		if entry.get("ui") != wrap:
 			continue
-		var tween: Tween = entry.get("tween")
-		if tween != null and tween.is_valid():
-			tween.kill()
-		entry["tween"] = null
+		_kill_entry_tween(entry)
 		break
 
 
