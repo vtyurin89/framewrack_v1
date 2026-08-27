@@ -246,6 +246,11 @@ func _begin_player_turn() -> void:
 	if not _player_pre_turn_phase():
 		return
 	_player_start_turn_phase()
+	if state == CombatState.VICTORY or state == CombatState.DEFEAT:
+		return
+	if _all_enemies_dead():
+		_win()
+		return
 	_ensure_valid_selection()
 	EventBus.ap_changed.emit(current_ap, max_ap)
 	EventBus.combat_item_availability_changed.emit()
@@ -392,6 +397,7 @@ func _player_start_turn_phase() -> void:
 		EventBus.combat_log_message.emit(tr("KEY_LOG_STATUS_HEAL") % heal_amt)
 	## Passive item auras (e.g. NEURO_TICK taints orthogonal neighbours).
 	_apply_item_start_turn_auras()
+	_trigger_sighting_shot_weapons()
 	EventBus.combat_item_availability_changed.emit()
 
 
@@ -639,7 +645,7 @@ func _resolve_single_enemy(placed: PlacedItem) -> bool:
 	dmg += trait_bonus
 	var pierce := TraitManager.has_trait(data, "TRAIT_ARMOR_PIERCE")
 	var killed := _deal_damage_to(
-		target_index, dmg, data.get_localized_name(), true, "physical", pierce
+		target_index, dmg, data.get_localized_name(), true, "physical", pierce, placed
 	)
 	if killed:
 		_apply_oracle_kill_bonus(placed, 1)
@@ -655,6 +661,83 @@ func _should_reset_cooldown_on_kill(data: ItemData) -> bool:
 
 func _is_auto_scatter_weapon(data: ItemData) -> bool:
 	return data != null and TraitManager.has_trait(data, "TRAIT_AUTO_SCATTER")
+
+
+func _weapon_crit_mult_bonus(placed: PlacedItem) -> float:
+	## TRAIT_BRUTAL_CRITS effect_value is stored in tenths (+4 → +0.4).
+	if placed == null or placed.data == null:
+		return 0.0
+	if not TraitManager.has_trait(placed.data, "TRAIT_BRUTAL_CRITS"):
+		return 0.0
+	return float(TraitManager.get_trait_value(placed.data, "TRAIT_BRUTAL_CRITS", 4)) * 0.1
+
+
+func _apply_headshot_on_crit(placed: PlacedItem, enemy_index: int) -> void:
+	if placed == null or placed.data == null:
+		return
+	if not TraitManager.has_trait(placed.data, "TRAIT_HEADSHOT"):
+		return
+	var stacks := TraitManager.get_trait_value(placed.data, "TRAIT_HEADSHOT", 2)
+	apply_status_to_enemy(enemy_index, "weakness", maxi(1, stacks))
+
+
+func _can_auto_fire_weapon(placed: PlacedItem) -> bool:
+	## Free turn-start fire: ignore AP / combat-state gates used by manual activate.
+	if placed == null or placed.data == null:
+		return false
+	var data: ItemData = placed.data
+	if not data.usable:
+		return false
+	if inventory == null or inventory.grid == null:
+		return false
+	if not inventory.grid.is_item_functional(placed):
+		return false
+	if data.has_blocking_status():
+		return false
+	if not data.can_use_this_turn():
+		return false
+	if not data.can_use_this_combat():
+		return false
+	if not data.has_charges_remaining():
+		return false
+	return true
+
+
+func _trigger_sighting_shot_weapons() -> void:
+	## Laser Autocannon: free random shot at player turn start.
+	if inventory == null or inventory.grid == null:
+		return
+	if _living_enemy_indices().is_empty():
+		return
+	var fired_any := false
+	for placed: PlacedItem in inventory.grid.items:
+		if placed == null or placed.data == null:
+			continue
+		if not TraitManager.has_trait(placed.data, "TRAIT_SIGHTING_SHOT"):
+			continue
+		if not _can_auto_fire_weapon(placed):
+			continue
+		var idx := _pick_random_living_enemy_index()
+		if idx < 0:
+			break
+		var data: ItemData = placed.data
+		data.current_turn_uses += 1
+		data.current_combat_uses += 1
+		var prev_target := target_index
+		target_index = idx
+		var killed := _resolve_single_enemy(placed)
+		data.start_cooldown()
+		target_index = prev_target
+		fired_any = true
+		EventBus.combat_log_message.emit(
+			tr("KEY_LOG_SIGHTING_SHOT") % data.get_localized_name()
+		)
+		if killed and _should_reset_cooldown_on_kill(data):
+			data.clear_status(ItemStatus.Type.COOLDOWN)
+		if _all_enemies_dead():
+			break
+	if fired_any:
+		EventBus.combat_item_availability_changed.emit()
 
 
 func _apply_stackable_damage_boost_on_attack(placed: PlacedItem) -> void:
@@ -713,7 +796,7 @@ func _resolve_auto_scatter_async(placed: PlacedItem) -> void:
 			dmg += trait_bonus
 		any_hit = true
 		var pierce := TraitManager.has_trait(data, "TRAIT_ARMOR_PIERCE")
-		if _deal_damage_to(idx, dmg, source_name, true, "physical", pierce):
+		if _deal_damage_to(idx, dmg, source_name, true, "physical", pierce, placed):
 			killed_count += 1
 		_apply_on_hit_weapon_statuses(placed, idx)
 
@@ -745,7 +828,7 @@ func _resolve_all_enemies(placed: PlacedItem) -> void:
 	var pierce := TraitManager.has_trait(data, "TRAIT_ARMOR_PIERCE")
 	var killed_count := 0
 	for idx: int in living:
-		if _deal_damage_to(idx, dmg, data.get_localized_name(), true, damage_type, pierce):
+		if _deal_damage_to(idx, dmg, data.get_localized_name(), true, damage_type, pierce, placed):
 			killed_count += 1
 		_apply_on_hit_weapon_statuses(placed, idx)
 	if killed_count > 0:
@@ -853,7 +936,8 @@ func _deal_damage_to(
 	source_name: String,
 	allow_crit: bool = true,
 	damage_type: String = "physical",
-	pierce_block: bool = false
+	pierce_block: bool = false,
+	placed: PlacedItem = null
 ) -> bool:
 	if index < 0 or index >= enemies.size():
 		return false
@@ -874,6 +958,7 @@ func _deal_damage_to(
 		var crit_mult := EnemyInstance.CRIT_DAMAGE_MULT
 		if player_statuses != null:
 			crit_mult = player_statuses.get_crit_damage_multiplier(crit_mult)
+		crit_mult += _weapon_crit_mult_bonus(placed)
 		final_dmg = roundi(float(final_dmg) * crit_mult)
 	var adjacency_note := ""
 	var had_evasion := (
@@ -915,6 +1000,7 @@ func _deal_damage_to(
 		EventBus.combat_log_message.emit(
 			tr("KEY_LOG_ENEMY_CRIT_HIT") % [source_name, final_dmg]
 		)
+		_apply_headshot_on_crit(placed, index)
 	else:
 		EventBus.combat_log_message.emit(
 			tr("KEY_LOG_DAMAGE") % [source_name, final_dmg, adjacency_note, enemy.get_localized_name()]

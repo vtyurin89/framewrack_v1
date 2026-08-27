@@ -731,8 +731,21 @@ TRAIT_PERM_ENDURANCE_DESC,On use: permanently +1 Endurance and recalculate Max H
 KEY_LOG_PERM_STAT_GAIN,%s permanently raises %s by %d.,%s навсегда повышает %s на %d.
 ITEM_AUTO_BLASTER_NAME,Auto-Blaster,Автоматический бластер
 ITEM_AUTO_BLASTER_DESC,"A rapid-fire energy blaster with a faulty stabilizer. Fires 3 shots: the first hits the target, the other two scatter at random.","Скорострельный энерго-бластер с неисправным стабилизатором. Делает 3 выстрела: первый точно в цель, остальные два разлетаются случайным образом."
+ITEM_LASER_AUTOCANNON_NAME,Laser Autocannon,Лазерная автопушка
+ITEM_LASER_AUTOCANNON_DESC,"At the start of your turn, automatically fires once at a random enemy (1-2 + INT). 1-turn cooldown.","В начале вашего хода автоматически атакует случайного врага один раз (1–2 + INT). Кулдаун 1 ход."
+ITEM_HEAVY_RIFLE_NAME,Heavy Rifle,Тяжёлая винтовка
+ITEM_HEAVY_RIFLE_DESC,"+2 LUCK. Crit multiplier increased by +0.4. Critical hits inflict 2 Weakness. Up to 2 uses per turn.","+2 УДАЧА. Множитель крита увеличен на +0.4. Критические удары накладывают 2 Weakness. До 2 применений за ход."
 TRAIT_AUTO_SCATTER_NAME,Faulty Stabilizer,Неисправный стабилизатор
 TRAIT_AUTO_SCATTER_DESC,Fires 3 shots: first hits the selected target; the rest scatter to random living enemies.,Делает 3 выстрела: первый в выбранную цель, остальные разлетаются по случайным живым врагам.
+TRAIT_SIGHTING_SHOT_NAME,Sighting Shot,Пристрелочный выстрел
+TRAIT_SIGHTING_SHOT_DESC,"At the start of your turn, automatically fires once at a random living enemy.","В начале хода автоматически атакует случайного живого врага один раз."
+TRAIT_BRUTAL_CRITS_NAME,Brutal Crits,Жестокие криты
+TRAIT_BRUTAL_CRITS_DESC,Increases critical damage multiplier by +0.4.,Увеличивает множитель критического урона на +0.4.
+TRAIT_HEADSHOT_NAME,Headshot,Хедшот
+TRAIT_HEADSHOT_DESC,Critical hits apply 2 Weakness stacks.,Критические удары накладывают 2 стака Weakness.
+TRAIT_HEAVY_RIFLE_LUCK_NAME,Stabilized Recoil,Стабилизированная отдача
+TRAIT_HEAVY_RIFLE_LUCK_DESC,Grants +2 Luck while equipped.,Даёт +2 к Удаче пока экипировано.
+KEY_LOG_SIGHTING_SHOT,%s auto-fires a sighting shot.,%s автоматически делает пристрелочный выстрел.
 ITEM_PLIERS_NAME,Pliers,Клещи
 ITEM_PLIERS_DESC,"Combat extraction tool. Pulls the first harmful module to the right in the same row. On success: +1 Strength until the end of combat. 1-turn cooldown.","Боевой экстрактор. Вырывает первый вредоносный модуль справа в том же ряду. При успехе: +1 к Силе до конца боя. Кулдаун 1 ход."
 TRAIT_PLIERS_EXTRACT_NAME,Field Extraction,Полевой экстракт

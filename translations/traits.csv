@@ -100,6 +100,14 @@ TRAIT_STATUS_ANALYZER_NAME,Status Shock Converter,Конвертер стату�
 TRAIT_STATUS_ANALYZER_DESC,Whenever any status effect is applied to an enemy, deal 1 immediate direct damage.,Когда на врага накладывается любой статус, немедленно наносит 1 прямого урона.
 TRAIT_AUTO_SCATTER_NAME,Faulty Stabilizer,Неисправный стабилизатор
 TRAIT_AUTO_SCATTER_DESC,Fires 3 shots: first hits the selected target; the rest scatter to random living enemies.,Делает 3 выстрела: первый в выбранную цель, остальные разлетаются по случайным живым врагам.
+TRAIT_SIGHTING_SHOT_NAME,Sighting Shot,Пристрелочный выстрел
+TRAIT_SIGHTING_SHOT_DESC,"At the start of your turn, automatically fires once at a random living enemy.","В начале хода автоматически атакует случайного живого врага один раз."
+TRAIT_BRUTAL_CRITS_NAME,Brutal Crits,Жестокие криты
+TRAIT_BRUTAL_CRITS_DESC,Increases critical damage multiplier by +0.4.,Увеличивает множитель критического урона на +0.4.
+TRAIT_HEADSHOT_NAME,Headshot,Хедшот
+TRAIT_HEADSHOT_DESC,Critical hits apply 2 Weakness stacks.,Критические удары накладывают 2 стака Weakness.
+TRAIT_HEAVY_RIFLE_LUCK_NAME,Stabilized Recoil,Стабилизированная отдача
+TRAIT_HEAVY_RIFLE_LUCK_DESC,Grants +2 Luck while equipped.,Даёт +2 к Удаче пока экипировано.
 TRAIT_PLIERS_EXTRACT_NAME,Field Extraction,Полевой экстракт
 TRAIT_PLIERS_EXTRACT_DESC,Removes the first harmful item to the right in the same row; grants +1 Strength for the rest of combat.,Удаляет первый вредоносный предмет справа в том же ряду; даёт +1 к Силе до конца боя.
 TRAIT_TOOL_LOCKPICK_NAME,Lockpick Tool,Инструмент-отмычка
