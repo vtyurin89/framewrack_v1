@@ -58,8 +58,13 @@ func _on_grid_item_unequipped(_item: ItemData, _reason: String) -> void:
 	pass
 
 
-func place_item(item: ItemData, origin: Vector2i, footprint: Vector2i = Vector2i.ZERO) -> bool:
-	return grid.place_item(item, origin, footprint) != null
+func place_item(
+	item: ItemData,
+	origin: Vector2i,
+	footprint: Vector2i = Vector2i.ZERO,
+	shape_override: Array = []
+) -> bool:
+	return grid.place_item(item, origin, footprint, shape_override) != null
 
 
 func extract_from_grid(origin: Vector2i) -> ItemData:
@@ -72,8 +77,13 @@ func extract_from_grid(origin: Vector2i) -> ItemData:
 	return data
 
 
-func place_dragged(item: ItemData, origin: Vector2i, footprint: Vector2i = Vector2i.ZERO) -> bool:
-	return grid.place_item(item, origin, footprint) != null
+func place_dragged(
+	item: ItemData,
+	origin: Vector2i,
+	footprint: Vector2i = Vector2i.ZERO,
+	shape_override: Array = []
+) -> bool:
+	return grid.place_item(item, origin, footprint, shape_override) != null
 
 
 func try_place_anywhere(item: ItemData) -> bool:

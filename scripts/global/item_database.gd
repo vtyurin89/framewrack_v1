@@ -249,6 +249,10 @@ func _parse_item_row(row: PackedStringArray, col: Dictionary) -> ItemData:
 	var width := _parse_int(_cell(row, col, "width"), 1)
 	var height := _parse_int(_cell(row, col, "height"), 1)
 	item.size = Vector2i(maxi(width, 1), maxi(height, 1))
+	item.shape_offsets = _parse_shape_mask(_cell(row, col, "shape_mask"))
+	if not item.shape_offsets.is_empty():
+		## Keep bounding box in sync with the mask (CSV width/height should match).
+		item.size = ItemData.bounding_size_of(item.shape_offsets)
 
 	item.requires_edge = _parse_bool(_cell(row, col, "is_edge_only"))
 	if _cell(row, col, "is_edge_only").is_empty():
@@ -334,6 +338,27 @@ func _parse_price(raw: String) -> Variant:
 	if not cell.is_valid_int():
 		return null
 	return int(cell)
+
+
+func _parse_shape_mask(raw: String) -> Array[Vector2i]:
+	## Format: "0,0;1,0;0,1" — cell offsets relative to origin.
+	var out: Array[Vector2i] = []
+	var cell := raw.strip_edges()
+	if cell.is_empty():
+		return out
+	for part in cell.split(";", false):
+		var token := str(part).strip_edges()
+		if token.is_empty():
+			continue
+		var xy := token.split(",", false)
+		if xy.size() < 2:
+			continue
+		if not str(xy[0]).strip_edges().is_valid_int():
+			continue
+		if not str(xy[1]).strip_edges().is_valid_int():
+			continue
+		out.append(Vector2i(int(xy[0]), int(xy[1])))
+	return ItemData.normalize_offsets(out)
 
 
 func _parse_traits(raw: String) -> Array[TraitData]:

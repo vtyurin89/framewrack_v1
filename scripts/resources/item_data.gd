@@ -37,6 +37,10 @@ const FALLBACK_ICON_PATH := "res://assets/icons/fallback_item.png"
 ## Footprint in grid cells (width x height). Swapped on rotate (R while dragging).
 @export var size: Vector2i = Vector2i(1, 1)
 
+## Optional irregular cell offsets relative to origin (e.g. L-tetromino).
+## Empty = solid rectangle of `size`. When set, occupancy uses these cells only.
+@export var shape_offsets: Array[Vector2i] = []
+
 ## If true, at least one occupied cell must touch the grid's outer edge.
 @export var requires_edge: bool = false
 
@@ -799,16 +803,93 @@ func _equipment_stat_key(raw: String) -> String:
 
 
 func rotate_size() -> void:
-	size = Vector2i(size.y, size.x)
+	if has_custom_shape():
+		apply_shape(rotate_offsets_cw(shape_offsets))
+	else:
+		size = Vector2i(size.y, size.x)
 
 
-func footprint_for(footprint: Vector2i, origin: Vector2i) -> Array[Vector2i]:
+func has_custom_shape() -> bool:
+	return not shape_offsets.is_empty()
+
+
+## Spec alias: offsets that occupy the grid for this item's current orientation.
+func get_effective_shape() -> Array[Vector2i]:
+	if has_custom_shape():
+		return shape_offsets.duplicate()
 	var cells: Array[Vector2i] = []
-	for y in footprint.y:
-		for x in footprint.x:
-			cells.append(origin + Vector2i(x, y))
+	for y in size.y:
+		for x in size.x:
+			cells.append(Vector2i(x, y))
+	return cells
+
+
+func apply_shape(offsets: Array[Vector2i]) -> void:
+	shape_offsets = normalize_offsets(offsets)
+	if shape_offsets.is_empty():
+		return
+	size = bounding_size_of(shape_offsets)
+
+
+static func rotate_offsets_cw(offsets: Array[Vector2i]) -> Array[Vector2i]:
+	var rotated: Array[Vector2i] = []
+	for o: Vector2i in offsets:
+		rotated.append(Vector2i(o.y, -o.x))
+	return normalize_offsets(rotated)
+
+
+static func normalize_offsets(offsets: Array[Vector2i]) -> Array[Vector2i]:
+	if offsets.is_empty():
+		return []
+	var min_x := offsets[0].x
+	var min_y := offsets[0].y
+	for o: Vector2i in offsets:
+		min_x = mini(min_x, o.x)
+		min_y = mini(min_y, o.y)
+	var out: Array[Vector2i] = []
+	for o: Vector2i in offsets:
+		out.append(Vector2i(o.x - min_x, o.y - min_y))
+	return out
+
+
+static func bounding_size_of(offsets: Array[Vector2i]) -> Vector2i:
+	if offsets.is_empty():
+		return Vector2i.ONE
+	var max_x := 0
+	var max_y := 0
+	for o: Vector2i in offsets:
+		max_x = maxi(max_x, o.x)
+		max_y = maxi(max_y, o.y)
+	return Vector2i(max_x + 1, max_y + 1)
+
+
+func footprint_for(
+	footprint: Vector2i,
+	origin: Vector2i,
+	shape_override: Array = []
+) -> Array[Vector2i]:
+	var offsets: Array[Vector2i] = _resolve_shape_offsets(footprint, shape_override)
+	var cells: Array[Vector2i] = []
+	for o: Vector2i in offsets:
+		cells.append(origin + o)
 	return cells
 
 
 func footprint_cells(origin: Vector2i) -> Array[Vector2i]:
 	return footprint_for(size, origin)
+
+
+func _resolve_shape_offsets(footprint: Vector2i, shape_override: Array = []) -> Array[Vector2i]:
+	if shape_override.size() > 0:
+		var copied: Array[Vector2i] = []
+		for entry in shape_override:
+			copied.append(entry as Vector2i)
+		return normalize_offsets(copied)
+	if has_custom_shape():
+		return shape_offsets.duplicate()
+	var shape: Vector2i = size if footprint == Vector2i.ZERO else footprint
+	var cells: Array[Vector2i] = []
+	for y in maxi(1, shape.y):
+		for x in maxi(1, shape.x):
+			cells.append(Vector2i(x, y))
+	return cells

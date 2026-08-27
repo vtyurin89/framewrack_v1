@@ -48,45 +48,29 @@ func setup(
 	_apply_footprint_size(item.size if item else Vector2i.ONE)
 
 
+func _has_point(point: Vector2) -> bool:
+	## Irregular shapes pass clicks through empty bounding-box cells.
+	if item == null or not item.has_custom_shape():
+		return Rect2(Vector2.ZERO, size).has_point(point)
+	var stride := cell_size + cell_gap
+	for offset: Vector2i in item.get_effective_shape():
+		var cell_rect := Rect2(
+			Vector2(offset.x * stride, offset.y * stride),
+			Vector2(cell_size, cell_size)
+		)
+		if cell_rect.has_point(point):
+			return true
+	return false
+
+
 func _build_visual() -> void:
 	for child in get_children():
 		child.queue_free()
 
-	_panel = Panel.new()
-	_panel.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
-	_panel.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	add_child(_panel)
-	InventoryTheme.apply_item_panel(_panel, item, 1)
-	modulate = Color.WHITE
-
-	var has_icon := _item_has_custom_icon(item)
-
-	if has_icon:
-		_icon = TextureRect.new()
-		_icon.texture = item.get_texture()
-		_icon.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
-		_icon.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
-		_icon.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
-		_icon.offset_left = 3.0
-		_icon.offset_top = 3.0
-		_icon.offset_right = -3.0
-		_icon.offset_bottom = -3.0
-		_icon.mouse_filter = Control.MOUSE_FILTER_IGNORE
-		add_child(_icon)
-
-	_label = Label.new()
-	_label.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
-	_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-	_label.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
-	_label.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	var text_col := InventoryTheme.text_color_for_item(item)
-	_label.add_theme_color_override("font_color", text_col)
-	_label.add_theme_color_override("font_outline_color", Color(0, 0, 0, 0.85))
-	_label.add_theme_constant_override("outline_size", 3)
-	## Icon tiles stay text-free; item name lives in tooltip/inspect UI.
-	_label.text = ""
-	_label.visible = false
-	add_child(_label)
+	if item != null and item.has_custom_shape():
+		_build_shaped_visual()
+	else:
+		_build_rect_visual()
 
 	_cd_label = Label.new()
 	_cd_label.mouse_filter = Control.MOUSE_FILTER_IGNORE
@@ -112,6 +96,7 @@ func _build_visual() -> void:
 	add_child(_status_icon)
 
 	if item != null and item.is_stackable and item.current_stack > 1:
+		var text_col := InventoryTheme.text_color_for_item(item)
 		var stack := Label.new()
 		stack.text = "×%d" % item.current_stack
 		stack.mouse_filter = Control.MOUSE_FILTER_IGNORE
@@ -125,6 +110,72 @@ func _build_visual() -> void:
 		stack.add_theme_color_override("font_outline_color", Color(0, 0, 0))
 		stack.add_theme_constant_override("outline_size", 4)
 		add_child(stack)
+
+
+func _build_rect_visual() -> void:
+	_panel = Panel.new()
+	_panel.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+	_panel.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	add_child(_panel)
+	InventoryTheme.apply_item_panel(_panel, item, 1)
+	modulate = Color.WHITE
+
+	var has_icon := _item_has_custom_icon(item)
+	if has_icon:
+		_icon = TextureRect.new()
+		_icon.texture = item.get_texture()
+		_icon.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
+		_icon.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
+		_icon.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+		_icon.offset_left = 3.0
+		_icon.offset_top = 3.0
+		_icon.offset_right = -3.0
+		_icon.offset_bottom = -3.0
+		_icon.mouse_filter = Control.MOUSE_FILTER_IGNORE
+		add_child(_icon)
+
+	_label = Label.new()
+	_label.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+	_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	_label.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
+	_label.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	_label.text = ""
+	_label.visible = false
+	add_child(_label)
+
+
+func _build_shaped_visual() -> void:
+	## One themed panel per occupied cell so empty mask holes stay click-through.
+	modulate = Color.WHITE
+	_panel = null
+	var stride := cell_size + cell_gap
+	for offset: Vector2i in item.get_effective_shape():
+		var cell_panel := Panel.new()
+		cell_panel.position = Vector2(offset.x * stride, offset.y * stride)
+		cell_panel.size = Vector2(cell_size, cell_size)
+		cell_panel.mouse_filter = Control.MOUSE_FILTER_IGNORE
+		InventoryTheme.apply_item_panel(cell_panel, item, 1)
+		add_child(cell_panel)
+		if _panel == null:
+			_panel = cell_panel
+
+	if _item_has_custom_icon(item):
+		_icon = TextureRect.new()
+		_icon.texture = item.get_texture()
+		_icon.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
+		_icon.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
+		_icon.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+		_icon.offset_left = 3.0
+		_icon.offset_top = 3.0
+		_icon.offset_right = -3.0
+		_icon.offset_bottom = -3.0
+		_icon.mouse_filter = Control.MOUSE_FILTER_IGNORE
+		add_child(_icon)
+
+	_label = Label.new()
+	_label.visible = false
+	_label.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	add_child(_label)
 
 
 func _item_has_custom_icon(p_item: ItemData) -> bool:
@@ -163,7 +214,17 @@ func _short_name(full: String) -> String:
 
 func set_combat_visual(usable: bool) -> void:
 	combat_usable_glow = usable
-	if _panel == null:
+	if item != null and item.has_custom_shape():
+		for child in get_children():
+			if child is Panel:
+				_apply_combat_panel_style(child as Panel, usable)
+	else:
+		_apply_combat_panel_style(_panel, usable)
+	_refresh_status_overlay()
+
+
+func _apply_combat_panel_style(panel: Panel, usable: bool) -> void:
+	if panel == null:
 		return
 	## Rebuild base palette, then layer combat usability cues on the border only.
 	var border_w := 1
@@ -171,8 +232,8 @@ func set_combat_visual(usable: bool) -> void:
 		border_w = 3
 	elif combat_click_mode:
 		border_w = 2
-	InventoryTheme.apply_item_panel(_panel, item, border_w)
-	var style := _panel.get_theme_stylebox("panel") as StyleBoxFlat
+	InventoryTheme.apply_item_panel(panel, item, border_w)
+	var style := panel.get_theme_stylebox("panel") as StyleBoxFlat
 	if style == null:
 		return
 	var harmful := item != null and item.is_harmful
@@ -194,8 +255,7 @@ func set_combat_visual(usable: bool) -> void:
 	else:
 		modulate = Color(1, 1, 1, 1)
 		GamePalette.apply_phosphor_glow(self, false)
-	_panel.add_theme_stylebox_override("panel", style)
-	_refresh_status_overlay()
+	panel.add_theme_stylebox_override("panel", style)
 
 
 func _refresh_status_overlay() -> void:
@@ -280,7 +340,13 @@ func _get_drag_data(_at_position: Vector2) -> Variant:
 	visible = false
 	drag_begun.emit(self)
 
-	var preview := build_drag_preview(item, session["footprint"], cell_size, cell_gap)
+	var preview := build_drag_preview(
+		item,
+		session["footprint"],
+		cell_size,
+		cell_gap,
+		session.get("shape", [])
+	)
 	session["preview"] = preview
 	set_drag_preview(preview)
 	return session
@@ -291,6 +357,7 @@ static func build_drag_preview(
 	footprint: Vector2i,
 	p_cell_size: float,
 	p_cell_gap: float,
+	shape_override: Array = [],
 ) -> Control:
 	var root := Control.new()
 	root.mouse_filter = Control.MOUSE_FILTER_IGNORE
@@ -300,11 +367,25 @@ static func build_drag_preview(
 	root.size = Vector2(w, h)
 	root.modulate = Color(1, 1, 1, 0.7)
 
-	var panel := Panel.new()
-	panel.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
-	panel.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	InventoryTheme.apply_item_panel(panel, p_item, 1)
-	root.add_child(panel)
+	var local_offsets: Array[Vector2i] = []
+	if shape_override.size() > 0:
+		for entry in shape_override:
+			local_offsets.append(entry as Vector2i)
+	elif p_item != null and p_item.has_custom_shape():
+		local_offsets = p_item.get_effective_shape()
+	else:
+		for y in footprint.y:
+			for x in footprint.x:
+				local_offsets.append(Vector2i(x, y))
+
+	var stride := p_cell_size + p_cell_gap
+	for offset: Vector2i in local_offsets:
+		var panel := Panel.new()
+		panel.position = Vector2(offset.x * stride, offset.y * stride)
+		panel.size = Vector2(p_cell_size, p_cell_size)
+		panel.mouse_filter = Control.MOUSE_FILTER_IGNORE
+		InventoryTheme.apply_item_panel(panel, p_item, 1)
+		root.add_child(panel)
 
 	if p_item != null and p_item.get_texture() != null:
 		var icon := TextureRect.new()

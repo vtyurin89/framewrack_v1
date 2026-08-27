@@ -219,15 +219,23 @@ func _collect_adjacent_locked_candidates() -> Array[Vector2i]:
 # Placement validation & mutation
 # ---------------------------------------------------------------------------
 
-func can_place(data: ItemData, origin: Vector2i, footprint: Vector2i = Vector2i.ZERO) -> String:
+func can_place(
+	data: ItemData,
+	origin: Vector2i,
+	footprint: Vector2i = Vector2i.ZERO,
+	shape_override: Array = []
+) -> String:
 	## Returns empty string on success, otherwise a translation key for the failure reason.
 	## Optional footprint overrides data.size (used while rotating during drag).
+	## Optional shape_override supplies irregular cell offsets for the drag orientation.
 	if data == null:
 		return "KEY_PLACE_NO_DATA"
 	var shape: Vector2i = data.size if footprint == Vector2i.ZERO else footprint
 	if shape.x < 1 or shape.y < 1:
 		return "KEY_PLACE_INVALID_FOOTPRINT"
-	var cells := data.footprint_for(shape, origin)
+	var cells := data.footprint_for(shape, origin, shape_override)
+	if cells.is_empty():
+		return "KEY_PLACE_INVALID_FOOTPRINT"
 	var touches_edge := false
 	for cell: Vector2i in cells:
 		if not is_in_bounds(cell) or not is_unlocked(cell):
@@ -246,19 +254,31 @@ func can_place(data: ItemData, origin: Vector2i, footprint: Vector2i = Vector2i.
 	return ""
 
 
-func can_place_item(item: ItemData, top_left_pos: Vector2i, footprint: Vector2i = Vector2i.ZERO) -> bool:
+func can_place_item(
+	item: ItemData,
+	top_left_pos: Vector2i,
+	footprint: Vector2i = Vector2i.ZERO,
+	shape_override: Array = []
+) -> bool:
 	## Spec API: boundary + EMPTY cells + optional edge-touch for is_edge_only.
-	return can_place(item, top_left_pos, footprint) == ""
+	return can_place(item, top_left_pos, footprint, shape_override) == ""
 
 
-func place_item(item: ItemData, top_left_pos: Vector2i, footprint: Vector2i = Vector2i.ZERO) -> Variant:
+func place_item(
+	item: ItemData,
+	top_left_pos: Vector2i,
+	footprint: Vector2i = Vector2i.ZERO,
+	shape_override: Array = []
+) -> Variant:
 	## Places item if valid. Returns PlacedItem on success, null on fail.
-	## If footprint is provided and differs from item.size, item.size is updated (rotation commit).
-	var reason := can_place(item, top_left_pos, footprint)
+	## If footprint/shape is provided from a rotated drag, commits that orientation.
+	var reason := can_place(item, top_left_pos, footprint, shape_override)
 	if reason != "":
 		EventBus.placement_failed.emit(reason)
 		return null
-	if footprint != Vector2i.ZERO and footprint != item.size:
+	if shape_override.size() > 0:
+		item.apply_shape(shape_override)
+	elif footprint != Vector2i.ZERO and footprint != item.size:
 		item.size = footprint
 	var placed := PlacedItem.new(item, top_left_pos)
 	items.append(placed)

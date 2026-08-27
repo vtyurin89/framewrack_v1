@@ -770,7 +770,9 @@ func begin_debug_item_drag(item: ItemData) -> Dictionary:
 		"type": DRAG_TYPE,
 		"item": item,
 		"footprint": item.size,
+		"shape": item.get_effective_shape() if item.has_custom_shape() else [],
 		"original_size": item.size,
+		"original_shape": item.get_effective_shape() if item.has_custom_shape() else [],
 		"source": "space",
 		"original_origin": Vector2i(-1, -1),
 		"preview": null,
@@ -796,7 +798,9 @@ func begin_reward_space_drag(item: ItemData) -> Dictionary:
 		"type": DRAG_TYPE,
 		"item": item,
 		"footprint": item.size,
+		"shape": item.get_effective_shape() if item.has_custom_shape() else [],
 		"original_size": item.size,
+		"original_shape": item.get_effective_shape() if item.has_custom_shape() else [],
 		"source": "space",
 		"original_origin": Vector2i(-1, -1),
 		"preview": null,
@@ -835,7 +839,9 @@ func begin_item_drag(item_ui: ItemUI) -> Dictionary:
 		"type": DRAG_TYPE,
 		"item": extracted,
 		"footprint": extracted.size,
+		"shape": extracted.get_effective_shape() if extracted.has_custom_shape() else [],
 		"original_size": original_size,
+		"original_shape": extracted.get_effective_shape() if extracted.has_custom_shape() else [],
 		"source": "grid",
 		"original_origin": original_origin,
 		"preview": null,
@@ -887,9 +893,14 @@ func _restore_drag_item() -> void:
 	if _drag.is_empty():
 		return
 	var item: ItemData = _drag["item"]
-	item.size = _drag["original_size"]
+	var original_shape: Array = _drag.get("original_shape", [])
+	if original_shape.size() > 0:
+		item.apply_shape(original_shape)
+	else:
+		item.size = _drag["original_size"]
+		item.shape_offsets.clear()
 	var origin: Vector2i = _drag["original_origin"]
-	inventory.grid.place_item(item, origin, item.size)
+	inventory.grid.place_item(item, origin, item.size, original_shape)
 
 
 func _set_item_uis_pass_through(enabled: bool) -> void:
@@ -908,7 +919,11 @@ func on_slot_drag_hover(cell: Vector2i, data: Variant) -> void:
 		return
 	if not _is_drag(data):
 		return
-	if cell == _hover_origin and data.get("footprint") == _drag.get("footprint"):
+	if (
+		cell == _hover_origin
+		and data.get("footprint") == _drag.get("footprint")
+		and data.get("shape", []) == _drag.get("shape", [])
+	):
 		return
 	_hover_origin = cell
 	_update_footprint_highlights(cell, data)
@@ -921,8 +936,9 @@ func can_drop_on_cell(cell: Vector2i, data: Variant) -> bool:
 		return false
 	var item: ItemData = data["item"]
 	var footprint: Vector2i = data["footprint"]
+	var shape: Array = data.get("shape", [])
 	## Pick-limit is enforced in drop_on_cell (so a notice can fire). Grid fit only here.
-	return inventory.grid.can_place_item(item, cell, footprint)
+	return inventory.grid.can_place_item(item, cell, footprint, shape)
 
 
 func drop_on_cell(cell: Vector2i, data: Variant) -> void:
@@ -930,10 +946,11 @@ func drop_on_cell(cell: Vector2i, data: Variant) -> void:
 		return
 	var item: ItemData = data["item"]
 	var footprint: Vector2i = data["footprint"]
+	var shape: Array = data.get("shape", [])
 	if reward_handler != null and reward_handler.has_method("can_accept_item_to_inventory"):
 		if not reward_handler.can_accept_item_to_inventory(item, true):
 			return
-	if not inventory.place_dragged(item, cell, footprint):
+	if not inventory.place_dragged(item, cell, footprint, shape):
 		## Invalid cell — leave uncommitted so end_item_drag snaps back.
 		return
 
@@ -952,11 +969,12 @@ func _update_footprint_highlights(origin: Vector2i, data: Variant) -> void:
 		return
 	var item: ItemData = data["item"]
 	var footprint: Vector2i = data["footprint"]
-	var valid := inventory.grid.can_place_item(item, origin, footprint)
+	var shape: Array = data.get("shape", [])
+	var valid := inventory.grid.can_place_item(item, origin, footprint, shape)
 	if valid and reward_handler != null and reward_handler.has_method("can_accept_item_to_inventory"):
 		if not reward_handler.can_accept_item_to_inventory(item, false):
 			valid = false
-	var cells: Array[Vector2i] = item.footprint_for(footprint, origin)
+	var cells: Array[Vector2i] = item.footprint_for(footprint, origin, shape)
 	var mode := (
 		InventorySlotUI.Highlight.VALID if valid else InventorySlotUI.Highlight.INVALID
 	)
@@ -1001,20 +1019,34 @@ func _input(event: InputEvent) -> void:
 func _rotate_drag() -> void:
 	if _drag.is_empty():
 		return
-	var footprint: Vector2i = _drag["footprint"]
-	footprint = Vector2i(footprint.y, footprint.x)
-	_drag["footprint"] = footprint
+	var shape: Array = _drag.get("shape", [])
+	if shape.size() > 0:
+		var typed: Array[Vector2i] = []
+		for entry in shape:
+			typed.append(entry as Vector2i)
+		typed = ItemData.rotate_offsets_cw(typed)
+		_drag["shape"] = typed
+		_drag["footprint"] = ItemData.bounding_size_of(typed)
+	else:
+		var footprint: Vector2i = _drag["footprint"]
+		_drag["footprint"] = Vector2i(footprint.y, footprint.x)
 
 	var preview: Control = _drag.get("preview")
 	var item: ItemData = _drag["item"]
+	var next_footprint: Vector2i = _drag["footprint"]
 	if preview and is_instance_valid(preview):
-		_rebuild_preview_node(preview, item, footprint)
+		_rebuild_preview_node(preview, item, next_footprint, _drag.get("shape", []))
 
 	if _hover_origin.x >= 0:
 		_update_footprint_highlights(_hover_origin, _drag)
 
 
-func _rebuild_preview_node(preview: Control, item: ItemData, footprint: Vector2i) -> void:
+func _rebuild_preview_node(
+	preview: Control,
+	item: ItemData,
+	footprint: Vector2i,
+	shape_override: Array = []
+) -> void:
 	while preview.get_child_count() > 0:
 		var child := preview.get_child(0)
 		preview.remove_child(child)
@@ -1025,20 +1057,33 @@ func _rebuild_preview_node(preview: Control, item: ItemData, footprint: Vector2i
 	preview.custom_minimum_size = Vector2(w, h)
 	preview.size = Vector2(w, h)
 
-	for y in footprint.y:
-		for x in footprint.x:
-			var cell := Panel.new()
-			cell.position = Vector2(x * (CELL_SIZE + CELL_GAP), y * (CELL_SIZE + CELL_GAP))
-			cell.size = Vector2(CELL_SIZE, CELL_SIZE)
-			var style := StyleBoxFlat.new()
-			var col := item.placeholder_color if item else Color(0.7, 0.7, 0.7)
-			style.bg_color = col
-			style.set_border_width_all(1)
-			style.border_color = Color(1, 1, 1, 0.7)
-			style.set_corner_radius_all(2)
-			cell.add_theme_stylebox_override("panel", style)
-			cell.mouse_filter = Control.MOUSE_FILTER_IGNORE
-			preview.add_child(cell)
+	var local_offsets: Array[Vector2i] = []
+	if shape_override.size() > 0:
+		for entry in shape_override:
+			local_offsets.append(entry as Vector2i)
+	elif item != null and item.has_custom_shape():
+		local_offsets = item.get_effective_shape()
+	else:
+		for y in footprint.y:
+			for x in footprint.x:
+				local_offsets.append(Vector2i(x, y))
+
+	for offset: Vector2i in local_offsets:
+		var cell := Panel.new()
+		cell.position = Vector2(
+			offset.x * (CELL_SIZE + CELL_GAP),
+			offset.y * (CELL_SIZE + CELL_GAP)
+		)
+		cell.size = Vector2(CELL_SIZE, CELL_SIZE)
+		var style := StyleBoxFlat.new()
+		var col := item.placeholder_color if item else Color(0.7, 0.7, 0.7)
+		style.bg_color = col
+		style.set_border_width_all(1)
+		style.border_color = Color(1, 1, 1, 0.7)
+		style.set_corner_radius_all(2)
+		cell.add_theme_stylebox_override("panel", style)
+		cell.mouse_filter = Control.MOUSE_FILTER_IGNORE
+		preview.add_child(cell)
 
 	var caption := Label.new()
 	caption.text = item.get_localized_name() if item else ""

@@ -725,15 +725,13 @@ func _trigger_sighting_shot_weapons() -> void:
 		data.current_combat_uses += 1
 		var prev_target := target_index
 		target_index = idx
-		var killed := _resolve_single_enemy(placed)
-		data.start_cooldown()
+		_resolve_single_enemy(placed)
 		target_index = prev_target
 		fired_any = true
 		EventBus.combat_log_message.emit(
 			tr("KEY_LOG_SIGHTING_SHOT") % data.get_localized_name()
 		)
-		if killed and _should_reset_cooldown_on_kill(data):
-			data.clear_status(ItemStatus.Type.COOLDOWN)
+		## Auto sighting shot does not start cooldown — only manual activation does.
 		if _all_enemies_dead():
 			break
 	if fired_any:
