@@ -356,7 +356,7 @@ func use_consumable_out_of_combat(item_data: ItemData, player_stats: PlayerStats
 			result["message"] = tr("KEY_GRID_EXPAND_FULL")
 			return result
 		_spend_consumable_charge(placed)
-		EventBus.grid_expanded.emit(unlocked)
+		## `unlock_cells` already emits `EventBus.grid_expanded` — UI plays the shared reveal.
 		result["ok"] = true
 		result["unlocked_cells"] = unlocked
 		result["message"] = tr("KEY_GRID_EXPAND_SUCCESS")

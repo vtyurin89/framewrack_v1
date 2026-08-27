@@ -49,6 +49,8 @@ var _hover_origin: Vector2i = Vector2i(-1, -1)
 var _hover_valid: bool = false
 var _level_up_busy: bool = false
 var _suppress_unlock_reveal: bool = false
+## True while the shared cell-unlock FX runs — blocks full refresh that would kill tweens.
+var _unlock_reveal_busy: bool = false
 
 var _slots: Dictionary = {}  # "x,y" -> InventorySlotUI
 var _item_uis: Array[ItemUI] = []
@@ -329,14 +331,20 @@ func refresh() -> void:
 
 func _on_inventory_changed() -> void:
 	_recalculate_player_equipment_stats()
+	## Full grid rebuild mid-reveal destroys slot tweens (GRID_EXPANDER looked like "no FX").
+	if _unlock_reveal_busy:
+		_rebuild_items()
+		return
 	refresh()
 
 
 func _on_grid_expanded(new_cells: Array[Vector2i]) -> void:
-	refresh()
 	_on_stats_changed()
-	if not _suppress_unlock_reveal:
-		_play_unlock_reveal(new_cells)
+	if _suppress_unlock_reveal:
+		## Level-up path refreshes first, then calls `play_cell_unlock_reveal` itself.
+		refresh()
+		return
+	await play_cell_unlock_reveal(new_cells)
 
 
 func _sync_level_up_overlay() -> void:
@@ -393,7 +401,7 @@ func _confirm_level_up() -> void:
 	_suppress_unlock_reveal = true
 	var new_cells: Array[Vector2i] = inventory.grid.unlock_random_adjacent_cells(cell_gain)
 	_suppress_unlock_reveal = false
-	await _play_unlock_reveal(new_cells)
+	await play_cell_unlock_reveal(new_cells)
 
 	if player_stats != null:
 		player_stats.consume_pending_level_up()
@@ -418,10 +426,13 @@ func _fade_level_up_overlay_out() -> void:
 	await tween.finished
 
 
-func _play_unlock_reveal(new_cells: Array[Vector2i]) -> void:
+func play_cell_unlock_reveal(new_cells: Array[Vector2i]) -> void:
+	## Shared unlock FX for level-up and GRID_EXPANDER (cascade pop + phosphor flash).
 	if new_cells.is_empty():
+		refresh()
 		return
-	## Cascade pop: each cell scales up from center with a gold flash, staggered slightly.
+	_unlock_reveal_busy = true
+	refresh()
 	var running: Array[InventorySlotUI] = []
 	for i in new_cells.size():
 		var slot: InventorySlotUI = _slots.get(BodyGrid.cell_key(new_cells[i]))
@@ -432,6 +443,7 @@ func _play_unlock_reveal(new_cells: Array[Vector2i]) -> void:
 		slot.play_unlock_pop(0.08 * float(i))
 
 	if running.is_empty():
+		_unlock_reveal_busy = false
 		return
 	var last_index := running.size() - 1
 	var wait_s := 0.08 * float(last_index) + maxf(
@@ -439,6 +451,9 @@ func _play_unlock_reveal(new_cells: Array[Vector2i]) -> void:
 		InventorySlotUI.UNLOCK_FLASH_DURATION
 	) + 0.05
 	await get_tree().create_timer(wait_s).timeout
+	_unlock_reveal_busy = false
+	## Pick up item removals / charge updates deferred during the reveal.
+	_rebuild_items()
 
 
 func _on_placement_failed(_reason: String) -> void:
@@ -647,14 +662,11 @@ func _on_context_use_pressed(item: ItemData) -> void:
 	if not msg.is_empty():
 		EventBus.combat_log_message.emit(msg)
 		_show_inventory_toast(msg)
+	## GRID_EXPANDER unlock FX is driven solely by `EventBus.grid_expanded` →
+	## `play_cell_unlock_reveal`. A refresh here would destroy the slot tweens.
 	var unlocked: Array = result.get("unlocked_cells", [])
 	if unlocked is Array and not unlocked.is_empty():
-		var cells: Array[Vector2i] = []
-		for c in unlocked:
-			if c is Vector2i:
-				cells.append(c)
-		if not cells.is_empty():
-			_play_unlock_reveal(cells)
+		return
 	refresh()
 
 

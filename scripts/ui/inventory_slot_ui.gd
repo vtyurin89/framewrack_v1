@@ -15,7 +15,6 @@ enum Highlight {
 }
 
 const DRAG_TYPE := "framewrack_item"
-const UNLOCK_FLASH_COLOR := Color(0.945, 0.765, 0.059, 1.0) ## #F1C40F
 const UNLOCK_SCALE_DURATION := 0.35
 const UNLOCK_FLASH_DURATION := 0.4
 
@@ -92,15 +91,16 @@ func apply_cell_state(is_unlocked: bool, is_corrupted: bool, is_edge: bool, corr
 
 
 func play_unlock_pop(stagger_delay: float = 0.0) -> void:
-	## Punchy scale pop + gold flash used when a locked cell becomes active.
+	## Punchy scale pop + phosphor flash used when a locked cell becomes active.
 	_kill_unlock_tween()
 	_ensure_visuals()
 	_ensure_center_pivot()
 	mouse_filter = Control.MOUSE_FILTER_STOP
+	var flash_color: Color = GamePalette.COLOR_HP_MAIN
 	scale = Vector2.ZERO
-	modulate = UNLOCK_FLASH_COLOR
-	## Bright gold panel flash, then restored by the modulate fade + final highlight.
-	_apply_unlock_flash_style()
+	modulate = flash_color
+	## Bright panel flash, then restored by the modulate fade + final highlight.
+	_apply_unlock_flash_style(flash_color)
 
 	_unlock_tween = create_tween()
 	_unlock_tween.set_parallel(false)
@@ -121,13 +121,13 @@ func play_unlock_pop(stagger_delay: float = 0.0) -> void:
 	_unlock_tween = null
 
 
-func _apply_unlock_flash_style() -> void:
+func _apply_unlock_flash_style(flash_color: Color) -> void:
 	if _base_panel == null:
 		return
 	var style := StyleBoxFlat.new()
 	style.set_corner_radius_all(2)
 	style.set_border_width_all(2)
-	style.bg_color = Color(0.945, 0.765, 0.059, 0.95)
+	style.bg_color = Color(flash_color.r, flash_color.g, flash_color.b, 0.95)
 	style.border_color = Color(1.0, 1.0, 1.0, 1.0)
 	_base_panel.add_theme_stylebox_override("panel", style)
 
