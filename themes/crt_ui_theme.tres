@@ -1,0 +1,33 @@
+[gd_resource type="Theme" load_steps=7 format=3]
+
+[ext_resource type="FontFile" path="res://assets/fonts/IBM_Plex_Mono/IBMPlexMono-Regular.ttf" id="font_regular"]
+[ext_resource type="FontFile" path="res://assets/fonts/IBM_Plex_Mono/IBMPlexMono-Medium.ttf" id="font_medium"]
+[ext_resource type="FontFile" path="res://assets/fonts/IBM_Plex_Mono/IBMPlexMono-SemiBold.ttf" id="font_semibold"]
+[ext_resource type="FontFile" path="res://assets/fonts/IBM_Plex_Mono/IBMPlexMono-Bold.ttf" id="font_bold"]
+[ext_resource type="FontFile" path="res://assets/fonts/IBM_Plex_Mono/IBMPlexMono-Italic.ttf" id="font_italic"]
+[ext_resource type="FontFile" path="res://assets/fonts/IBM_Plex_Mono/IBMPlexMono-BoldItalic.ttf" id="font_bold_italic"]
+
+[resource]
+default_font = ExtResource("font_regular")
+default_font_size = 14
+Button/fonts/font = ExtResource("font_semibold")
+CheckBox/fonts/font = ExtResource("font_medium")
+CheckButton/fonts/font = ExtResource("font_medium")
+ItemList/fonts/font = ExtResource("font_regular")
+Label/fonts/font = ExtResource("font_medium")
+LineEdit/fonts/font = ExtResource("font_regular")
+OptionButton/fonts/font = ExtResource("font_medium")
+PopupMenu/fonts/font = ExtResource("font_medium")
+ProgressBar/fonts/font = ExtResource("font_semibold")
+RichTextLabel/fonts/normal_font = ExtResource("font_regular")
+RichTextLabel/fonts/bold_font = ExtResource("font_bold")
+RichTextLabel/fonts/italics_font = ExtResource("font_italic")
+RichTextLabel/fonts/bold_italics_font = ExtResource("font_bold_italic")
+RichTextLabel/fonts/mono_font = ExtResource("font_regular")
+TabBar/fonts/font = ExtResource("font_semibold")
+TabContainer/fonts/font = ExtResource("font_semibold")
+TextEdit/fonts/font = ExtResource("font_regular")
+TooltipLabel/fonts/font = ExtResource("font_regular")
+Tree/fonts/font = ExtResource("font_regular")
+Tree/fonts/title_font = ExtResource("font_semibold")
+Window/fonts/title_font = ExtResource("font_semibold")

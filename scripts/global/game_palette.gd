@@ -63,6 +63,15 @@ const COLOR_MAP_NODE_AVAILABLE := PHOSPHOR_BRIGHT
 const COLOR_MAP_NODE_VISITED := CRT_TEXT_MAIN
 const COLOR_MAP_NODE_LOCKED := MUTED_GREEN
 
+# --- Typography (IBM Plex Mono) ----------------------------------------------
+
+const FONT_REGULAR: Font = preload("res://assets/fonts/IBM_Plex_Mono/IBMPlexMono-Regular.ttf")
+const FONT_MEDIUM: Font = preload("res://assets/fonts/IBM_Plex_Mono/IBMPlexMono-Medium.ttf")
+const FONT_SEMIBOLD: Font = preload("res://assets/fonts/IBM_Plex_Mono/IBMPlexMono-SemiBold.ttf")
+const FONT_BOLD: Font = preload("res://assets/fonts/IBM_Plex_Mono/IBMPlexMono-Bold.ttf")
+const FONT_ITALIC: Font = preload("res://assets/fonts/IBM_Plex_Mono/IBMPlexMono-Italic.ttf")
+const FONT_BOLD_ITALIC: Font = preload("res://assets/fonts/IBM_Plex_Mono/IBMPlexMono-BoldItalic.ttf")
+
 
 func get_damage_color(damage_type: String, is_crit: bool = false, is_miss: bool = false) -> Color:
 	if is_miss:
@@ -157,12 +166,42 @@ func apply_button_theme(btn: Button, font_size: int = 16) -> void:
 	btn.add_theme_stylebox_override("pressed", styles["pressed"])
 	btn.add_theme_stylebox_override("disabled", styles["disabled"])
 	btn.add_theme_stylebox_override("focus", styles["focus"])
+	btn.add_theme_font_override("font", FONT_SEMIBOLD)
 	btn.add_theme_font_size_override("font_size", font_size)
 	btn.add_theme_color_override("font_color", CRT_TEXT_MAIN)
 	btn.add_theme_color_override("font_hover_color", PHOSPHOR_ACTIVE)
 	btn.add_theme_color_override("font_pressed_color", PHOSPHOR_BRIGHT)
 	btn.add_theme_color_override("font_disabled_color", INACTIVE_ELEMENT)
 	btn.add_theme_color_override("font_focus_color", PHOSPHOR_ACTIVE)
+
+
+func apply_font_regular(control: Control) -> void:
+	_apply_font(control, FONT_REGULAR)
+
+
+func apply_font_label(control: Control) -> void:
+	## UI labels / stats / important values.
+	_apply_font(control, FONT_MEDIUM)
+
+
+func apply_font_header(control: Control) -> void:
+	## Section headers and primary chrome titles.
+	_apply_font(control, FONT_SEMIBOLD)
+
+
+func apply_font_emphasis(control: Control) -> void:
+	## SUCCESS / FAILURE / crits / large dice results only.
+	_apply_font(control, FONT_BOLD)
+
+
+func _apply_font(control: Control, font: Font) -> void:
+	if control == null or font == null:
+		return
+	if control is RichTextLabel:
+		var rtl := control as RichTextLabel
+		rtl.add_theme_font_override("normal_font", font)
+		return
+	control.add_theme_font_override("font", font)
 
 
 func apply_label_primary(label: Control) -> void:

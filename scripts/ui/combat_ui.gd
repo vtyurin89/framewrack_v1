@@ -326,13 +326,17 @@ func _on_language_changed(_locale: String) -> void:
 		_rebuild_enemies()
 		if combat.state == combat.CombatState.PLAYER_TURN:
 			_turn_label.text = tr("KEY_PLAYER_TURN")
+			GamePalette.apply_font_header(_turn_label)
 		elif combat.state == combat.CombatState.ENEMY_TURN:
 			_turn_label.text = tr("KEY_ENEMY_TURN")
+			GamePalette.apply_font_header(_turn_label)
 		elif combat.state == combat.CombatState.VICTORY:
 			_turn_label.text = tr("KEY_VICTORY")
+			GamePalette.apply_font_emphasis(_turn_label)
 			_continue_btn.text = tr("KEY_CONTINUE")
 		elif combat.state == combat.CombatState.DEFEAT:
 			_turn_label.text = tr("KEY_FRAME_FAILURE")
+			GamePalette.apply_font_emphasis(_turn_label)
 			_continue_btn.text = tr("KEY_RETURN_TO_MAP")
 
 
@@ -421,12 +425,18 @@ func _apply_primary_action_style(btn: Button) -> void:
 
 func _apply_crt_combat_labels() -> void:
 	GamePalette.apply_label_primary(_turn_label)
+	GamePalette.apply_font_header(_turn_label)
 	GamePalette.apply_label_primary(_hp_label)
+	GamePalette.apply_font_label(_hp_label)
 	GamePalette.apply_label_value(_ap_label)
+	GamePalette.apply_font_header(_ap_label)
 	GamePalette.apply_label_primary(_block_label)
+	GamePalette.apply_font_label(_block_label)
 	GamePalette.apply_label_muted(_hint_label)
+	GamePalette.apply_font_regular(_hint_label)
 	if _log_title:
 		GamePalette.apply_label_primary(_log_title)
+		GamePalette.apply_font_header(_log_title)
 	if _close_log_btn:
 		GamePalette.apply_button_theme(_close_log_btn, 14)
 	_ap_base_color = GamePalette.PHOSPHOR_BRIGHT
@@ -912,6 +922,7 @@ func _on_combat_started(_enemy_ids: Array) -> void:
 
 func _on_turn_started(is_player: bool) -> void:
 	_turn_label.text = tr("KEY_PLAYER_TURN") if is_player else tr("KEY_ENEMY_TURN")
+	GamePalette.apply_font_header(_turn_label)
 	_end_turn_btn.disabled = not is_player
 	## Ensure cards exist if combat started before the HUD was ready.
 	if combat != null and _enemy_row.get_child_count() == 0 and not combat.enemies.is_empty():
@@ -1230,6 +1241,7 @@ func _on_combat_ended(victory: bool) -> void:
 		_end_turn_btn.visible = true
 	_continue_btn.text = tr("KEY_CONTINUE") if victory else tr("KEY_RETURN_TO_MAP")
 	_turn_label.text = tr("KEY_VICTORY") if victory else tr("KEY_FRAME_FAILURE")
+	GamePalette.apply_font_emphasis(_turn_label)
 	_intention_reveal_token += 1
 	for child in _enemy_row.get_children():
 		var card: EnemyCardUI = child as EnemyCardUI

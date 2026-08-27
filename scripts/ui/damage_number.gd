@@ -65,18 +65,26 @@ func _apply_presentation() -> void:
 	if _is_miss:
 		_label.text = "MISS"
 		_label.add_theme_font_size_override("font_size", 18)
+		if GamePalette:
+			GamePalette.apply_font_header(_label)
 	elif _damage_type in ["poison", "burn", "rust", "heal", "healing", "repair"]:
 		var glyph := ""
 		if GamePalette:
 			glyph = GamePalette.get_status_glyph(_damage_type)
 		_label.text = ("%s %d" % [glyph, _amount]).strip_edges()
 		_label.add_theme_font_size_override("font_size", 18)
+		if GamePalette:
+			GamePalette.apply_font_header(_label)
 	elif _is_crit:
 		_label.text = "%d!" % _amount
 		_label.add_theme_font_size_override("font_size", 26)
+		if GamePalette:
+			GamePalette.apply_font_emphasis(_label)
 	else:
 		_label.text = str(_amount)
 		_label.add_theme_font_size_override("font_size", 22)
+		if GamePalette:
+			GamePalette.apply_font_header(_label)
 
 
 func _play_arc() -> void:

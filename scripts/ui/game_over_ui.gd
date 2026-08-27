@@ -54,6 +54,12 @@ func _apply_locale(_locale: String = "") -> void:
 	_subtitle.text = tr(reason_key)
 	_restart_btn.text = tr("KEY_RESTART")
 	_menu_btn.text = tr("KEY_MAIN_MENU")
+	if _title:
+		GamePalette.apply_font_emphasis(_title)
+	if _subtitle:
+		GamePalette.apply_font_header(_subtitle)
+	GamePalette.apply_button_theme(_restart_btn, 16)
+	GamePalette.apply_button_theme(_menu_btn, 16)
 
 
 func _on_restart() -> void:

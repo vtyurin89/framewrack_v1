@@ -140,6 +140,7 @@ func _ensure_content() -> void:
 	_title_label.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	_title_label.add_theme_font_size_override("font_size", TITLE_FONT)
 	_title_label.add_theme_color_override("font_color", GamePalette.PHOSPHOR_BRIGHT)
+	GamePalette.apply_font_header(_title_label)
 	_root.add_child(_title_label)
 	_root.add_child(_make_separator())
 
@@ -284,6 +285,7 @@ func _build_dice_cells(count: int) -> void:
 		label.size_flags_vertical = Control.SIZE_EXPAND_FILL
 		label.add_theme_font_size_override("font_size", DIE_FONT)
 		label.add_theme_color_override("font_color", GamePalette.CRT_TEXT_MAIN)
+		GamePalette.apply_font_header(label)
 		label.text = "?"
 		cell.add_child(label)
 		_dice_grid.add_child(cell)
@@ -406,6 +408,7 @@ func _show_success_count(result: StatCheckManager.CheckResult) -> void:
 		"font_color",
 		GamePalette.PHOSPHOR_ACTIVE if result.is_success else GamePalette.COLOR_DANGER
 	)
+	GamePalette.apply_font_header(_ratio_label)
 	_success_section.visible = true
 
 
@@ -417,6 +420,7 @@ func _show_banner(passed: bool) -> void:
 	else:
 		_banner_label.text = tr("KEY_STAT_CHECK_BANNER_FAILURE").to_upper()
 		_banner_label.add_theme_color_override("font_color", GamePalette.COLOR_DANGER)
+	GamePalette.apply_font_emphasis(_banner_label)
 
 
 func _ensure_click_audio() -> void:

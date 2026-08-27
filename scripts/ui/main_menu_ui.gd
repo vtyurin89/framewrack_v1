@@ -45,10 +45,12 @@ func _apply_crt_theme() -> void:
 		_title.add_theme_color_override("font_outline_color", GamePalette.PANEL_BG)
 		_title.add_theme_constant_override("outline_size", 6)
 		_title.add_theme_font_size_override("font_size", 52)
+		GamePalette.apply_font_header(_title)
 		GamePalette.apply_phosphor_glow(_title, true)
 	if _tagline:
 		_tagline.add_theme_color_override("font_color", GamePalette.CRT_TEXT_MAIN)
 		_tagline.add_theme_font_size_override("font_size", 14)
+		GamePalette.apply_font_regular(_tagline)
 	for btn: Button in [_continue_btn, _new_game_btn, _settings_btn, _exit_btn]:
 		if btn == null:
 			continue

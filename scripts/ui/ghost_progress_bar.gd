@@ -74,6 +74,7 @@ func _ensure_built() -> void:
 		_label.add_theme_font_size_override("font_size", 13)
 		_label.add_theme_color_override("font_color", GamePalette.PHOSPHOR_BRIGHT)
 		_label.add_theme_color_override("font_outline_color", GamePalette.BACKGROUND_DARK)
+		GamePalette.apply_font_header(_label)
 		_label.add_theme_constant_override("outline_size", 4)
 		_label.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
 		add_child(_label)
