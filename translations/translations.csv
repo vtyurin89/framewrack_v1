@@ -99,6 +99,7 @@ KEY_RARITY_COMMON,Common,Обычный
 KEY_RARITY_UNCOMMON,Uncommon,Необычный
 KEY_RARITY_RARE,Rare,Редкий
 KEY_RARITY_VERY_RARE,Very Rare,Очень редкий
+KEY_RARITY_BOSS,Boss Relic,Босс-реликвия
 KEY_REWARD_SELECT_UP_TO_3,Select up to 3 new items,Выберите до 3 новых предметов
 KEY_REWARD_PICK_LIMIT,Cannot pick more than 3 new items!,Нельзя взять больше 3 новых предметов!
 KEY_REWARD_NOT_DROPPABLE,This item cannot be discarded!,Этот предмет нельзя выбросить!
@@ -804,3 +805,17 @@ ITEM_ARMOR_PLATE_DESC,Consumable (1 charge). Grants 6 Armor instantly.,Расх�
 ITEM_MEGABONKER_NAME,Megabonker,Мегабонкер
 ITEM_MEGABONKER_DESC,"+1 LUCK.\nAdjacent weapons gain the [Bonk] trait (chance to land a massive 20x critical hit, stacks with normal critical hits).","+1 УДАЧА.\nНакладывает на смежное оружие трейт [Бонк] (шанс нанести 20x критический удар, стакается с обычным критом)."
 KEY_LOG_BONK_HIT,[BONK!] %s dealt %d damage!,[БОНК!] %s нанёс %d урона!
+KEY_LOG_VITALITY_PENALTY,%s permanently halved your maximum HP.,%s навсегда снизило ваш максимальный запас здоровья наполовину.
+KEY_LOG_PALLADIUM_VOLATILE,%s volatile core forces the next enemy strike to crit and cools adjacent modules.,%s: нестабильное ядро гарантирует следующий крит врага и накладывает КД на смежные модули.
+KEY_ENHANCED_STIM_SUCCESS,%s permanently granted +1 END +1 AGI and unlocked a grid cell.,%s навсегда дало +1 ВЫН +1 ЛВК и открыло ячейку сетки.
+KEY_ENHANCED_STIM_STAT_ONLY,%s permanently granted +1 END +1 AGI (grid is full).,%s навсегда дало +1 ВЫН +1 ЛВК (сетка заполнена).
+ITEM_PALLADIUM_CORE_NAME,Palladium Core,Палладиевое ядро
+ITEM_PALLADIUM_CORE_DESC,"+1 Max AP.\n[Volatile]: When targeted by enemy CellDamage, guarantees an enemy Crit and inflicts 1-turn Cooldown on all adjacent items.","+1 к макс. AP.\n[Нестабильность]: Если становится целью CellDamage, даёт врагу гарантированный крит и накладывает КД 1 ход на все соседние предметы."
+ITEM_ABERRANT_TENTACLE_NAME,Aberrant Tentacle,Аберрантное щупальце
+ITEM_ABERRANT_TENTACLE_DESC,"+1 Max AP, +2 STR.\n[Grave Mutation]: Permanently reduces Maximum HP by 50% upon acquisition.","+1 к макс. AP, +2 к Силе.\n[Тяжёлая мутация]: Снижает максимальный запас здоровья на 50%."
+ITEM_CRYO_CORE_NAME,Cryo Core,Холодный крио-процессор
+ITEM_CRYO_CORE_DESC,"+1 Max AP.\nAdjacent items with Cooldown recover 1 turn faster.\n[Frozen Growth]: Level-ups unlock only 1 inventory cell.","+1 к макс. AP.\nСмежные предметы с КД восстанавливают кулдаун на 1 ход раньше.\n[Заморозка роста]: При получении нового уровня игрок открывает только 1 ячейку инвентаря."
+ITEM_ENHANCED_STIM_NAME,Enhanced Stimulant,Усиленный стимулятор
+ITEM_ENHANCED_STIM_DESC,"Consumable (1 charge).\nPermanently grants +1 CON, +1 DEX, and +1 inventory cell.","Расходник (1 заряд).\nНавсегда даёт +1 ВЫН, +1 ЛВК и +1 ячейку инвентаря."
+ITEM_CALCULATION_MODULE_NAME,Calculation Module,Расчётный модуль
+ITEM_CALCULATION_MODULE_DESC,"-1 Armor per helmet to the right in the same row.\nTrait [Calculation]: Retain all unused AP and up to 10 unspent Armor into the next turn.","-1 к броне за каждый шлем справа в том же ряду.\nТрейт [Калькуляция]: Переносит на следующий ход все неиспользованные AP и до 10 ед. неиспользованной брони."

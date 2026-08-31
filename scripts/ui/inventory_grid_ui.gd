@@ -397,6 +397,9 @@ func _confirm_level_up() -> void:
 	if player_stats != null:
 		reveal_level = player_stats.level - player_stats.pending_level_ups + 1
 	var cell_gain := BodyGrid.level_up_cell_gain_for_level(reveal_level)
+	if inventory != null and inventory.grid != null:
+		if TraitManager.grid_has_trait(inventory.grid, "TRAIT_RESTRICTED_EXPANSION"):
+			cell_gain = 1
 
 	_suppress_unlock_reveal = true
 	var new_cells: Array[Vector2i] = inventory.grid.unlock_random_adjacent_cells(cell_gain)

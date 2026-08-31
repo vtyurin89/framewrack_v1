@@ -642,6 +642,8 @@ func get_total_max_ap_bonus() -> int:
 		if item.data.has_passive_bonus_block():
 			continue
 		bonus += item.data.max_ap_bonus
+		if TraitManager.has_trait(item.data, "TRAIT_MAX_AP"):
+			bonus += TraitManager.get_trait_value(item.data, "TRAIT_MAX_AP", 1)
 	bonus += int(adj["ap_bonus"])
 	return bonus
 

@@ -137,6 +137,13 @@ static func _calc_spatial_passive_armor(
 		if clamp_non_negative:
 			return maxi(0, result)
 		return result
+	if has_trait(data, "TRAIT_HELMET_ROW_PENALTY") and data.sub_type == "HELMET":
+		var row_only_penalty := _count_same_row_penalty(placed, grid)
+		if row_only_penalty > 0:
+			var penalty_result := -row_only_penalty
+			if clamp_non_negative:
+				return maxi(0, penalty_result)
+			return penalty_result
 	var low_helmet := has_trait(data, "TRAIT_HELMET_LOW")
 	var high_helmet := has_trait(data, "TRAIT_HELMET_HIGH")
 	var low_leg := has_trait(data, "TRAIT_LEG_LOW")

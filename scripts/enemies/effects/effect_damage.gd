@@ -24,7 +24,11 @@ func apply(caster: EnemyInstance, target: Node, params: Array) -> void:
 	for _i in hits:
 		var base_roll := ability.roll_base()
 		var amount := base_roll + stat_bonus
-		var is_crit := caster.roll_crit()
+		var is_crit := false
+		if target.has_method("consume_forced_enemy_crit") and bool(target.call("consume_forced_enemy_crit")):
+			is_crit = true
+		else:
+			is_crit = caster.roll_crit()
 		var crit_mult := EnemyInstance.CRIT_DAMAGE_MULT
 		if caster.statuses != null:
 			crit_mult = caster.statuses.get_crit_damage_multiplier(crit_mult)

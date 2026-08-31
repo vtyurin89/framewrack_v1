@@ -8,18 +8,21 @@ enum Tier {
 	UNCOMMON,
 	RARE,
 	VERY_RARE,
+	BOSS,
 }
 
 const COLOR_COMMON := Color("#BDC3C7")
 const COLOR_UNCOMMON := Color("#3498DB")
 const COLOR_RARE := Color("#F1C40F")
 const COLOR_VERY_RARE := Color("#9B59B6")
+const COLOR_BOSS := Color("#E67E22")
 
 const RARITY_COLORS := {
 	Tier.COMMON: COLOR_COMMON,
 	Tier.UNCOMMON: COLOR_UNCOMMON,
 	Tier.RARE: COLOR_RARE,
 	Tier.VERY_RARE: COLOR_VERY_RARE,
+	Tier.BOSS: COLOR_BOSS,
 }
 
 @export var id: String = ""
@@ -37,6 +40,8 @@ func get_localized_name() -> String:
 
 func get_tier() -> Tier:
 	match id.strip_edges().to_lower():
+		"boss":
+			return Tier.BOSS
 		"uncommon":
 			return Tier.UNCOMMON
 		"rare":
@@ -59,6 +64,8 @@ static func color_for_tier(tier: Tier) -> Color:
 
 static func color_for_id(rarity_id: String) -> Color:
 	match rarity_id.strip_edges().to_lower():
+		"boss":
+			return COLOR_BOSS
 		"uncommon":
 			return COLOR_UNCOMMON
 		"rare":

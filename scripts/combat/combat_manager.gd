@@ -87,6 +87,9 @@ var _player_action_busy: bool = false
 ## Enemy currently resolving a physical attack against the player.
 var _active_player_attacker: EnemyInstance = null
 var _victory_rewards_active: bool = false
+var _forced_enemy_crit_pending: bool = false
+var _carried_ap: int = 0
+var _calculation_retention_active: bool = false
 
 
 func _ready() -> void:
@@ -196,6 +199,9 @@ func _prepare_new_combat() -> void:
 	current_phase = Phase.INACTIVE
 	_attacker_slots_used = 0
 	_vaeron_charge_damage = 0
+	_forced_enemy_crit_pending = false
+	_carried_ap = 0
+	_calculation_retention_active = false
 
 
 func set_group_attack_cap(cap: int) -> void:
@@ -283,11 +289,19 @@ func _reset_psychosis_hit_counters() -> void:
 
 
 func _reset_player_resources() -> void:
-	current_block = 0
+	if _calculation_retention_active:
+		current_block = mini(current_block, 10)
+	else:
+		current_block = 0
 	EventBus.block_changed.emit(current_block)
 	_clear_temporary_weapon_bonuses()
 	max_ap = inventory.get_max_ap()
-	current_ap = max_ap
+	if _calculation_retention_active:
+		current_ap = max_ap + _carried_ap
+		_carried_ap = 0
+		_calculation_retention_active = false
+	else:
+		current_ap = max_ap
 	player_turn_index += 1
 	if player_turn_index == 1:
 		current_ap += _eye_of_pale_maiden_turn1_ap_mod()
@@ -436,10 +450,31 @@ func end_player_turn() -> void:
 		return
 	if _player_action_busy:
 		return
+	_store_calculation_retention()
 	_player_post_turn_phase()
 	if not _apply_bionic_larva_turn_damage():
 		return
 	_begin_enemy_turn()
+
+
+func _store_calculation_retention() -> void:
+	if inventory == null or inventory.grid == null:
+		_carried_ap = 0
+		_calculation_retention_active = false
+		return
+	if TraitManager.grid_has_trait(inventory.grid, "TRAIT_CALCULATION_RETENTION"):
+		_carried_ap = current_ap
+		_calculation_retention_active = true
+	else:
+		_carried_ap = 0
+		_calculation_retention_active = false
+
+
+func consume_forced_enemy_crit() -> bool:
+	if not _forced_enemy_crit_pending:
+		return false
+	_forced_enemy_crit_pending = false
+	return true
 
 
 func _plan_all_intentions(force_reroll: bool = true) -> void:
@@ -1169,6 +1204,22 @@ func _apply_self_use_traits(placed: PlacedItem) -> void:
 			EventBus.combat_log_message.emit(
 				tr("KEY_LOG_PERM_STAT_GAIN") % [data.get_localized_name(), tr("KEY_END"), end_amt]
 			)
+	if TraitManager.has_trait(data, "TRAIT_ENHANCED_STIM"):
+		if player_stats != null:
+			player_stats.add_stat_bonus("endurance", 1)
+			player_stats.add_stat_bonus("agility", 1)
+			if inventory != null:
+				inventory.apply_actor_stats(player_stats)
+			EventBus.combat_log_message.emit(
+				tr("KEY_LOG_PERM_STAT_GAIN") % [data.get_localized_name(), tr("KEY_END"), 1]
+			)
+			EventBus.combat_log_message.emit(
+				tr("KEY_LOG_PERM_STAT_GAIN") % [data.get_localized_name(), tr("KEY_AGI"), 1]
+			)
+		if inventory != null:
+			var unlocked: Array[Vector2i] = inventory.unlock_random_cell()
+			if not unlocked.is_empty():
+				EventBus.combat_log_message.emit(tr("KEY_GRID_EXPAND_SUCCESS"))
 	if TraitManager.has_trait(data, "TRAIT_CLEANSE_DEBUFFS"):
 		if player_statuses != null:
 			player_statuses.clear_debuffs()
@@ -1259,6 +1310,24 @@ func _tick_all_item_statuses() -> void:
 	for placed: PlacedItem in inventory.grid.items:
 		if placed != null:
 			placed.tick_statuses()
+	_apply_cryo_cooldown_acceleration()
+	EventBus.combat_item_availability_changed.emit()
+
+
+func _apply_cryo_cooldown_acceleration() -> void:
+	if inventory == null or inventory.grid == null:
+		return
+	for source: PlacedItem in inventory.grid.get_functional_items():
+		if source == null or source.data == null:
+			continue
+		if not TraitManager.has_trait(source.data, "TRAIT_CRYO_ACCELERATION"):
+			continue
+		for neighbour: PlacedItem in inventory.grid.get_adjacent_items(source):
+			if neighbour == null or neighbour.data == null:
+				continue
+			if neighbour.data.get_status(ItemStatus.Type.COOLDOWN) == null:
+				continue
+			neighbour.data.tick_cooldown_status_only()
 	EventBus.combat_item_availability_changed.emit()
 
 
@@ -1326,8 +1395,27 @@ func apply_cell_damage(
 	var resolved_cell := _resolve_cell_damage_coords(placed, target_cell)
 	## Emit VFX first; avoid inventory_changed here — full grid rebuild would kill the laser.
 	EventBus.cell_damaged.emit(resolved_cell)
-	if duration > 0 and inventory.grid.items.has(placed):
-		apply_item_status(placed, status_effect, duration)
+	if inventory.grid.items.has(placed):
+		if duration > 0:
+			apply_item_status(placed, status_effect, duration)
+		_apply_palladium_volatile(placed)
+
+
+func _apply_palladium_volatile(placed: PlacedItem) -> void:
+	if placed == null or placed.data == null or inventory == null or inventory.grid == null:
+		return
+	if not TraitManager.has_trait(placed.data, "TRAIT_PALLADIUM_VOLATILE"):
+		return
+	_forced_enemy_crit_pending = true
+	for neighbour: PlacedItem in inventory.grid.get_adjacent_items(placed):
+		if neighbour == null or neighbour.data == null:
+			continue
+		if not inventory.grid.is_item_functional(neighbour):
+			continue
+		apply_item_status(neighbour, ItemStatus.Type.COOLDOWN, 1)
+	EventBus.combat_log_message.emit(
+		tr("KEY_LOG_PALLADIUM_VOLATILE") % placed.data.get_localized_name()
+	)
 
 
 func find_sticky_grenade_cell() -> Vector2i:

@@ -10,16 +10,21 @@ const BASE_MAX_HP := 40  ## END 2 + base 30 via ActorStats.get_max_hp
 var grid: BodyGrid
 var max_hp: int = BASE_MAX_HP
 var current_hp: int = BASE_MAX_HP
+## Run-level: Aberrant Tentacle halves max HP once per run.
+var _vitality_penalty_applied: bool = false
 
 
 func _init() -> void:
 	_bind_grid(BodyGrid.new())
+	if not EventBus.item_placed.is_connected(_on_item_placed):
+		EventBus.item_placed.connect(_on_item_placed)
 
 
 func reset_run() -> void:
 	_bind_grid(BodyGrid.new())
 	max_hp = BASE_MAX_HP
 	current_hp = BASE_MAX_HP
+	_vitality_penalty_applied = false
 
 
 func apply_actor_stats(stats: ActorStats) -> void:
@@ -56,6 +61,27 @@ func _bind_grid(new_grid: BodyGrid) -> void:
 func _on_grid_item_unequipped(_item: ItemData, _reason: String) -> void:
 	## Corruption destroys the module — there is no off-grid storage.
 	pass
+
+
+func _on_item_placed(_item_id: String, origin: Vector2i) -> void:
+	if grid == null:
+		return
+	var placed := grid.get_occupant(origin)
+	if placed != null and placed.data != null:
+		apply_item_acquisition_effects(placed.data)
+
+
+func apply_item_acquisition_effects(item: ItemData) -> void:
+	if item == null or _vitality_penalty_applied:
+		return
+	if not TraitManager.has_trait(item, "TRAIT_VITALITY_PENALTY"):
+		return
+	_vitality_penalty_applied = true
+	var new_max := maxi(1, int(floor(float(max_hp) * 0.5)))
+	apply_max_hp_change(new_max)
+	EventBus.combat_log_message.emit(
+		tr("KEY_LOG_VITALITY_PENALTY") % item.get_localized_name()
+	)
 
 
 func place_item(
@@ -373,6 +399,17 @@ func use_consumable_out_of_combat(item_data: ItemData, player_stats: PlayerStats
 		return result
 
 	## Permanent stat injections (usable from inventory outside combat).
+	if _is_enhanced_stim(item_data):
+		var stim_msg := _try_apply_enhanced_stim(item_data, player_stats)
+		if stim_msg.is_empty():
+			result["message"] = tr("KEY_ITEM_CANNOT_USE")
+			return result
+		_spend_consumable_charge(placed)
+		result["ok"] = true
+		result["message"] = stim_msg
+		result["unlocked_cells"] = _last_enhanced_stim_unlocked
+		return result
+
 	if _is_permanent_stat_injection(item_data):
 		var perm_msg := _try_apply_permanent_stat_injection(item_data, player_stats)
 		if perm_msg.is_empty():
@@ -420,6 +457,27 @@ func _try_apply_permanent_stat_injection(item_data: ItemData, player_stats: Play
 				item_data.get_localized_name(), tr("KEY_END"), amt
 			]
 	return ""
+
+
+var _last_enhanced_stim_unlocked: Array[Vector2i] = []
+
+
+func _is_enhanced_stim(item_data: ItemData) -> bool:
+	return item_data != null and TraitManager.has_trait(item_data, "TRAIT_ENHANCED_STIM")
+
+
+func _try_apply_enhanced_stim(item_data: ItemData, player_stats: PlayerStats) -> String:
+	if item_data == null:
+		return ""
+	_last_enhanced_stim_unlocked = []
+	if player_stats != null:
+		player_stats.add_stat_bonus("endurance", 1)
+		player_stats.add_stat_bonus("agility", 1)
+		apply_actor_stats(player_stats)
+	_last_enhanced_stim_unlocked = unlock_random_cell()
+	if _last_enhanced_stim_unlocked.is_empty():
+		return tr("KEY_ENHANCED_STIM_STAT_ONLY") % item_data.get_localized_name()
+	return tr("KEY_ENHANCED_STIM_SUCCESS") % item_data.get_localized_name()
 
 
 func _is_permanent_stat_injection(item_data: ItemData) -> bool:

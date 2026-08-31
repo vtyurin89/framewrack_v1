@@ -124,3 +124,19 @@ TRAIT_BONK_NAME,Bonk,Бонк
 TRAIT_BONK_DESC,Chance to land a massive critical hit (stacks with normal crits).,Шанс нанести огромный критический удар (стакается с обычным критом).
 TRAIT_MEGABONK_LUCK_NAME,Megabonker Luck,Удача мегабонкера
 TRAIT_MEGABONK_LUCK_DESC,Passive +1 Luck while equipped.,Пассивно +1 к Удаче пока экипирован.
+TRAIT_MAX_AP_NAME,Max AP Boost,Бонус к макс. AP
+TRAIT_MAX_AP_DESC,Passive +1 Max AP while equipped.,Пассивно +1 к макс. AP пока экипирован.
+TRAIT_ABERRANT_STR_NAME,Aberrant Strength,Аберрантная сила
+TRAIT_ABERRANT_STR_DESC,Passive +2 Strength while equipped.,Пассивно +2 к Силе пока экипирован.
+TRAIT_PALLADIUM_VOLATILE_NAME,Palladium Volatility,Нестабильность палладия
+TRAIT_PALLADIUM_VOLATILE_DESC,CellDamage on this relic forces an enemy crit and cools adjacent items.,CellDamage по этой реликвии гарантирует крит врага и накладывает КД на смежные предметы.
+TRAIT_VITALITY_PENALTY_NAME,Grave Mutation,Тяжёлая мутация
+TRAIT_VITALITY_PENALTY_DESC,On acquisition permanently halves maximum HP.,При получении навсегда снижает максимальный запас здоровья на 50%.
+TRAIT_CRYO_ACCELERATION_NAME,Cryo Acceleration,Крио-ускорение
+TRAIT_CRYO_ACCELERATION_DESC,Adjacent items on cooldown recover 1 turn faster.,Смежные предметы с КД восстанавливают кулдаун на 1 ход быстрее.
+TRAIT_RESTRICTED_EXPANSION_NAME,Frozen Growth,Заморозка роста
+TRAIT_RESTRICTED_EXPANSION_DESC,Level-ups unlock only 1 inventory cell.,При повышении уровня открывается только 1 ячейка инвентаря.
+TRAIT_ENHANCED_STIM_NAME,Enhanced Stimulant,Усиленный стимулятор
+TRAIT_ENHANCED_STIM_DESC,Permanently grants +1 END +1 AGI and unlocks 1 grid cell.,Навсегда даёт +1 ВЫН +1 ЛВК и открывает 1 ячейку сетки.
+TRAIT_CALCULATION_RETENTION_NAME,Calculation Retention,Калькуляция
+TRAIT_CALCULATION_RETENTION_DESC,Retain unused AP and up to 10 Block into the next turn.,Переносит неиспользованные AP и до 10 брони на следующий ход.

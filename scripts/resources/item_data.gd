@@ -330,6 +330,15 @@ func tick_cooldown() -> void:
 	tick_statuses()
 
 
+func tick_cooldown_status_only() -> void:
+	var cooldown := get_status(ItemStatus.Type.COOLDOWN)
+	if cooldown == null:
+		return
+	cooldown.tick_turn()
+	if cooldown.is_expired():
+		clear_status(ItemStatus.Type.COOLDOWN)
+
+
 func start_cooldown(turns: int = -1) -> void:
 	var duration := cooldown if turns < 0 else turns
 	if duration <= 0:
