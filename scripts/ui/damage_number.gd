@@ -5,6 +5,7 @@ extends Control
 const RISE_DURATION := 0.42
 const FALL_DURATION := 0.88
 const PEAK_SCALE_CRIT := 1.5
+const PEAK_SCALE_BONK := 1.85
 const PEAK_SCALE_NORMAL := 1.25
 ## How far above the card top the number peaks.
 const ABOVE_CARD := 40.0
@@ -75,6 +76,11 @@ func _apply_presentation() -> void:
 		_label.add_theme_font_size_override("font_size", 18)
 		if GamePalette:
 			GamePalette.apply_font_header(_label)
+	elif _damage_type == "bonk":
+		_label.text = "BONK! %d" % _amount
+		_label.add_theme_font_size_override("font_size", 30)
+		if GamePalette:
+			GamePalette.apply_font_emphasis(_label)
 	elif _is_crit:
 		_label.text = "%d!" % _amount
 		_label.add_theme_font_size_override("font_size", 26)
@@ -110,7 +116,11 @@ func _play_arc() -> void:
 	var start := Vector2(mid_x, start_y) - half
 	var peak := Vector2(mid_x + drift * 0.4, peak_y) - half
 	var land := Vector2(mid_x + drift, land_y) - half
-	var peak_scale := PEAK_SCALE_CRIT if _is_crit else PEAK_SCALE_NORMAL
+	var peak_scale := PEAK_SCALE_NORMAL
+	if _damage_type == "bonk":
+		peak_scale = PEAK_SCALE_BONK
+	elif _is_crit:
+		peak_scale = PEAK_SCALE_CRIT
 
 	global_position = start
 	modulate.a = 1.0

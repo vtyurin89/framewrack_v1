@@ -522,6 +522,27 @@ func recalculate_grid_adjacencies() -> void:
 	for placed: PlacedItem in items:
 		if placed == null or placed.data == null:
 			continue
+		placed.data.clear_runtime_traits()
+
+	for placed: PlacedItem in items:
+		if placed == null or placed.data == null:
+			continue
+		if not is_item_functional(placed):
+			continue
+		if not TraitManager.has_trait(placed.data, "TRAIT_BONK_PROVIDER"):
+			continue
+		for neighbour: PlacedItem in get_adjacent_items(placed):
+			if neighbour == null or neighbour.data == null:
+				continue
+			if not is_item_functional(neighbour):
+				continue
+			if not neighbour.data.is_weapon():
+				continue
+			neighbour.data.add_runtime_trait("TRAIT_BONK")
+
+	for placed: PlacedItem in items:
+		if placed == null or placed.data == null:
+			continue
 		var neighbours: Array[ItemData] = get_adjacent_item_data(placed)
 		for item_trait: TraitData in placed.data.traits:
 			if item_trait == null:

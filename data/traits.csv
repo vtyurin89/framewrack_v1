@@ -60,3 +60,9 @@ TRAIT_SIGHTING_SHOT,TRAIT_SIGHTING_SHOT_NAME,TRAIT_SIGHTING_SHOT_DESC,,0,At the 
 TRAIT_BRUTAL_CRITS,TRAIT_BRUTAL_CRITS_NAME,TRAIT_BRUTAL_CRITS_DESC,,4,Increases crit damage multiplier by +0.4 (effect_value tenths).
 TRAIT_HEADSHOT,TRAIT_HEADSHOT_NAME,TRAIT_HEADSHOT_DESC,,2,Critical hits apply Weakness stacks equal to effect_value.
 TRAIT_HEAVY_RIFLE_LUCK,TRAIT_HEAVY_RIFLE_LUCK_NAME,TRAIT_HEAVY_RIFLE_LUCK_DESC,LCK,2,Passive +2 Luck while this weapon is equipped.
+TRAIT_HELMET_NEUROVISOR,TRAIT_HELMET_NEUROVISOR_NAME,TRAIT_HELMET_NEUROVISOR_DESC,,0,Passive: +1 armor per 3 grid rows below; row helmet penalty applies.
+TRAIT_PREVENTIVE_STRIKES,TRAIT_PREVENTIVE_STRIKES_NAME,TRAIT_PREVENTIVE_STRIKES_DESC,,10,Direct attacks deal +10% damage (min +1) vs enemies above 90% HP.
+TRAIT_INSTANT_ARMOR_6,TRAIT_INSTANT_ARMOR_6_NAME,TRAIT_INSTANT_ARMOR_6_DESC,,6,Grants 6 Block instantly when consumed.
+TRAIT_BONK_PROVIDER,TRAIT_BONK_PROVIDER_NAME,TRAIT_BONK_PROVIDER_DESC,,0,Adjacent weapons gain the Bonk trait while this module is equipped.
+TRAIT_BONK,TRAIT_BONK_NAME,TRAIT_BONK_DESC,,0,Chance to land a massive Bonk critical hit (stacks with normal crits).
+TRAIT_MEGABONK_LUCK,TRAIT_MEGABONK_LUCK_NAME,TRAIT_MEGABONK_LUCK_DESC,LCK,1,Passive +1 Luck while this module is equipped.

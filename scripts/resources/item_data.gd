@@ -34,6 +34,9 @@ const FALLBACK_ICON_PATH := "res://assets/icons/fallback_item.png"
 ## Modular traits gated by adjacency rules at runtime.
 @export var traits: Array[TraitData] = []
 
+## Traits injected at runtime (e.g. Bonk from adjacent Megabonker). Not saved on prototype.
+var _runtime_trait_ids: Array[String] = []
+
 ## Footprint in grid cells (width x height). Swapped on rotate (R while dragging).
 @export var size: Vector2i = Vector2i(1, 1)
 
@@ -197,11 +200,27 @@ func initialize_runtime_state() -> void:
 	statuses.clear()
 	temp_flat_damage_bonus = 0
 	permanent_damage_bonus = 0
+	clear_runtime_traits()
 	if consumable:
 		current_charges = maxi(max_charges, 0)
 	else:
 		current_charges = -1
 	current_stack = clampi(current_stack, 1, maxi(max_stack, 1))
+
+
+func clear_runtime_traits() -> void:
+	_runtime_trait_ids.clear()
+
+
+func add_runtime_trait(trait_id: String) -> void:
+	var tid := trait_id.strip_edges().to_upper()
+	if tid.is_empty() or _runtime_trait_ids.has(tid):
+		return
+	_runtime_trait_ids.append(tid)
+
+
+func has_runtime_trait(trait_id: String) -> bool:
+	return _runtime_trait_ids.has(trait_id.strip_edges().to_upper())
 
 
 func reset_turn_uses() -> void:

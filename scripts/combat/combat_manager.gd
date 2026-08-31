@@ -176,6 +176,8 @@ func start_combat(enemy_datas: Array[EnemyData], max_attackers: int = -1) -> voi
 	player_turn_index = 0
 	_reset_all_item_combat_uses()
 	_clear_all_item_statuses()
+	if inventory != null and inventory.grid != null:
+		inventory.grid.recalculate_grid_adjacencies()
 	_apply_start_of_combat_player_buffs()
 	_apply_enemy_battle_start_passives()
 	_parasite_at_combat_start = _has_item_in_grid(SLIMY_PARASITE_ID)
@@ -645,7 +647,7 @@ func _resolve_single_enemy(placed: PlacedItem) -> bool:
 	dmg += trait_bonus
 	var pierce := TraitManager.has_trait(data, "TRAIT_ARMOR_PIERCE")
 	var killed := _deal_damage_to(
-		target_index, dmg, data.get_localized_name(), true, "physical", pierce, placed
+		target_index, dmg, data.get_localized_name(), true, "physical", pierce, placed, true
 	)
 	if killed:
 		_apply_oracle_kill_bonus(placed, 1)
@@ -794,7 +796,7 @@ func _resolve_auto_scatter_async(placed: PlacedItem) -> void:
 			dmg += trait_bonus
 		any_hit = true
 		var pierce := TraitManager.has_trait(data, "TRAIT_ARMOR_PIERCE")
-		if _deal_damage_to(idx, dmg, source_name, true, "physical", pierce, placed):
+		if _deal_damage_to(idx, dmg, source_name, true, "physical", pierce, placed, true):
 			killed_count += 1
 		_apply_on_hit_weapon_statuses(placed, idx)
 
@@ -826,7 +828,7 @@ func _resolve_all_enemies(placed: PlacedItem) -> void:
 	var pierce := TraitManager.has_trait(data, "TRAIT_ARMOR_PIERCE")
 	var killed_count := 0
 	for idx: int in living:
-		if _deal_damage_to(idx, dmg, data.get_localized_name(), true, damage_type, pierce, placed):
+		if _deal_damage_to(idx, dmg, data.get_localized_name(), true, damage_type, pierce, placed, true):
 			killed_count += 1
 		_apply_on_hit_weapon_statuses(placed, idx)
 	if killed_count > 0:
@@ -928,6 +930,32 @@ func _roll_player_crit() -> bool:
 	return randf() < chance
 
 
+func _roll_bonk(weapon_data: ItemData) -> bool:
+	if weapon_data == null or not TraitManager.has_trait(weapon_data, "TRAIT_BONK"):
+		return false
+	var chance := 0.02
+	if CombatConfig != null:
+		chance = CombatConfig.bonk_crit_chance
+	if player_stats != null:
+		chance += maxf(0.0, float(player_stats.luck - 1) * 0.005)
+	return randf() < chance
+
+
+func _apply_preventive_strikes_bonus(base_dmg: int, enemy_index: int) -> int:
+	if inventory == null or inventory.grid == null:
+		return base_dmg
+	if not TraitManager.grid_has_trait(inventory.grid, "TRAIT_PREVENTIVE_STRIKES"):
+		return base_dmg
+	if enemy_index < 0 or enemy_index >= enemies.size():
+		return base_dmg
+	var enemy: EnemyInstance = enemies[enemy_index]
+	if enemy == null or not enemy.is_alive() or enemy.max_hp <= 0:
+		return base_dmg
+	if float(enemy.current_hp) <= float(enemy.max_hp) * 0.9:
+		return base_dmg
+	return base_dmg + maxi(1, ceili(float(base_dmg) * 0.10))
+
+
 func _deal_damage_to(
 	index: int,
 	dmg: int,
@@ -935,7 +963,8 @@ func _deal_damage_to(
 	allow_crit: bool = true,
 	damage_type: String = "physical",
 	pierce_block: bool = false,
-	placed: PlacedItem = null
+	placed: PlacedItem = null,
+	is_direct_attack: bool = false
 ) -> bool:
 	if index < 0 or index >= enemies.size():
 		return false
@@ -947,6 +976,8 @@ func _deal_damage_to(
 	if not enemy.is_alive():
 		return false
 	var final_dmg := dmg
+	if is_direct_attack:
+		final_dmg = _apply_preventive_strikes_bonus(final_dmg, index)
 	## Enemy vulnerability amplifies incoming hits.
 	if enemy.statuses != null:
 		final_dmg = enemy.statuses.modify_incoming_damage(final_dmg)
@@ -958,6 +989,14 @@ func _deal_damage_to(
 			crit_mult = player_statuses.get_crit_damage_multiplier(crit_mult)
 		crit_mult += _weapon_crit_mult_bonus(placed)
 		final_dmg = roundi(float(final_dmg) * crit_mult)
+	var is_bonk := false
+	var weapon_data: ItemData = placed.data if placed != null else null
+	if allow_crit and weapon_data != null and _roll_bonk(weapon_data):
+		is_bonk = true
+		var bonk_mult := 20.0
+		if CombatConfig != null:
+			bonk_mult = CombatConfig.bonk_crit_multiplier
+		final_dmg = roundi(float(final_dmg) * bonk_mult)
 	var adjacency_note := ""
 	var had_evasion := (
 		enemy.statuses != null
@@ -986,7 +1025,9 @@ func _deal_damage_to(
 		return false
 	var popup_amount := dealt if dealt > 0 else (block_absorbed if block_absorbed > 0 else final_dmg)
 	var popup_type := "block" if dealt <= 0 and block_absorbed > 0 else damage_type
-	_request_enemy_popup(index, popup_amount, popup_type, is_crit, false)
+	if is_bonk:
+		popup_type = "bonk"
+	_request_enemy_popup(index, popup_amount, popup_type, is_crit or is_bonk, false)
 	## Thorns on enemy reflect to player.
 	if enemy.statuses != null:
 		var thorns := enemy.statuses.get_thorns_reflect()
@@ -994,15 +1035,20 @@ func _deal_damage_to(
 			var thorns_dealt := apply_enemy_damage_to_player(thorns)
 			_request_player_popup(thorns_dealt if thorns_dealt > 0 else thorns, "physical")
 			EventBus.combat_log_message.emit(tr("KEY_LOG_THORNS") % [enemy.get_localized_name(), thorns])
-	if is_crit:
+	if is_bonk:
+		EventBus.combat_log_message.emit(
+			tr("KEY_LOG_BONK_HIT") % [source_name, final_dmg]
+		)
+	elif is_crit:
 		EventBus.combat_log_message.emit(
 			tr("KEY_LOG_ENEMY_CRIT_HIT") % [source_name, final_dmg]
 		)
-		_apply_headshot_on_crit(placed, index)
 	else:
 		EventBus.combat_log_message.emit(
 			tr("KEY_LOG_DAMAGE") % [source_name, final_dmg, adjacency_note, enemy.get_localized_name()]
 		)
+	if is_crit:
+		_apply_headshot_on_crit(placed, index)
 	EventBus.enemy_hp_changed.emit(index, enemy.current_hp, enemy.max_hp)
 	EventBus.enemy_block_changed.emit(index, enemy.current_block)
 	if dealt > 0 and state == CombatState.PLAYER_TURN:
@@ -1073,6 +1119,9 @@ func _apply_self_use_traits(placed: PlacedItem) -> void:
 	if placed == null or placed.data == null:
 		return
 	var data := placed.data
+	if TraitManager.has_trait(data, "TRAIT_INSTANT_ARMOR_6"):
+		var armor_amt := TraitManager.get_trait_value(data, "TRAIT_INSTANT_ARMOR_6", 6)
+		_gain_block(armor_amt, data.get_localized_name())
 	if TraitManager.has_trait(data, "TRAIT_BIO_GEL_HEAL"):
 		var heal_amt := _modify_player_healing(8)
 		inventory.current_hp = mini(inventory.max_hp, inventory.current_hp + heal_amt)

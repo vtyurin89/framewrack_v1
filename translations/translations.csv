@@ -797,3 +797,10 @@ ABILITY_WARDEN_HACK_DESC,Applies Hacked to the player.,Накладывает с
 ABILITY_WARDEN_PULSE_NAME,Compliance Pulse,Импульс подчинения
 ABILITY_WARDEN_PULSE_TEXT,Compliance Pulse!,Импульс подчинения!
 ABILITY_WARDEN_PULSE_DESC,INT-scaled hit.,Удар, который масштабируется от ИНТ.
+ITEM_NEUROVISOR_NAME,Neurovisor,Нейровизор
+ITEM_NEUROVISOR_DESC,"+1 Armor per 3 cells below. -1 Armor per helmet to the right in the same row.\nTrait [Preventive Strikes]: Direct attacks deal +10% damage (min +1) against enemies with >90% HP.","+1 к броне за каждые 3 клетки снизу, -1 к броне за каждый шлем справа в ряду.\nТрейт [Превентивные удары]: Прямые атаки наносят на +10% урона (мин. +1) по врагам с >90% HP."
+ITEM_ARMOR_PLATE_NAME,Armor Plate,Бронепластина
+ITEM_ARMOR_PLATE_DESC,Consumable (1 charge). Grants 6 Armor instantly.,Расходник (1 заряд). Даёт 6 брони мгновенно.
+ITEM_MEGABONKER_NAME,Megabonker,Мегабонкер
+ITEM_MEGABONKER_DESC,"+1 LUCK.\nAdjacent weapons gain the [Bonk] trait (chance to land a massive 20x critical hit, stacks with normal critical hits).","+1 УДАЧА.\nНакладывает на смежное оружие трейт [Бонк] (шанс нанести 20x критический удар, стакается с обычным критом)."
+KEY_LOG_BONK_HIT,[BONK!] %s dealt %d damage!,[БОНК!] %s нанёс %d урона!

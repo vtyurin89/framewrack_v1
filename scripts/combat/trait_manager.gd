@@ -14,6 +14,19 @@ static func has_trait(item: ItemData, trait_id: String) -> bool:
 			continue
 		if item_trait.id.strip_edges().to_upper() == wanted:
 			return true
+	if item.has_runtime_trait(wanted):
+		return true
+	return false
+
+
+static func grid_has_trait(grid: BodyGrid, trait_id: String) -> bool:
+	if grid == null:
+		return false
+	for placed: PlacedItem in grid.get_functional_items():
+		if placed == null or placed.data == null:
+			continue
+		if has_trait(placed.data, trait_id):
+			return true
 	return false
 
 
@@ -107,6 +120,14 @@ static func _calc_spatial_passive_armor(
 	clamp_non_negative: bool = true
 ) -> int:
 	var data := placed.data
+	if has_trait(data, "TRAIT_HELMET_NEUROVISOR"):
+		var cells_below := maxi(0, grid.height - 1 - placed.origin.y)
+		var base_armor := int(floor(float(cells_below) / 3.0))
+		var row_penalty := _count_same_row_penalty(placed, grid)
+		var neuro_result := base_armor - row_penalty
+		if clamp_non_negative:
+			return maxi(0, neuro_result)
+		return neuro_result
 	if has_trait(data, "TRAIT_GREAVES_BASE"):
 		var base := maxi(0, get_trait_value(data, "TRAIT_GREAVES_BASE", 2))
 		var per_cell_penalty := maxi(0, get_trait_value(data, "TRAIT_GREAVES_BELOW_PENALTY", 1))

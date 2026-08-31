@@ -42,6 +42,7 @@ const COLOR_SYSTEM := COLOR_CYAN_SYSTEM
 
 const COLOR_PHYSICAL := PHOSPHOR_BRIGHT
 const COLOR_CRIT := COLOR_WARN
+const COLOR_BONK := Color("#FFD84D")
 const COLOR_POISON := PHOSPHOR_ACTIVE
 const COLOR_BURN := Color("#C47A3A") ## warm amber still reads as “burn” on CRT
 const COLOR_RUST := MUTED_GREEN
@@ -76,9 +77,12 @@ const FONT_BOLD_ITALIC: Font = preload("res://assets/fonts/IBM_Plex_Mono/IBMPlex
 func get_damage_color(damage_type: String, is_crit: bool = false, is_miss: bool = false) -> Color:
 	if is_miss:
 		return COLOR_MISS
+	var dtype := damage_type.strip_edges().to_lower()
+	if dtype == "bonk":
+		return COLOR_BONK
 	if is_crit:
 		return COLOR_CRIT
-	match damage_type.strip_edges().to_lower():
+	match dtype:
 		"poison":
 			return COLOR_POISON
 		"burn":
