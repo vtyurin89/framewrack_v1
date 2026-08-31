@@ -71,7 +71,7 @@ func _resolve_combat_manager() -> Node:
 	return null
 
 
-func _eval_pulse_conditions(_args: Variant = null) -> void:
+func _eval_pulse_conditions(..._args) -> void:
 	_resolve_pulse_component()
 	if pulse_glow_component == null:
 		return

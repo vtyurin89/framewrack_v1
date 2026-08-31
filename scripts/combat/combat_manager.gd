@@ -153,7 +153,7 @@ func is_in_combat() -> bool:
 
 func start_combat(enemy_datas: Array[EnemyData], max_attackers: int = -1) -> void:
 	_ensure_ability_executor()
-	_player_action_busy = false
+	_prepare_new_combat()
 	if player_stats != null:
 		player_stats.clear_combat_stat_buffs()
 	if player_statuses == null:
@@ -184,6 +184,18 @@ func start_combat(enemy_datas: Array[EnemyData], max_attackers: int = -1) -> voi
 	_select_first_living_enemy()
 	EventBus.combat_started.emit(ids)
 	_begin_player_turn()
+
+
+func _prepare_new_combat() -> void:
+	## Clear terminal state from the previous fight (VICTORY/DEFEAT blocks _begin_player_turn).
+	_player_action_busy = false
+	awaiting_forced_insertion = false
+	awaiting_sticky_detonation = false
+	_victory_rewards_active = false
+	state = CombatState.INACTIVE
+	current_phase = Phase.INACTIVE
+	_attacker_slots_used = 0
+	_vaeron_charge_damage = 0
 
 
 func set_group_attack_cap(cap: int) -> void:
@@ -254,12 +266,12 @@ func _begin_player_turn() -> void:
 		_win()
 		return
 	_ensure_valid_selection()
-	EventBus.ap_changed.emit(current_ap, max_ap)
-	EventBus.combat_item_availability_changed.emit()
 	## Plan telegraphs before turn_started so the UI stagger reveals committed intents.
 	_plan_all_intentions(true)
 	_emit_enemy_hp()
 	_set_state(CombatState.PLAYER_TURN)
+	EventBus.ap_changed.emit(current_ap, max_ap)
+	EventBus.combat_item_availability_changed.emit()
 	EventBus.combat_log_message.emit(tr("KEY_LOG_YOUR_TURN") % current_ap)
 	## Action phase is interactive (activate_item / end_player_turn).
 
@@ -400,7 +412,6 @@ func _player_start_turn_phase() -> void:
 	## Passive item auras (e.g. NEURO_TICK taints orthogonal neighbours).
 	_apply_item_start_turn_auras()
 	_trigger_sighting_shot_weapons()
-	EventBus.combat_item_availability_changed.emit()
 
 
 func _modify_player_healing(amount: int) -> int:

@@ -127,6 +127,7 @@ func setup(p_combat: Node, p_inventory: InventoryController) -> void:
 	_pending_death_fades = 0
 	_player_hp_initialized = false
 	_apply_static_locale()
+	_apply_space_stage_layout(false, tr("KEY_COMBAT_CLICK_HINT"))
 	_on_hp_changed(inventory.current_hp, inventory.max_hp)
 	_ensure_player_statuses_ui()
 	_bind_damage_popup_manager()
@@ -945,6 +946,7 @@ func _on_turn_started(is_player: bool) -> void:
 				if enemy != null:
 					card.set_intention(enemy.current_intention)
 		_play_staggered_intention_reveal()
+		EventBus.combat_item_availability_changed.emit()
 	else:
 		## Passive was just committed into Block — hide the (+N) preview.
 		_passive_preview_visible = false
