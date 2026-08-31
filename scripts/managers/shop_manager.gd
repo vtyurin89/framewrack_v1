@@ -237,6 +237,8 @@ func _is_shop_eligible(proto: ItemData) -> bool:
 		return false
 	if EXCLUDED_SHOP_IDS.has(proto.id.strip_edges().to_upper()):
 		return false
+	if proto.rarity != null and proto.rarity.get_tier() == ItemRarityData.Tier.BOSS:
+		return false
 	return proto.is_sellable()
 
 

@@ -8,6 +8,8 @@ signal rewards_session_cleared
 const MAX_PICKS := 3
 const CHEST_PICKS := 1
 const CHEST_OFFER_COUNT := 3
+const BOSS_OFFER_COUNT := 3
+const BOSS_PICKS := 1
 ## Starter loadout — never offered as combat loot.
 const EXCLUDED_LOOT_IDS: Array[String] = [
 	"SCRAP_PIPE",
@@ -58,11 +60,6 @@ func generate_rewards(encounter_type: String, act_depth: int) -> Array[ItemData]
 			w_uncommon = 0.48
 			w_rare = 0.20
 			w_very_rare = 0.04
-		"BOSS", "COMBAT_BOSS":
-			w_common = 0.0
-			w_uncommon = 0.50
-			w_rare = 0.38
-			w_very_rare = 0.12
 		_:
 			## NORMAL / COMBAT_NORMAL / default
 			w_common = 0.68
@@ -100,6 +97,32 @@ func generate_rewards(encounter_type: String, act_depth: int) -> Array[ItemData]
 
 	## Shuffle so consumables aren't always first in the Space layout.
 	out.shuffle()
+	return out
+
+
+func generate_boss_rewards(count: int = BOSS_OFFER_COUNT) -> Array[ItemData]:
+	## Act boss: N distinct boss-relic offers (player picks BOSS_PICKS).
+	if ItemDatabase == null:
+		return []
+	var pool: Array[ItemData] = []
+	for proto: ItemData in ItemDatabase.get_all_items():
+		if _is_boss_reward_eligible(proto):
+			pool.append(proto)
+	if pool.is_empty():
+		push_warning("RewardManager: no boss-relic items in catalog")
+		return []
+	pool.shuffle()
+	var out: Array[ItemData] = []
+	var used_ids: Dictionary = {}
+	var offer_count := maxi(1, count)
+	for proto in pool:
+		if out.size() >= offer_count:
+			break
+		var key := proto.id.strip_edges().to_upper()
+		if used_ids.has(key):
+			continue
+		out.append(ItemDatabase.create_instance(proto.id))
+		used_ids[key] = true
 	return out
 
 
@@ -202,6 +225,8 @@ func _pick_random_item_of_tier(
 			continue
 		if proto.is_currency() or proto.is_harmful_item():
 			continue
+		if _is_boss_reward_proto(proto):
+			continue
 		if _is_excluded_loot(proto.id):
 			continue
 		if used_ids.has(proto.id.strip_edges().to_upper()):
@@ -264,6 +289,8 @@ func _is_chest_eligible(proto: ItemData, used_ids: Dictionary) -> bool:
 		return false
 	if proto.rarity != null and proto.rarity.get_tier() == ItemRarityData.Tier.COMMON:
 		return false
+	if _is_boss_reward_proto(proto):
+		return false
 	return true
 
 
@@ -275,6 +302,8 @@ func _pick_any_matching(want_consumable: bool, used_ids: Dictionary = {}) -> Ite
 		if proto == null:
 			continue
 		if proto.is_currency() or proto.is_harmful_item():
+			continue
+		if _is_boss_reward_proto(proto):
 			continue
 		if _is_excluded_loot(proto.id):
 			continue
@@ -292,6 +321,20 @@ func _pick_any_matching(want_consumable: bool, used_ids: Dictionary = {}) -> Ite
 func _is_excluded_loot(item_id: String) -> bool:
 	var key := item_id.strip_edges().to_upper()
 	return EXCLUDED_LOOT_IDS.has(key)
+
+
+func _is_boss_reward_proto(proto: ItemData) -> bool:
+	return proto != null and proto.rarity != null and proto.rarity.get_tier() == ItemRarityData.Tier.BOSS
+
+
+func _is_boss_reward_eligible(proto: ItemData) -> bool:
+	if not _is_boss_reward_proto(proto):
+		return false
+	if proto.is_currency() or proto.is_harmful_item():
+		return false
+	if _is_excluded_loot(proto.id):
+		return false
+	return true
 
 
 func _is_consumable_proto(proto: ItemData) -> bool:
@@ -371,6 +414,8 @@ func _pick_typed_rare_or_better(type_ids: Array[String], used_ids: Dictionary) -
 			continue
 		if proto.is_currency() or proto.is_harmful_item():
 			continue
+		if _is_boss_reward_proto(proto):
+			continue
 		if _is_excluded_loot(proto.id):
 			continue
 		if used_ids.has(proto.id.strip_edges().to_upper()):
@@ -393,9 +438,12 @@ func _pick_typed_rare_or_better(type_ids: Array[String], used_ids: Dictionary) -
 		for proto2: ItemData in ItemDatabase.get_all_items():
 			if proto2 == null or proto2.item_type == null:
 				continue
-			if allowed.has(proto2.item_type.id.strip_edges().to_upper()):
-				if not _is_excluded_loot(proto2.id) and not used_ids.has(proto2.id.strip_edges().to_upper()):
-					pool.append(proto2)
+			if not allowed.has(proto2.item_type.id.strip_edges().to_upper()):
+				continue
+			if _is_boss_reward_proto(proto2):
+				continue
+			if not _is_excluded_loot(proto2.id) and not used_ids.has(proto2.id.strip_edges().to_upper()):
+				pool.append(proto2)
 	if pool.is_empty():
 		return null
 	var pick: ItemData = pool[randi() % pool.size()]

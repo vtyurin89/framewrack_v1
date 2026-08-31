@@ -1039,9 +1039,17 @@ func _on_encounter_request_post_combat_rewards(encounter: EncounterData) -> void
 			var cur := _run_flow.current_map_data.get_node(_run_flow.current_map_data.current_node_id)
 			if cur != null:
 				act_depth = maxi(cur.layer, 0)
-	var loot := RewardManager.generate_rewards(encounter_kind, act_depth)
-	if encounter_kind == "ELITE":
-		loot = RewardManager.ensure_at_least_one_rare(loot)
+	var loot: Array[ItemData]
+	var max_picks := RewardManager.MAX_PICKS
+	var hint_key := "KEY_REWARD_SELECT_UP_TO_3"
+	if encounter_kind == "BOSS":
+		loot = RewardManager.generate_boss_rewards()
+		max_picks = RewardManager.BOSS_PICKS
+		hint_key = "KEY_REWARD_SELECT_ONE"
+	else:
+		loot = RewardManager.generate_rewards(encounter_kind, act_depth)
+		if encounter_kind == "ELITE":
+			loot = RewardManager.ensure_at_least_one_rare(loot)
 	if GameManager != null:
 		var chips_gained: int = GameManager.award_combat_chips(encounter_kind, act_depth)
 		if chips_gained > 0:
@@ -1054,10 +1062,10 @@ func _on_encounter_request_post_combat_rewards(encounter: EncounterData) -> void
 	if _inventory_ui.has_method("set_combat_mode"):
 		_inventory_ui.set_combat_mode(false)
 	if _combat_ui.has_method("set_reward_phase"):
-		_combat_ui.set_reward_phase(true)
+		_combat_ui.set_reward_phase(true, hint_key)
 	_post_combat_reward_active = true
-	_reward_screen.open_session(loot, inventory, _inventory_ui)
-	_status_banner.text = tr("KEY_REWARD_SELECT_UP_TO_3")
+	_reward_screen.open_session(loot, inventory, _inventory_ui, max_picks)
+	_status_banner.text = tr(hint_key)
 
 
 func _ensure_reward_screen() -> void:
