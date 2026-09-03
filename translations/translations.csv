@@ -819,3 +819,8 @@ ITEM_ENHANCED_STIM_NAME,Enhanced Stimulant,Усиленный стимулято
 ITEM_ENHANCED_STIM_DESC,"Consumable (1 charge).\nPermanently grants +1 CON, +1 DEX, and +1 inventory cell.","Расходник (1 заряд).\nНавсегда даёт +1 ВЫН, +1 ЛВК и +1 ячейку инвентаря."
 ITEM_CALCULATION_MODULE_NAME,Calculation Module,Расчётный модуль
 ITEM_CALCULATION_MODULE_DESC,"-1 Armor per helmet to the right in the same row.\nTrait [Calculation]: Retain all unused AP and up to 10 unspent Armor into the next turn.","-1 к броне за каждый шлем справа в том же ряду.\nТрейт [Калькуляция]: Переносит на следующий ход все неиспользованные AP и до 10 ед. неиспользованной брони."
+ITEM_PACEMAKER_NAME,Emergency Pacemaker,Аварийный кардиостимулятор
+ITEM_PACEMAKER_DESC,"+1 END.\n[Biological Failover]: Consumed on fatal blow. Revives with 50% Max HP; occupied cells become inactive (can be unlocked again on level-up).","+1 к Выносливости.\n[Аварийный протокол]: Срабатывает при смертельном ударе. Воскрешает с 50% макс. HP, а ячейки под предметом становятся неактивными (их можно повторно открыть при левел-апе)."
+KEY_LOG_BIOLOGICAL_FAILOVER,%s fires — lethal shutdown aborted. Frame restored to %d HP; occupied cells locked offline.,%s срабатывает — смертельное отключение отменено. Фрейм восстановлен до %d HP; занятые ячейки заблокированы.
+TRAIT_BIOLOGICAL_FAILOVER_NAME,Biological Failover,Аварийный протокол
+TRAIT_BIOLOGICAL_FAILOVER_DESC,"Consumed on fatal blow. Revives at 50% Max HP; occupied cells become inactive (re-unlockable on level-up).","Срабатывает при смертельном ударе. Воскрешает с 50% макс. HP; ячейки под предметом становятся неактивными (можно открыть снова при левел-апе)."

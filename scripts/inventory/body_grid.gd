@@ -190,6 +190,28 @@ func unlock_random_adjacent_cells(count: int = LEVEL_UP_CELL_GAIN) -> Array[Vect
 	return expand_by_adjacent_cells(count)
 
 
+func deactivate_cells(cells: Array[Vector2i]) -> Array[Vector2i]:
+	## Re-lock empty unlocked cells so they become inactive and eligible for level-up unlock.
+	var locked: Array[Vector2i] = []
+	for cell: Vector2i in cells:
+		if not is_cell_valid(cell):
+			continue
+		var key := cell_key(cell)
+		if not _unlocked.has(key):
+			continue
+		if get_occupant(cell) != null:
+			continue
+		_unlocked.erase(key)
+		_corruption.erase(key)
+		locked.append(cell)
+	if not locked.is_empty():
+		_rebuild_cell_states()
+		changed.emit()
+		EventBus.grid_layout_updated.emit()
+		EventBus.inventory_changed.emit()
+	return locked
+
+
 func get_unlocked_cell_count() -> int:
 	return _unlocked.size()
 

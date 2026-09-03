@@ -257,7 +257,7 @@ func pay_neuron_amplifier_hp(allow_fatal: bool = false) -> bool:
 		return false
 	current_hp = maxi(0, current_hp - cost)
 	EventBus.player_hp_changed.emit(current_hp, max_hp)
-	if current_hp <= 0:
+	if current_hp <= 0 and not try_biological_failover():
 		EventBus.player_died.emit()
 	return true
 
@@ -267,9 +267,34 @@ func apply_damage(amount: int, block: int = 0) -> int:
 	var remaining := amount - absorbed
 	current_hp = maxi(0, current_hp - remaining)
 	EventBus.player_hp_changed.emit(current_hp, max_hp)
-	if current_hp <= 0:
+	if current_hp <= 0 and not try_biological_failover():
 		EventBus.player_died.emit()
 	return remaining
+
+
+func try_biological_failover() -> bool:
+	## Emergency Pacemaker: cancel lethal damage, revive to fraction of Max HP, lock cells.
+	if grid == null or current_hp > 0:
+		return false
+	var pacemaker := TraitManager.find_functional_with_trait(grid, "TRAIT_BIOLOGICAL_FAILOVER")
+	if pacemaker == null or pacemaker.data == null:
+		return false
+
+	var occupied_cells: Array[Vector2i] = pacemaker.occupied_cells()
+	var item_name := pacemaker.data.get_localized_name()
+	var revive_pct := TraitManager.get_trait_value(pacemaker.data, "TRAIT_BIOLOGICAL_FAILOVER", 50)
+	var fraction := clampf(float(revive_pct) / 100.0, 0.01, 1.0)
+
+	grid.remove_item(pacemaker, true)
+	grid.deactivate_cells(occupied_cells)
+
+	current_hp = maxi(1, int(ceil(float(max_hp) * fraction)))
+	EventBus.player_hp_changed.emit(current_hp, max_hp)
+	EventBus.player_revived.emit(current_hp)
+	EventBus.combat_log_message.emit(
+		tr("KEY_LOG_BIOLOGICAL_FAILOVER") % [item_name, current_hp]
+	)
+	return true
 
 
 func heal_full() -> void:

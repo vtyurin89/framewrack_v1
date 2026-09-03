@@ -140,3 +140,5 @@ TRAIT_ENHANCED_STIM_NAME,Enhanced Stimulant,Усиленный стимулят�
 TRAIT_ENHANCED_STIM_DESC,Permanently grants +1 END +1 AGI and unlocks 1 grid cell.,Навсегда даёт +1 ВЫН +1 ЛВК и открывает 1 ячейку сетки.
 TRAIT_CALCULATION_RETENTION_NAME,Calculation Retention,Калькуляция
 TRAIT_CALCULATION_RETENTION_DESC,Retain unused AP and up to 10 Block into the next turn.,Переносит неиспользованные AP и до 10 брони на следующий ход.
+TRAIT_BIOLOGICAL_FAILOVER_NAME,Biological Failover,Аварийный протокол
+TRAIT_BIOLOGICAL_FAILOVER_DESC,"Consumed on fatal blow. Revives at 50% Max HP; occupied cells become inactive (re-unlockable on level-up).","Срабатывает при смертельном ударе. Воскрешает с 50% макс. HP; ячейки под предметом становятся неактивными (можно открыть снова при левел-апе)."

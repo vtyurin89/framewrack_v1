@@ -827,11 +827,7 @@ func _apply_heal(amount: int) -> void:
 func _apply_damage(amount: int) -> void:
 	if inventory == null or amount <= 0:
 		return
-	inventory.current_hp = maxi(0, inventory.current_hp - amount)
-	EventBus.player_hp_changed.emit(inventory.current_hp, inventory.max_hp)
-	if inventory.current_hp <= 0:
-		EventBus.player_died.emit()
-
+	inventory.apply_damage(amount, 0)
 
 func _grant_item(item_id: String, amount: int = 1) -> void:
 	var id_str := item_id.strip_edges()

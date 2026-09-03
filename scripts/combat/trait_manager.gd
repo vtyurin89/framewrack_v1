@@ -20,14 +20,18 @@ static func has_trait(item: ItemData, trait_id: String) -> bool:
 
 
 static func grid_has_trait(grid: BodyGrid, trait_id: String) -> bool:
+	return find_functional_with_trait(grid, trait_id) != null
+
+
+static func find_functional_with_trait(grid: BodyGrid, trait_id: String) -> PlacedItem:
 	if grid == null:
-		return false
+		return null
 	for placed: PlacedItem in grid.get_functional_items():
 		if placed == null or placed.data == null:
 			continue
 		if has_trait(placed.data, trait_id):
-			return true
-	return false
+			return placed
+	return null
 
 
 static func get_trait_value(item: ItemData, trait_id: String, fallback: int = 0) -> int:

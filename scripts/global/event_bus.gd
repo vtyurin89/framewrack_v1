@@ -51,6 +51,8 @@ signal cell_damaged(cell_coords: Vector2i)
 ## Sticky grenade explosion pulse after the CellDamage laser (grid VFX).
 signal sticky_grenade_blast(cell_coords: Vector2i)
 signal player_died
+## Fired when Biological Failover (Emergency Pacemaker) cancels lethal damage.
+signal player_revived(restored_hp: int)
 ## UI: animate an item icon flying from the grid toward an enemy card.
 signal item_stolen_by_enemy(enemy_index: int, item: ItemData)
 ## Floating damage / miss / status popup request (CombatUI resolves target nodes).
