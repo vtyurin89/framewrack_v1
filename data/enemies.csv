@@ -18,3 +18,4 @@ chem_junkie,ENEMY_JUNKIE_NAME,ENEMY_JUNKIE_DESC,25,4,3,2,1,2,"ABILITY_JUNKIE_SHA
 arbiter_guard,ENEMY_ARBITER_NAME,ENEMY_ARBITER_DESC,16,3,2,2,6,2,"ABILITY_ARBITER_STRIKE,ABILITY_ARBITER_GUARD,ABILITY_ARBITER_DISRUPT,ABILITY_ARBITER_FOCUS",,res://assets/sprites/enemies/synthet/arbiter_guard.png,24,synthet,normal,damage,22,8
 grenadier_drone,ENEMY_GRENADIER_NAME,ENEMY_GRENADIER_DESC,12,2,2,2,3,1,"ABILITY_GRENADIER_GRENADE,ABILITY_GRENADIER_DETONATE,ABILITY_SIGNAL_SPIKE",,res://assets/sprites/enemies/synthet/grenadier_drone.png,18,synthet,normal,damage,16,6
 warden,ENEMY_WARDEN_NAME,ENEMY_WARDEN_DESC,14,2,2,3,5,2,"ABILITY_WARDEN_HACK,ABILITY_WARDEN_PULSE",,res://assets/sprites/enemies/synthet/warden.png,20,synthet,normal,debuffer,18,7
+the_unknown,ENEMY_THE_UNKNOWN_NAME,ENEMY_THE_UNKNOWN_DESC,30,4,3,3,3,2,"ABILITY_UNKNOWN_INJECT,ABILITY_UNKNOWN_GUARD,ABILITY_UNKNOWN_STRIKE",,res://assets/sprites/enemies/bosses/elder_vaeron.png,35,chimera,elite,debuffer,25,12

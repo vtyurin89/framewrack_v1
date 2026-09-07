@@ -831,3 +831,32 @@ ABILITY_MIGHTY_STRIKE_NAME,Mighty Strike,Mighty Strike
 ABILITY_MIGHTY_STRIKE_DESC,Heavy physical hit (2–4) with cell damage: Cooldown 2 turns on a random active item.,Тяжёлый удар (2–4) с повреждением ячейки: Перезарядка 2 хода на случайном активном предмете.
 ABILITY_MIGHTY_STRIKE_TEXT,Mighty Strike!,Mighty Strike!
 ABILITY_SCRAPPER_BUMPER_DESC,"Requires Prepare Slam. Heavy physical hit (9–12), Slow, and cell damage: Overload 2 turns on a random active item.","Нужен Замах бампером. Тяжёлый удар (9–12), Замедление и повреждение ячейки: Перегрузка 2 хода на случайном активном предмете."
+ITEM_SINISTER_BUNDLE_NAME,Sinister Bundle,Зловещий свёрток
+ITEM_SINISTER_BUNDLE_DESC,"Cursed item. Cannot be removed easily.\nAdjacent items cost +1 AP.\n-1 HP at the end of every combat.\n30% chance after regular battles to be stalked by The Unknown.","Проклятый предмет. Нельзя просто так выбросить.\nСмежные предметы стоят на +1 AP дороже.\n-1 HP в конце каждого боя.\n30% шанс после обычного боя: нападение Неведомого."
+ITEM_PARASITIC_WORM_NAME,Parasitic Scolopendra,Сколопендра-паразит
+ITEM_PARASITIC_WORM_DESC,"A squirming worm lodged in your frame. Crush it to remove it, but it deals 1 direct damage.","Извивающийся червь в вашем фрейме. Раздавите, чтобы удалить, но он нанесёт 1 ед. прямого урона."
+TRAIT_ADJACENT_AP_TAX_NAME,Adjacent AP Tax,Налог на AP
+TRAIT_ADJACENT_AP_TAX_DESC,Adjacent items cost +1 AP.,Смежные предметы стоят на +1 AP дороже.
+TRAIT_POST_COMBAT_DRAIN_NAME,Post-Combat Drain,Истощение после боя
+TRAIT_POST_COMBAT_DRAIN_DESC,-1 HP at the end of every combat.,-1 HP в конце каждого боя.
+TRAIT_STALKER_BEACON_NAME,Stalker Beacon,Маяк преследователя
+TRAIT_STALKER_BEACON_DESC,30% chance after regular battles to draw The Unknown.,30% шанс после обычного боя привлечь Неведомого.
+TRAIT_SQUISH_SACRIFICE_NAME,Squish Sacrifice,Тушение жертвой
+TRAIT_SQUISH_SACRIFICE_DESC,Crush to remove, dealing 1 direct damage.,Раздавить, чтобы удалить, нанеся 1 ед. прямого урона.
+TRAIT_WORM_PARASITE_NAME,Worm Parasite,Червь-паразит
+TRAIT_WORM_PARASITE_DESC,Worm parasite count tracked for The Unknown.,Число червей-паразитов отслеживается Неведомым.
+ENEMY_THE_UNKNOWN_NAME,The Unknown,Неведомое
+ENEMY_THE_UNKNOWN_DESC,A shrieking mass of flesh and metal that regenerates and hunts parasites.,Кричащая масса из плоти и металла, которая регенерирует и охотится на паразитов.
+ABILITY_UNKNOWN_INJECT_NAME,Parasitic Injection,Инъекция паразита
+ABILITY_UNKNOWN_INJECT_DESC,Forces a parasitic worm into your body grid.,Внедряет червя-паразита в вашу сетку.
+ABILITY_UNKNOWN_INJECT_TEXT,Parasitic Injection!,Инъекция паразита!
+ABILITY_UNKNOWN_GUARD_NAME,Shifting Carapace,Скользящий панцирь
+ABILITY_UNKNOWN_GUARD_DESC,Form a guard of grasping organs to shield itself.,Создаёт панцирь из хватающих органов для защиты.
+ABILITY_UNKNOWN_GUARD_TEXT,Shifting Carapace!,Скользящий панцирь!
+ABILITY_UNKNOWN_STRIKE_NAME,Rending Mass,Разрывающая масса
+ABILITY_UNKNOWN_STRIKE_DESC,Lashes out with ravenous limbs and gains Block.,Бьёт ненасытными конечностями и получает Блок.
+ABILITY_UNKNOWN_STRIKE_TEXT,Rending Mass!,Разрывающая масса!
+KEY_LOG_UNKNOWN_CRUSH,"%s crushed out of your frame — 1 direct damage.","%s раздавлен из вашего фрейма — 1 ед. прямого урона."
+KEY_LOG_UNKNOWN_REVIVE,"%s writhes back to life!","%s вновь вскипает жизнью!"
+KEY_LOG_UNKNOWN_NO_CELL,No free cell — the worm burrows and deals 2 damage.,Нет свободной ячейки — червь впивается и наносит 2 урона.
+KEY_STATUS_STALKER_AMBUSH,Something is stalking me...,Нечто преследует меня...

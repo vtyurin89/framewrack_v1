@@ -34,6 +34,9 @@ const ID_GRENADIER_DETONATE := "ABILITY_GRENADIER_DETONATE"
 const ID_WARDEN_HACK := "ABILITY_WARDEN_HACK"
 const ID_WARDEN_PULSE := "ABILITY_WARDEN_PULSE"
 const ID_SIGNAL_SPIKE := "ABILITY_SIGNAL_SPIKE"
+const ID_UNKNOWN_INJECT := "ABILITY_UNKNOWN_INJECT"
+const ID_UNKNOWN_GUARD := "ABILITY_UNKNOWN_GUARD"
+const ID_UNKNOWN_STRIKE := "ABILITY_UNKNOWN_STRIKE"
 
 
 static func trigger_pre_action_phase(enemy: EnemyInstance) -> Dictionary:
@@ -380,6 +383,8 @@ static func _pick_scripted_main(enemy: EnemyInstance, combat: Node) -> EnemyAbil
 			return _ai_grenadier_drone(enemy, combat)
 		"warden":
 			return _ai_warden(enemy, combat)
+		"the_unknown":
+			return _ai_the_unknown(enemy, combat)
 		_:
 			return null
 
@@ -539,6 +544,37 @@ static func _ai_warden(enemy: EnemyInstance, _combat: Node) -> EnemyAbility:
 	if pulse != null and enemy.can_use_ability(pulse):
 		return pulse
 	return null
+
+
+static func _ai_the_unknown(enemy: EnemyInstance, combat: Node) -> EnemyAbility:
+	## Start of turn scaling: each parasitic worm in the player grid feeds the beast.
+	var worm_count := _count_worm_parasites(combat)
+	if worm_count > 0:
+		enemy.max_hp += worm_count * 2
+		enemy.current_hp = mini(enemy.max_hp, enemy.current_hp + worm_count * 2)
+	## Action cycle: inject a worm every 3rd act; otherwise guard + strike.
+	var act := enemy.get_current_act_number()
+	if act % 3 == 0:
+		var inject := enemy.find_ability(ID_UNKNOWN_INJECT)
+		if inject != null and enemy.can_use_ability(inject):
+			return inject
+	if act % 3 == 2:
+		var strike := enemy.find_ability(ID_UNKNOWN_STRIKE)
+		if strike != null and enemy.can_use_ability(strike):
+			return strike
+	var guard := enemy.find_ability(ID_UNKNOWN_GUARD)
+	if guard != null and enemy.can_use_ability(guard):
+		return guard
+	var strike2 := enemy.find_ability(ID_UNKNOWN_STRIKE)
+	if strike2 != null and enemy.can_use_ability(strike2):
+		return strike2
+	return null
+
+
+static func _count_worm_parasites(combat: Node) -> int:
+	if combat == null or not combat.has_method("count_worm_parasites"):
+		return 0
+	return int(combat.call("count_worm_parasites"))
 
 
 static func _choose_weighted(enemy: EnemyInstance, combat: Node) -> EnemyAbility:

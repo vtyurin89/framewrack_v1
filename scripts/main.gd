@@ -71,6 +71,7 @@ var _forced_insertion_active: bool = false
 var _encounter_combat_active: bool = false
 var _shop_active: bool = false
 var _last_announced_act_index: int = 0
+var _last_combat_was_stalker_ambush: bool = false
 
 
 func _ready() -> void:
@@ -1261,7 +1262,11 @@ func _on_combat_ended_bus(victory: bool) -> void:
 		if _combat_ui != null and _combat_ui.has_method("await_pending_death_fades"):
 			await _combat_ui.await_pending_death_fades()
 		if _encounter_combat_active:
+			if _maybe_trigger_stalker_ambush():
+				_pending_combat_exp_reward = 0
+				return
 			_encounters.notify_combat_finished(true)
+			_last_combat_was_stalker_ambush = false
 	else:
 		_status_banner.text = tr("KEY_STATUS_COMBAT_LOSE")
 	_pending_combat_exp_reward = 0
@@ -1273,6 +1278,33 @@ func _resolve_victory_xp_reward() -> int:
 		_first_combat_xp_granted = true
 		return 30
 	return maxi(_pending_combat_exp_reward, 0)
+
+
+func _maybe_trigger_stalker_ambush() -> bool:
+	## After a regular-combat victory, a Sinister Bundle (TRAIT_STALKER_BEACON) may
+	## pull the player into an immediate follow-up fight against The Unknown.
+	## Returns true if a follow-up combat was started instead of finishing the encounter.
+	if _last_combat_was_stalker_ambush:
+		return false
+	if not _encounter_combat_active:
+		return false
+	var combat_inv = _combat.inventory if _combat != null else null
+	if combat_inv == null or combat_inv.grid == null:
+		return false
+	if not TraitManager.grid_has_trait(combat_inv.grid, "TRAIT_STALKER_BEACON"):
+		return false
+	if randf() > 0.30:
+		return false
+	var blueprint := EnemyDatabase.create_blueprint("the_unknown")
+	if blueprint == null:
+		return false
+	_last_combat_was_stalker_ambush = true
+	_status_banner.text = tr("KEY_STATUS_STALKER_AMBUSH")
+	var fight := EncounterData.new()
+	fight.payload["faction"] = "chimera"
+	fight.payload["max_attackers_per_turn"] = 2
+	_on_encounter_request_combat([blueprint], fight)
+	return true
 
 
 func _on_pending_level_ups_changed(count: int) -> void:

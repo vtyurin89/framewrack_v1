@@ -567,7 +567,7 @@ func can_activate_item(placed: PlacedItem) -> bool:
 		return false
 	if not inventory.grid.is_item_functional(placed):
 		return false
-	if current_ap < data.ap_cost:
+	if current_ap < _get_effective_ap_cost(placed):
 		return false
 	if data.has_blocking_status():
 		return false
@@ -580,6 +580,20 @@ func can_activate_item(placed: PlacedItem) -> bool:
 	return true
 
 
+## Effective AP cost of activating an item, accounting for a Sinister Bundle
+## (TRAIT_ADJACENT_AP_TAX) sitting on any 4-way orthogonal neighbour.
+func _get_effective_ap_cost(placed: PlacedItem) -> int:
+	if placed == null or placed.data == null or inventory == null or inventory.grid == null:
+		return 0 if placed == null or placed.data == null else placed.data.ap_cost
+	var base := placed.data.ap_cost
+	for neighbor: PlacedItem in inventory.grid.get_adjacent_items(placed):
+		if neighbor != null and neighbor.data != null and TraitManager.has_trait(
+			neighbor.data, "TRAIT_ADJACENT_AP_TAX"
+		):
+			base += 1
+	return base
+
+
 func activate_item(placed: PlacedItem) -> bool:
 	## Direct inventory click activation (Backpack Hero model).
 	if not can_activate_item(placed):
@@ -589,7 +603,7 @@ func activate_item(placed: PlacedItem) -> bool:
 	var data: ItemData = placed.data
 	var was_tainted := data.is_tainted()
 	var taint_damage := data.get_taint_damage() if was_tainted else 0
-	current_ap -= data.ap_cost
+	current_ap -= _get_effective_ap_cost(placed)
 	data.current_turn_uses += 1
 	data.current_combat_uses += 1
 	EventBus.ap_changed.emit(current_ap, max_ap)
@@ -605,6 +619,11 @@ func activate_item(placed: PlacedItem) -> bool:
 
 	match data.target_type:
 		ItemData.TargetType.SELF:
+			if _is_squish_parasite(placed):
+				## Parasitic worm sacrifice: pay the dynamic AP, take 1 direct damage, remove.
+				_apply_squish_crush(placed)
+				_finish_player_activation()
+				return true
 			_resolve_self(placed)
 		ItemData.TargetType.ALL_ENEMIES:
 			_resolve_all_enemies(placed)
@@ -663,7 +682,7 @@ func _log_activation_failure(placed: PlacedItem) -> void:
 		EventBus.combat_log_message.emit(tr("KEY_LOG_OFFLINE") % data.get_localized_name())
 	elif not data.usable:
 		EventBus.combat_log_message.emit(tr("KEY_LOG_PASSIVE") % data.get_localized_name())
-	elif current_ap < data.ap_cost:
+	elif current_ap < _get_effective_ap_cost(placed):
 		EventBus.combat_log_message.emit(tr("KEY_LOG_NOT_ENOUGH_AP"))
 		EventBus.ap_insufficient.emit()
 	elif data.has_blocking_status():
@@ -925,6 +944,37 @@ func _perform_harmful_surgery(placed: PlacedItem) -> void:
 	if not _has_item_in_grid(SLIMY_PARASITE_ID):
 		max_ap = inventory.get_max_ap()
 		EventBus.ap_changed.emit(current_ap, max_ap)
+
+
+func _is_squish_parasite(placed: PlacedItem) -> bool:
+	return (
+		placed != null
+		and placed.data != null
+		and TraitManager.has_trait(placed.data, "TRAIT_SQUISH_SACRIFICE")
+	)
+
+
+func count_worm_parasites() -> int:
+	## Let enemy AI query the number of Parasitic Worms in the player's grid.
+	if inventory == null or not inventory.has_method("count_worm_parasites"):
+		return 0
+	return int(inventory.call("count_worm_parasites"))
+
+
+func _apply_squish_crush(placed: PlacedItem) -> void:
+	## Crush a parasitic worm: direct damage bypassing Block, then remove it.
+	if placed == null or placed.data == null or inventory == null or inventory.grid == null:
+		return
+	var item_name := placed.data.get_localized_name()
+	var dealt := inventory.apply_damage(1, 0)
+	_request_player_popup(dealt if dealt > 0 else 1, "poison")
+	_trigger_player_hit_feedback(maxi(dealt, 1))
+	inventory.grid.remove_item(placed, true)
+	EventBus.combat_log_message.emit(
+		tr("KEY_LOG_UNKNOWN_CRUSH") % item_name
+	)
+	EventBus.inventory_changed.emit()
+	EventBus.combat_item_availability_changed.emit()
 
 
 func _resolve_pliers_extract(placed: PlacedItem) -> void:
@@ -2499,6 +2549,11 @@ func _run_on_combat_end_triggers() -> void:
 		if not inventory.grid.is_item_functional(placed):
 			continue
 		placed.data.on_combat_end(inventory)
+	## Sinister Bundle post-combat drain: -1 HP regardless of Block.
+	if TraitManager.grid_has_trait(inventory.grid, "TRAIT_POST_COMBAT_DRAIN"):
+		var dealt := inventory.apply_damage(1, 0)
+		_request_player_popup(dealt if dealt > 0 else 1, "poison")
+		_trigger_player_hit_feedback(maxi(dealt, 1))
 
 
 func _lose() -> void:

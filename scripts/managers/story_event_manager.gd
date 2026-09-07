@@ -166,6 +166,8 @@ func _rebuild_catalog() -> void:
 	_register_event("raim_hollow_windows", StoryEvent.Faction.HUMAN, "raim_hollow_windows", false)
 	_register_event("enc_crematorium", StoryEvent.Faction.HUMAN, "enc_crematorium", false)
 	_register_event("enc_collector_house", StoryEvent.Faction.HUMAN, "enc_collector_house", false)
+	## Faction-neutral event that can surface in any act.
+	_register_event("sinister_bundle", StoryEvent.Faction.GENERIC, "sinister_bundle", false)
 
 
 func _register_event(

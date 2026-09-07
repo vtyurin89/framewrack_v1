@@ -40,6 +40,8 @@ var _stat_buff_stacks: Dictionary = {}
 ## Committed next main ability (matches the telegraphed CombatIntention).
 var planned_ability: EnemyAbility = null
 var current_intention: CombatIntention = null
+## The Unknown: decaying chance to survive a fatal blow this fight.
+var revive_chance: float = 0.30
 
 
 func setup(blueprint: EnemyData) -> void:
@@ -54,6 +56,7 @@ func setup(blueprint: EnemyData) -> void:
 	_prepared_ability_ids.clear()
 	_stat_buff_stacks.clear()
 	forced_next_ability_id = ""
+	revive_chance = 0.30
 	if data == null:
 		reset_combat_stats(MIN_STAT, MIN_STAT, MIN_STAT, MIN_STAT, MIN_STAT)
 		max_hp = 1
@@ -427,6 +430,19 @@ func apply_incoming_damage(amount: int, pierce_block: bool = false) -> int:
 		remaining -= absorbed
 	var before := current_hp
 	current_hp = maxi(0, current_hp - remaining)
+	## The Unknown (Resilient): a fatal blow may be survived; the chance decays.
+	if (
+		current_hp <= 0
+		and data != null
+		and data.id.strip_edges() == "the_unknown"
+		and randf() <= revive_chance
+	):
+		revive_chance = maxf(0.0, revive_chance - 0.10)
+		current_hp = int(ceil(float(max_hp) * 0.30))
+		EventBus.combat_log_message.emit(
+			tr("KEY_LOG_UNKNOWN_REVIVE") % get_localized_name()
+		)
+		return maxi(0, before - current_hp)
 	return before - current_hp
 
 

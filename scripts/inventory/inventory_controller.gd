@@ -147,6 +147,45 @@ func try_place_anywhere(item: ItemData) -> bool:
 	return false
 
 
+## Spawns a Parasitic Worm onto a random free 1x1 cell with a dynamic AP cost (0–2).
+## If no free cell exists, deals 2 direct damage to the player instead.
+func inject_parasite_worm() -> bool:
+	if grid == null:
+		return false
+	var candidates: Array[Vector2i] = []
+	for cell in grid.get_unlocked_cells():
+		if grid.is_cell_free(cell):
+			candidates.append(cell)
+	if candidates.is_empty():
+		apply_damage(2, 0)
+		EventBus.combat_log_message.emit(
+			tr("KEY_LOG_UNKNOWN_NO_CELL") if EventBus != null else ""
+		)
+		return false
+	var proto: ItemData = ItemDatabase.create_instance("ITM_PARASITIC_WORM")
+	if proto == null:
+		return false
+	candidates.shuffle()
+	proto.ap_cost = randi_range(0, 2)
+	var placed := grid.force_place_item(proto, candidates[0])
+	if placed != null:
+		EventBus.inventory_changed.emit()
+	return placed != null
+
+
+## Counts parasitic worms in the player's body grid (tracked by The Unknown).
+func count_worm_parasites() -> int:
+	if grid == null:
+		return 0
+	var n := 0
+	for placed: PlacedItem in grid.items:
+		if placed != null and placed.data != null and TraitManager.has_trait(
+			placed.data, "TRAIT_WORM_PARASITE"
+		):
+			n += 1
+	return n
+
+
 func add_stackable_item(item_id: String, amount: int) -> int:
 	## Grants `amount` of a stackable catalog item, merging into existing stacks.
 	## Returns how many units were successfully stored.
