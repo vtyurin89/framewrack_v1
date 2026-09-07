@@ -17,6 +17,7 @@ const FLOAT_DURATION := 1.4
 var inventory: InventoryController
 var inventory_ui: Control
 var required_item: ItemData
+var _confirm_btn: Button
 var _floating_entries: Array[Dictionary] = []
 var _hover_tooltip: ItemHoverTooltip
 var _active: bool = false
@@ -34,6 +35,7 @@ func _ready() -> void:
 		_space.mouse_filter = Control.MOUSE_FILTER_STOP
 		if _space.has_method("setup"):
 			_space.call("setup", self)
+	_ensure_confirm_button()
 
 
 func is_active() -> bool:
@@ -87,6 +89,29 @@ func confirm_and_finish() -> bool:
 
 func close_session() -> void:
 	_shutdown()
+
+
+func _ensure_confirm_button() -> void:
+	if _confirm_btn != null and is_instance_valid(_confirm_btn):
+		return
+	_confirm_btn = Button.new()
+	_confirm_btn.name = "ConfirmButton"
+	_confirm_btn.text = tr("KEY_FORCED_INSERT_CONFIRM")
+	_confirm_btn.anchor_left = 0.5
+	_confirm_btn.anchor_right = 0.5
+	_confirm_btn.anchor_top = 1.0
+	_confirm_btn.anchor_bottom = 1.0
+	_confirm_btn.offset_left = -120.0
+	_confirm_btn.offset_right = 120.0
+	_confirm_btn.offset_top = -64.0
+	_confirm_btn.offset_bottom = -40.0
+	_confirm_btn.mouse_default_cursor_shape = Control.CURSOR_POINTING_HAND
+	_confirm_btn.pressed.connect(_on_confirm_pressed)
+	add_child(_confirm_btn)
+
+
+func _on_confirm_pressed() -> void:
+	confirm_and_finish()
 
 
 func can_accept_item_to_inventory(_item: ItemData, _show_notice: bool = false) -> bool:
@@ -364,12 +389,19 @@ func _clear_floating() -> void:
 
 
 func _emit_continue_state() -> void:
-	continue_availability_changed.emit(can_continue())
+	var can_continue_local := can_continue()
+	if _confirm_btn != null and is_instance_valid(_confirm_btn):
+		_confirm_btn.visible = _active
+		_confirm_btn.disabled = not can_continue_local
+	continue_availability_changed.emit(can_continue_local)
 
 
 func _shutdown() -> void:
 	_active = false
 	visible = false
+	if _confirm_btn != null and is_instance_valid(_confirm_btn):
+		_confirm_btn.visible = false
+		_confirm_btn.disabled = true
 	if inventory_ui != null and inventory_ui.has_method("set_reward_handler"):
 		inventory_ui.set_reward_handler(null)
 	_clear_floating()

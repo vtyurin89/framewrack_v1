@@ -40,6 +40,8 @@ var _is_closing: bool = false
 var _choices_locked: bool = false
 var _pending_select_outcome: DialogOutcomeData
 var _stat_check_modal: StatCheckRollModal
+## main.gd provides this to run the harmful forced-insertion flow (ForcedItemScreen).
+var forced_insertion_handler: Callable = Callable()
 
 
 func _ready() -> void:
@@ -434,6 +436,9 @@ func _resolve_choice_outcome(outcome: DialogOutcomeData) -> void:
 	if _is_continuing_outcome(outcome):
 		if _encounter_manager and not _apply_outcome_via_manager(outcome):
 			return
+		## Deferred harmful forced insertion: the player must place it on the grid.
+		if outcome.force_insert_item and forced_insertion_handler.is_valid():
+			await forced_insertion_handler.call(outcome.item_id)
 		if not outcome.message_key.is_empty() and _result_label:
 			_result_label.visible = true
 			_result_label.text = tr(outcome.message_key)

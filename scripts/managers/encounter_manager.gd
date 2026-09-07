@@ -235,7 +235,11 @@ func apply_dialog_outcome(outcome: DialogOutcomeData) -> bool:
 				_finish_encounter(_pending_rewards)
 		DialogOutcomeData.OutcomeKind.GRANT_ITEM:
 			if not compound_applied:
-				_grant_item(outcome.item_id, outcome.item_amount)
+				if outcome.force_insert_item:
+					## Placement deferred to the dialog UI forced-insertion flow.
+					_pending_rewards["forced_insert_item"] = outcome.item_id
+				else:
+					_grant_item(outcome.item_id, outcome.item_amount)
 			if _run_ended_mid_encounter():
 				abort_active_encounter()
 				return false
@@ -680,7 +684,13 @@ func _apply_payload_effects(effects: Array) -> void:
 			"strength", "humanity", "endurance", "agility", "intelligence", "luck":
 				_grant_stat(effect_type, amount if amount != 0 else 1)
 			"item", "grant_item":
-				_grant_item(str(effect.get("item_id", "")), maxi(1, amount if amount > 0 else 1))
+				var gid := str(effect.get("item_id", ""))
+				var gproto := ItemDatabase.get_item(gid) if ItemDatabase != null else null
+				if gproto != null and gproto.is_harmful:
+					## Deferred to the dialog UI forced-insertion flow.
+					_pending_rewards["forced_insert_item"] = gid
+				else:
+					_grant_item(gid, maxi(1, amount if amount > 0 else 1))
 			"neuro_chips", "neuro_chip", "neurochip":
 				_grant_item("NEURO_CHIP", amount if amount > 0 else 10)
 			"exp", "experience", "xp":

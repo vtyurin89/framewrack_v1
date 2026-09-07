@@ -268,6 +268,10 @@ static func _outcome_from_choice(choice_dict: Dictionary) -> DialogOutcomeData:
 				o.kind = DialogOutcomeData.OutcomeKind.GRANT_ITEM
 				o.item_id = str(reward.get("item_id", "")).strip_edges()
 				o.item_amount = amount if amount > 0 else 1
+				## Harmful items can't be silently dropped into the grid — force insertion.
+				var proto := ItemDatabase.get_item(o.item_id) if ItemDatabase != null else null
+				if proto != null and proto.is_harmful:
+					o.force_insert_item = true
 			"neuro_chips", "neuro_chip", "neurochip":
 				## Global currency — applied by EncounterManager via GameManager.
 				o.kind = DialogOutcomeData.OutcomeKind.GRANT_ITEM
@@ -378,6 +382,9 @@ static func _apply_compound_primary_kind(o: DialogOutcomeData, next_id: String) 
 					o.kind = DialogOutcomeData.OutcomeKind.GRANT_ITEM
 					o.item_id = str(effect.get("item_id", "")).strip_edges()
 					o.item_amount = maxi(1, amount if amount > 0 else 1)
+					var proto := ItemDatabase.get_item(o.item_id) if ItemDatabase != null else null
+					if proto != null and proto.is_harmful:
+						o.force_insert_item = true
 			"strength", "humanity", "endurance", "agility", "intelligence", "luck":
 				if o.kind in [
 					DialogOutcomeData.OutcomeKind.END,

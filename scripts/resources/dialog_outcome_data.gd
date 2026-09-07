@@ -45,6 +45,9 @@ enum OutcomeKind {
 @export var loot_pick_count: int = 1
 ## Optional compound reward list from story JSON (`reward.effects`).
 var payload_effects: Array = []
+## GRANT_ITEM of a harmful item: defer placement to the forced-insertion flow
+## (the player must place it on the Body Grid and confirm before continuing).
+@export var force_insert_item: bool = false
 
 
 static func make_end(message_key: String = "") -> DialogOutcomeData:

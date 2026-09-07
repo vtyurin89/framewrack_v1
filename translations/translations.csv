@@ -859,4 +859,12 @@ ABILITY_UNKNOWN_STRIKE_TEXT,Rending Mass!,Разрывающая масса!
 KEY_LOG_UNKNOWN_CRUSH,"%s crushed out of your frame — 1 direct damage.","%s раздавлен из вашего фрейма — 1 ед. прямого урона."
 KEY_LOG_UNKNOWN_REVIVE,"%s writhes back to life!","%s вновь вскипает жизнью!"
 KEY_LOG_UNKNOWN_NO_CELL,No free cell — the worm burrows and deals 2 damage.,Нет свободной ячейки — червь впивается и наносит 2 урона.
-KEY_STATUS_STALKER_AMBUSH,Something is stalking me...,Нечто преследует меня...
+ENC_STRANGER_TITLE,A Stranger in the Night,Встреча 3 (универсальная)
+ENC_STRANGER_BODY,"Late at night, you encounter a stranger. His face is hidden by burlap, and his hands are wrapped in filthy bandages, making it impossible to tell whether he is human or not. Either way, he seems completely deranged.\n\nIn his hands is a bundle wrapped in rusted chains.\n\n\"Take it,\" the stranger's voice creaks like unoiled hinges. \"Take it, I beg you!... I can't bear this anymore.... I'll pay you, I swear. I'll give you everything I have.\"","Глубокой ночью вы встречаете незнакомца. Его лицо скрыто мешковиной, а руки — грязными бинтами, так что не разобрать, человек это или нет. В любом случае, он выглядит ненормальным.\n\nВ руках незнакомца — свёрток, обмотанный ржавыми цепями.\n\n«Возьми его, — голос странника скрипит, как несмазанные петли. — Забери его, прошу тебя!... Я больше этого не выдержу…. Я отплачу, тебе, клянусь. Отдам всё, что у меня есть»."
+ENC_STRANGER_OPT_ACCEPT,Take the bundle (+150 Neuro-Chips),Взять свёрток (+150 Neuro-Chips)
+ENC_STRANGER_OPT_REFUSE,Refuse,Отказаться
+ENC_STRANGER_OUTCOME_ACCEPT,"You take the bundle and immediately begin to regret your decision. It is not heavy at all, but vile, and the chains feel icy to the touch.\n\n\"As agreed,\" the stranger croaks. He hands over his belongings and departs, laughing like a madman.","Вы забираете свёрток и тут же начинаете жалеть о своём решении. Он совсем не тяжёлый, но какой-то мерзкий, а цепи на ощупь адски холодные.\n\n«Как договаривались», — скрипит незнакомец. Он отдаёт вам свои пожитки и уходит, хохоча, как помешанный."
+ENC_STRANGER_OUTCOME_REFUSE,The stranger neither argues nor pleads. He shakes his head and walks right past you.,Незнакомец не спорит и не уговаривает. Он качает головой и проходит мимо вас.
+ENC_STRANGER_CONTINUE,Continue,Далее
+AMBUSH_UNKNOWN_BANNER,Something is stalking me...,Нечто преследует меня...
+KEY_FORCED_INSERT_CONFIRM,Confirm,Подтвердить

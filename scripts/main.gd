@@ -842,6 +842,7 @@ func _on_encounter_request_dialog(dialog: DialogEventData, encounter: EncounterD
 	_ensure_dialog_event_ui()
 	if _dialog_event_ui:
 		_dialog_event_ui.bind_encounter_manager(_encounters)
+		_dialog_event_ui.forced_insertion_handler = Callable(self, "perform_forced_item_insertion")
 		if encounter != null:
 			_dialog_event_ui.set_encounter_type(encounter.type)
 		## Wait one frame so TopBar has a valid size before measuring clearance.
@@ -1299,7 +1300,7 @@ func _maybe_trigger_stalker_ambush() -> bool:
 	if blueprint == null:
 		return false
 	_last_combat_was_stalker_ambush = true
-	_status_banner.text = tr("KEY_STATUS_STALKER_AMBUSH")
+	_status_banner.text = tr("AMBUSH_UNKNOWN_BANNER")
 	var fight := EncounterData.new()
 	fight.payload["faction"] = "chimera"
 	fight.payload["max_attackers_per_turn"] = 2
@@ -1418,3 +1419,46 @@ func _on_forced_insertion_finished() -> void:
 		_inventory_ui.refresh()
 	if _combat != null and _combat.has_method("complete_forced_item_insertion"):
 		_combat.complete_forced_item_insertion()
+
+
+## Story-encounter forced insertion: opens ForcedItemScreen outside combat and
+## waits until the player places the harmful item on the Body Grid and confirms.
+func perform_forced_item_insertion(item_id: String) -> bool:
+	if ItemDatabase == null:
+		return false
+	var instance := ItemDatabase.create_instance(item_id)
+	if instance == null:
+		return false
+	if instance.is_harmful:
+		instance.enforce_harmful_constraints()
+	_ensure_standalone_forced_item_screen()
+	if _inventory_ui != null and _inventory_ui.has_method("set_combat_mode"):
+		_inventory_ui.set_combat_mode(false)
+	## The Body Grid overlay is hidden on the map — show it so the item can be placed.
+	_open_inventory_overlay()
+	_forced_item_screen.move_to_front()
+	if _body_grid_overlay != null:
+		_body_grid_overlay.move_to_front()
+	_forced_insertion_active = true
+	_forced_item_screen.open_session(instance, inventory, _inventory_ui)
+	await _forced_item_screen.finished
+	_forced_insertion_active = false
+	_hide_inventory_overlay()
+	if _inventory_ui != null and _inventory_ui.has_method("set_combat_mode"):
+		_inventory_ui.set_combat_mode(false)
+	return true
+
+
+func _ensure_standalone_forced_item_screen() -> void:
+	## Screen parented to Main (not the combat loot stage) so it's visible in map view.
+	if _forced_item_screen == null or not is_instance_valid(_forced_item_screen):
+		_forced_item_screen = FORCED_ITEM_SCREEN_SCENE.instantiate() as ForcedItemScreen
+		_forced_item_screen.name = "ForcedItemScreen"
+		add_child(_forced_item_screen)
+		_forced_item_screen.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+		_forced_item_screen.finished.connect(_on_forced_insertion_finished)
+		_forced_item_screen.notice_requested.connect(_on_reward_notice)
+		_forced_item_screen.continue_availability_changed.connect(_on_forced_continue_availability)
+	elif _forced_item_screen.get_parent() != self:
+		_forced_item_screen.reparent(self)
+		_forced_item_screen.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
