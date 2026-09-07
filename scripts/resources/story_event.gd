@@ -6,6 +6,7 @@ enum Faction {
 	HUMAN,
 	ROBOT,
 	CHIMERA,
+	GENERIC,
 }
 
 @export var id: String = ""
@@ -20,5 +21,7 @@ func get_faction_key() -> String:
 			return "robot"
 		Faction.CHIMERA:
 			return "chimera"
+		Faction.GENERIC:
+			return "generic"
 		_:
 			return "human"

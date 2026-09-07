@@ -185,6 +185,7 @@ func _build_queue_for_act(act_index: int) -> Array[StoryEvent]:
 		"human": [],
 		"robot": [],
 		"chimera": [],
+		"generic": [],
 	}
 	for key in _catalog.keys():
 		var ev: StoryEvent = _catalog[key]
@@ -201,7 +202,10 @@ func _build_queue_for_act(act_index: int) -> Array[StoryEvent]:
 		var faction_key := _roll_faction(weights)
 		var pool: Array = by_faction.get(faction_key, [])
 		if pool.is_empty():
-			## Fallback any catalog entry allowed for this act.
+			## A rolled faction has no authored events: let a universal event fill the slot.
+			pool = by_faction.get("generic", [])
+		if pool.is_empty():
+			## Final fallback: any catalog entry allowed for this act.
 			var all_keys: Array = []
 			for catalog_key in _catalog.keys():
 				var candidate: StoryEvent = _catalog[catalog_key]
@@ -222,20 +226,22 @@ func _build_queue_for_act(act_index: int) -> Array[StoryEvent]:
 
 
 func _faction_weights_for_act(act_index: int) -> Dictionary:
-	## human / robot / chimera weights summing to 1.0
+	## The act's primary faction dominates at 0.7; the other three factions
+	## (including generic) each split the remaining weight evenly at 0.1.
+	## generic (universal) events are faction-neutral and can appear in any act.
 	match maxi(act_index, 1):
 		2:
-			return {"human": 0.15, "robot": 0.60, "chimera": 0.25}
+			return {"human": 0.10, "robot": 0.70, "chimera": 0.10, "generic": 0.10}
 		3:
-			return {"human": 0.10, "robot": 0.30, "chimera": 0.60}
+			return {"human": 0.10, "robot": 0.10, "chimera": 0.70, "generic": 0.10}
 		_:
-			return {"human": 0.70, "robot": 0.20, "chimera": 0.10}
+			return {"human": 0.70, "robot": 0.10, "chimera": 0.10, "generic": 0.10}
 
 
 func _roll_faction(weights: Dictionary) -> String:
 	var roll := randf()
 	var acc := 0.0
-	for key in ["human", "robot", "chimera"]:
+	for key in ["human", "robot", "chimera", "generic"]:
 		acc += float(weights.get(key, 0.0))
 		if roll <= acc:
 			return key
