@@ -5,9 +5,9 @@
 	"god_name_ru": "Встреча 3 (универсальная)",
 	"dialogs": {
 		"start": {
-			"narrator_text_en": "Late at night, you encounter a stranger. His face is hidden by burlap, and his hands are wrapped in filthy bandages, making it impossible to tell whether he is human or not. Either way, he seems completely deranged.\n\nIn his hands is a bundle wrapped in rusted chains.",
+			"narrator_text_en": "Late at night, you encounter a stranger. His face is hidden beneath a burlap sack, and his hands are wrapped in filthy bandages — making it impossible to tell if he's human. Either way, he looks utterly deranged.\n\nHe holds a bundle wrapped in rusty chains.",
 			"narrator_text_ru": "Глубокой ночью вы встречаете незнакомца. Его лицо скрыто мешковиной, а руки — грязными бинтами, так что не разобрать, человек это или нет. В любом случае, он выглядит ненормальным.\n\nВ руках незнакомца — свёрток, обмотанный ржавыми цепями.",
-			"speech_text_en": "\"Take it,\" the stranger's voice creaks like unoiled hinges. \"Take it, I beg you!... I can't bear this anymore.... I'll pay you, I swear. I'll give you everything I have.\"",
+			"speech_text_en": "\"Take it,\" the stranger's voice creaks like unoiled hinges. \"Take it, I'm begging you!... I can't bear this anymore... I'll pay you — I swear. I'll give you everything I have.\"",
 			"speech_text_ru": "«Возьми его, — голос странника скрипит, как несмазанные петли. — Забери его, прошу тебя!... Я больше этого не выдержу…. Я отплачу тебе, клянусь. Отдам всё, что у меня есть».",
 			"choices": [
 				{
@@ -29,9 +29,9 @@
 			]
 		},
 		"accept": {
-			"narrator_text_en": "You take the bundle and immediately begin to regret your decision. It is not heavy at all, but vile, and the chains feel icy to the touch.",
-			"narrator_text_ru": "Вы забираете свёрток и тут же начинаете жалеть о своём решении. Он совсем не тяжёлый, но какой-то мерзкий, а цепи на ощупь адски холодные.",
-			"speech_text_en": "\"As agreed,\" the stranger croaks. He hands over his belongings and departs, laughing like a madman.",
+			"narrator_text_en": "You take the bundle — and immediately regret it. It's barely heavy — but it feels repulsive, and the chains are unnaturally cold to the touch.",
+			"narrator_text_ru": "Вы забираете свёрток и тут же жалеете о своём решении. Он совсем не тяжёлый, но какой-то мерзкий, а цепи на ощупь адски холодные.",
+			"speech_text_en": "\"As agreed,\" the stranger croaks. He hands over his payment and leaves, laughing wildly.",
 			"speech_text_ru": "«Как договаривались», — скрипит незнакомец. Он отдаёт вам свои пожитки и уходит, хохоча, как помешанный.",
 			"choices": [
 				{ "text_key": "ENC_STRANGER_CONTINUE", "next_dialog_id": "end_encounter" }
