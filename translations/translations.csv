@@ -824,3 +824,10 @@ ITEM_PACEMAKER_DESC,"+1 END.\n[Biological Failover]: Consumed on fatal blow. Rev
 KEY_LOG_BIOLOGICAL_FAILOVER,%s fires — lethal shutdown aborted. Frame restored to %d HP; occupied cells locked offline.,%s срабатывает — смертельное отключение отменено. Фрейм восстановлен до %d HP; занятые ячейки заблокированы.
 TRAIT_BIOLOGICAL_FAILOVER_NAME,Biological Failover,Аварийный протокол
 TRAIT_BIOLOGICAL_FAILOVER_DESC,"Consumed on fatal blow. Revives at 50% Max HP; occupied cells become inactive (re-unlockable on level-up).","Срабатывает при смертельном ударе. Воскрешает с 50% макс. HP; ячейки под предметом становятся неактивными (можно открыть снова при левел-апе)."
+ABILITY_MIGHTY_STRIKE_WINDUP_NAME,Mighty Strike,Mighty Strike
+ABILITY_MIGHTY_STRIKE_WINDUP_DESC,"Unleash a powerful blow next turn. +1 Strength for the rest of the battle.","Наносит мощный удар на следующем ходу. +1 к Силе до конца боя."
+ABILITY_MIGHTY_STRIKE_WINDUP_TEXT,Mighty Strike!,Mighty Strike!
+ABILITY_MIGHTY_STRIKE_NAME,Mighty Strike,Mighty Strike
+ABILITY_MIGHTY_STRIKE_DESC,Heavy physical hit (2–4) with cell damage: Cooldown 2 turns on a random active item.,Тяжёлый удар (2–4) с повреждением ячейки: Перезарядка 2 хода на случайном активном предмете.
+ABILITY_MIGHTY_STRIKE_TEXT,Mighty Strike!,Mighty Strike!
+ABILITY_SCRAPPER_BUMPER_DESC,"Requires Prepare Slam. Heavy physical hit (9–12), Slow, and cell damage: Overload 2 turns on a random active item.","Нужен Замах бампером. Тяжёлый удар (9–12), Замедление и повреждение ячейки: Перегрузка 2 хода на случайном активном предмете."

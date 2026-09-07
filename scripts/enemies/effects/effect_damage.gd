@@ -5,6 +5,7 @@ extends AbilityEffect
 ##   block|N — gain flat Block before striking
 ##   poison|3 — always apply status rider
 ##   poison|3|if_hp — apply only if any hit dealt HP damage through Block
+##   cell_damage|STATUS|duration — apply cell damage to a random grid cell after hits
 
 
 func apply(caster: EnemyInstance, target: Node, params: Array) -> void:
@@ -100,6 +101,22 @@ func _apply_status_riders(
 				i += 2
 			else:
 				i += 1
+			continue
+		if token == "cell_damage":
+			## cell_damage|STATUS|duration — apply grid cell damage after hits.
+			var cd_status := ItemStatus.Type.OVERLOAD
+			var cd_duration := 2
+			if i + 1 < csv.size():
+				cd_status = ItemStatus.parse_type_id(str(csv[i + 1]).strip_edges())
+			if i + 2 < csv.size() and str(csv[i + 2]).strip_edges().is_valid_int():
+				cd_duration = maxi(1, int(str(csv[i + 2]).strip_edges()))
+				i += 3
+			elif i + 1 < csv.size():
+				i += 2
+			else:
+				i += 1
+			if target.has_method("apply_cell_damage"):
+				target.call("apply_cell_damage", Vector2i(-1, -1), cd_status, cd_duration)
 			continue
 		if token not in known:
 			i += 1
