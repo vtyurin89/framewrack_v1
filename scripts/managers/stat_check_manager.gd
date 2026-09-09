@@ -23,6 +23,36 @@ class CheckResult:
 	var is_guaranteed: bool = false
 
 
+## Resolve semantic difficulty (+ Act) into {dc, pool_bonus}. Thin wrapper over StatCheckResolver.
+func resolve_params(
+	stat_name: String,
+	difficulty: StatCheckResolver.Difficulty,
+	act_number: int,
+	explicit_dc: int = 0,
+	explicit_pool_bonus: int = 0
+) -> Dictionary:
+	return StatCheckResolver.resolve_check_params(
+		stat_name, difficulty, act_number, explicit_dc, explicit_pool_bonus
+	)
+
+
+## Resolve then roll. `stat_value` is the raw player stat (pool bonus applied here).
+func perform_resolved_check(
+	stat_value: int,
+	difficulty: StatCheckResolver.Difficulty,
+	act_number: int,
+	explicit_dc: int = 0,
+	explicit_pool_bonus: int = 0,
+	consumed_ap: int = 0,
+	stat_name: String = ""
+) -> CheckResult:
+	var params := resolve_params(
+		stat_name, difficulty, act_number, explicit_dc, explicit_pool_bonus
+	)
+	var pool := maxi(1, stat_value + int(params.get("pool_bonus", 0)))
+	return perform_check(pool, int(params.get("dc", 1)), consumed_ap)
+
+
 func perform_check(
 	stat_value: int, required_successes: int = 1, consumed_ap: int = 0
 ) -> CheckResult:

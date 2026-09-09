@@ -333,6 +333,31 @@ func resolve_stat_check(
 	return StatCheckManager.perform_check(stat_value, required_successes, consumed_ap)
 
 
+func resolve_choice_stat_check(
+	choice: DialogChoiceData, consumed_ap: int = 0
+) -> StatCheckManager.CheckResult:
+	if StatCheckManager == null:
+		return null
+	if choice == null:
+		return StatCheckManager.perform_check(1, 1, consumed_ap)
+	var act := get_current_act()
+	return StatCheckManager.perform_resolved_check(
+		get_player_stat_value(choice.stat_check),
+		choice.difficulty,
+		act,
+		choice.check_dc,
+		choice.stat_pool_bonus,
+		consumed_ap,
+		choice.stat_check
+	)
+
+
+func get_current_act() -> int:
+	if active_encounter != null:
+		return maxi(1, int(active_encounter.payload.get("act", 1)))
+	return 1
+
+
 func get_player_stat_value(stat_name: String) -> int:
 	return _get_player_stat(stat_name)
 

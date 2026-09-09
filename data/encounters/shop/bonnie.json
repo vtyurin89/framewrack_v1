@@ -26,8 +26,7 @@
 					"text_ru": "[Поторговаться] «Твои цены явно завышены».",
 					"text_key": "KEY_MERCHANT_CHOICE_BARGAIN",
 					"stat_check": "INT",
-					"check_dc": 1,
-					"stat_pool_bonus": 0,
+					"difficulty": "EASY",
 					"success_next_dialog_id": "bargain_success",
 					"failure_next_dialog_id": "bargain_fail"
 				},

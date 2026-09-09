@@ -38,7 +38,7 @@
 					"text_en": "Look around closely and attempt to grab both rewards",
 					"text_ru": "Осмотреться внимательно и попытаться забрать оба трофея",
 					"stat_check": "INT",
-					"check_dc": 1,
+					"difficulty": "EASY",
 					"success_next_dialog_id": "int_ok",
 					"failure_next_dialog_id": "int_fail",
 					"reward": { "type": "exp", "amount": 30 }

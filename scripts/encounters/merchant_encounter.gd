@@ -7,7 +7,7 @@ const SHOP_DIR := "res://data/encounters/shop/"
 
 
 static func build_dialog(
-	act: int,
+	_act: int,
 	force_good_mood: Variant = null,
 	inventory: InventoryController = null
 ) -> DialogEventData:
@@ -45,22 +45,8 @@ static func build_dialog(
 
 	if not good_mood:
 		_apply_welcome_pool(dialog, raw)
-	_apply_act_int_modifiers(dialog, act)
+	## Act scaling for INT bargain checks is handled at roll time by StatCheckResolver.
 	return dialog
-
-
-static func int_check_pool_bonus(act: int) -> int:
-	match maxi(1, act):
-		2:
-			return -1
-		3:
-			return 1
-		_:
-			return 0
-
-
-static func int_check_required(act: int) -> int:
-	return 2 if maxi(1, act) >= 3 else 1
 
 
 static func _load_json_dict(json_id: String) -> Dictionary:
@@ -120,23 +106,6 @@ static func _apply_welcome_pool(dialog: DialogEventData, raw: Dictionary) -> voi
 		start.speech_text_en = speech_en
 	if not speech_ru.is_empty():
 		start.speech_text_ru = speech_ru
-
-
-static func _apply_act_int_modifiers(dialog: DialogEventData, act: int) -> void:
-	if dialog == null:
-		return
-	var bonus := int_check_pool_bonus(act)
-	var required := int_check_required(act)
-	for node: DialogNodeData in dialog.nodes:
-		if node == null:
-			continue
-		for choice: DialogChoiceData in node.choices:
-			if choice == null:
-				continue
-			if choice.stat_check.strip_edges().to_upper() != "INT":
-				continue
-			choice.stat_pool_bonus = bonus
-			choice.check_dc = required
 
 
 static func _fallback_dialog() -> DialogEventData:

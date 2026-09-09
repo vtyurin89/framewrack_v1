@@ -160,6 +160,10 @@ static func _parse_choice(choice_dict: Dictionary) -> DialogChoiceData:
 		choice.text = _localized_text(choice_dict)
 	choice.text_key = str(choice_dict.get("text_key", ""))
 	choice.stat_check = str(choice_dict.get("stat_check", ""))
+	choice.difficulty = StatCheckResolver.string_to_difficulty(
+		str(choice_dict.get("difficulty", ""))
+	)
+	## Legacy numeric overrides when difficulty is AUTO / omitted.
 	choice.check_dc = int(choice_dict.get("check_dc", 0))
 	choice.stat_pool_bonus = int(choice_dict.get("stat_pool_bonus", 0))
 	choice.require_chips = maxi(0, int(choice_dict.get("require_chips", 0)))

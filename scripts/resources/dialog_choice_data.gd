@@ -8,9 +8,11 @@ extends Resource
 @export var text_ru: String = ""
 ## Optional stat gate: "" | STR | AGI | END | INT | LCK
 @export var stat_check: String = ""
-## Required number of 5–6 successes on the d6 pool (StatCheckManager).
+## Semantic difficulty; AUTO + check_dc keeps legacy fixed thresholds.
+@export var difficulty: StatCheckResolver.Difficulty = StatCheckResolver.Difficulty.AUTO
+## Legacy / override required successes when difficulty is AUTO (StatCheckResolver).
 @export var check_dc: int = 0
-## Hidden pool modifier (e.g. Act 2 INT check uses INT - 1). Applied as max(1, stat + bonus).
+## Extra pool modifier stacked on resolver output (or used alone when AUTO + check_dc).
 @export var stat_pool_bonus: int = 0
 ## Hide/disable choice unless the player has at least this many Neuro-Chips.
 @export var require_chips: int = 0
@@ -32,8 +34,18 @@ func has_stat_check() -> bool:
 	return not stat_check.strip_edges().is_empty()
 
 
-func get_required_successes() -> int:
-	return maxi(1, check_dc)
+func get_resolved_params(act_number: int = 1) -> Dictionary:
+	return StatCheckResolver.resolve_check_params(
+		stat_check, difficulty, act_number, check_dc, stat_pool_bonus
+	)
+
+
+func get_required_successes(act_number: int = 1) -> int:
+	return maxi(1, int(get_resolved_params(act_number).get("dc", 1)))
+
+
+func get_pool_bonus(act_number: int = 1) -> int:
+	return int(get_resolved_params(act_number).get("pool_bonus", 0))
 
 
 func get_stat_tag() -> String:
@@ -41,7 +53,7 @@ func get_stat_tag() -> String:
 
 
 ## effective_stat already includes pool bonus; drives dice count preview.
-func format_stat_check_label(effective_stat: int) -> String:
+func format_stat_check_label(effective_stat: int, act_number: int = 1) -> String:
 	var tag := get_stat_tag()
 	var action := _strip_stat_check_prefix(get_display_text())
 	var dice := 1
@@ -49,7 +61,7 @@ func format_stat_check_label(effective_stat: int) -> String:
 		dice = StatCheckManager.preview_dice_count(maxi(1, effective_stat))
 	else:
 		dice = maxi(1, effective_stat)
-	var need := get_required_successes()
+	var need := get_required_successes(act_number)
 	var need_key := (
 		"KEY_STAT_CHECK_NEED_ONE" if need == 1 else "KEY_STAT_CHECK_NEED_MANY"
 	)

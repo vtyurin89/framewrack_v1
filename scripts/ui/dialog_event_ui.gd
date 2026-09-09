@@ -335,8 +335,15 @@ func _choice_button_label(choice: DialogChoiceData) -> String:
 		return ""
 	if not choice.has_stat_check():
 		return choice.get_display_text()
-	var effective := maxi(1, _get_stat_for_choice(choice) + choice.stat_pool_bonus)
-	return choice.format_stat_check_label(effective)
+	var act := _get_current_act()
+	var effective := maxi(1, _get_stat_for_choice(choice) + choice.get_pool_bonus(act))
+	return choice.format_stat_check_label(effective, act)
+
+
+func _get_current_act() -> int:
+	if _encounter_manager != null:
+		return _encounter_manager.get_current_act()
+	return 1
 
 
 func _get_stat_for_choice(choice: DialogChoiceData) -> int:
@@ -509,15 +516,21 @@ func _run_stat_check(choice: DialogChoiceData, consumed_ap: int = 0) -> void:
 		_result_label.visible = false
 		_result_label.text = ""
 
-	var required := choice.get_required_successes()
+	var act := _get_current_act()
+	var required := choice.get_required_successes(act)
 	var result: StatCheckManager.CheckResult = null
 	if _encounter_manager != null:
-		result = _encounter_manager.resolve_stat_check(
-			choice.stat_check, required, consumed_ap, choice.stat_pool_bonus
-		)
+		result = _encounter_manager.resolve_choice_stat_check(choice, consumed_ap)
 	elif StatCheckManager != null:
-		var fallback_pool := maxi(1, 1 + choice.stat_pool_bonus)
-		result = StatCheckManager.perform_check(fallback_pool, required, consumed_ap)
+		result = StatCheckManager.perform_resolved_check(
+			1,
+			choice.difficulty,
+			act,
+			choice.check_dc,
+			choice.stat_pool_bonus,
+			consumed_ap,
+			choice.stat_check
+		)
 
 	var modal := _ensure_stat_check_modal()
 	if modal != null and result != null:
