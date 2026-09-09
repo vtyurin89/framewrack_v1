@@ -37,8 +37,20 @@ enum OutcomeKind {
 @export var price_multiplier: float = 1.0
 ## Spend Neuro-Chips when this outcome resolves (after availability checks).
 @export var spend_chips: int = 0
-## Grant player EXP when this outcome resolves.
+## Grant player EXP when this outcome resolves (legacy flat / resolver raw).
 @export var exp_amount: int = 0
+## Semantic EXP tier (ExpRewardResolver); NONE uses exp_amount / exp_percent.
+@export var exp_tier: BalanceTypes.Tier = BalanceTypes.Tier.NONE
+## Explicit fraction of current level capacity (e.g. 0.40).
+@export var exp_percent: float = 0.0
+## Semantic Neuro-Chip tier (CurrencyRewardResolver); NONE uses item_amount for NEURO_CHIP.
+@export var chips_tier: BalanceTypes.Tier = BalanceTypes.Tier.NONE
+## Semantic HP loss tier for DAMAGE outcomes (HpLossResolver).
+@export var damage_tier: BalanceTypes.Tier = BalanceTypes.Tier.NONE
+## Explicit Max-HP fraction for DAMAGE (e.g. 0.15).
+@export var damage_percent: float = 0.0
+## If false, narrative damage leaves at least 1 HP.
+@export var damage_allow_lethal: bool = false
 ## COMBAT: use elite rarity weights for the post-fight loot screen.
 @export var elite_rewards: bool = false
 ## SELECT_ITEM / loot offer: how many items the player may take (RewardScreen).

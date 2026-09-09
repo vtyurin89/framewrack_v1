@@ -293,6 +293,18 @@ func get_next_level_exp() -> int:
 	return _total_exp_required_for_level(level + 1)
 
 
+## XP needed for the current level → next (level bar capacity).
+func get_current_level_capacity() -> int:
+	if level >= MAX_LEVEL:
+		return maxi(1, int(XP_LEVEL_REQUIREMENTS[MAX_LEVEL - 1]))
+	return maxi(1, int(XP_LEVEL_REQUIREMENTS[level]))
+
+
+## Additive EXP gain bonus (0.15 = +15%). Hook for relics / implants.
+func get_exp_gain_modifier() -> float:
+	return 0.0
+
+
 func get_progress_ratio() -> float:
 	if level >= MAX_LEVEL:
 		return 1.0

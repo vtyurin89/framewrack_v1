@@ -819,15 +819,13 @@ func _on_encounter_completed(rewards: Dictionary) -> void:
 
 func _on_encounter_request_combat(enemy_datas: Array, encounter: EncounterData) -> void:
 	_encounter_combat_active = true
-	_pending_combat_exp_reward = 0
+	_pending_combat_exp_reward = ExpRewardResolver.resolve_combat_exp(
+		enemy_datas, player_stats
+	)
 	var datas: Array[EnemyData] = []
 	for entry in enemy_datas:
 		if entry is EnemyData:
-			var data := entry as EnemyData
-			datas.append(data)
-			## Summoned / zero-XP blueprints do not contribute to combat XP.
-			if data.exp_reward > 0 and not ("summoned_creature" in data.trait_ids):
-				_pending_combat_exp_reward += maxi(data.exp_reward, 0)
+			datas.append(entry as EnemyData)
 	_show_combat()
 	_combat_ui.setup(_combat, inventory)
 	var attack_cap := 2
@@ -1274,10 +1272,12 @@ func _on_combat_ended_bus(victory: bool) -> void:
 
 
 func _resolve_victory_xp_reward() -> int:
-	## First victory is always 30 XP; after that, use enemy data rewards as-is.
+	## First victory is always 30 XP; after that, use ExpRewardResolver combat sum.
 	if not _first_combat_xp_granted:
 		_first_combat_xp_granted = true
-		return 30
+		return ExpRewardResolver.resolve_exp(
+			BalanceTypes.Tier.NONE, 30, 0.0, player_stats
+		)
 	return maxi(_pending_combat_exp_reward, 0)
 
 

@@ -224,13 +224,14 @@ func apply_dialog_outcome(outcome: DialogOutcomeData) -> bool:
 			if outcome.next_node_id.is_empty():
 				_finish_encounter(_pending_rewards)
 		DialogOutcomeData.OutcomeKind.DAMAGE:
-			_apply_damage(outcome.damage_amount)
+			var dealt := _resolve_outcome_damage(outcome)
+			_apply_damage(dealt)
 			if _run_ended_mid_encounter():
 				abort_active_encounter()
 				return false
 			if not outcome.message_key.is_empty():
 				_pending_rewards["message_key"] = outcome.message_key
-			_pending_rewards["damage_taken"] = outcome.damage_amount
+			_pending_rewards["damage_taken"] = dealt
 			if outcome.next_node_id.is_empty():
 				_finish_encounter(_pending_rewards)
 		DialogOutcomeData.OutcomeKind.GRANT_ITEM:
@@ -239,7 +240,7 @@ func apply_dialog_outcome(outcome: DialogOutcomeData) -> bool:
 					## Placement deferred to the dialog UI forced-insertion flow.
 					_pending_rewards["forced_insert_item"] = outcome.item_id
 				else:
-					_grant_item(outcome.item_id, outcome.item_amount)
+					_grant_outcome_item(outcome)
 			if _run_ended_mid_encounter():
 				abort_active_encounter()
 				return false
@@ -622,9 +623,46 @@ func _apply_outcome_side_effects(outcome: DialogOutcomeData) -> void:
 	if outcome.spend_chips > 0 and GameManager != null:
 		GameManager.spend_chips(outcome.spend_chips)
 		_pending_rewards["spent_chips"] = outcome.spend_chips
-	if outcome.exp_amount > 0 and player_stats != null:
-		player_stats.add_exp(outcome.exp_amount)
-		_pending_rewards["exp"] = outcome.exp_amount
+	var gained_exp := _resolve_outcome_exp(outcome)
+	if gained_exp > 0 and player_stats != null:
+		player_stats.add_exp(gained_exp)
+		_pending_rewards["exp"] = gained_exp
+
+
+func _resolve_outcome_exp(outcome: DialogOutcomeData) -> int:
+	if outcome == null:
+		return 0
+	## Compound bundles apply EXP inside _apply_payload_effects only.
+	if outcome.payload_effects is Array and not outcome.payload_effects.is_empty():
+		return 0
+	return ExpRewardResolver.resolve_exp(
+		outcome.exp_tier, outcome.exp_amount, outcome.exp_percent, player_stats
+	)
+
+
+func _resolve_outcome_damage(outcome: DialogOutcomeData) -> int:
+	if outcome == null:
+		return 0
+	return HpLossResolver.resolve_hp_loss_for_inventory(
+		inventory,
+		outcome.damage_tier,
+		outcome.damage_amount,
+		outcome.damage_percent,
+		outcome.damage_allow_lethal
+	)
+
+
+func _grant_outcome_item(outcome: DialogOutcomeData) -> void:
+	if outcome == null:
+		return
+	if outcome.item_id.strip_edges().to_upper() == "NEURO_CHIP":
+		var chips := CurrencyRewardResolver.resolve_encounter_chips(
+			outcome.chips_tier, get_current_act(), outcome.item_amount
+		)
+		if chips > 0:
+			_grant_item("NEURO_CHIP", chips)
+		return
+	_grant_item(outcome.item_id, outcome.item_amount)
 
 
 func _begin_item_selection(outcome: DialogOutcomeData, post_combat: bool) -> void:
@@ -682,7 +720,7 @@ func _apply_outcome_buff(outcome: DialogOutcomeData) -> void:
 		return
 	## Compound story effects (Pale Maiden Option 1 multi-stat, etc.).
 	if outcome.payload_effects is Array and not outcome.payload_effects.is_empty():
-		_apply_payload_effects(outcome.payload_effects)
+		_apply_payload_effects(outcome.payload_effects, outcome)
 	if outcome.buff_id.is_empty():
 		return
 	match outcome.buff_id.strip_edges().to_lower():
@@ -698,7 +736,7 @@ func _apply_outcome_buff(outcome: DialogOutcomeData) -> void:
 			pass
 
 
-func _apply_payload_effects(effects: Array) -> void:
+func _apply_payload_effects(effects: Array, outcome: DialogOutcomeData = null) -> void:
 	for entry in effects:
 		if typeof(entry) != TYPE_DICTIONARY:
 			continue
@@ -716,20 +754,66 @@ func _apply_payload_effects(effects: Array) -> void:
 					_pending_rewards["forced_insert_item"] = gid
 				else:
 					_grant_item(gid, maxi(1, amount if amount > 0 else 1))
-			"neuro_chips", "neuro_chip", "neurochip":
-				_grant_item("NEURO_CHIP", amount if amount > 0 else 10)
-			"exp", "experience", "xp":
-				if player_stats != null and amount > 0:
-					player_stats.add_exp(amount)
-					_pending_rewards["exp"] = int(_pending_rewards.get("exp", 0)) + amount
+			"neuro_chips", "neuro_chip", "neurochip", "currency_chips", "chips_tier":
+				var chips_tier := BalanceTypes.string_to_tier(
+					str(effect.get("tier", effect.get("chips_tier", "")))
+				)
+				if effect_type == "chips_tier" and chips_tier == BalanceTypes.Tier.NONE:
+					chips_tier = BalanceTypes.string_to_tier(str(effect.get("amount", "")))
+				var chips := CurrencyRewardResolver.resolve_encounter_chips(
+					chips_tier, get_current_act(), amount if amount > 0 else 0
+				)
+				if chips <= 0 and chips_tier == BalanceTypes.Tier.NONE:
+					chips = amount if amount > 0 else 10
+				_grant_item("NEURO_CHIP", chips)
+			"exp", "experience", "xp", "exp_tier":
+				var exp_tier := BalanceTypes.string_to_tier(
+					str(effect.get("tier", effect.get("exp_tier", "")))
+				)
+				if effect_type == "exp_tier" and exp_tier == BalanceTypes.Tier.NONE:
+					exp_tier = BalanceTypes.string_to_tier(str(effect.get("amount", "")))
+				var exp_pct := float(effect.get("percent", effect.get("exp_percent", 0.0)))
+				var gained := ExpRewardResolver.resolve_exp(
+					exp_tier, amount if amount > 0 else 0, exp_pct, player_stats
+				)
+				if player_stats != null and gained > 0:
+					player_stats.add_exp(gained)
+					_pending_rewards["exp"] = int(_pending_rewards.get("exp", 0)) + gained
 			"spend_chips", "cost_chips":
 				var cost := amount if amount > 0 else maxi(0, int(effect.get("spend_chips", 0)))
 				if cost > 0 and GameManager != null:
 					GameManager.spend_chips(cost)
 					_pending_rewards["spent_chips"] = int(_pending_rewards.get("spent_chips", 0)) + cost
-			"damage":
-				## Applied only when DAMAGE is not the primary outcome kind.
-				pass
+			"damage", "hp_loss", "hp_loss_tier":
+				## Primary DAMAGE outcomes already resolve via _resolve_outcome_damage.
+				## Only apply here when damage is a compound side effect.
+				if outcome != null and outcome.kind == DialogOutcomeData.OutcomeKind.DAMAGE:
+					pass
+				else:
+					var dmg_tier := BalanceTypes.string_to_tier(
+						str(effect.get("tier", effect.get("hp_loss_tier", effect.get("damage_tier", ""))))
+					)
+					if effect_type == "hp_loss_tier" and dmg_tier == BalanceTypes.Tier.NONE:
+						dmg_tier = BalanceTypes.string_to_tier(str(effect.get("amount", "")))
+					var dmg_pct := float(
+						effect.get(
+							"percent",
+							effect.get("hp_loss_percent", effect.get("damage_percent", 0.0))
+						)
+					)
+					var allow_lethal := bool(effect.get("allow_lethal", false))
+					var dealt := HpLossResolver.resolve_hp_loss_for_inventory(
+						inventory,
+						dmg_tier,
+						amount if amount > 0 else int(effect.get("damage_amount", 0)),
+						dmg_pct,
+						allow_lethal
+					)
+					if dealt > 0:
+						_apply_damage(dealt)
+						_pending_rewards["damage_taken"] = (
+							int(_pending_rewards.get("damage_taken", 0)) + dealt
+						)
 			"item_choice", "select_item", "loot", "loot_offer", "reward_loot", "combat", "fight":
 				## Control-flow effects — handled by outcome.kind.
 				pass

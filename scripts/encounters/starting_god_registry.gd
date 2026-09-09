@@ -276,11 +276,18 @@ static func _outcome_from_choice(choice_dict: Dictionary) -> DialogOutcomeData:
 				var proto := ItemDatabase.get_item(o.item_id) if ItemDatabase != null else null
 				if proto != null and proto.is_harmful:
 					o.force_insert_item = true
-			"neuro_chips", "neuro_chip", "neurochip":
+			"neuro_chips", "neuro_chip", "neurochip", "currency_chips", "chips_tier":
 				## Global currency — applied by EncounterManager via GameManager.
 				o.kind = DialogOutcomeData.OutcomeKind.GRANT_ITEM
 				o.item_id = "NEURO_CHIP"
-				o.item_amount = amount if amount > 0 else 10
+				o.chips_tier = BalanceTypes.string_to_tier(
+					str(reward.get("tier", reward.get("chips_tier", "")))
+				)
+				if reward_type == "chips_tier" and o.chips_tier == BalanceTypes.Tier.NONE:
+					o.chips_tier = BalanceTypes.string_to_tier(str(reward.get("amount", "")))
+				o.item_amount = amount if amount > 0 else 0
+				if o.item_amount <= 0 and o.chips_tier == BalanceTypes.Tier.NONE:
+					o.item_amount = 10
 			"item_choice", "select_item":
 				o.kind = DialogOutcomeData.OutcomeKind.SELECT_ITEM
 				o.item_pool_id = str(reward.get("pool", reward.get("item_pool_id", ""))).strip_edges()
@@ -302,11 +309,28 @@ static func _outcome_from_choice(choice_dict: Dictionary) -> DialogOutcomeData:
 						var sid2 := str(eid2).strip_edges()
 						if not sid2.is_empty():
 							o.item_pool_ids.append(sid2)
-			"damage":
+			"damage", "hp_loss", "hp_loss_tier":
 				o.kind = DialogOutcomeData.OutcomeKind.DAMAGE
 				o.damage_amount = amount if amount > 0 else int(reward.get("damage_amount", 0))
-			"exp", "experience", "xp":
+				o.damage_tier = BalanceTypes.string_to_tier(
+					str(reward.get("tier", reward.get("hp_loss_tier", reward.get("damage_tier", ""))))
+				)
+				if reward_type == "hp_loss_tier" and o.damage_tier == BalanceTypes.Tier.NONE:
+					o.damage_tier = BalanceTypes.string_to_tier(str(reward.get("amount", "")))
+				o.damage_percent = float(
+					reward.get("percent", reward.get("hp_loss_percent", reward.get("damage_percent", 0.0)))
+				)
+				o.damage_allow_lethal = bool(reward.get("allow_lethal", false))
+			"exp", "experience", "xp", "exp_tier":
 				o.exp_amount = amount if amount > 0 else 0
+				o.exp_tier = BalanceTypes.string_to_tier(
+					str(reward.get("tier", reward.get("exp_tier", "")))
+				)
+				if reward_type == "exp_tier" and o.exp_tier == BalanceTypes.Tier.NONE:
+					o.exp_tier = BalanceTypes.string_to_tier(str(reward.get("amount", "")))
+				o.exp_percent = float(
+					reward.get("percent", reward.get("exp_percent", 0.0))
+				)
 				## Keep navigation; EXP is applied as a side effect.
 				if o.kind == DialogOutcomeData.OutcomeKind.END and not next_id.is_empty() and next_id != END_ENCOUNTER_ID:
 					o.kind = DialogOutcomeData.OutcomeKind.CONTINUE
@@ -374,10 +398,19 @@ static func _apply_compound_primary_kind(o: DialogOutcomeData, next_id: String) 
 						var sid2 := str(eid2).strip_edges()
 						if not sid2.is_empty():
 							o.item_pool_ids.append(sid2)
-			"damage":
+			"damage", "hp_loss", "hp_loss_tier":
 				if o.kind != DialogOutcomeData.OutcomeKind.COMBAT and o.kind != DialogOutcomeData.OutcomeKind.SELECT_ITEM:
 					o.kind = DialogOutcomeData.OutcomeKind.DAMAGE
 					o.damage_amount = amount if amount > 0 else int(effect.get("damage_amount", 0))
+					o.damage_tier = BalanceTypes.string_to_tier(
+						str(effect.get("tier", effect.get("hp_loss_tier", effect.get("damage_tier", ""))))
+					)
+					if ft == "hp_loss_tier" and o.damage_tier == BalanceTypes.Tier.NONE:
+						o.damage_tier = BalanceTypes.string_to_tier(str(effect.get("amount", "")))
+					o.damage_percent = float(
+						effect.get("percent", effect.get("hp_loss_percent", effect.get("damage_percent", 0.0)))
+					)
+					o.damage_allow_lethal = bool(effect.get("allow_lethal", false))
 			"item", "grant_item":
 				if o.kind in [
 					DialogOutcomeData.OutcomeKind.END,
@@ -389,6 +422,20 @@ static func _apply_compound_primary_kind(o: DialogOutcomeData, next_id: String) 
 					var proto := ItemDatabase.get_item(o.item_id) if ItemDatabase != null else null
 					if proto != null and proto.is_harmful:
 						o.force_insert_item = true
+			"neuro_chips", "neuro_chip", "neurochip", "currency_chips", "chips_tier":
+				if o.kind in [
+					DialogOutcomeData.OutcomeKind.END,
+					DialogOutcomeData.OutcomeKind.CONTINUE,
+				]:
+					o.kind = DialogOutcomeData.OutcomeKind.GRANT_ITEM
+					o.item_id = "NEURO_CHIP"
+					var chips_tier := BalanceTypes.string_to_tier(
+						str(effect.get("tier", effect.get("chips_tier", "")))
+					)
+					if ft == "chips_tier" and chips_tier == BalanceTypes.Tier.NONE:
+						chips_tier = BalanceTypes.string_to_tier(str(effect.get("amount", "")))
+					o.chips_tier = chips_tier
+					o.item_amount = amount if amount > 0 else 0
 			"strength", "humanity", "endurance", "agility", "intelligence", "luck":
 				if o.kind in [
 					DialogOutcomeData.OutcomeKind.END,
@@ -397,9 +444,19 @@ static func _apply_compound_primary_kind(o: DialogOutcomeData, next_id: String) 
 					o.kind = DialogOutcomeData.OutcomeKind.GRANT_STAT
 					o.stat_name = ft
 					o.stat_amount = amount if amount != 0 else 1
-			"exp", "experience", "xp":
-				## Applied via payload_effects in EncounterManager — avoid double grant.
-				pass
+			"exp", "experience", "xp", "exp_tier":
+				## Side-effect fields; applied once via EncounterManager.
+				o.exp_amount = amount if amount > 0 else o.exp_amount
+				var exp_tier := BalanceTypes.string_to_tier(
+					str(effect.get("tier", effect.get("exp_tier", "")))
+				)
+				if ft == "exp_tier" and exp_tier == BalanceTypes.Tier.NONE:
+					exp_tier = BalanceTypes.string_to_tier(str(effect.get("amount", "")))
+				if exp_tier != BalanceTypes.Tier.NONE:
+					o.exp_tier = exp_tier
+				var exp_pct := float(effect.get("percent", effect.get("exp_percent", 0.0)))
+				if exp_pct > 0.0:
+					o.exp_percent = exp_pct
 			"spend_chips", "cost_chips":
 				## Applied via payload_effects unless already set as outcome.spend_chips.
 				if o.spend_chips <= 0:

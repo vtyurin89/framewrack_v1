@@ -14,9 +14,9 @@ var is_chip_gain_blocked: bool = false
 
 const STARTING_CHIPS := 30
 
-const BASE_CHIPS_NORMAL := 8
-const BASE_CHIPS_ELITE := 18
-const BASE_CHIPS_BOSS := 40
+const BASE_CHIPS_NORMAL := 20
+const BASE_CHIPS_ELITE := 50
+const BASE_CHIPS_BOSS := 120
 const CHIPS_PER_DEPTH := 2
 
 
@@ -94,16 +94,7 @@ func take_chips(amount: int) -> int:
 
 
 func calculate_combat_chip_base(encounter_kind: String, act_depth: int) -> int:
-	var kind := encounter_kind.strip_edges().to_upper()
-	var base: int = BASE_CHIPS_NORMAL
-	match kind:
-		"ELITE", "COMBAT_ELITE":
-			base = BASE_CHIPS_ELITE
-		"BOSS", "COMBAT_BOSS":
-			base = BASE_CHIPS_BOSS
-		_:
-			base = BASE_CHIPS_NORMAL
-	return maxi(0, base + maxi(act_depth, 0) * CHIPS_PER_DEPTH)
+	return CurrencyRewardResolver.resolve_combat_chips(encounter_kind, act_depth)
 
 
 func calculate_combat_chip_reward(encounter_kind: String, act_depth: int) -> int:
