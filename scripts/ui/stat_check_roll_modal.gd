@@ -16,7 +16,13 @@ const FLICKER_POLL := 0.02
 const DELAY_BEFORE_FLICKER := 0.1
 const DELAY_AFTER_SETTLE := 0.3
 const DELAY_BEFORE_BANNER := 0.3
-const HOLD_AFTER_BANNER := 1.25
+const HOLD_AFTER_BANNER := 3.25
+const LOG_LINE_DELAY := 0.28
+const LOG_VIEWPORT_HEIGHT := 78.0
+const LOG_FONT := 11
+const DICE_AREA_MIN_HEIGHT := 148.0
+const SUCCESS_AREA_MIN_HEIGHT := 52.0
+const BANNER_AREA_MIN_HEIGHT := 44.0
 
 const DICE_COLUMNS := 4
 const DIE_SIZE := Vector2(64, 64)
@@ -31,6 +37,9 @@ var _root: VBoxContainer
 var _title_label: Label
 var _dice_count_label: Label
 var _threshold_label: Label
+var _log_slot: Control
+var _log_scroll: ScrollContainer
+var _log_box: VBoxContainer
 var _dice_center: CenterContainer
 var _dice_grid: GridContainer
 var _success_section: VBoxContainer
@@ -39,6 +48,7 @@ var _markers_row: HBoxContainer
 var _ratio_label: Label
 var _banner_label: Label
 var _grain: ColorRect
+var _locked_dialog_size: Vector2 = Vector2.ZERO
 
 var _die_panels: Array[PanelContainer] = []
 var _die_labels: Array[Label] = []
@@ -48,6 +58,7 @@ var _click_player: AudioStreamPlayer
 var _busy: bool = false
 var _stat_tag: String = "STR"
 var _threshold: int = 1
+var _flavour_log: StatCheckLog = StatCheckLog.new()
 
 
 func _ready() -> void:
@@ -118,16 +129,35 @@ func _apply_dialog_size() -> void:
 		size = Vector2(rect.x * WIDTH_FRAC, rect.y * HEIGHT_FRAC)
 	size.x = clampf(size.x, MIN_DIALOG.x, MAX_DIALOG.x)
 	size.y = clampf(size.y, MIN_DIALOG.y, MAX_DIALOG.y)
+	_locked_dialog_size = size
+	## Lock both min and exact size so content growth cannot reflow/recenter.
 	_dialog.custom_minimum_size = size
 	_dialog.size = size
 
 
+func _enforce_locked_dialog_size() -> void:
+	if _dialog == null or _locked_dialog_size == Vector2.ZERO:
+		return
+	if _dialog.size != _locked_dialog_size or _dialog.custom_minimum_size != _locked_dialog_size:
+		_dialog.custom_minimum_size = _locked_dialog_size
+		_dialog.size = _locked_dialog_size
+
+
 func _ensure_content() -> void:
-	if _root != null and is_instance_valid(_root):
+	if (
+		_root != null
+		and is_instance_valid(_root)
+		and _log_slot != null
+		and is_instance_valid(_log_slot)
+	):
 		return
 	if content_container == null:
 		content_container = %ContentContainer
 	clear_content()
+	_root = null
+	_log_slot = null
+	_log_scroll = null
+	_log_box = null
 
 	_root = VBoxContainer.new()
 	_root.size_flags_horizontal = Control.SIZE_EXPAND_FILL
@@ -150,7 +180,35 @@ func _ensure_content() -> void:
 	_root.add_child(_threshold_label)
 	_root.add_child(_make_separator())
 
+	## Fixed-height clip host: ScrollContainer alone can inflate VBox min-size.
+	_log_slot = Control.new()
+	_log_slot.name = "FlavourLogSlot"
+	_log_slot.custom_minimum_size = Vector2(0, LOG_VIEWPORT_HEIGHT)
+	_log_slot.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	_log_slot.size_flags_vertical = Control.SIZE_SHRINK_BEGIN
+	_log_slot.clip_contents = true
+	_log_slot.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	_root.add_child(_log_slot)
+
+	_log_scroll = ScrollContainer.new()
+	_log_scroll.name = "FlavourLogViewport"
+	_log_scroll.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+	_log_scroll.grow_horizontal = Control.GROW_DIRECTION_BOTH
+	_log_scroll.grow_vertical = Control.GROW_DIRECTION_BOTH
+	_log_scroll.horizontal_scroll_mode = ScrollContainer.SCROLL_MODE_DISABLED
+	_log_scroll.vertical_scroll_mode = ScrollContainer.SCROLL_MODE_SHOW_NEVER
+	_log_scroll.clip_contents = true
+	_log_scroll.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	_log_slot.add_child(_log_scroll)
+
+	_log_box = VBoxContainer.new()
+	_log_box.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	_log_box.size_flags_vertical = Control.SIZE_SHRINK_BEGIN
+	_log_box.add_theme_constant_override("separation", 2)
+	_log_scroll.add_child(_log_box)
+
 	_dice_center = CenterContainer.new()
+	_dice_center.custom_minimum_size = Vector2(0, DICE_AREA_MIN_HEIGHT)
 	_dice_center.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	_dice_center.size_flags_vertical = Control.SIZE_EXPAND_FILL
 	_root.add_child(_dice_center)
@@ -162,9 +220,12 @@ func _ensure_content() -> void:
 	_dice_center.add_child(_dice_grid)
 
 	_success_section = VBoxContainer.new()
+	_success_section.custom_minimum_size = Vector2(0, SUCCESS_AREA_MIN_HEIGHT)
 	_success_section.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	_success_section.size_flags_vertical = Control.SIZE_SHRINK_BEGIN
 	_success_section.add_theme_constant_override("separation", 6)
-	_success_section.visible = false
+	## Keep layout slot reserved so reveal does not grow/recenter the modal.
+	_success_section.modulate.a = 0.0
 	_root.add_child(_success_section)
 
 	_success_title = Label.new()
@@ -193,8 +254,10 @@ func _ensure_content() -> void:
 	_banner_label = Label.new()
 	_banner_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	_banner_label.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	_banner_label.size_flags_vertical = Control.SIZE_SHRINK_BEGIN
+	_banner_label.custom_minimum_size = Vector2(0, BANNER_AREA_MIN_HEIGHT)
 	_banner_label.add_theme_font_size_override("font_size", BANNER_FONT)
-	_banner_label.visible = false
+	_banner_label.modulate.a = 0.0
 	_root.add_child(_banner_label)
 
 	## Overlay on the modal root (not PanelContainer) so layout stays intact.
@@ -215,6 +278,8 @@ func _ensure_content() -> void:
 
 func _process(_delta: float) -> void:
 	_sync_grain_rect()
+	if _is_open:
+		_enforce_locked_dialog_size()
 
 
 func _sync_grain_rect() -> void:
@@ -251,13 +316,24 @@ func _reset_presentation(result: StatCheckManager.CheckResult) -> void:
 	_dice_count_label.text = _format_diag(tr("KEY_STAT_CHECK_DICE_COUNT"), dice_n)
 	_threshold_label.text = _format_diag(tr("KEY_STAT_CHECK_THRESHOLD"), _threshold)
 	_success_title.text = tr("KEY_STAT_CHECK_SUCCESS_COUNT")
-	_success_section.visible = false
-	_banner_label.visible = false
+	_success_section.modulate.a = 0.0
+	_banner_label.modulate.a = 0.0
 	_banner_label.text = ""
+	_clear_flavour_log()
 	_build_dice_cells(dice_n)
 	_build_markers(dice_n)
 	for i in _die_labels.size():
 		_set_die_neutral(i)
+	_enforce_locked_dialog_size()
+
+
+func _clear_flavour_log() -> void:
+	if _flavour_log != null:
+		_flavour_log.clear_recent()
+	if _log_box == null:
+		return
+	for child in _log_box.get_children():
+		child.queue_free()
 
 
 func _format_diag(label: String, value: int) -> String:
@@ -331,14 +407,63 @@ func _set_die_neutral(index: int) -> void:
 
 
 func _play_sequence(result: StatCheckManager.CheckResult) -> void:
+	## Flavour log is secondary; dice flicker / settle / colors stay as before.
+	await _play_flavour_lines(_flavour_log.compose_analysis_lines())
 	await get_tree().create_timer(DELAY_BEFORE_FLICKER).timeout
 	await _run_flicker()
 	_apply_backend_rolls(result)
 	await get_tree().create_timer(DELAY_AFTER_SETTLE).timeout
+	var got := result.successes_count
+	if result.is_guaranteed:
+		got = _die_labels.size()
+	await _play_flavour_lines(
+		_flavour_log.compose_reaction_lines(result.is_success, got, _threshold)
+	)
 	_show_success_count(result)
 	await get_tree().create_timer(DELAY_BEFORE_BANNER).timeout
 	_show_banner(result.is_success)
 	await get_tree().create_timer(HOLD_AFTER_BANNER).timeout
+
+
+func _play_flavour_lines(lines: Array[String]) -> void:
+	for line in lines:
+		if line.strip_edges().is_empty():
+			continue
+		_append_flavour_line(line)
+		_play_terminal_click()
+		await get_tree().process_frame
+		_scroll_flavour_log_to_end()
+		_enforce_locked_dialog_size()
+		await get_tree().create_timer(LOG_LINE_DELAY).timeout
+
+
+func _append_flavour_line(text: String) -> void:
+	if _log_box == null:
+		return
+	## Fade older lines slightly so newest stay readable inside the fixed viewport.
+	for child in _log_box.get_children():
+		if child is Label:
+			var older := child as Label
+			older.modulate.a = maxf(0.35, older.modulate.a * 0.72)
+	var label := Label.new()
+	label.text = "> %s" % text
+	label.autowrap_mode = TextServer.AUTOWRAP_OFF
+	label.clip_text = true
+	label.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	label.add_theme_font_size_override("font_size", LOG_FONT)
+	label.add_theme_color_override("font_color", GamePalette.CRT_TEXT_MAIN)
+	label.modulate = Color(1, 1, 1, 0.92)
+	_log_box.add_child(label)
+
+
+func _scroll_flavour_log_to_end() -> void:
+	if _log_scroll == null or not is_instance_valid(_log_scroll):
+		return
+	var bar := _log_scroll.get_v_scroll_bar()
+	if bar != null:
+		## Invisible scrollbar still drives overflow upward.
+		bar.visible = false
+		_log_scroll.scroll_vertical = int(bar.max_value)
 
 
 func _run_flicker() -> void:
@@ -409,11 +534,11 @@ func _show_success_count(result: StatCheckManager.CheckResult) -> void:
 		GamePalette.PHOSPHOR_ACTIVE if result.is_success else GamePalette.COLOR_DANGER
 	)
 	GamePalette.apply_font_header(_ratio_label)
-	_success_section.visible = true
+	_success_section.modulate.a = 1.0
+	_enforce_locked_dialog_size()
 
 
 func _show_banner(passed: bool) -> void:
-	_banner_label.visible = true
 	if passed:
 		_banner_label.text = tr("KEY_STAT_CHECK_BANNER_SUCCESS").to_upper()
 		_banner_label.add_theme_color_override("font_color", GamePalette.PHOSPHOR_BRIGHT)
@@ -421,6 +546,8 @@ func _show_banner(passed: bool) -> void:
 		_banner_label.text = tr("KEY_STAT_CHECK_BANNER_FAILURE").to_upper()
 		_banner_label.add_theme_color_override("font_color", GamePalette.COLOR_DANGER)
 	GamePalette.apply_font_emphasis(_banner_label)
+	_banner_label.modulate.a = 1.0
+	_enforce_locked_dialog_size()
 
 
 func _ensure_click_audio() -> void:

@@ -1,7 +1,7 @@
 class_name StatCheckLog
 extends RefCounted
-## Static pools of flavored log lines for stat checks, stored like the
-## BootSequence SYSTEM_LOG / OMINOUS_LOG const arrays. No state.
+## Flavored diagnostic log lines for the skill-check modal.
+## Pools + weighted picking only — never affects dice / success outcomes.
 
 enum Category {
 	ANALYSIS,
@@ -13,6 +13,15 @@ enum Category {
 	RECOVERY,
 	RARE,
 }
+
+## Relative pick weights for post-roll optional flavour (not equal).
+const WEIGHT_PERSONALITY := 28.0
+const WEIGHT_RECOVERY := 34.0
+const WEIGHT_ERROR := 22.0
+const WEIGHT_MEMORY := 10.0
+const WEIGHT_RARE := 2.0
+
+const RECENT_LIMIT := 10
 
 const ANALYSIS: PackedStringArray = [
 	"Analyzing outcome...",
@@ -179,6 +188,9 @@ const RARE: PackedStringArray = [
 	"That wasn't a guess.",
 ]
 
+## Recent lines excluded from immediate re-picks (session-scoped).
+var _recent: Array[String] = []
+
 
 static func pool(category: Category) -> PackedStringArray:
 	match category:
@@ -207,3 +219,108 @@ static func random_line(category: Category) -> String:
 	if pool_arr.is_empty():
 		return ""
 	return pool_arr[randi() % pool_arr.size()]
+
+
+func clear_recent() -> void:
+	_recent.clear()
+
+
+func pick(category: Category) -> String:
+	var pool_arr := pool(category)
+	if pool_arr.is_empty():
+		return ""
+	var candidates: Array[String] = []
+	for line in pool_arr:
+		if not _recent.has(line):
+			candidates.append(line)
+	if candidates.is_empty():
+		candidates.assign(Array(pool_arr))
+	var chosen: String = candidates[randi() % candidates.size()]
+	_remember(chosen)
+	return chosen
+
+
+func compose_analysis_lines() -> Array[String]:
+	## Very common ANALYSIS: 2–3 lines before dice resolve.
+	var count := 2 + (randi() % 2)
+	var out: Array[String] = []
+	for _i in count:
+		var line := pick(Category.ANALYSIS)
+		if not line.is_empty():
+			out.append(line)
+	return out
+
+
+func compose_reaction_lines(
+	is_success: bool,
+	successes: int = -1,
+	threshold: int = 1
+) -> Array[String]:
+	## Primary SUCCESS/FAILURE reaction, then occasional secondary flavour.
+	var out: Array[String] = []
+	var primary := Category.SUCCESS if is_success else Category.FAILURE
+	var first := _pick_contextual_primary(primary, is_success, successes, threshold)
+	if not first.is_empty():
+		out.append(first)
+	## ~45% chance of a second primary beat (still common).
+	if randf() < 0.45:
+		var second := pick(primary)
+		if not second.is_empty() and second != first:
+			out.append(second)
+	## Occasional / rare secondary layer — not guaranteed.
+	if randf() < 0.38:
+		var extra := _pick_weighted_secondary()
+		if not extra.is_empty():
+			out.append(extra)
+	return out
+
+
+func _pick_contextual_primary(
+	primary: Category,
+	is_success: bool,
+	successes: int,
+	threshold: int
+) -> String:
+	## Optional close-call bias; falls back to normal weighted pick.
+	if successes < 0 or threshold <= 0:
+		return pick(primary)
+	var margin := successes - threshold
+	if is_success and margin == 0:
+		## Barely passed — prefer the close-success line when available.
+		var close := "That was close, but fine."
+		if SUCCESS.has(close) and not _recent.has(close):
+			_remember(close)
+			return close
+	if (not is_success) and successes <= 0:
+		var hard := "This was just too hard."
+		if FAILURE.has(hard) and not _recent.has(hard):
+			_remember(hard)
+			return hard
+	return pick(primary)
+
+
+func _pick_weighted_secondary() -> String:
+	## PERSONALITY / RECOVERY / ERROR occasional; MEMORY rare; RARE very rare.
+	var roll := randf() * (
+		WEIGHT_PERSONALITY + WEIGHT_RECOVERY + WEIGHT_ERROR + WEIGHT_MEMORY + WEIGHT_RARE
+	)
+	if roll < WEIGHT_PERSONALITY:
+		return pick(Category.PERSONALITY)
+	roll -= WEIGHT_PERSONALITY
+	if roll < WEIGHT_RECOVERY:
+		return pick(Category.RECOVERY)
+	roll -= WEIGHT_RECOVERY
+	if roll < WEIGHT_ERROR:
+		return pick(Category.ERROR)
+	roll -= WEIGHT_ERROR
+	if roll < WEIGHT_MEMORY:
+		return pick(Category.MEMORY)
+	return pick(Category.RARE)
+
+
+func _remember(line: String) -> void:
+	if line.is_empty():
+		return
+	_recent.append(line)
+	while _recent.size() > RECENT_LIMIT:
+		_recent.pop_front()
