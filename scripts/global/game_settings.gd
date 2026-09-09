@@ -9,7 +9,7 @@ enum Difficulty {
 	HARD = 2,
 }
 
-@export var hide_debug_tools: bool = false
+@export var hide_debug_tools: bool = true
 @export var difficulty: Difficulty = Difficulty.NORMAL
 
 ## HP / damage multipliers applied when EnemyInstance.setup() runs.

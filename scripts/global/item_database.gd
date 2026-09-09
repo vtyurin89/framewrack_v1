@@ -19,6 +19,11 @@ func _ready() -> void:
 	_index_rarities()
 	_index_traits_from_catalog()
 	reload()
+	if _items_by_id.is_empty():
+		push_error(
+			"ItemDatabase: loaded 0 items from %s — check Export → Include filters (*.csv)."
+			% ITEMS_CSV_PATH
+		)
 
 
 func reload() -> void:
@@ -187,16 +192,8 @@ func _index_traits_from_catalog() -> void:
 
 func _list_tres(dir_path: String) -> PackedStringArray:
 	var out: PackedStringArray = []
-	var dir := DirAccess.open(dir_path)
-	if dir == null:
-		return out
-	dir.list_dir_begin()
-	var name := dir.get_next()
-	while name != "":
-		if not dir.current_is_dir() and name.ends_with(".tres"):
-			out.append(dir_path.path_join(name))
-		name = dir.get_next()
-	dir.list_dir_end()
+	for name in ResDir.list_files(dir_path, ".tres"):
+		out.append(dir_path.path_join(name))
 	return out
 
 

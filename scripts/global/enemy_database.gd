@@ -10,6 +10,11 @@ var _enemies_by_id: Dictionary = {}  # String -> EnemyData
 
 func _ready() -> void:
 	reload()
+	if _enemies_by_id.is_empty():
+		push_error(
+			"EnemyDatabase: loaded 0 enemies from %s — check Export → Include filters (*.csv)."
+			% ENEMIES_CSV_PATH
+		)
 
 
 func reload() -> void:

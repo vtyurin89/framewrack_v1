@@ -18,7 +18,7 @@ const COLOR_CHECK_HOVER_ON := Color(0.663, 0.196, 0.149, 1.0) # #A93226
 @onready var _hide_debug_check: CheckButton = %HideDebugCheck
 
 var _draft_language: String = "en"
-var _draft_hide_debug: bool = false
+var _draft_hide_debug: bool = true
 var _draft_difficulty: int = 1
 
 

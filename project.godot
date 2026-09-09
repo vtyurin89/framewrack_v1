@@ -49,6 +49,10 @@ window/stretch/aspect="expand"
 
 theme/custom="res://themes/crt_ui_theme.tres"
 
+[internationalization]
+
+locale/translations=PackedStringArray("res://translations/translations.en.translation", "res://translations/translations.ru.translation", "res://translations/traits.en.translation", "res://translations/traits.ru.translation")
+
 [rendering]
 
 textures/canvas_textures/default_texture_filter=0

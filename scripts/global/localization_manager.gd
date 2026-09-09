@@ -1,12 +1,21 @@
 extends Node
-## Autoload: loads CSV translations and switches locale (en primary; ru secondary).
+## Autoload: registers EN/RU translations and switches locale.
+## Prefers imported .translation resources (export-safe); CSV is editor fallback.
 
 signal language_changed(new_locale: String)
+
+const TRANSLATION_RESOURCES: PackedStringArray = [
+	"res://translations/translations.en.translation",
+	"res://translations/translations.ru.translation",
+	"res://translations/traits.en.translation",
+	"res://translations/traits.ru.translation",
+]
 
 const CSV_PATHS: PackedStringArray = [
 	"res://translations/translations.csv",
 	"res://translations/traits.csv",
 ]
+
 const FALLBACK_LOCALE := "en"
 const SUPPORTED_LOCALES: PackedStringArray = ["en", "ru"]
 
@@ -14,11 +23,30 @@ var _loaded_paths: Dictionary = {}
 
 
 func _ready() -> void:
-	for path in CSV_PATHS:
-		_load_translations_from_csv(path)
+	if not _load_translation_resources():
+		for path in CSV_PATHS:
+			_load_translations_from_csv(path)
 	_apply_fallback_locale(FALLBACK_LOCALE)
-	# Primary default language.
 	set_language(FALLBACK_LOCALE)
+
+
+func _load_translation_resources() -> bool:
+	## Export-safe path: csv_translation importer remaps CSV away from FileAccess.
+	var loaded_any := false
+	for path in TRANSLATION_RESOURCES:
+		if _loaded_paths.has(path):
+			loaded_any = true
+			continue
+		if not ResourceLoader.exists(path):
+			continue
+		var res: Resource = ResourceLoader.load(path, "", ResourceLoader.CACHE_MODE_REUSE)
+		if res is Translation:
+			TranslationServer.add_translation(res as Translation)
+			_loaded_paths[path] = true
+			loaded_any = true
+		else:
+			push_warning("LocalizationManager: expected Translation at %s" % path)
+	return loaded_any
 
 
 func _apply_fallback_locale(locale: String) -> void:
@@ -43,7 +71,10 @@ func is_supported(locale_code: String) -> bool:
 func set_language(locale_code: String) -> void:
 	var locale := locale_code
 	if not is_supported(locale):
-		push_warning("LocalizationManager: unsupported locale '%s'; falling back to %s." % [locale_code, FALLBACK_LOCALE])
+		push_warning(
+			"LocalizationManager: unsupported locale '%s'; falling back to %s."
+			% [locale_code, FALLBACK_LOCALE]
+		)
 		locale = FALLBACK_LOCALE
 	TranslationServer.set_locale(locale)
 	language_changed.emit(locale)

@@ -6,6 +6,26 @@ extends RefCounted
 const GROUPS_DIR := "res://data/enemy_groups/"
 ## Layers that may only draw from is_starter_group packs (normal combat).
 const STARTER_LAYER_MAX := 2
+## Explicit fallback when directory listing fails in exported builds.
+const GROUP_FILES: PackedStringArray = [
+	"arbiter_disrupt_squad.tres",
+	"arbiter_focus_elite.tres",
+	"arbiter_warden_pair.tres",
+	"corp_enforcer_squad.tres",
+	"deserter_strike_team.tres",
+	"enc_act1_junkie_single.tres",
+	"enc_act1_junkies_pack.tres",
+	"rebel_squad.tres",
+	"slaver_solo_hunt.tres",
+	"starter_corrupted_pair.tres",
+	"starter_grenadier_patrol.tres",
+	"starter_rebel_duo.tres",
+	"starter_thief_ambush.tres",
+	"starter_warden_scan.tres",
+	"synthet_mixed_line.tres",
+	"synthet_overload_elite.tres",
+	"warden_compliance_unit.tres",
+]
 
 const HUMAN_CORE_IDS: Array[String] = [
 	"desperate_rebel",
@@ -183,22 +203,30 @@ static func _ensure_groups_loaded() -> void:
 		return
 	_groups_loaded = true
 	_groups_cache.clear()
-	var dir := DirAccess.open(GROUPS_DIR)
-	if dir == null:
-		push_warning("EnemyManager: cannot open %s" % GROUPS_DIR)
-		return
-	dir.list_dir_begin()
-	var file_name := dir.get_next()
-	while file_name != "":
-		if not dir.current_is_dir() and file_name.ends_with(".tres"):
-			var path := GROUPS_DIR.path_join(file_name)
-			var loaded = load(path)
-			if loaded is EnemyGroup:
-				var group: EnemyGroup = loaded
-				_groups_cache.append(group)
-				_validate_group(group)
-		file_name = dir.get_next()
-	dir.list_dir_end()
+
+	var files := ResDir.list_files(GROUPS_DIR, ".tres")
+	if files.is_empty():
+		files = GROUP_FILES
+		push_warning(
+			"EnemyManager: directory listing empty for %s — using explicit GROUP_FILES fallback"
+			% GROUPS_DIR
+		)
+
+	for file_name in files:
+		var path := GROUPS_DIR.path_join(file_name)
+		if not ResourceLoader.exists(path):
+			continue
+		var loaded: Resource = ResourceLoader.load(path)
+		if loaded is EnemyGroup:
+			var group: EnemyGroup = loaded
+			_groups_cache.append(group)
+			_validate_group(group)
+
+	if _groups_cache.is_empty():
+		push_error(
+			"EnemyManager: loaded 0 EnemyGroup resources from %s"
+			% GROUPS_DIR
+		)
 
 
 static func _validate_group(group: EnemyGroup) -> void:
