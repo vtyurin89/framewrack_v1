@@ -40,6 +40,9 @@ var _is_closing: bool = false
 var _choices_locked: bool = false
 var _pending_select_outcome: DialogOutcomeData
 var _stat_check_modal: StatCheckRollModal
+## Prepare-phase state for dialog skill checks (boost staging before modal).
+var _pending_stat_choice: DialogChoiceData
+var _staged_boost_ids: Array[String] = []
 ## main.gd provides this to run the harmful forced-insertion flow (ForcedItemScreen).
 var forced_insertion_handler: Callable = Callable()
 
@@ -158,6 +161,8 @@ func close_dialog() -> void:
 	_is_closing = false
 	_choices_locked = false
 	_pending_select_outcome = null
+	_pending_stat_choice = null
+	_staged_boost_ids.clear()
 	visible = false
 	modulate.a = 0.0
 	mouse_filter = Control.MOUSE_FILTER_IGNORE
@@ -171,6 +176,8 @@ func abort_on_run_end() -> void:
 	_is_closing = false
 	_choices_locked = true
 	_pending_select_outcome = null
+	_pending_stat_choice = null
+	_staged_boost_ids.clear()
 	if (
 		_encounter_manager != null
 		and _encounter_manager.item_selection_resolved.is_connected(_on_item_selection_resolved)
@@ -186,7 +193,10 @@ func abort_on_run_end() -> void:
 func _on_viewport_resized() -> void:
 	_apply_responsive_layout()
 	if _dialog != null and visible:
-		_show_node(_current_node_id)
+		if _pending_stat_choice != null:
+			_begin_stat_check_prepare(_pending_stat_choice, true)
+		else:
+			_show_node(_current_node_id)
 
 
 func _ui_scale() -> float:
@@ -365,12 +375,134 @@ func _on_choice_pressed(choice: DialogChoiceData) -> void:
 	if not choice.is_available(_get_inventory()):
 		return
 	if choice.has_stat_check():
-		_run_stat_check(choice)
+		_begin_stat_check_prepare(choice)
 		return
 	_resolve_choice_outcome(choice.success_outcome)
 
 
-func _run_stat_check(choice: DialogChoiceData) -> void:
+func _begin_stat_check_prepare(choice: DialogChoiceData, preserve_boosts: bool = false) -> void:
+	## Dialog phase: optionally stage dice boosts, then start the roll modal.
+	_pending_stat_choice = choice
+	if not preserve_boosts:
+		_staged_boost_ids.clear()
+	_choices_locked = false
+	_clear_choices()
+
+	var guaranteed := (
+		(StatCheckManager != null and StatCheckManager.force_guaranteed_success)
+		or StatCheckBoostCatalog.has_guarantee_staged(_staged_boost_ids)
+	)
+	var extra_dice := StatCheckBoostCatalog.preview_extra_dice(_staged_boost_ids)
+	if _result_label:
+		_result_label.visible = true
+		if guaranteed:
+			_result_label.text = tr("KEY_STAT_CHECK_GUARANTEED")
+		elif extra_dice > 0:
+			_result_label.text = "%s  (+%dd6)" % [
+				tr("KEY_STAT_CHECK_PREPARE") % choice.stat_check.to_upper(),
+				extra_dice,
+			]
+		else:
+			_result_label.text = tr("KEY_STAT_CHECK_PREPARE") % choice.stat_check.to_upper()
+
+	var inventory := _get_inventory()
+	for def: StatCheckBoostDefinition in StatCheckBoostCatalog.list_offerable(
+		inventory, _staged_boost_ids
+	):
+		_add_boost_choice_button(def, inventory)
+
+	var start_label := tr("KEY_STAT_CHECK_START")
+	if guaranteed:
+		start_label = tr("KEY_STAT_CHECK_GUARANTEED")
+	elif extra_dice > 0:
+		start_label = "%s (+%dd6)" % [tr("KEY_STAT_CHECK_START"), extra_dice]
+	var start_btn := _make_choice_button(start_label)
+	start_btn.pressed.connect(_on_confirm_stat_check)
+	_choices_box.add_child(start_btn)
+
+	var cancel_btn := _make_choice_button(tr("KEY_STAT_CHECK_CANCEL"))
+	cancel_btn.pressed.connect(_on_cancel_stat_check)
+	_choices_box.add_child(cancel_btn)
+
+
+func _add_boost_choice_button(
+	def: StatCheckBoostDefinition,
+	inventory: InventoryController
+) -> void:
+	if def == null:
+		return
+	var label := StatCheckBoostCatalog.format_choice_label(def, inventory)
+	var safe := StatCheckBoostCatalog.is_safe_to_stage(def, inventory)
+	if def.costs_hp and not safe:
+		var blocked := _BbcodeTooltipButton.new()
+		blocked.text = label
+		blocked.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+		blocked.custom_minimum_size = Vector2(
+			0, float(_choices_box.get_meta("choice_min_h", CHOICE_MIN_HEIGHT_BASE))
+		)
+		blocked.mouse_default_cursor_shape = Control.CURSOR_ARROW
+		blocked.alignment = HORIZONTAL_ALIGNMENT_LEFT
+		blocked.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+		blocked.clip_text = false
+		blocked.modulate = Color(0.55, 0.55, 0.55, 1.0)
+		blocked.tooltip_text = tr("KEY_NEURON_AMP_UNSAFE")
+		GamePalette.apply_button_theme(
+			blocked, int(_choices_box.get_meta("choice_font", CHOICE_FONT_BASE))
+		)
+		blocked.pressed.connect(func() -> void: pass)
+		_choices_box.add_child(blocked)
+		return
+
+	var btn := _make_choice_button(label)
+	var boost_id := def.id
+	btn.pressed.connect(func() -> void: _on_stage_boost(boost_id))
+	_choices_box.add_child(btn)
+
+
+func _on_stage_boost(boost_id: String) -> void:
+	if _pending_stat_choice == null:
+		return
+	var def := StatCheckBoostCatalog.find_by_id(boost_id)
+	if def == null:
+		return
+	var inventory := _get_inventory()
+	if not StatCheckBoostCatalog.is_safe_to_stage(def, inventory):
+		return
+	var key := def.id
+	if def.once_per_check:
+		for staged in _staged_boost_ids:
+			if staged == key:
+				return
+	_staged_boost_ids.append(key)
+	_begin_stat_check_prepare(_pending_stat_choice, true)
+
+
+func _on_confirm_stat_check() -> void:
+	var choice := _pending_stat_choice
+	if choice == null:
+		return
+	_choices_locked = true
+	_set_choices_disabled(true)
+
+	var inventory := _get_inventory()
+	var boost_ap := StatCheckBoostCatalog.commit_staged(_staged_boost_ids, inventory)
+	_staged_boost_ids.clear()
+	_pending_stat_choice = null
+	await _run_stat_check(choice, boost_ap)
+
+
+func _on_cancel_stat_check() -> void:
+	_pending_stat_choice = null
+	_staged_boost_ids.clear()
+	if _result_label:
+		_result_label.visible = false
+		_result_label.text = ""
+	if _dialog == null:
+		return
+	_show_node(_current_node_id)
+
+
+func _run_stat_check(choice: DialogChoiceData, consumed_ap: int = 0) -> void:
 	_choices_locked = true
 	_set_choices_disabled(true)
 	if _result_label:
@@ -381,11 +513,11 @@ func _run_stat_check(choice: DialogChoiceData) -> void:
 	var result: StatCheckManager.CheckResult = null
 	if _encounter_manager != null:
 		result = _encounter_manager.resolve_stat_check(
-			choice.stat_check, required, 0, choice.stat_pool_bonus
+			choice.stat_check, required, consumed_ap, choice.stat_pool_bonus
 		)
 	elif StatCheckManager != null:
 		var fallback_pool := maxi(1, 1 + choice.stat_pool_bonus)
-		result = StatCheckManager.perform_check(fallback_pool, required, 0)
+		result = StatCheckManager.perform_check(fallback_pool, required, consumed_ap)
 
 	var modal := _ensure_stat_check_modal()
 	if modal != null and result != null:
@@ -574,4 +706,32 @@ func _set_choices_disabled(disabled: bool) -> void:
 func _on_language_changed(_locale: String = "") -> void:
 	if _dialog == null or not visible:
 		return
+	## Stay on prepare phase if a check was mid-staging.
+	if _pending_stat_choice != null:
+		_begin_stat_check_prepare(_pending_stat_choice, true)
+		return
 	_show_node(_current_node_id)
+
+
+class _BbcodeTooltipButton extends Button:
+	func _make_custom_tooltip(for_text: String) -> Object:
+		if for_text.is_empty():
+			return null
+		var tip := RichTextLabel.new()
+		tip.bbcode_enabled = true
+		tip.fit_content = true
+		tip.scroll_active = false
+		tip.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+		tip.custom_minimum_size = Vector2(240, 0)
+		tip.text = for_text
+		tip.add_theme_font_size_override("normal_font_size", 12)
+		tip.add_theme_color_override("default_color", GamePalette.CRT_TEXT_MAIN)
+		var panel := PanelContainer.new()
+		panel.add_theme_stylebox_override(
+			"panel",
+			GamePalette.make_panel_stylebox(
+				GamePalette.PANEL_BG, GamePalette.MUTED_GREEN, 1, 0, 8.0, false
+			)
+		)
+		panel.add_child(tip)
+		return panel

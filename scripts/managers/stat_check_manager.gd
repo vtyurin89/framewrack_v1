@@ -1,5 +1,6 @@
 extends Node
 ## Autoload: d6 success-pool stat checks with optional AP dice boosts / guaranteed success.
+## Which items grant dice lives in StatCheckBoostCatalog — keep these ids in sync.
 
 const NEURO_STIMULATOR_ID := "NEURO_STIMULATOR"
 const SYNAPSE_BOOSTER_ID := "SYNAPSE_BOOSTER"

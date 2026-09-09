@@ -518,6 +518,7 @@ KEY_LOG_ORACLE_KILL_BONUS,"[color=#9B59B6]Oracle MK-IV analyzed the target! Dama
 KEY_LOG_NAIL_KILL_RESET,"[color=#F0C060]%s: kill resets cooldown![/color]","[color=#F0C060]%s: убийство сбрасывает кулдаун![/color]"
 KEY_LOG_STATUS_ANALYZER_PING,Damage Analyzer shocks %s for 1.,Анализатор урона поражает %s на 1.
 KEY_STAT_CHECK_ROLL,Roll check,Бросить проверку
+KEY_STAT_CHECK_START,Start check,Начать проверку
 KEY_STAT_CHECK_CANCEL,Cancel,Отмена
 KEY_STAT_CHECK_PREPARE,Prepare check (%s),Подготовка проверки (%s)
 EVENT_OLD_MACHINE_GOD_TITLE,The Old Machine God,Старый Бог-Машина
