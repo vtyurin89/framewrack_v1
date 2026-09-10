@@ -43,6 +43,8 @@ var _stat_check_modal: StatCheckRollModal
 ## Prepare-phase state for dialog skill checks (boost staging before modal).
 var _pending_stat_choice: DialogChoiceData
 var _staged_boost_ids: Array[String] = []
+## Choice ids already attempted this dialog (Deep Pit retries, etc.).
+var _used_choice_ids: Array[String] = []
 ## main.gd provides this to run the harmful forced-insertion flow (ForcedItemScreen).
 var forced_insertion_handler: Callable = Callable()
 
@@ -142,6 +144,9 @@ func open_dialog(dialog: DialogEventData) -> void:
 	_choices_locked = false
 	_dialog = dialog
 	_current_node_id = dialog.start_node_id
+	_used_choice_ids.clear()
+	_staged_boost_ids.clear()
+	_pending_stat_choice = null
 	_apply_responsive_layout()
 	_apply_story_badge()
 	_apply_event_image(dialog)
@@ -163,6 +168,7 @@ func close_dialog() -> void:
 	_pending_select_outcome = null
 	_pending_stat_choice = null
 	_staged_boost_ids.clear()
+	_used_choice_ids.clear()
 	visible = false
 	modulate.a = 0.0
 	mouse_filter = Control.MOUSE_FILTER_IGNORE
@@ -178,6 +184,7 @@ func abort_on_run_end() -> void:
 	_pending_select_outcome = null
 	_pending_stat_choice = null
 	_staged_boost_ids.clear()
+	_used_choice_ids.clear()
 	if (
 		_encounter_manager != null
 		and _encounter_manager.item_selection_resolved.is_connected(_on_item_selection_resolved)
@@ -322,8 +329,13 @@ func _rebuild_choices(node: DialogNodeData) -> void:
 			continue
 		var btn := _make_choice_button(_choice_button_label(choice))
 		var available := choice.is_available(_get_inventory())
-		btn.disabled = not available
-		if not available:
+		var used := (
+			node.disable_used_choices
+			and not choice.choice_id.is_empty()
+			and _used_choice_ids.has(choice.choice_id)
+		)
+		btn.disabled = not available or used
+		if not available or used:
 			btn.modulate = Color(1, 1, 1, 0.45)
 		var captured := choice
 		btn.pressed.connect(func() -> void: _on_choice_pressed(captured))
@@ -381,10 +393,25 @@ func _on_choice_pressed(choice: DialogChoiceData) -> void:
 		return
 	if not choice.is_available(_get_inventory()):
 		return
+	if (
+		not choice.choice_id.is_empty()
+		and _used_choice_ids.has(choice.choice_id)
+	):
+		return
 	if choice.has_stat_check():
 		_begin_stat_check_prepare(choice)
 		return
+	_mark_choice_used(choice)
 	_resolve_choice_outcome(choice.success_outcome)
+
+
+func _mark_choice_used(choice: DialogChoiceData) -> void:
+	if choice == null:
+		return
+	var cid := choice.choice_id.strip_edges()
+	if cid.is_empty() or _used_choice_ids.has(cid):
+		return
+	_used_choice_ids.append(cid)
 
 
 func _begin_stat_check_prepare(choice: DialogChoiceData, preserve_boosts: bool = false) -> void:
@@ -488,6 +515,7 @@ func _on_confirm_stat_check() -> void:
 	var choice := _pending_stat_choice
 	if choice == null:
 		return
+	_mark_choice_used(choice)
 	_choices_locked = true
 	_set_choices_disabled(true)
 

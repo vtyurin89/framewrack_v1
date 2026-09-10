@@ -2,7 +2,7 @@
 	"id": "enc_cursed_stranger",
 	"title_key": "ENC_STRANGER_TITLE",
 	"god_name": "A Stranger in the Night",
-	"god_name_ru": "Встреча 3 (универсальная)",
+	"god_name_ru": "Незнакомец",
 	"dialogs": {
 		"start": {
 			"narrator_text_en": "Late at night, you encounter a stranger. His face is hidden beneath a burlap sack, and his hands are wrapped in filthy bandages — making it impossible to tell if he's human. Either way, he looks utterly deranged.\n\nHe holds a bundle wrapped in rusty chains.",

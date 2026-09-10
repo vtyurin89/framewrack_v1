@@ -16,6 +16,8 @@ extends Resource
 @export var text_en: String = ""
 @export var text_ru: String = ""
 @export var choices: Array[DialogChoiceData] = []
+## When true, choices whose choice_id was already attempted this dialog are disabled.
+@export var disable_used_choices: bool = false
 
 
 func get_display_text() -> String:

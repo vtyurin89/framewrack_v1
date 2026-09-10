@@ -6,6 +6,8 @@ extends Resource
 @export var text_key: String = ""
 @export var text_en: String = ""
 @export var text_ru: String = ""
+## Stable id for disable-used-options loops (e.g. Deep Pit retries).
+@export var choice_id: String = ""
 ## Optional stat gate: "" | STR | AGI | END | INT | LCK
 @export var stat_check: String = ""
 ## Semantic difficulty; AUTO + check_dc keeps legacy fixed thresholds.

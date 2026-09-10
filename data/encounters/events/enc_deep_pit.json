@@ -1,0 +1,125 @@
+{
+	"id": "enc_deep_pit",
+	"title_key": "",
+	"god_name": "The Deep Pit",
+	"god_name_ru": "Глубокая яма",
+	"image_path": "res://assets/sprites/story/raim_city.png",
+	"dialogs": {
+		"start": {
+			"narrator_text_en": "Walking through the urban ruins, you lose your footing and plunge into a deep, dark pit. You hit your head, and the sharp ache reminds you that no matter how mechanical your chassis has become, it still knows pain.\n\nNow you lie at the bottom. The walls are slick damp slabs of cold concrete. High above, only a thin slit of pale light cuts through the gloom. There are three paths upward, but none look safe.",
+			"narrator_text_ru": "Шагая по городским руинам, вы оступаетесь и падаете в глубокую тёмную яму. Ударяетесь головой, и этот удар напоминает вам, что тело, каким бы механическим оно ни было, всё ещё умеет чувствовать боль.\n\nТеперь вы на дне ямы. Её стены — гладкий холодный бетон, скользкий от сырости. Наверху, далеко-далеко, вы видите узкую полосу света — и больше ничего. Есть три возможных пути наверх, но ни один не выглядит по-настоящему надёжным.",
+			"speech_text_en": "",
+			"speech_text_ru": "",
+			"choices": [
+				{
+					"id": "opt_climb_str",
+					"text_en": "[STR Check] Scale the steepest wall",
+					"text_ru": "[Проверка STR] Карабкаться по самой крутой стене",
+					"stat_check": "STR",
+					"difficulty": "MEDIUM",
+					"success_next_dialog_id": "str_ok",
+					"failure_next_dialog_id": "str_fail",
+					"reward": { "type": "exp_tier", "tier": "TRIVIAL" },
+					"failure_reward": { "type": "hp_loss_tier", "tier": "TRIVIAL" }
+				},
+				{
+					"id": "opt_climb_lck",
+					"text_en": "[LCK Check] Search the narrow ledge for hidden footholds",
+					"text_ru": "[Проверка LCK] Выбрать пологий уступ в надежде, что выше есть опора",
+					"stat_check": "LCK",
+					"difficulty": "EASY",
+					"success_next_dialog_id": "lck_ok",
+					"failure_next_dialog_id": "lck_fail",
+					"reward": {
+						"type": "compound",
+						"effects": [
+							{ "type": "chips_tier", "tier": "TRIVIAL" },
+							{ "type": "exp_tier", "tier": "TRIVIAL" }
+						]
+					},
+					"failure_reward": { "type": "hp_loss_tier", "tier": "TRIVIAL" }
+				},
+				{
+					"id": "opt_brute_force",
+					"text_en": "Long detour — bleed time and skin to force a way out (-20% HP)",
+					"text_ru": "Долгий обходной путь — потратить время, но наверняка выбраться (-20% HP)",
+					"next_dialog_id": "brute_exit",
+					"reward": { "type": "hp_loss_tier", "tier": "MEDIUM" }
+				}
+			]
+		},
+		"in_pit": {
+			"narrator_text_en": "You're still trapped at the bottom of the pit, the dim light above mocking your dwindling strength.",
+			"narrator_text_ru": "Вы всё еще на дне тёмной ямы, и надежда выбраться тает с каждой секундой.",
+			"speech_text_en": "",
+			"speech_text_ru": "",
+			"options_inherit": "start",
+			"disable_used_options": true
+		},
+		"str_ok": {
+			"narrator_text_en": "Your fingers wedge into fractures in the concrete — one desperate heave, and you haul yourself over the edge.",
+			"narrator_text_ru": "Пальцы находят трещины в бетоне — один рывок, и вы наверху.",
+			"speech_text_en": "",
+			"speech_text_ru": "",
+			"choices": [
+				{
+					"text_en": "Continue",
+					"text_ru": "Продолжить",
+					"next_dialog_id": "end_encounter"
+				}
+			]
+		},
+		"str_fail": {
+			"narrator_text_en": "Your grip gives way on the wet stone, and you crash back into the muck below.",
+			"narrator_text_ru": "Пальцы соскальзывают, и вы с криком падаете обратно.",
+			"speech_text_en": "",
+			"speech_text_ru": "",
+			"choices": [
+				{
+					"text_en": "Continue",
+					"text_ru": "Продолжить",
+					"next_dialog_id": "in_pit"
+				}
+			]
+		},
+		"lck_ok": {
+			"narrator_text_en": "Your heel catches an unexpected ledge — and wedged in the stone beside it, you find a cluster of intact chips.",
+			"narrator_text_ru": "Под ногой оказывается выступ, которого здесь не должно быть — а рядом, застрявшие в щели, несколько чипов.",
+			"speech_text_en": "",
+			"speech_text_ru": "",
+			"choices": [
+				{
+					"text_en": "Continue",
+					"text_ru": "Продолжить",
+					"next_dialog_id": "end_encounter"
+				}
+			]
+		},
+		"lck_fail": {
+			"narrator_text_en": "The outcrop crumbles to dust beneath your boots, dumping you back onto the pit floor.",
+			"narrator_text_ru": "Выступ, на который вы понадеялись, крошится под вашим весом.",
+			"speech_text_en": "",
+			"speech_text_ru": "",
+			"choices": [
+				{
+					"text_en": "Continue",
+					"text_ru": "Продолжить",
+					"next_dialog_id": "in_pit"
+				}
+			]
+		},
+		"brute_exit": {
+			"narrator_text_en": "Your fingers shredded to blood against bare stone, you drag yourself out — utterly spent.",
+			"narrator_text_ru": "Разодрав пальцы в кровь о голый камень, ты выползаешь наверх, измождённый до предела.",
+			"speech_text_en": "",
+			"speech_text_ru": "",
+			"choices": [
+				{
+					"text_en": "Continue",
+					"text_ru": "Продолжить",
+					"next_dialog_id": "end_encounter"
+				}
+			]
+		}
+	}
+}

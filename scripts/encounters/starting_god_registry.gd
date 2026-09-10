@@ -80,6 +80,7 @@ static func _build_encounter_from_dict(raw: Dictionary) -> IntroEncounterData:
 			nodes.append(_parse_dialog_node(str(node_dict.get("id", "")), node_dict))
 
 	dialog.nodes = nodes
+	_apply_options_inherit(dialog)
 	if not nodes.is_empty() and dialog.get_node("start") == null:
 		dialog.start_node_id = nodes[0].id
 
@@ -104,6 +105,25 @@ static func _build_encounter_from_dict(raw: Dictionary) -> IntroEncounterData:
 	return encounter
 
 
+static func _apply_options_inherit(dialog: DialogEventData) -> void:
+	if dialog == null:
+		return
+	for node: DialogNodeData in dialog.nodes:
+		if node == null or not node.has_meta("options_inherit"):
+			continue
+		var source_id := str(node.get_meta("options_inherit")).strip_edges()
+		if source_id.is_empty():
+			continue
+		var source := dialog.get_node(source_id)
+		if source == null:
+			push_warning(
+				"StartingGodRegistry: options_inherit '%s' missing for node '%s'"
+				% [source_id, node.id]
+			)
+			continue
+		node.choices = source.choices.duplicate()
+
+
 static func _parse_dialog_node(node_id: String, node_dict: Dictionary) -> DialogNodeData:
 	var node := DialogNodeData.new()
 	node.id = node_id.strip_edges()
@@ -120,6 +140,9 @@ static func _parse_dialog_node(node_id: String, node_dict: Dictionary) -> Dialog
 	node.text_ru = str(node_dict.get("text_ru", ""))
 	node.text = str(node_dict.get("text", ""))
 	node.text_key = str(node_dict.get("text_key", ""))
+	node.disable_used_choices = bool(
+		node_dict.get("disable_used_choices", node_dict.get("disable_used_options", false))
+	)
 	## Legacy combined text_ru/text_en without narrator/speech split.
 	if (
 		node.narrator_text_en.is_empty()
@@ -139,6 +162,9 @@ static func _parse_dialog_node(node_id: String, node_dict: Dictionary) -> Dialog
 			continue
 		choices.append(_parse_choice(choice_entry as Dictionary))
 	node.choices = choices
+	var inherit := str(node_dict.get("options_inherit", "")).strip_edges()
+	if not inherit.is_empty():
+		node.set_meta("options_inherit", inherit)
 	return node
 
 
@@ -150,6 +176,9 @@ static func _parse_choice(choice_dict: Dictionary) -> DialogChoiceData:
 	if choice.text_en.is_empty() and choice.text_ru.is_empty() and choice.text.is_empty():
 		choice.text = _localized_text(choice_dict)
 	choice.text_key = str(choice_dict.get("text_key", ""))
+	choice.choice_id = str(
+		choice_dict.get("choice_id", choice_dict.get("id", ""))
+	).strip_edges()
 	choice.stat_check = str(choice_dict.get("stat_check", ""))
 	choice.difficulty = StatCheckResolver.string_to_difficulty(
 		str(choice_dict.get("difficulty", ""))
