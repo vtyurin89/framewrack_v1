@@ -13,6 +13,7 @@ TRAIT_APPLY_BURN,TRAIT_APPLY_BURN_NAME,TRAIT_APPLY_BURN_DESC,,2,Applies 2 Burn (
 TRAIT_APPLY_RUST,TRAIT_APPLY_RUST_NAME,TRAIT_APPLY_RUST_DESC,,3,Applies 3 Rust stacks (flat 25% miss; stacks tick down; cap 5).
 TRAIT_HEAVY_SOLO,TRAIT_HEAVY_SOLO_NAME,TRAIT_HEAVY_SOLO_DESC,DAMAGE,4,Bonus damage when not adjacent to other weapons.
 TRAIT_DRAIN_LIFE,TRAIT_DRAIN_LIFE_NAME,TRAIT_DRAIN_LIFE_DESC,,0,Heals the frame on hit. Does not drain or damage inventory cells.
+TRAIT_CAVITATION_RESONANCE,TRAIT_CAVITATION_RESONANCE_NAME,TRAIT_CAVITATION_RESONANCE_DESC,,2,+effect_value damage and +1 lifesteal per orthogonally adjacent harmful item.
 TRAIT_ARMOR_EDGE,TRAIT_ARMOR_EDGE_NAME,TRAIT_ARMOR_EDGE_DESC,ARMOR,1,Edge-mounted shields gain stability bonus.
 TRAIT_ARMOR_CHAIN,TRAIT_ARMOR_CHAIN_NAME,TRAIT_ARMOR_CHAIN_DESC,ARMOR,1,Adjacent shields reinforce each other.
 TRAIT_SPIKES_OUTER,TRAIT_SPIKES_OUTER_NAME,TRAIT_SPIKES_OUTER_DESC,,2,At combat start grants Sharp Spikes to the player (2 stacks by default).

@@ -588,13 +588,34 @@ func recalculate_grid_adjacencies() -> void:
 	EventBus.grid_layout_updated.emit()
 
 
+func count_adjacent_harmful(placed: PlacedItem) -> int:
+	## Orthogonal neighbours with is_harmful (functional only).
+	var count := 0
+	if placed == null:
+		return 0
+	for neighbour: PlacedItem in get_adjacent_items(placed):
+		if neighbour == null or neighbour.data == null:
+			continue
+		if not is_item_functional(neighbour):
+			continue
+		if neighbour.data.is_harmful:
+			count += 1
+	return count
+
+
 func get_adjacency_damage_bonus_for(weapon: PlacedItem) -> int:
-	## Sum adjacency_dmg_bonus from functional neighbours (e.g. Micro-Reactor).
+	## Sum adjacency_dmg_bonus from functional neighbours (e.g. Micro-Reactor)
+	## plus weapon traits that scale off adjacent hazards.
 	var bonus := 0
 	for neighbour: PlacedItem in get_adjacent_items(weapon):
 		if not is_item_functional(neighbour):
 			continue
 		bonus += neighbour.data.adjacency_dmg_bonus
+	if weapon != null and weapon.data != null and TraitManager.has_trait(
+		weapon.data, "TRAIT_CAVITATION_RESONANCE"
+	):
+		var per := TraitManager.get_trait_value(weapon.data, "TRAIT_CAVITATION_RESONANCE", 2)
+		bonus += count_adjacent_harmful(weapon) * maxi(0, per)
 	return bonus
 
 

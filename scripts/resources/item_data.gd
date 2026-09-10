@@ -705,6 +705,13 @@ func format_adjacency_bonus_notes(grid: BodyGrid, use_bbcode: bool = true) -> St
 			lines.append(tr("KEY_ADJ_DMG_BONUS_NOTE") % dmg_bonus)
 		else:
 			lines.append(tr("KEY_ADJ_DMG_BONUS_NOTE_PLAIN") % dmg_bonus)
+	if TraitManager.has_trait(self, "TRAIT_CAVITATION_RESONANCE"):
+		var harmful_n := grid.count_adjacent_harmful(placed)
+		if harmful_n > 0:
+			if use_bbcode:
+				lines.append(tr("KEY_CAVITATION_LIFESTEAL_NOTE") % harmful_n)
+			else:
+				lines.append(tr("KEY_CAVITATION_LIFESTEAL_NOTE_PLAIN") % harmful_n)
 	if applies_dot_on_hit():
 		var dot_bonus := grid.get_adjacent_dot_amplify_bonus(placed)
 		if dot_bonus > 0:

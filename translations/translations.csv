@@ -487,6 +487,11 @@ ITEM_REBAR_CUDGEL_NAME,Rebar Cudgel,Кусок арматуры
 ITEM_REBAR_CUDGEL_DESC,Heavy rebar length. Stronger when given room — no adjacent weapons.,Тяжёлая арматура. Бьет сильнее; когда не касается другого оружия.
 ITEM_CYBER_SPIKE_NAME,Cyber Spike,Кибершип
 ITEM_CYBER_SPIKE_DESC,Needle implant that siphons vitality from the target into your Frame HP.,Игольчатый имплант; тянет жизненную силу с цели в ОЗ фрейма.
+ITEM_VIBRO_STILETTO_NAME,"Cavitation Vibro-Stiletto","Мономолекулярный вибростилет"
+ITEM_VIBRO_STILETTO_DESC,"1 AP melee. Base damage 4 + STR. [Cavitation Resonance]: +2 damage and +1 lifesteal per orthogonally adjacent harmful item.","Оружие ближнего боя (1 AP). Базовый урон 4 + STR. [Кавитационный резонанс]: +2 к урону и +1 к вампиризму за каждый ортогонально смежный вредоносный предмет."
+KEY_CAVITATION_LIFESTEAL_NOTE,"[color=#7dcea0]Cavitation: +%d HP on hit from adjacent hazards[/color]","[color=#7dcea0]Кавитация: +%d ОЗ при ударе от соседних угроз[/color]"
+KEY_CAVITATION_LIFESTEAL_NOTE_PLAIN,Cavitation: +%d HP on hit from adjacent hazards,Кавитация: +%d ОЗ при ударе от соседних угроз
+KEY_LOG_CAVITATION_LIFESTEAL,%s drains %d HP via cavitation resonance.,%s вытягивает %d ОЗ через кавитационный резонанс.
 KEY_STATUS_CHEST,Salvage chest cracked open.,Контейнер взломан.
 KEY_STATUS_SHOP,Shop visit complete.,Визит в магазин завершён.
 KEY_STATUS_SHOP_OPEN,"EVERYMART is open — drag items into your Body Grid to buy.","EVERYMART открыт — перетащите предметы в сетку тела, чтобы купить."

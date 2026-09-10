@@ -719,6 +719,7 @@ func _resolve_single_enemy(placed: PlacedItem) -> bool:
 	_apply_stackable_damage_boost_on_attack(placed)
 	_apply_on_hit_weapon_statuses(placed, target_index)
 	_apply_armorless_adjacent_heal_on_hit(placed)
+	_apply_cavitation_lifesteal(placed)
 	return killed
 
 
@@ -2326,6 +2327,32 @@ func _apply_armorless_adjacent_heal_on_hit(placed: PlacedItem) -> void:
 	_request_player_popup(healed, "heal")
 	EventBus.combat_log_message.emit(
 		tr("KEY_LOG_ARMORLESS_HEAL_ON_HIT") % [placed.data.get_localized_name(), healed]
+	)
+
+
+func _apply_cavitation_lifesteal(placed: PlacedItem) -> void:
+	## Vibro-Stiletto: +1 HP per adjacent harmful module on hit (capped at max HP).
+	if placed == null or placed.data == null:
+		return
+	if not TraitManager.has_trait(placed.data, "TRAIT_CAVITATION_RESONANCE"):
+		return
+	if inventory == null or inventory.grid == null:
+		return
+	var steal := inventory.grid.count_adjacent_harmful(placed)
+	if steal <= 0:
+		return
+	var heal_amt := _modify_player_healing(steal)
+	if heal_amt <= 0:
+		return
+	var before := inventory.current_hp
+	inventory.current_hp = mini(inventory.max_hp, inventory.current_hp + heal_amt)
+	var healed := inventory.current_hp - before
+	if healed <= 0:
+		return
+	EventBus.player_hp_changed.emit(inventory.current_hp, inventory.max_hp)
+	_request_player_popup(healed, "heal")
+	EventBus.combat_log_message.emit(
+		tr("KEY_LOG_CAVITATION_LIFESTEAL") % [placed.data.get_localized_name(), healed]
 	)
 
 
