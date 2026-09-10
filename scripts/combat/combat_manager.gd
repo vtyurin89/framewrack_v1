@@ -731,12 +731,12 @@ func _is_auto_scatter_weapon(data: ItemData) -> bool:
 
 
 func _weapon_crit_mult_bonus(placed: PlacedItem) -> float:
-	## TRAIT_BRUTAL_CRITS effect_value is stored in tenths (+4 → +0.4).
+	## TRAIT_BRUTAL_CRITS effect_value is stored in tenths (+6 → +0.6).
 	if placed == null or placed.data == null:
 		return 0.0
 	if not TraitManager.has_trait(placed.data, "TRAIT_BRUTAL_CRITS"):
 		return 0.0
-	return float(TraitManager.get_trait_value(placed.data, "TRAIT_BRUTAL_CRITS", 4)) * 0.1
+	return float(TraitManager.get_trait_value(placed.data, "TRAIT_BRUTAL_CRITS", 6)) * 0.1
 
 
 func _apply_headshot_on_crit(placed: PlacedItem, enemy_index: int) -> void:
@@ -746,6 +746,9 @@ func _apply_headshot_on_crit(placed: PlacedItem, enemy_index: int) -> void:
 		return
 	var stacks := TraitManager.get_trait_value(placed.data, "TRAIT_HEADSHOT", 2)
 	apply_status_to_enemy(enemy_index, "weakness", maxi(1, stacks))
+	## Crit refunds 1 AP — base rifle shot becomes free.
+	current_ap += 1
+	EventBus.ap_changed.emit(current_ap, max_ap)
 
 
 func _can_auto_fire_weapon(placed: PlacedItem) -> bool:
@@ -1005,7 +1008,10 @@ func _resolve_pliers_extract(placed: PlacedItem) -> void:
 
 func _calc_damage(placed: PlacedItem) -> int:
 	var adjacency_bonus: int = inventory.grid.get_adjacency_damage_bonus_for(placed)
-	var raw: int = placed.data.roll_damage(player_stats) + adjacency_bonus
+	var data: ItemData = placed.data
+	data.set_damage_context_grid(inventory.grid if inventory != null else null)
+	var raw: int = data.roll_damage(player_stats) + adjacency_bonus
+	data.set_damage_context_grid(null)
 	if player_statuses != null:
 		return player_statuses.modify_outgoing_damage(raw)
 	return raw
@@ -1303,6 +1309,8 @@ func _resolve_consumable_enemy(placed: PlacedItem, enemy_index: int) -> void:
 		_apply_dot_multiplier_to_enemy(enemy_index, TraitManager.get_trait_value(data, "TRAIT_DOT_MULTIPLIER", 3))
 		return
 	var dealt := 0
+	var data_grid = inventory.grid if inventory != null else null
+	data.set_damage_context_grid(data_grid)
 	if TraitManager.has_trait(data, "TRAIT_BURN_DAMAGE"):
 		## Damage comes from the item roll; the trait only applies Burn.
 		var burn_hit: int = data.roll_damage(player_stats)
@@ -1315,6 +1323,7 @@ func _resolve_consumable_enemy(placed: PlacedItem, enemy_index: int) -> void:
 			apply_status_to_enemy(enemy_index, BurnStatus.STATUS_ID, stacks)
 	if dealt == 0:
 		_deal_damage_to(enemy_index, data.roll_damage(player_stats), data.get_localized_name())
+	data.set_damage_context_grid(null)
 
 
 func _reset_all_item_turn_uses() -> void:

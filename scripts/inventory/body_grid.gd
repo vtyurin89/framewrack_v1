@@ -506,6 +506,20 @@ func get_functional_items() -> Array[PlacedItem]:
 	return result
 
 
+func count_armor_pieces(include_shields: bool = false) -> int:
+	## Equipped armor modules on the body. Shields excluded by default.
+	var count := 0
+	for placed: PlacedItem in items:
+		if placed == null or placed.data == null:
+			continue
+		if not placed.data.is_armor():
+			continue
+		if not include_shields and placed.data.is_shield():
+			continue
+		count += 1
+	return count
+
+
 func get_adjacent_items(placed: PlacedItem) -> Array[PlacedItem]:
 	## Orthogonally adjacent modules (sharing an edge with any occupied cell).
 	var found: Dictionary = {}

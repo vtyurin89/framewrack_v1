@@ -340,7 +340,7 @@ func _build_meta_line(item: ItemData) -> String:
 
 func _build_combat_line(item: ItemData) -> String:
 	var parts: PackedStringArray = []
-	var dmg := item.format_damage_display(true, actor_stats)
+	var dmg := item.format_damage_display(true, actor_stats, body_grid)
 	var armor := item.format_armor_display(true, actor_stats)
 	if not dmg.is_empty():
 		parts.append(dmg)

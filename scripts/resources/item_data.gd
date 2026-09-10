@@ -36,6 +36,8 @@ const FALLBACK_ICON_PATH := "res://assets/icons/fallback_item.png"
 
 ## Traits injected at runtime (e.g. Bonk from adjacent Megabonker). Not saved on prototype.
 var _runtime_trait_ids: Array[String] = []
+## Transient BodyGrid for damage-range taxes during roll/tooltip (not saved).
+var _damage_context_grid = null
 
 ## Footprint in grid cells (width x height). Swapped on rotate (R while dragging).
 @export var size: Vector2i = Vector2i(1, 1)
@@ -502,6 +504,39 @@ func get_effective_damage_bounds() -> Vector2i:
 	return Vector2i(bounds.x + bonus, bounds.y + bonus)
 
 
+static func apply_damage_bounds_penalty(
+	bounds: Vector2i,
+	penalty: int,
+	min_floor: int = 0,
+	max_floor: int = 1
+) -> Vector2i:
+	## Central clamp for inventory/trait damage-range taxes (e.g. Nail Gun armor burden).
+	if bounds == Vector2i.ZERO or penalty <= 0:
+		return bounds
+	var lo := maxi(min_floor, bounds.x - penalty)
+	var hi := maxi(max_floor, bounds.y - penalty)
+	if lo > hi:
+		lo = hi
+	return Vector2i(lo, hi)
+
+
+func set_damage_context_grid(grid = null) -> void:
+	_damage_context_grid = grid
+
+
+func get_damage_bounds_penalty(grid = null) -> int:
+	## Flat range tax before floors / stat scaling. Extend here for similar traits.
+	## `grid` is a BodyGrid when available (untyped to avoid class load cycles).
+	var source = grid if grid != null else _damage_context_grid
+	if source == null or not source.has_method("count_armor_pieces"):
+		return 0
+	var penalty := 0
+	if TraitManager.has_trait(self, "TRAIT_NAIL_ARMOR_PENALTY"):
+		var per_piece := TraitManager.get_trait_value(self, "TRAIT_NAIL_ARMOR_PENALTY", 1)
+		penalty += maxi(0, per_piece) * int(source.count_armor_pieces(false))
+	return penalty
+
+
 func get_effective_damage() -> int:
 	## Midpoint of the rolled window (UI / legacy callers).
 	var bounds := get_effective_damage_bounds()
@@ -551,16 +586,18 @@ func get_armor_stat_bonus(stats: ActorStats = null) -> int:
 			return 0
 
 
-func get_scaled_damage_bounds(stats: ActorStats = null) -> Vector2i:
+func get_scaled_damage_bounds(stats: ActorStats = null, grid = null) -> Vector2i:
 	var bounds := get_effective_damage_bounds()
 	if bounds == Vector2i.ZERO:
 		return Vector2i.ZERO
+	bounds = apply_damage_bounds_penalty(bounds, get_damage_bounds_penalty(grid))
 	var stat_bonus := get_damage_stat_bonus(stats)
 	return Vector2i(bounds.x + stat_bonus, bounds.y + stat_bonus)
 
 
 func roll_damage(stats: ActorStats = null) -> int:
 	## Combat hit: random roll in [min, max] plus trait / stat bonuses.
+	## Uses `_damage_context_grid` when set (see set_damage_context_grid).
 	var bounds := get_scaled_damage_bounds(stats)
 	if bounds == Vector2i.ZERO:
 		return 0
@@ -569,9 +606,9 @@ func roll_damage(stats: ActorStats = null) -> int:
 	return randi_range(lo, hi)
 
 
-func get_scaled_damage(stats: ActorStats = null) -> int:
+func get_scaled_damage(stats: ActorStats = null, grid = null) -> int:
 	## Midpoint of scaled bounds (tooltips / non-combat). Combat uses roll_damage().
-	var bounds := get_scaled_damage_bounds(stats)
+	var bounds := get_scaled_damage_bounds(stats, grid)
 	if bounds == Vector2i.ZERO:
 		return 0
 	return int(round((float(bounds.x) + float(bounds.y)) * 0.5))
@@ -581,15 +618,25 @@ func get_scaled_armor(stats: ActorStats = null) -> int:
 	return get_effective_armor() + get_armor_stat_bonus(stats)
 
 
-func format_damage_display(use_bbcode: bool = true, stats: ActorStats = null) -> String:
+func format_damage_display(
+	use_bbcode: bool = true,
+	stats: ActorStats = null,
+	grid = null
+) -> String:
 	## Weapons / damaging modules only — never show on pure armor.
 	var base_bounds := get_damage_roll_bounds()
 	if base_bounds == Vector2i.ZERO:
 		return ""
 	var trait_bonus := get_active_trait_bonus("DAMAGE")
 	var stat_bonus := get_damage_stat_bonus(stats)
-	var lo := base_bounds.x + trait_bonus + stat_bonus
-	var hi := base_bounds.y + trait_bonus + stat_bonus
+	var penalty := get_damage_bounds_penalty(grid)
+	var work := Vector2i(
+		base_bounds.x + trait_bonus + permanent_damage_bonus + temp_flat_damage_bonus,
+		base_bounds.y + trait_bonus + permanent_damage_bonus + temp_flat_damage_bonus
+	)
+	work = apply_damage_bounds_penalty(work, penalty)
+	var lo := work.x + stat_bonus
+	var hi := work.y + stat_bonus
 	var range_text := str(lo) if lo == hi else "%d-%d" % [lo, hi]
 	var parts: PackedStringArray = []
 	if base_bounds.x == base_bounds.y:
@@ -598,6 +645,8 @@ func format_damage_display(use_bbcode: bool = true, stats: ActorStats = null) ->
 		parts.append("%d-%d" % [base_bounds.x, base_bounds.y])
 	if trait_bonus != 0:
 		parts.append("%+d" % trait_bonus)
+	if penalty != 0:
+		parts.append("%+d" % -penalty)
 	if stat_bonus != 0:
 		parts.append("%+d" % stat_bonus)
 	if permanent_damage_bonus != 0:

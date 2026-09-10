@@ -476,7 +476,7 @@ ITEM_JACKHAMMER_DESC,Industrial breaker arm. Costs 2 AP. Stuns the enemy on impa
 ITEM_BIO_CLAW_NAME,Biomorphic Claw,Биоморфный коготь
 ITEM_BIO_CLAW_DESC,Living talon that can graft inside the frame. Resonates with nearby biomorphic modules.,Живой коготь; можно встроить внутрь каркаса. Резонирует с соседними биоморфными модулями.
 ITEM_NAIL_GUN_NAME,Nail Gun,Гвоздомёт
-ITEM_NAIL_GUN_DESC,"Nail driver. Deals 2-4 + INT damage for 0 AP, then cools down for 1 turn. Killing the target resets the cooldown.","Гвоздомёт. Наносит 2–4 + INT за 0 AP, затем кулдаун 1 ход. Убийство цели сбрасывает кулдаун."
+ITEM_NAIL_GUN_DESC,"Nail driver. Deals 2-4 + INT damage for 0 AP, then cools down for 1 turn. Killing the target resets the cooldown. Each equipped armor piece (not shields) reduces damage range by 1 (min floor 0, max floor 1).","Гвоздомёт. Наносит 2–4 + INT за 0 AP, затем кулдаун 1 ход. Убийство цели сбрасывает кулдаун. Каждый предмет брони (не щит) снижает диапазон урона на 1 (мин. не ниже 0, макс. не ниже 1)."
 ITEM_ARC_DISCHARGER_NAME,Arc Discharger,Дуговой разрядник
 ITEM_ARC_DISCHARGER_DESC,Coiled contacts that arc harder when a reactor shares an edge.,Скрученные провода. Бьют сильнее; если касаются реактора.
 ITEM_RUSTY_CHAIN_NAME,Rusty Chain,Ржавая цепь
@@ -735,15 +735,15 @@ ITEM_AUTO_BLASTER_DESC,"A rapid-fire energy blaster with a faulty stabilizer. Fi
 ITEM_LASER_AUTOCANNON_NAME,Laser Autocannon,Лазерная автопушка
 ITEM_LASER_AUTOCANNON_DESC,"Manual shot costs 0 AP (1-2 + INT), then 1-turn cooldown. At the start of your turn, also auto-fires once at a random enemy for free (no cooldown).","Ручной выстрел стоит 0 AP (1–2 + INT), затем кулдаун 1 ход. В начале хода также автоматически атакует случайного врага бесплатно (без кулдауна)."
 ITEM_HEAVY_RIFLE_NAME,Heavy Rifle,Тяжёлая винтовка
-ITEM_HEAVY_RIFLE_DESC,"Costs 1 AP. +2 LUCK. Crit multiplier increased by +0.4. Critical hits inflict 2 Weakness. Up to 2 uses per turn.","Стоит 1 AP. +2 УДАЧА. Множитель крита увеличен на +0.4. Критические удары накладывают 2 Weakness. До 2 применений за ход."
+ITEM_HEAVY_RIFLE_DESC,"Costs 1 AP. +2 LUCK. Crit multiplier increased by +0.6. Critical hits inflict 2 Weakness and restore 1 AP. Up to 2 uses per turn.","Стоит 1 AP. +2 УДАЧА. Множитель крита увеличен на +0.6. Критические удары накладывают 2 Weakness и возвращают 1 ОД. До 2 применений за ход."
 TRAIT_AUTO_SCATTER_NAME,Faulty Stabilizer,Неисправный стабилизатор
 TRAIT_AUTO_SCATTER_DESC,Fires 3 shots: first hits the selected target; the rest scatter to random living enemies.,Делает 3 выстрела: первый в выбранную цель, остальные разлетаются по случайным живым врагам.
 TRAIT_SIGHTING_SHOT_NAME,Sighting Shot,Пристрелочный выстрел
 TRAIT_SIGHTING_SHOT_DESC,"At the start of your turn, automatically fires once at a random living enemy.","В начале хода автоматически атакует случайного живого врага один раз."
 TRAIT_BRUTAL_CRITS_NAME,Brutal Crits,Жестокие криты
-TRAIT_BRUTAL_CRITS_DESC,Increases critical damage multiplier by +0.4.,Увеличивает множитель критического урона на +0.4.
+TRAIT_BRUTAL_CRITS_DESC,Increases critical damage multiplier by +0.6.,Увеличивает множитель критического урона на +0.6.
 TRAIT_HEADSHOT_NAME,Headshot,Хедшот
-TRAIT_HEADSHOT_DESC,Critical hits apply 2 Weakness stacks.,Критические удары накладывают 2 стака Weakness.
+TRAIT_HEADSHOT_DESC,"Critical hits apply 2 Weakness stacks and restore 1 AP.","Критические удары накладывают 2 стака Weakness и возвращают 1 ОД."
 TRAIT_HEAVY_RIFLE_LUCK_NAME,Stabilized Recoil,Стабилизированная отдача
 TRAIT_HEAVY_RIFLE_LUCK_DESC,Grants +2 Luck while equipped.,Даёт +2 к Удаче пока экипировано.
 KEY_LOG_SIGHTING_SHOT,%s auto-fires a sighting shot.,%s автоматически делает пристрелочный выстрел.

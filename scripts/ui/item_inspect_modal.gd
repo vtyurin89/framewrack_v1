@@ -190,7 +190,7 @@ func _populate(item: ItemData) -> void:
 	_meta_label.text = TextGlitcher.glitchify(" • ".join(meta_parts)) if hacked else " • ".join(meta_parts)
 
 	var combat_parts: PackedStringArray = []
-	var dmg_line := item.format_damage_display(true, actor_stats)
+	var dmg_line := item.format_damage_display(true, actor_stats, body_grid)
 	var armor_line := item.format_armor_display(true, actor_stats)
 	if not dmg_line.is_empty():
 		combat_parts.append(dmg_line)
