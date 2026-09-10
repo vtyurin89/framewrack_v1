@@ -5,7 +5,7 @@ signal rewards_generated(items: Array)
 signal pick_limit_reached
 signal rewards_session_cleared
 
-const MAX_PICKS := 3
+const MAX_PICKS := 2
 const CHEST_PICKS := 1
 const CHEST_OFFER_COUNT := 3
 const BOSS_OFFER_COUNT := 3

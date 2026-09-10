@@ -100,7 +100,7 @@ KEY_RARITY_UNCOMMON,Uncommon,Необычный
 KEY_RARITY_RARE,Rare,Редкий
 KEY_RARITY_VERY_RARE,Very Rare,Очень редкий
 KEY_RARITY_BOSS,Boss Relic,Босс-реликвия
-KEY_REWARD_SELECT_UP_TO_3,Select up to 3 new items,Выберите до 3 новых предметов
+KEY_REWARD_SELECT_UP_TO_3,Select up to 2 new items,Выберите до 2 новых предметов
 KEY_REWARD_PICK_LIMIT,Cannot pick more than 3 new items!,Нельзя взять больше 3 новых предметов!
 KEY_REWARD_NOT_DROPPABLE,This item cannot be discarded!,Этот предмет нельзя выбросить!
 KEY_TYPE_STAIRS,STAIRS,ЛЕСТНИЦА
