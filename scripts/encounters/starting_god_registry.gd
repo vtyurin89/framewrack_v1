@@ -464,6 +464,10 @@ static func _apply_compound_primary_kind(o: DialogOutcomeData, next_id: String) 
 					o.kind = DialogOutcomeData.OutcomeKind.GRANT_STAT
 					o.stat_name = ft
 					o.stat_amount = amount if amount != 0 else 1
+			"heal", "heal_percent", "restore_hp":
+				## Side-effect heal; applied via EncounterManager payload_effects.
+				## Prefer compound bundles so navigation stays intact.
+				pass
 			"exp", "experience", "xp", "exp_tier":
 				## Side-effect fields; applied once via EncounterManager.
 				o.exp_amount = amount if amount > 0 else o.exp_amount

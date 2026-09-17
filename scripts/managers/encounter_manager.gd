@@ -766,6 +766,18 @@ func _apply_payload_effects(effects: Array, outcome: DialogOutcomeData = null) -
 				if chips <= 0 and chips_tier == BalanceTypes.Tier.NONE:
 					chips = amount if amount > 0 else 10
 				_grant_item("NEURO_CHIP", chips)
+			"heal", "heal_percent", "restore_hp":
+				var heal_pct := float(
+					effect.get("percent", effect.get("heal_percent", effect.get("fraction", 0.0)))
+				)
+				var healed := 0
+				if heal_pct > 0.0 and inventory != null:
+					healed = inventory.heal_percent(heal_pct)
+				elif amount > 0:
+					_apply_heal(amount)
+					healed = amount
+				if healed > 0:
+					_pending_rewards["healed"] = int(_pending_rewards.get("healed", 0)) + healed
 			"exp", "experience", "xp", "exp_tier":
 				var exp_tier := BalanceTypes.string_to_tier(
 					str(effect.get("tier", effect.get("exp_tier", "")))

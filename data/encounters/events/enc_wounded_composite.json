@@ -1,0 +1,147 @@
+{
+	"id": "enc_wounded_composite",
+	"title_key": "",
+	"god_name": "The Wounded Composite",
+	"god_name_ru": "Раненый композит",
+	"image_path": "res://assets/sprites/story/raim_city.png",
+	"dialogs": {
+		"start": {
+			"narrator_text_en": "A wounded composite slumps against the wreck of a machine in a pool of synthetic blood. The biological sections of its frame are rotting, reeking of dead tissue. Twisted metal joints pop with sparks.\n\nCorpses of chimeras lie scattered about — remnants of a costly victory. Sensing you, it turns what remains of its face.",
+			"narrator_text_ru": "Раненый композит сидит, привалившись спиной к остову машины, в луже синтетической крови. Биологическая часть его тела разлагается, и от него несёт мёртвой плотью. Металлические сочленения искорежены и искрят.\n\nВокруг валяются трупы химер. Кажется, была большая драка, и победа далась композиту слишком дорогой ценой. Заметив вас, он поворачивает к вам то, что осталось от его лица.",
+			"speech_text_en": "\"Who's there? Can't see... Bio-chip... memory... corrupted.\" The voice cracks between breaths. \"Soon it breaks — and I go dark... Take it. Please. Let it serve someone... I just want a part of me to remain.\"\n\nWith a ruined limb, he gestures to the temporal chip slot. Taking it will end him. He's doomed anyway.",
+			"speech_text_ru": "«Кто здесь? Ничего не вижу…. Биочип памяти... повреждён, — голос едва слышен, прерывается на каждом слове. — Скоро чип разрушится, и я отключусь…. Возьми его, прошу…. Пусть послужит хоть кому-то, раз мне уже не пригодится. Мне бы хотелось, чтобы хоть часть меня осталась в этом мире».\n\nОбрубком руки он касается слота для чипов на своем виске. Если извлечь чип и поглотить, бедняге конец. Хотя он в любом случае обречён.",
+			"choices": [
+				{
+					"id": "opt_consume_chip",
+					"text_en": "Integrate the chip (Restore 33% Max HP)",
+					"text_ru": "Поглотить чип (восстановить 33% здоровья)",
+					"next_dialog_id": "node_consume_chip",
+					"reward": {
+						"type": "compound",
+						"effects": [
+							{ "type": "heal_percent", "percent": 0.33 },
+							{ "type": "exp_tier", "tier": "TRIVIAL" }
+						]
+					}
+				},
+				{
+					"id": "opt_socket_chip",
+					"text_en": "Retain the chip in an open slot (+1 END)",
+					"text_ru": "Сохранить чип в слоте (+1 ВЫН)",
+					"next_dialog_id": "node_socket_chip",
+					"reward": {
+						"type": "compound",
+						"effects": [
+							{ "type": "endurance", "amount": 1 },
+							{ "type": "exp_tier", "tier": "TRIVIAL" }
+						]
+					}
+				},
+				{
+					"id": "opt_help_attempt",
+					"text_en": "Attempt to stabilize the composite's systems",
+					"text_ru": "Попытаться помочь композиту",
+					"next_dialog_id": "node_attempt_help"
+				},
+				{
+					"id": "opt_walk_away",
+					"text_en": "Leave the composite alone",
+					"text_ru": "Не трогать композита",
+					"next_dialog_id": "node_leave"
+				}
+			]
+		},
+		"node_attempt_help": {
+			"narrator_text_en": "You kneel beside him and attempt to stabilize his failing systems. The composite is clearly beyond saving, but perhaps you can buy a little time.\n\nHis face is horribly mangled, yet what remains of his mouth twists into something like a smile.",
+			"narrator_text_ru": "Вы опускаетесь рядом и пытаетесь стабилизировать его системы. Композит явно обречен, но, может быть, вы сможете выиграть немного времени?\n\nЛицо композита слишком сильно обезображено, но вы замечаете, как то, что осталось от его рта, растягивается в подобие улыбки.",
+			"speech_text_en": "\"You're actually trying to help me?... If God exists, he has a strange sense of humor...\"",
+			"speech_text_ru": "«Ты серьёзно пытаешься мне помочь?.... — произносит композит чуть слышно. — Надо же…. Если бог действительно существует, у него странное чувство юмора….».",
+			"choices": [
+				{
+					"id": "opt_roll_stabilize",
+					"text_en": "[INT Check] Re-route bio-coolant loops and bridge severed circuits",
+					"text_ru": "[Проверка INT] Замкнуть разорванные цепи и подать охлаждение",
+					"stat_check": "INT",
+					"difficulty": "MEDIUM",
+					"success_next_dialog_id": "node_help_success",
+					"failure_next_dialog_id": "node_help_fail",
+					"success_reward": {
+						"type": "compound",
+						"effects": [
+							{ "type": "humanity", "amount": 1 },
+							{ "type": "endurance", "amount": 1 },
+							{ "type": "neuro_chips", "amount": 150 },
+							{ "type": "exp_tier", "tier": "TRIVIAL" }
+						]
+					},
+					"failure_reward": { "type": "exp_tier", "tier": "TRIVIAL" }
+				}
+			]
+		},
+		"node_consume_chip": {
+			"narrator_text_en": "You extract the chip and initiate the integration sequence. Fragments of another's memory flood your cortex as your systems absorb the data.\n\nThe stranger nods faintly, then goes entirely still.\n\nMay the Sleeping God receive you.",
+			"narrator_text_ru": "Вы забираете чип и запускаете программу интеграции. Внутри — обрывки чужого опыта, которые ваш разум жадно поглощает.\n\nНезнакомец кивает — едва заметно — и затихает. Его системы отключаются навсегда.\n\nДа примет тебя Спящий бог.",
+			"speech_text_en": "",
+			"speech_text_ru": "",
+			"choices": [
+				{
+					"text_en": "Continue",
+					"text_ru": "Продолжить",
+					"next_dialog_id": "end_encounter"
+				}
+			]
+		},
+		"node_socket_chip": {
+			"narrator_text_en": "You decline to devour the neural data. Instead, you house it carefully inside an empty chip slot. You doubt you can find an intact vessel in time, but the attempt feels necessary.\n\nWhen you glance down, the stranger's optical sensors have already gone dark.\n\nMay the Sleeping God receive you, friend.",
+			"narrator_text_ru": "Вы не решаетесь интегрировать чип и вместо этого оставляете его в своем слоте. Вряд ли вы найдёте для незнакомца новое тело, прежде чем его чип разрушится, но кто знает? Вы решаете попробовать.\n\nНезнакомец, впрочем, уже не двигается. Склонившись над ним, вы замечаете, что его глаза потухли.\n\nДа примет тебя Спящий бог, друг.",
+			"speech_text_en": "",
+			"speech_text_ru": "",
+			"choices": [
+				{
+					"text_en": "Continue",
+					"text_ru": "Продолжить",
+					"next_dialog_id": "end_encounter"
+				}
+			]
+		},
+		"node_help_success": {
+			"narrator_text_en": "You do everything within your power, but fundamental collapse is irreversible. The composite grips your gauntlet with the last trace of its strength.",
+			"narrator_text_ru": "Вы сделали всё что могли, но существенных улучшений нет. Композит берёт вас за руку, и на это движение, похоже, ушли его последние силы.",
+			"speech_text_en": "\"Thank you... Dying hurts less knowing there are still good souls left.\"",
+			"speech_text_ru": "«Спасибо тебе…. Жаль, что я не вижу твоё лицо…. Но не так горько будет умирать, зная, что в мире еще остались добрые люди».",
+			"choices": [
+				{
+					"text_en": "Continue",
+					"text_ru": "Продолжить",
+					"next_dialog_id": "end_encounter"
+				}
+			]
+		},
+		"node_help_fail": {
+			"narrator_text_en": "Auxiliary relays fail one after another despite your efforts. The composite goes unresponsive before your bypass routine completes.",
+			"narrator_text_ru": "Что бы вы ни делали, системы композита продолжают отключаться одна за другой, и никакие ваши усилия не могут этому помешать. Незнакомец умирает прежде, чем вы успеваете закончить.",
+			"speech_text_en": "",
+			"speech_text_ru": "",
+			"choices": [
+				{
+					"text_en": "Continue",
+					"text_ru": "Продолжить",
+					"next_dialog_id": "end_encounter"
+				}
+			]
+		},
+		"node_leave": {
+			"narrator_text_en": "You turn away, leaving the dying machine to the silence of the ruins.",
+			"narrator_text_ru": "Вы оставляете композита наедине с неизбежным и уходите вглубь руин.",
+			"speech_text_en": "",
+			"speech_text_ru": "",
+			"choices": [
+				{
+					"text_en": "Continue",
+					"text_ru": "Продолжить",
+					"next_dialog_id": "end_encounter"
+				}
+			]
+		}
+	}
+}
