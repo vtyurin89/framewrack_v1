@@ -95,8 +95,8 @@ func get_next_event_for_act(act_index: int) -> StoryEvent:
 		var pulled: StoryEvent = queue.pop_back()
 		if pulled == null:
 			continue
-		if pulled.id == WHITE_FOG_ID and act_index < 2:
-			## Should not be in Act 1 queues; cycle past if present.
+		if not pulled.is_allowed_for_act(act_index):
+			## Should not be in this act's queue; cycle past.
 			queue.push_front(pulled)
 			continue
 		if pulled.id == WHITE_FOG_ID and white_fog_event_triggered:
@@ -160,27 +160,34 @@ func maybe_inject_faceless_lady(
 func _rebuild_catalog() -> void:
 	_catalog.clear()
 	## Pale Maiden is a starting god (data/encounters/gods/, INTRO), not a map event.
-	_register_event(WHITE_FOG_ID, StoryEvent.Faction.HUMAN, WHITE_FOG_ID, true)
+	_register_event(WHITE_FOG_ID, StoryEvent.Faction.HUMAN, WHITE_FOG_ID, true, [2, 3])
 	## Act 1 city beats — travel through the ruins of Ra'im.
-	_register_event("raim_great_ascent", StoryEvent.Faction.HUMAN, "raim_great_ascent", false)
-	_register_event("raim_hollow_windows", StoryEvent.Faction.HUMAN, "raim_hollow_windows", false)
-	_register_event("enc_crematorium", StoryEvent.Faction.HUMAN, "enc_crematorium", false)
-	_register_event("enc_collector_house", StoryEvent.Faction.HUMAN, "enc_collector_house", false)
-	_register_event("enc_deep_pit", StoryEvent.Faction.HUMAN, "enc_deep_pit", false)
+	_register_event("raim_great_ascent", StoryEvent.Faction.HUMAN, "raim_great_ascent", false, [1])
+	_register_event("raim_hollow_windows", StoryEvent.Faction.HUMAN, "raim_hollow_windows", false, [1])
+	_register_event("enc_crematorium", StoryEvent.Faction.HUMAN, "enc_crematorium", false, [1])
+	_register_event("enc_collector_house", StoryEvent.Faction.HUMAN, "enc_collector_house", false, [1])
+	_register_event("enc_deep_pit", StoryEvent.Faction.HUMAN, "enc_deep_pit", false, [1])
 	## Act 2 Kairit — machine megastructure beats.
-	_register_event("enc_wounded_composite", StoryEvent.Faction.ROBOT, "enc_wounded_composite", false)
+	_register_event("enc_wounded_composite", StoryEvent.Faction.ROBOT, "enc_wounded_composite", false, [2])
 	## Faction-neutral event that can surface in any act.
-	_register_event("enc_cursed_stranger", StoryEvent.Faction.GENERIC, "enc_cursed_stranger", false)
+	_register_event("enc_cursed_stranger", StoryEvent.Faction.GENERIC, "enc_cursed_stranger", false, [])
 
 
 func _register_event(
-	event_id: String, faction: StoryEvent.Faction, json_id: String, one_shot: bool
+	event_id: String,
+	faction: StoryEvent.Faction,
+	json_id: String,
+	one_shot: bool,
+	allowed_acts: Array = []
 ) -> void:
 	var ev := StoryEvent.new()
 	ev.id = event_id
 	ev.faction = faction
 	ev.encounter_json_id = json_id
 	ev.one_shot = one_shot
+	ev.allowed_acts.clear()
+	for act in allowed_acts:
+		ev.allowed_acts.append(int(act))
 	_catalog[event_id] = ev
 
 
@@ -196,8 +203,7 @@ func _build_queue_for_act(act_index: int) -> Array[StoryEvent]:
 		var ev: StoryEvent = _catalog[key]
 		if ev == null:
 			continue
-		## White Fog is Act 2+ only (post-Ra'im narrative beat).
-		if ev.id == WHITE_FOG_ID and act_index < 2:
+		if not ev.is_allowed_for_act(act_index):
 			continue
 		by_faction[ev.get_faction_key()].append(ev)
 
@@ -211,18 +217,18 @@ func _build_queue_for_act(act_index: int) -> Array[StoryEvent]:
 			pool = by_faction.get("generic", [])
 		if pool.is_empty():
 			## Final fallback: any catalog entry allowed for this act.
-			var all_keys: Array = []
+			var all_allowed: Array[StoryEvent] = []
 			for catalog_key in _catalog.keys():
 				var candidate: StoryEvent = _catalog[catalog_key]
 				if candidate == null:
 					continue
-				if candidate.id == WHITE_FOG_ID and act_index < 2:
+				if not candidate.is_allowed_for_act(act_index):
 					continue
-				all_keys.append(catalog_key)
-			if all_keys.is_empty():
+				all_allowed.append(candidate)
+			if all_allowed.is_empty():
 				break
-			var pick_id: String = str(all_keys[randi() % all_keys.size()])
-			queue.append((_catalog[pick_id] as StoryEvent).duplicate(true) as StoryEvent)
+			var pick_fallback: StoryEvent = all_allowed[randi() % all_allowed.size()]
+			queue.append(pick_fallback.duplicate(true) as StoryEvent)
 			continue
 		var pick: StoryEvent = pool[randi() % pool.size()]
 		queue.append(pick.duplicate(true) as StoryEvent)
