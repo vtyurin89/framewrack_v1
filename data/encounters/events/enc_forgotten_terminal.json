@@ -1,0 +1,163 @@
+{
+	"id": "enc_forgotten_terminal",
+	"title_key": "",
+	"god_name": "The Forgotten Terminal",
+	"god_name_ru": "Забытый терминал",
+	"image_path": "res://assets/sprites/story/raim_city.png",
+	"dialogs": {
+		"start": {
+			"narrator_text_en": "You discover a half-ruined medical station, inhabited by tiny healing bots that evidently haven't seen a patient in years.\n\nAt your approach, the bots stir to life, lights flickering on, beeping happily as if they've been waiting for you all this time.\n\n\"Beep-beep-beep! Beep-beep!\" one of the bots declares.\n\nIt seems to mean \"patient detected\"? You're not entirely sure. You don't know the byte-code language very well.",
+			"narrator_text_ru": "Вы обнаружили полуразрушенный медицинский пункт, населённый крошечными лечебными ботами, которые, судя по всему, уже много лет не видели пациентов.\n\nПри вашем появлении боты оживают и загораются огоньками, радостно бибикая, будто они ждали вас всё это время.\n\n«Бип-бип-бип! Бип-бип!» — заявляет один из ботов.\n\nКажется, это означает «пациент обнаружен»? Вы не совсем уверены. Вы не очень хорошо знаете байт-кодовый язык.",
+			"speech_text_en": "",
+			"speech_text_ru": "",
+			"choices": [
+				{
+					"id": "opt_treatment",
+					"text_en": "Ask for treatment",
+					"text_ru": "Попросить лечение",
+					"next_dialog_id": "node_treatment",
+					"reward": {
+						"type": "compound",
+						"effects": [
+							{
+								"type": "heal_percent",
+								"percent": 0.6
+							}
+						]
+					}
+				},
+				{
+					"id": "opt_remove_harmful",
+					"text_en": "Ask to remove a harmful module",
+					"text_ru": "Попросить удалить вредоносный модуль",
+					"require_harmful": true,
+					"next_dialog_id": "node_remove_harmful",
+					"reward": {
+						"type": "compound",
+						"effects": [
+							{
+								"type": "remove_random_harmful"
+							},
+							{
+								"type": "neuro_chips",
+								"amount": 50
+							}
+						]
+					}
+				},
+				{
+					"id": "opt_recruit",
+					"text_en": "Ask one of the bots to join you",
+					"text_ru": "Предложить одному из ботов присоединиться к вам",
+					"next_dialog_id": "node_recruit_attempt"
+				},
+				{
+					"id": "opt_leave",
+					"text_en": "Leave",
+					"text_ru": "Уйти",
+					"next_dialog_id": "node_leave"
+				}
+			]
+		},
+		"node_treatment": {
+			"narrator_text_en": "The bots surround you with almost frightening enthusiasm — patching wounds, tightening loose implant mounts.\n\n\"Beep! Beep-beep!\" the lead bot reports.\n\nIt means either \"please come again\" or \"yoke.\" Probably the former.\n\nRestored {60%} HP.",
+			"narrator_text_ru": "Боты окружают вас с почти пугающим энтузиазмом — обрабатывают раны, подкручивают разболтавшиеся крепления имплантов.\n\n«Бип! Бип-бип!» — отчитывается главный бот.\n\nЭто означает либо «обращайтесь снова», либо «коромысло». Скорее первое.\n\nВосстановлено {60%} HP.",
+			"speech_text_en": "",
+			"speech_text_ru": "",
+			"choices": [
+				{
+					"id": "opt_treatment_done",
+					"text_en": "Continue",
+					"text_ru": "Продолжить",
+					"next_dialog_id": "end_encounter"
+				}
+			]
+		},
+		"node_remove_harmful": {
+			"narrator_text_en": "The bots busily examine your inventory and carefully take apart one of the harmful items, clearly enjoying the dismantling process.\n\n\"Beep! Beep!\" one of the bots says, handing you a handful of chips. Its pronunciation is terrible — you can't make out the byte-code.\n\nA random harmful item has been removed from your inventory. +50 Neuro-Chips.",
+			"narrator_text_ru": "Боты деловито изучают ваш инвентарь и аккуратно разбирают на части один из вредоносных предметов, явно получая удовольствие от процесса демонтажа.\n\n«Бип! Бип!» — говорит вам один из ботов и вручает горстку чипов. У него ужасное произношение, вы не можете разобрать этот байт-код.\n\nСлучайный вредоносный предмет удалён из инвентаря. +50 Neuro-Chips.",
+			"speech_text_en": "",
+			"speech_text_ru": "",
+			"choices": [
+				{
+					"id": "opt_remove_done",
+					"text_en": "Continue",
+					"text_ru": "Продолжить",
+					"next_dialog_id": "end_encounter"
+				}
+			]
+		},
+		"node_recruit_attempt": {
+			"narrator_text_en": "You try to recall the syntax of the byte-code language to convince one of the healing bots to join you. It could be useful.",
+			"narrator_text_ru": "Вы пытаетесь вспомнить синтаксис байт-кодового языка, чтобы убедить одного из лечебных ботов присоединиться к вам. Он мог бы вам пригодиться.",
+			"speech_text_en": "",
+			"speech_text_ru": "",
+			"choices": [
+				{
+					"id": "opt_roll_recruit",
+					"text_en": "[INT Check] Negotiate in byte-code",
+					"text_ru": "[Проверка INT] Договориться на байт-коде",
+					"stat_check": "INT",
+					"difficulty": "MEDIUM",
+					"success_next_dialog_id": "node_recruit_ok",
+					"failure_next_dialog_id": "node_recruit_fail",
+					"success_reward": {
+						"type": "compound",
+						"effects": [
+							{
+								"type": "item",
+								"item_id": "ITM_PORTABLE_BOT"
+							},
+							{
+								"type": "exp_tier",
+								"tier": "TRIVIAL"
+							}
+						]
+					}
+				}
+			]
+		},
+		"node_recruit_ok": {
+			"narrator_text_en": "Your byte-code is very poor, but the bots seem to understand you. One of them detaches from the swarm and dutifully settles among your gear.\n\nThe remaining bots whine mournfully, letting you know they'll miss it terribly.\n\nObtained item \"Portable Bot\".",
+			"narrator_text_ru": "Ваш байт-кодовый язык очень плох, но, кажется, боты вас поняли. Один из них отделяется от роя и послушно устраивается среди вашего снаряжения.\n\nОстальные боты скорбно пищат, давая знать, что будут очень скучать по нему.\n\nПолучен предмет «Портативный бот».",
+			"speech_text_en": "",
+			"speech_text_ru": "",
+			"choices": [
+				{
+					"id": "opt_recruit_ok_done",
+					"text_en": "Continue",
+					"text_ru": "Продолжить",
+					"next_dialog_id": "end_encounter"
+				}
+			]
+		},
+		"node_recruit_fail": {
+			"narrator_text_en": "Uh-oh! The healing bots swarm around you indignantly, pecking at you with their repair manipulators. You clearly said something you shouldn't have.\n\n\"Beep-beep-beep!! BEEP-BEEP!!\" the lead bot chirps with outrage.\n\nIt's clear now. You just insulted their mother-terminal. Before the bots get truly out of hand, you hurriedly leave.",
+			"narrator_text_ru": "Ой-ой-ой! Лечебные боты возмущенно роятся вокруг вас и клюют своими ремонтными манипуляторами. Вы явно по ошибке сказали им нечто такое, что говорить не следовало.\n\n«Бип-бип-бип!! БИП-БИП!!» — пиликает главный бот с негодованием.\n\nВсё ясно. Вы только что оскорбили их маму-терминал. Пока боты совсем не вышли из себя, вы торопливо уходите.",
+			"speech_text_en": "",
+			"speech_text_ru": "",
+			"choices": [
+				{
+					"id": "opt_recruit_fail_done",
+					"text_en": "Continue",
+					"text_ru": "Продолжить",
+					"next_dialog_id": "end_encounter"
+				}
+			]
+		},
+		"node_leave": {
+			"narrator_text_en": "The bots beep in disappointment and return to sleep mode.\n\nYou wonder how many more years they'll wait for the next patient. Will they last until one comes — before the terminal runs out of power?",
+			"narrator_text_ru": "Боты разочарованно пищат и уходят обратно в спящий режим.\n\nИнтересно, сколько лет еще им ждать следующего пациента? Дождутся ли они его, прежде чем в терминале закончится энергия?",
+			"speech_text_en": "",
+			"speech_text_ru": "",
+			"choices": [
+				{
+					"id": "opt_leave_done",
+					"text_en": "Continue",
+					"text_ru": "Продолжить",
+					"next_dialog_id": "end_encounter"
+				}
+			]
+		}
+	}
+}

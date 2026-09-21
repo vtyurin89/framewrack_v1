@@ -778,6 +778,18 @@ func _apply_payload_effects(effects: Array, outcome: DialogOutcomeData = null) -
 					healed = amount
 				if healed > 0:
 					_pending_rewards["healed"] = int(_pending_rewards.get("healed", 0)) + healed
+			"remove_harmful", "remove_random_harmful", "extract_harmful":
+				if inventory == null:
+					pass
+				else:
+					var removed_item := inventory.remove_random_harmful_item()
+					if removed_item != null:
+						if player_stats != null and inventory.grid != null:
+							player_stats.recalculate_from_equipment(inventory.grid)
+						_pending_rewards["harmful_removed"] = (
+							int(_pending_rewards.get("harmful_removed", 0)) + 1
+						)
+						_pending_rewards["removed_harmful_id"] = removed_item.id
 			"exp", "experience", "xp", "exp_tier":
 				var exp_tier := BalanceTypes.string_to_tier(
 					str(effect.get("tier", effect.get("exp_tier", "")))

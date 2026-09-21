@@ -191,6 +191,9 @@ static func _parse_choice(choice_dict: Dictionary) -> DialogChoiceData:
 	choice.require_item_id = str(
 		choice_dict.get("require_item", choice_dict.get("require_item_id", ""))
 	).strip_edges()
+	choice.require_harmful = bool(
+		choice_dict.get("require_harmful", choice_dict.get("require_harmful_item", false))
+	)
 
 	var success_next := str(choice_dict.get("success_next_dialog_id", "")).strip_edges()
 	var failure_next := str(choice_dict.get("failure_next_dialog_id", "")).strip_edges()

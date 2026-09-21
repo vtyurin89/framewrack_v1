@@ -19,6 +19,7 @@ const EXCLUDED_LOOT_IDS: Array[String] = [
 	"NEURO_TICK",
 	"BROKEN_SLOT",
 	"LOCKPICK",
+	"ITM_PORTABLE_BOT",
 ]
 
 var initial_generated_items: Array[ItemData] = []

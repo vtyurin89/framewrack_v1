@@ -367,6 +367,34 @@ func remove_all_harmful_items() -> int:
 	return to_remove.size()
 
 
+func has_harmful_item() -> bool:
+	if grid == null:
+		return false
+	for placed: PlacedItem in grid.items:
+		if placed != null and placed.data != null and placed.data.is_harmful:
+			return true
+	return false
+
+
+func remove_random_harmful_item() -> ItemData:
+	## Remove one random harmful module. Returns its data blueprint, or null.
+	if grid == null:
+		return null
+	var harmful: Array[PlacedItem] = []
+	for placed: PlacedItem in grid.items:
+		if placed != null and placed.data != null and placed.data.is_harmful:
+			harmful.append(placed)
+	if harmful.is_empty():
+		return null
+	var pick: PlacedItem = harmful[randi() % harmful.size()]
+	var removed: ItemData = pick.data
+	var removed_id := removed.id
+	grid.remove_item(pick, true)
+	EventBus.item_removed.emit(removed_id)
+	EventBus.inventory_changed.emit()
+	return removed
+
+
 func is_dead() -> bool:
 	return current_hp <= 0
 

@@ -1302,6 +1302,41 @@ func _apply_self_use_traits(placed: PlacedItem) -> void:
 			EventBus.inventory_changed.emit()
 	if TraitManager.has_trait(data, "TRAIT_PLIERS_EXTRACT"):
 		_resolve_pliers_extract(placed)
+	if TraitManager.has_trait(data, "TRAIT_CLEAR_ADJACENT_ITEM_STATUS"):
+		_resolve_clear_adjacent_item_status(placed)
+
+
+func _resolve_clear_adjacent_item_status(placed: PlacedItem) -> void:
+	## Clear one status from an orthogonally adjacent module (prefer blocking statuses).
+	if placed == null or placed.data == null or inventory == null or inventory.grid == null:
+		return
+	var bot_name := placed.data.get_localized_name()
+	var candidates: Array[PlacedItem] = []
+	var blocking: Array[PlacedItem] = []
+	for neighbour: PlacedItem in inventory.grid.get_adjacent_items(placed):
+		if neighbour == null or neighbour.data == null:
+			continue
+		if not neighbour.data.has_any_item_status():
+			continue
+		candidates.append(neighbour)
+		if neighbour.data.has_blocking_status():
+			blocking.append(neighbour)
+	var pool: Array[PlacedItem] = blocking if not blocking.is_empty() else candidates
+	if pool.is_empty():
+		EventBus.combat_log_message.emit(tr("KEY_LOG_PORTABLE_BOT_MISS") % bot_name)
+		return
+	var target: PlacedItem = pool[randi() % pool.size()]
+	var status := target.data.get_primary_status()
+	if status == null:
+		EventBus.combat_log_message.emit(tr("KEY_LOG_PORTABLE_BOT_MISS") % bot_name)
+		return
+	var status_id := status.get_type_id()
+	target.data.clear_status(status.type)
+	EventBus.inventory_changed.emit()
+	EventBus.combat_item_availability_changed.emit()
+	EventBus.combat_log_message.emit(
+		tr("KEY_LOG_PORTABLE_BOT_CLEAR") % [bot_name, status_id, target.data.get_localized_name()]
+	)
 
 
 func _resolve_consumable_enemy(placed: PlacedItem, enemy_index: int) -> void:

@@ -22,6 +22,8 @@ extends Resource
 @export var cost_chips: int = 0
 ## Hide/disable choice unless this item id is present in the Body Grid.
 @export var require_item_id: String = ""
+## Hide/disable choice unless the Body Grid has at least one harmful item.
+@export var require_harmful: bool = false
 @export var success_outcome: DialogOutcomeData
 @export var failure_outcome: DialogOutcomeData
 
@@ -109,5 +111,8 @@ func is_available(inventory: InventoryController = null) -> bool:
 		if item_need == "FAKE_VIP_CARD":
 			item_need = "FAKE_VIP_CARD_GOLD_PARTNER"
 		if inventory == null or not inventory.has_item(item_need):
+			return false
+	if require_harmful:
+		if inventory == null or not inventory.has_harmful_item():
 			return false
 	return true

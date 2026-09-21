@@ -874,3 +874,9 @@ ENC_STRANGER_OUTCOME_REFUSE,The stranger neither argues nor pleads. He shakes hi
 ENC_STRANGER_CONTINUE,Continue,Далее
 AMBUSH_UNKNOWN_BANNER,Something is stalking me...,Нечто преследует меня...
 KEY_FORCED_INSERT_CONFIRM,Confirm,Подтвердить
+ITEM_PORTABLE_BOT_NAME,Portable Bot,Портативный бот
+ITEM_PORTABLE_BOT_DESC,"A tiny healing bot that settled among your gear. +1 Intelligence, +1 Endurance. Once per turn, costs 1 AP: remove one status effect from an adjacent item.","Крошечный лечебный бот, устроившийся среди вашего снаряжения. +1 к Интеллекту, +1 к Выносливости. Раз за ход, стоит 1 AP: снять один статус-эффект со смежного предмета."
+TRAIT_CLEAR_ADJACENT_ITEM_STATUS_NAME,Field Diagnostics,Полевая диагностика
+TRAIT_CLEAR_ADJACENT_ITEM_STATUS_DESC,On use: remove one status effect from an orthogonally adjacent item.,При активации: снимает один статус-эффект со смежного предмета.
+KEY_LOG_PORTABLE_BOT_CLEAR,%s clears %s from %s.,%s снимает %s с %s.
+KEY_LOG_PORTABLE_BOT_MISS,%s finds no status effects on adjacent modules.,%s не находит статус-эффектов на смежных модулях.

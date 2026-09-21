@@ -169,6 +169,8 @@ func _rebuild_catalog() -> void:
 	_register_event("enc_deep_pit", StoryEvent.Faction.HUMAN, "enc_deep_pit", false, [1])
 	## Act 2 Kairit — machine megastructure beats.
 	_register_event("enc_wounded_composite", StoryEvent.Faction.ROBOT, "enc_wounded_composite", false, [2])
+	## Medical bots — available in the city ruins and early Kairit.
+	_register_event("enc_forgotten_terminal", StoryEvent.Faction.GENERIC, "enc_forgotten_terminal", false, [1, 2])
 	## Faction-neutral event that can surface in any act.
 	_register_event("enc_cursed_stranger", StoryEvent.Faction.GENERIC, "enc_cursed_stranger", false, [])
 
