@@ -142,6 +142,12 @@ func generate_encounter(faction: String, budget: int) -> Array[EnemyData]:
 		## Story-only elite (Faceless Lady) is injected separately — never budget-packed.
 		if enemy.id.strip_edges().to_lower() == "faceless_lady":
 			continue
+		## Story / debug specials — never appear in random encounter packs.
+		if enemy.id.strip_edges().to_lower() == "specimen_614":
+			continue
+		## The Unknown is stalker-triggered, not random pack filler.
+		if enemy.id.strip_edges().to_lower() == "the_unknown":
+			continue
 		working.append(enemy)
 	if working.is_empty():
 		working = pool.duplicate()

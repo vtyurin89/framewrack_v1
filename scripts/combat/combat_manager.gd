@@ -601,6 +601,16 @@ func activate_item(placed: PlacedItem) -> bool:
 		return false
 
 	var data: ItemData = placed.data
+	## Sticky residue: activation clears it but permanently raises this instance's base CD.
+	if data.has_status(ItemStatus.Type.STICKY):
+		data.clear_status(ItemStatus.Type.STICKY)
+		data.combat_cooldown_bonus = maxi(0, data.combat_cooldown_bonus) + 1
+		EventBus.combat_log_message.emit(
+			tr("KEY_LOG_STICKY_CLEARED") % [
+				data.get_localized_name(),
+				data.cooldown + data.combat_cooldown_bonus,
+			]
+		)
 	var was_tainted := data.is_tainted()
 	var taint_damage := data.get_taint_damage() if was_tainted else 0
 	current_ap -= _get_effective_ap_cost(placed)
@@ -615,6 +625,7 @@ func activate_item(placed: PlacedItem) -> bool:
 		_consume_charge_if_needed(placed)
 		data.start_cooldown()
 		EventBus.combat_item_availability_changed.emit()
+		_apply_blood_clot_column_poison(placed)
 		return true
 
 	match data.target_type:
@@ -622,6 +633,11 @@ func activate_item(placed: PlacedItem) -> bool:
 			if _is_squish_parasite(placed):
 				## Parasitic worm sacrifice: pay the dynamic AP, take 1 direct damage, remove.
 				_apply_squish_crush(placed)
+				_apply_blood_clot_column_poison(placed)
+				_finish_player_activation()
+				return true
+			if _is_blood_clot(placed):
+				_apply_blood_clot_pop(placed)
 				_finish_player_activation()
 				return true
 			_resolve_self(placed)
@@ -634,6 +650,7 @@ func activate_item(placed: PlacedItem) -> bool:
 				if was_tainted and taint_damage > 0:
 					_apply_tainted_activation_damage(data, taint_damage)
 				EventBus.combat_item_availability_changed.emit()
+				_apply_blood_clot_column_poison(placed)
 				_resolve_auto_scatter_async(placed)
 				return true
 			var killed := _resolve_single_enemy(placed)
@@ -650,6 +667,7 @@ func activate_item(placed: PlacedItem) -> bool:
 				_apply_tainted_activation_damage(data, taint_damage)
 			EventBus.combat_item_availability_changed.emit()
 			_apply_neuro_tick_adjacent_damage(placed)
+			_apply_blood_clot_column_poison(placed)
 			_finish_player_activation()
 			return true
 
@@ -659,6 +677,7 @@ func activate_item(placed: PlacedItem) -> bool:
 		_apply_tainted_activation_damage(data, taint_damage)
 	EventBus.combat_item_availability_changed.emit()
 	_apply_neuro_tick_adjacent_damage(placed)
+	_apply_blood_clot_column_poison(placed)
 
 	_finish_player_activation()
 	return true
@@ -956,6 +975,51 @@ func _is_squish_parasite(placed: PlacedItem) -> bool:
 		and placed.data != null
 		and TraitManager.has_trait(placed.data, "TRAIT_SQUISH_SACRIFICE")
 	)
+
+
+func _is_blood_clot(placed: PlacedItem) -> bool:
+	return (
+		placed != null
+		and placed.data != null
+		and (
+			TraitManager.has_trait(placed.data, "TRAIT_BLOOD_CLOT_POP")
+			or placed.data.id.strip_edges().to_upper() == "ITM_BLOOD_CLOT"
+		)
+	)
+
+
+func _apply_blood_clot_pop(placed: PlacedItem) -> void:
+	## Click the clot: dump 3 Poison into the frame, then destroy the parasite.
+	if placed == null or placed.data == null or inventory == null or inventory.grid == null:
+		return
+	var item_name := placed.data.get_localized_name()
+	apply_player_status("poison", 3)
+	EventBus.combat_log_message.emit(tr("KEY_LOG_BLOOD_CLOT_POP") % item_name)
+	## Column clots react to this activation before the source is removed.
+	_apply_blood_clot_column_poison(placed)
+	inventory.grid.remove_item(placed, true)
+	EventBus.inventory_changed.emit()
+	EventBus.combat_item_availability_changed.emit()
+
+
+func _apply_blood_clot_column_poison(activated: PlacedItem) -> void:
+	## Passive: any activation in the same column as a blood clot adds +1 Poison.
+	if activated == null or inventory == null or inventory.grid == null:
+		return
+	var col := activated.origin.x
+	var triggered := 0
+	for placed: PlacedItem in inventory.grid.items:
+		if placed == null or placed == activated or placed.data == null:
+			continue
+		if not TraitManager.has_trait(placed.data, "TRAIT_BLOOD_CLOT_COLUMN"):
+			continue
+		if placed.origin.x != col:
+			continue
+		triggered += 1
+	if triggered <= 0:
+		return
+	apply_player_status("poison", triggered)
+	EventBus.combat_log_message.emit(tr("KEY_LOG_BLOOD_CLOT_COLUMN") % triggered)
 
 
 func count_worm_parasites() -> int:
@@ -1492,8 +1556,25 @@ func apply_cell_damage(
 	EventBus.cell_damaged.emit(resolved_cell)
 	if inventory.grid.items.has(placed):
 		if duration > 0:
-			apply_item_status(placed, status_effect, duration)
+			_apply_cell_damage_status(placed, status_effect, duration)
 		_apply_palladium_volatile(placed)
+
+
+func _apply_cell_damage_status(
+	placed: PlacedItem, status_effect: ItemStatus.Type, duration: int
+) -> void:
+	if placed == null or placed.data == null or duration <= 0:
+		return
+	## Sticky residue only sticks to usable modules that are not already cooling down.
+	if status_effect == ItemStatus.Type.STICKY:
+		if not placed.data.usable or placed.data.is_on_cooldown():
+			return
+		apply_item_status(placed, ItemStatus.Type.STICKY, duration)
+		EventBus.combat_log_message.emit(
+			tr("KEY_LOG_ITEM_STICKY") % placed.data.get_localized_name()
+		)
+		return
+	apply_item_status(placed, status_effect, duration)
 
 
 func _apply_palladium_volatile(placed: PlacedItem) -> void:
@@ -1636,13 +1717,20 @@ func _detonate_sticky_grenade(placed: PlacedItem) -> void:
 
 
 func _apply_enemy_battle_start_passives() -> void:
-	for enemy: EnemyInstance in enemies:
+	for i in enemies.size():
+		var enemy: EnemyInstance = enemies[i]
 		if enemy == null or not enemy.is_alive() or enemy.data == null:
 			continue
 		if enemy.data.id.strip_edges().to_lower() == "arbiter_guard":
 			apply_cell_damage(Vector2i(-1, -1), ItemStatus.Type.OVERLOAD, 1)
 			EventBus.combat_log_message.emit(
 				tr("KEY_LOG_ARBITER_OPENING") % enemy.get_localized_name()
+			)
+		if enemy.has_strong_start():
+			enemy.gain_block(10)
+			EventBus.enemy_block_changed.emit(i, enemy.current_block)
+			EventBus.combat_log_message.emit(
+				tr("KEY_LOG_STRONG_START") % [enemy.get_localized_name(), 10]
 			)
 
 
@@ -1966,6 +2054,27 @@ func try_auto_insert_item(item_id: String) -> bool:
 	return true
 
 
+func try_auto_insert_or_punish(
+	item_id: String, fail_damage: int = 5, caster: EnemyInstance = null
+) -> bool:
+	## Spawn a harmful module automatically; if the grid is full, deal fail_damage instead.
+	if try_auto_insert_item(item_id):
+		return true
+	var dmg := maxi(0, fail_damage)
+	if dmg <= 0:
+		EventBus.combat_log_message.emit(tr("KEY_LOG_AUTO_INSERT_FAIL"))
+		return false
+	var dealt := apply_enemy_damage_to_player(dmg, caster, "physical")
+	EventBus.combat_log_message.emit(
+		tr("KEY_LOG_AUTO_INSERT_PUNISH") % [
+			caster.get_localized_name() if caster != null else "?",
+			dmg,
+			dealt,
+		]
+	)
+	return false
+
+
 func find_enemy_by_id(enemy_id: String) -> EnemyInstance:
 	var needle := enemy_id.strip_edges().to_lower()
 	for enemy: EnemyInstance in enemies:
@@ -2019,7 +2128,13 @@ func _expire_enemy_block_for_turn_start(index: int, enemy: EnemyInstance) -> voi
 
 
 func _enemy_start_turn_phase(index: int, enemy: EnemyInstance) -> void:
-	if enemy.statuses == null:
+	if enemy != null and enemy.has_lab_contour():
+		enemy.gain_block(4)
+		EventBus.enemy_block_changed.emit(index, enemy.current_block)
+		EventBus.combat_log_message.emit(
+			tr("KEY_LOG_LAB_CONTOUR") % [enemy.get_localized_name(), 4]
+		)
+	if enemy == null or enemy.statuses == null:
 		return
 	var result: Dictionary = enemy.statuses.tick_positive_statuses()
 	var heal_amt: int = int(result.get("heal", 0))

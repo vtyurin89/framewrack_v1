@@ -880,3 +880,37 @@ TRAIT_CLEAR_ADJACENT_ITEM_STATUS_NAME,Field Diagnostics,Полевая диаг�
 TRAIT_CLEAR_ADJACENT_ITEM_STATUS_DESC,On use: remove one status effect from an orthogonally adjacent item.,При активации: снимает один статус-эффект со смежного предмета.
 KEY_LOG_PORTABLE_BOT_CLEAR,%s clears %s from %s.,%s снимает %s с %s.
 KEY_LOG_PORTABLE_BOT_MISS,%s finds no status effects on adjacent modules.,%s не находит статус-эффектов на смежных модулях.
+ENEMY_SPECIMEN_614_NAME,Specimen-614,Образец-614
+ENEMY_SPECIMEN_614_DESC,"Lab-grown armored specimen. Builds charge then unleashes necrotic discharge.","Бронированный лабораторный образец. Накапливает заряд и выпускает некротический выброс."
+TRAIT_PERMANENT_SHIELD_NAME,Armored,Бронированный
+TRAIT_PERMANENT_SHIELD_DESC,Block does not reset at the start or end of this enemy's turns.,Броня не обнуляется в начале или конце хода этого врага.
+TRAIT_STRONG_START_NAME,Strong Start,Сильный старт
+TRAIT_STRONG_START_DESC,Gains +10 Block at the start of combat.,В начале боя получает +10 Брони.
+TRAIT_LAB_CONTOUR_NAME,Lab Contour,Лабораторный контур
+TRAIT_LAB_CONTOUR_DESC,Gains +4 Block at the start of each of its turns.,В начале каждого своего хода получает +4 Брони.
+ABILITY_SPECIMEN_SWIFT_STRIKE_NAME,Swift Strike,Стремительный удар
+ABILITY_SPECIMEN_SWIFT_STRIKE_DESC,"Deals 6-8 physical damage (+STR). Damages a random inventory cell; may apply Sticky.","Наносит 6–8 физ. урона (+STR). Повреждает случайную клетку инвентаря; может наложить Липкий."
+ABILITY_SPECIMEN_SWIFT_STRIKE_TEXT,Swift Strike!,Стремительный удар!
+ABILITY_SPECIMEN_CHARGE_SURGE_NAME,Preparation,Подготовка
+ABILITY_SPECIMEN_CHARGE_SURGE_DESC,"Skips damage this turn. +1 STR, +1 INT. Forces Necrotic Discharge next.","Пропускает урон в этот ход. +1 STR, +1 INT. Готовит Некротический выброс."
+ABILITY_SPECIMEN_CHARGE_SURGE_TEXT,Preparing...,Подготовка...
+ABILITY_SPECIMEN_NECROTIC_DISCHARGE_NAME,Necrotic Discharge,Некротический выброс
+ABILITY_SPECIMEN_NECROTIC_DISCHARGE_DESC,"Deals 5 damage (+STR/INT). Applies Bleed 2 and Poison 1. Spawns a Blood Clot.","Наносит 5 урона (+STR/INT). Накладывает Кровотечение 2 и Яд 1. Создаёт Кровавый сгусток."
+ABILITY_SPECIMEN_NECROTIC_DISCHARGE_TEXT,Necrotic Discharge!,Некротический выброс!
+ABILITY_SPECIMEN_FORTIFY_NAME,Fortify,Укрепление
+ABILITY_SPECIMEN_FORTIFY_DESC,Gains +10 Block (stacks with Armored).,Получает +10 Брони (суммируется с Бронированным).
+ABILITY_SPECIMEN_FORTIFY_TEXT,Fortify!,Укрепление!
+ITEM_BLOOD_CLOT_NAME,Blood Clot,Кровавый сгусток
+ITEM_BLOOD_CLOT_DESC,"Harmful parasite. Activate (0 AP): apply 3 Poison and destroy itself. Passiveively: +1 Poison when anything in its column activates.","Вредоносный паразит. Активация (0 AP): накладывает 3 Яда и уничтожается. Пассивно: +1 Яд при активации любого предмета в той же колонке."
+TRAIT_BLOOD_CLOT_POP_NAME,Clot Burst,Разрыв сгустка
+TRAIT_BLOOD_CLOT_POP_DESC,On use: apply 3 Poison, then destroy this item.,При активации: накладывает 3 Яда и уничтожает этот предмет.
+TRAIT_BLOOD_CLOT_COLUMN_NAME,Vertical Contagion,Вертикальная зараза
+TRAIT_BLOOD_CLOT_COLUMN_DESC,When an item in the same column activates: +1 Poison.,Когда предмет в той же колонке активируется: +1 Яд.
+KEY_LOG_STRONG_START,%s opens combat with +%d Block.,%s начинает бой с +%d Брони.
+KEY_LOG_LAB_CONTOUR,%s reinforces lab contour (+%d Block).,%s усиливает лабораторный контур (+%d Брони).
+KEY_LOG_ITEM_STICKY,%s is coated in sticky residue.,%s покрыт липким налётом.
+KEY_LOG_STICKY_CLEARED,%s sheds sticky residue — base cooldown is now %d.,%s сбрасывает липкий налёт — базовый кулдаун теперь %d.
+KEY_LOG_BLOOD_CLOT_POP,%s bursts — 3 Poison!,Разрыв: %s — 3 Яда!
+KEY_LOG_BLOOD_CLOT_COLUMN,Blood clots react (+%d Poison).,Кровавые сгустки реагируют (+%d Яда).
+KEY_LOG_AUTO_INSERT_FAIL,No free cell for the parasite.,Нет свободной ячейки для паразита.
+KEY_LOG_AUTO_INSERT_PUNISH,%s finds no free cell — deals %d damage (%d through Block).,%s не находит свободную ячейку — наносит %d урона (%d через Блок).

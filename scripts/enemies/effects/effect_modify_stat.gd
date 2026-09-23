@@ -1,8 +1,11 @@
 class_name EffectModifyStat
 extends AbilityEffect
 ## Stacking permanent (or temporary if duration>0) caster/ally stat buff.
-## CSV: "luck|+1", "strength|+1|ABILITY_SCRAPPER_BUMPER" (stat|delta|followup_or_duration).
-## Optional flat Block: "strength|+1|block|7".
+## CSV examples:
+##   luck|+1
+##   strength|+1|ABILITY_SCRAPPER_BUMPER
+##   strength|+1|intelligence|+1|ABILITY_SPECIMEN_NECROTIC
+## Optional flat Block tokens: block|7 anywhere after the first stat pair.
 
 
 func apply(caster: EnemyInstance, target: Node, params: Array) -> void:
@@ -11,25 +14,6 @@ func apply(caster: EnemyInstance, target: Node, params: Array) -> void:
 	var ability := AbilityEffect.ability_from_params(params)
 	var enemy_index := AbilityEffect.enemy_index_from_params(params)
 	var csv := AbilityEffect.csv_params(params)
-	var stat_key := "luck"
-	var delta := 1
-	var duration := 0
-	var followup_id := ""
-	if csv.size() >= 1 and str(csv[0]).strip_edges() != "":
-		stat_key = str(csv[0]).strip_edges().to_lower()
-	if csv.size() >= 2:
-		delta = _parse_delta(str(csv[1]))
-	elif ability != null and ability.max_val != 0:
-		delta = ability.max_val
-	if csv.size() >= 3:
-		var third := str(csv[2]).strip_edges()
-		var third_l := third.to_lower()
-		## Ignore hybrid block tokens — handled via parse_flat_block.
-		if third_l not in ["block", "guard", "shield"]:
-			if third.is_valid_int():
-				duration = int(third)
-			elif not third.is_empty():
-				followup_id = third
 
 	var subject := caster
 	if ability != null and ability.target_type.strip_edges().to_lower() == "ally":
@@ -38,9 +22,72 @@ func apply(caster: EnemyInstance, target: Node, params: Array) -> void:
 			if ally != null:
 				subject = ally
 
-	var new_value := subject.apply_stackable_stat_buff(stat_key, delta)
-	if duration > 0 and subject.has_method("queue_temp_stat_modifier"):
-		subject.call("queue_temp_stat_modifier", stat_key, -delta, duration)
+	var followup_id := ""
+	var applied_any := false
+	var i := 0
+	## Fallback when CSV is empty: use ability max_val as strength delta.
+	if csv.is_empty():
+		var delta := 1
+		if ability != null and ability.max_val != 0:
+			delta = ability.max_val
+		var new_value := subject.apply_stackable_stat_buff("strength", delta)
+		EventBus.combat_log_message.emit(
+			tr("KEY_LOG_ENEMY_STAT_MOD") % [
+				subject.get_localized_name(),
+				"STRENGTH",
+				delta,
+				new_value,
+			]
+		)
+		applied_any = true
+	else:
+		while i < csv.size():
+			var token := str(csv[i]).strip_edges()
+			var token_l := token.to_lower()
+			if token.is_empty():
+				i += 1
+				continue
+			if token_l in ["block", "guard", "shield"]:
+				## Flat block handled via parse_flat_block below.
+				if i + 1 < csv.size() and str(csv[i + 1]).is_valid_int():
+					i += 2
+				else:
+					i += 1
+				continue
+			if _looks_like_stat(token_l):
+				var delta := 1
+				if i + 1 < csv.size():
+					delta = _parse_delta(str(csv[i + 1]))
+				var new_value := subject.apply_stackable_stat_buff(token_l, delta)
+				var is_study := (
+					ability != null and ability.id in ["ABILITY_ENEMY_STUDY", "enemy_study"]
+				)
+				if not is_study:
+					EventBus.combat_log_message.emit(
+						tr("KEY_LOG_ENEMY_STAT_MOD") % [
+							subject.get_localized_name(),
+							token_l.to_upper(),
+							delta,
+							new_value,
+						]
+					)
+				applied_any = true
+				i += 2
+				continue
+			## Ability id followup (e.g. ABILITY_SCRAPPER_BUMPER).
+			if token.to_upper().begins_with("ABILITY_") or token.contains("_"):
+				followup_id = token
+				i += 1
+				break
+			## Legacy third-token duration int after a single pair — rare.
+			if token.is_valid_int():
+				var duration := int(token)
+				if duration > 0 and subject.has_method("queue_temp_stat_modifier"):
+					## Reverse last buff is not tracked here; ignore legacy duration.
+					pass
+				i += 1
+				continue
+			i += 1
 
 	if not followup_id.is_empty():
 		caster.arm_prepared_ability(followup_id)
@@ -65,15 +112,17 @@ func apply(caster: EnemyInstance, target: Node, params: Array) -> void:
 				subject.luck,
 			]
 		)
-	else:
-		EventBus.combat_log_message.emit(
-			tr("KEY_LOG_ENEMY_STAT_MOD") % [
-				subject.get_localized_name(),
-				stat_key.to_upper(),
-				delta,
-				new_value,
-			]
-		)
+
+
+func _looks_like_stat(token_l: String) -> bool:
+	return token_l in [
+		"strength", "str",
+		"agility", "agi",
+		"endurance", "end",
+		"intelligence", "int",
+		"luck", "lck",
+		"humanity", "hum",
+	]
 
 
 func _parse_delta(raw: String) -> int:

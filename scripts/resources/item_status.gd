@@ -7,6 +7,7 @@ enum Type {
 	OVERLOAD,
 	TAINTED,
 	INACTIVE,
+	STICKY,
 }
 
 const TYPE_IDS := {
@@ -14,6 +15,7 @@ const TYPE_IDS := {
 	Type.OVERLOAD: "OVERLOAD",
 	Type.TAINTED: "TAINTED",
 	Type.INACTIVE: "INACTIVE",
+	Type.STICKY: "STICKY",
 }
 
 var type: Type = Type.COOLDOWN
@@ -45,6 +47,8 @@ static func parse_type_id(type_id: String) -> Type:
 			return Type.TAINTED
 		"INACTIVE":
 			return Type.INACTIVE
+		"STICKY":
+			return Type.STICKY
 		_:
 			return Type.COOLDOWN
 

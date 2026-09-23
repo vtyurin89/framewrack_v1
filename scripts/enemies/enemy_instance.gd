@@ -83,8 +83,9 @@ func setup(blueprint: EnemyData) -> void:
 	var raw_hp := float(get_max_hp(data.get_effective_base_hp()))
 	max_hp = maxi(1, int(round(raw_hp * hp_mult)))
 	## TODO: Remove DEV_FORCE_ENEMY_HP — temporary HP cap for development balance testing.
-	## Only clamps enemies that would exceed the cap; lower HP values stay as-is.
-	if DEV_FORCE_ENEMY_HP > 0:
+	## Only clamps enemies whose blueprint base_hp is at or below the cap; higher-HP
+	## specials (Specimen-614, etc.) keep their designed values.
+	if DEV_FORCE_ENEMY_HP > 0 and data.get_effective_base_hp() <= DEV_FORCE_ENEMY_HP:
 		max_hp = mini(max_hp, DEV_FORCE_ENEMY_HP)
 	current_hp = max_hp
 	current_block = 0
@@ -503,6 +504,14 @@ func has_enemy_trait(trait_id: String) -> bool:
 func has_permanent_shield() -> bool:
 	## Block persists across this enemy's turns when the hidden trait is present.
 	return has_enemy_trait(EnemyData.TRAIT_PERMANENT_SHIELD)
+
+
+func has_strong_start() -> bool:
+	return has_enemy_trait(EnemyData.TRAIT_STRONG_START)
+
+
+func has_lab_contour() -> bool:
+	return has_enemy_trait(EnemyData.TRAIT_LAB_CONTOUR)
 
 
 func has_always_reroll_intent() -> bool:

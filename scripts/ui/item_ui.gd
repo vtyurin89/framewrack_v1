@@ -307,6 +307,12 @@ func _refresh_status_overlay() -> void:
 			_status_icon.text = "OFF"
 			_status_icon.add_theme_color_override("font_color", GamePalette.INACTIVE_ELEMENT)
 			_status_icon.visible = true
+		ItemStatus.Type.STICKY:
+			_status_icon.text = "※"
+			_status_icon.add_theme_color_override("font_color", GamePalette.COLOR_WARN)
+			_status_icon.visible = true
+			_cd_label.text = str(primary.remaining_turns)
+			_cd_label.visible = true
 
 
 func _refresh_cooldown_overlay() -> void:

@@ -118,6 +118,25 @@ func _apply_status_riders(
 			if target.has_method("apply_cell_damage"):
 				target.call("apply_cell_damage", Vector2i(-1, -1), cd_status, cd_duration)
 			continue
+		if token == "auto_insert" or token == "force_spawn":
+			## auto_insert|ITEM_ID|fail_damage — spawn harmful module or deal fail damage.
+			var insert_id := "ITM_BLOOD_CLOT"
+			var fail_dmg := 5
+			if i + 1 < csv.size() and not str(csv[i + 1]).is_valid_int():
+				insert_id = str(csv[i + 1]).strip_edges().to_upper()
+				i += 2
+			else:
+				i += 1
+			if i < csv.size() and str(csv[i]).is_valid_int():
+				fail_dmg = maxi(0, int(csv[i]))
+				i += 1
+			if target.has_method("try_auto_insert_or_punish"):
+				target.call("try_auto_insert_or_punish", insert_id, fail_dmg, caster)
+			elif target.has_method("try_auto_insert_item"):
+				if not bool(target.call("try_auto_insert_item", insert_id)):
+					if fail_dmg > 0 and target.has_method("apply_enemy_damage_to_player"):
+						target.call("apply_enemy_damage_to_player", fail_dmg, caster, "physical")
+			continue
 		if token not in known:
 			i += 1
 			continue

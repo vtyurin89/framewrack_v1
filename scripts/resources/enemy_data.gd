@@ -29,12 +29,18 @@ const TRAIT_ALWAYS_REROLL_INTENT := "always_reroll_intent"
 const TRAIT_UNPREDICTABLE := "unpredictable"
 ## Chem-Junkie: +1 STR after 3 direct attack HP hits in one player turn.
 const TRAIT_PSYCHOSIS := "psychosis"
+## Specimen-614: +10 Block at combat start (turn 1 opening armor).
+const TRAIT_STRONG_START := "strong_start"
+## Specimen-614: +4 Block at the start of each of this enemy's turns.
+const TRAIT_LAB_CONTOUR := "lab_contour"
 ## Trait ids that are combat mechanics, not StatusEffectData blueprints.
 const MECHANIC_TRAIT_IDS: Array[String] = [
 	TRAIT_PERMANENT_SHIELD,
 	TRAIT_ALWAYS_REROLL_INTENT,
 	TRAIT_UNPREDICTABLE,
 	TRAIT_PSYCHOSIS,
+	TRAIT_STRONG_START,
+	TRAIT_LAB_CONTOUR,
 	"stasis_pod",
 ]
 

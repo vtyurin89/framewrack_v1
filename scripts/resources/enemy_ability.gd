@@ -18,6 +18,8 @@ enum StatScaling {
 	ENDURANCE,
 	INTELLIGENCE,
 	LUCK,
+	## Flat sum of Strength + Intelligence (Specimen necrotic discharge).
+	STRENGTH_INTELLIGENCE,
 }
 
 enum WeightClass {
@@ -158,6 +160,8 @@ static func parse_stat_scaling(raw: String) -> StatScaling:
 			return StatScaling.INTELLIGENCE
 		"LCK", "LUCK":
 			return StatScaling.LUCK
+		"STR_INT", "STRENGTH_INTELLIGENCE", "STR+INT", "BOTH":
+			return StatScaling.STRENGTH_INTELLIGENCE
 		_:
 			return StatScaling.NONE
 

@@ -37,6 +37,10 @@ const ID_SIGNAL_SPIKE := "ABILITY_SIGNAL_SPIKE"
 const ID_UNKNOWN_INJECT := "ABILITY_UNKNOWN_INJECT"
 const ID_UNKNOWN_GUARD := "ABILITY_UNKNOWN_GUARD"
 const ID_UNKNOWN_STRIKE := "ABILITY_UNKNOWN_STRIKE"
+const ID_SPECIMEN_SWIFT := "ABILITY_SPECIMEN_SWIFT_STRIKE"
+const ID_SPECIMEN_CHARGE := "ABILITY_SPECIMEN_CHARGE_SURGE"
+const ID_SPECIMEN_NECROTIC := "ABILITY_SPECIMEN_NECROTIC_DISCHARGE"
+const ID_SPECIMEN_FORTIFY := "ABILITY_SPECIMEN_FORTIFY"
 
 
 static func trigger_pre_action_phase(enemy: EnemyInstance) -> Dictionary:
@@ -385,6 +389,8 @@ static func _pick_scripted_main(enemy: EnemyInstance, combat: Node) -> EnemyAbil
 			return _ai_warden(enemy, combat)
 		"the_unknown":
 			return _ai_the_unknown(enemy, combat)
+		"specimen_614":
+			return _ai_specimen_614(enemy, combat)
 		_:
 			return null
 
@@ -568,6 +574,30 @@ static func _ai_the_unknown(enemy: EnemyInstance, combat: Node) -> EnemyAbility:
 	var strike2 := enemy.find_ability(ID_UNKNOWN_STRIKE)
 	if strike2 != null and enemy.can_use_ability(strike2):
 		return strike2
+	return null
+
+
+static func _ai_specimen_614(enemy: EnemyInstance, _combat: Node) -> EnemyAbility:
+	## Charge Surge → Necrotic Discharge lock; otherwise mix strike / fortify.
+	var forced := _pick_forced_followup(enemy)
+	if forced != null:
+		return forced
+
+	var charge := enemy.find_ability(ID_SPECIMEN_CHARGE)
+	if charge != null and enemy.can_use_ability(charge):
+		## Prefer wind-up once unlocked (act 2+); more likely when hurt.
+		var chance := 0.45
+		if enemy.get_hp_ratio() < 0.55:
+			chance = 0.65
+		if randf() < chance:
+			return charge
+
+	if enemy.get_hp_ratio() < 0.4:
+		var fortify := enemy.find_ability(ID_SPECIMEN_FORTIFY)
+		if fortify != null and enemy.can_use_ability(fortify) and randf() < 0.55:
+			return fortify
+
+	## Fall through to weighted deck (swift strike / fortify).
 	return null
 
 

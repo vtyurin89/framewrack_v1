@@ -38,6 +38,8 @@ static func resolve_damage_stat_bonus(caster: EnemyInstance, ability: EnemyAbili
 			return caster.strength
 		EnemyAbility.StatScaling.INTELLIGENCE:
 			return caster.intelligence
+		EnemyAbility.StatScaling.STRENGTH_INTELLIGENCE:
+			return caster.strength + caster.intelligence
 		EnemyAbility.StatScaling.AGILITY:
 			return caster.agility
 		EnemyAbility.StatScaling.ENDURANCE:
@@ -53,10 +55,13 @@ static func resolve_damage_stat_bonus(caster: EnemyInstance, ability: EnemyAbili
 
 
 static func resolve_shield_block(caster: EnemyInstance, ability: EnemyAbility) -> int:
-	## Shield skills: base_block + caster agility.
+	## Shield skills: base_block + caster agility (unless scaling is NONE → flat base only).
 	if caster == null or ability == null:
 		return caster.agility if caster != null else 0
-	return ability.roll_base() + caster.agility
+	var base := ability.roll_base()
+	if ability.stat_scaling == EnemyAbility.StatScaling.NONE:
+		return base
+	return base + caster.agility
 
 
 func execute(caster: EnemyInstance, enemy_index: int, ability: EnemyAbility) -> void:

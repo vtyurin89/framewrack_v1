@@ -139,6 +139,8 @@ enum StatScaling {
 var current_turn_uses: int = 0
 ## Runtime: uses spent this combat (reset on combat start).
 var current_combat_uses: int = 0
+## Runtime: sticky residue etc. raises base CD for the rest of this combat only.
+var combat_cooldown_bonus: int = 0
 
 ## Runtime statuses (COOLDOWN / OVERLOAD / TAINTED). Append is LIFO for primary display.
 var statuses: Array[ItemStatus] = []
@@ -231,6 +233,7 @@ func reset_turn_uses() -> void:
 
 func reset_combat_uses() -> void:
 	current_combat_uses = 0
+	combat_cooldown_bonus = 0
 
 
 func clear_temporary_combat_bonuses() -> void:
@@ -342,7 +345,7 @@ func tick_cooldown_status_only() -> void:
 
 
 func start_cooldown(turns: int = -1) -> void:
-	var duration := cooldown if turns < 0 else turns
+	var duration := (cooldown + maxi(0, combat_cooldown_bonus)) if turns < 0 else turns
 	if duration <= 0:
 		return
 	apply_status(ItemStatus.Type.COOLDOWN, duration)
