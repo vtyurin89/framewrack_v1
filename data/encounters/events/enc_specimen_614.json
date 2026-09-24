@@ -6,7 +6,7 @@
 	"image_path": "res://assets/sprites/enemies/synthet/specimen_614.png",
 	"dialogs": {
 		"start": {
-			"narrator_text_en": "Not far from Kairit you stumble upon an abandoned research laboratory. Withered corpses of scientists lie scattered everywhere, and in the main hall you find something chained to the tiled wall with thick chains and wrapped in layers of wires — something that used to be an experiment.\n\nA sign on the panel beside it, miraculously preserved, reads: \"SPECIMEN-614\".\n\nIt is a rusted-through robot, yet organic fragments are grafted into its frame, clearly taken from different people: here skin, there muscle tissue, an arm or a leg. Bloody saliva drools from its mouth. The creature resembles a chimera, but a strange one — you have never seen anything like it.\n\nThe creature does not react to your appearance.\n\nThree doors lead out of the hall.",
+			"narrator_text_en": "Not far from Kairit you stumble upon an abandoned research laboratory. Withered corpses of scientists lie scattered  across the floor, and in the main hall you find something shackled to the tiled wall with thick chains and wrapped in coils of wires — something that was once an experiment.\n\nA sign on a nearby panel, miraculously intact, reads: \"SPECIMEN-614\".\n\nIt's a robot rusted through and through, but organic fragments are grafted into its frame — patches of skin, strips of muscle tissue, a grafted arm or leg — clearly taken from different people. Bloody drool drips from its mouth. The creature resembles a chimera, but wrong somehow — you've never seen one quite like this.\n\nThe creature shows no reaction to your arrival.\n\nThree doors lead out of the hall.",
 			"narrator_text_ru": "Недалеко от Кайрита вы наткнулись на заброшенную исследовательскую лабораторию. Повсюду валяются истлевшие тела учёных, а в главном зале вы обнаруживаете нечто, прикованное толстыми цепями к кафельной стене и опутанное слоями проводов, — нечто, что раньше было экспериментом.\n\nТабличка на панели рядом, чудом уцелевшая, гласит: «ОБРАЗЕЦ-614».\n\nЭто насквозь проржавевший робот, но в его корпус вживлены органические фрагменты, явно взятые у разных людей: где-то кожа, где-то мышечная ткань, рука или нога. Окровавленная слюна сочится у него изо рта. Существо напоминает химеру, но какую-то странную, вы никогда таких не видели.\n\nСущество никак не реагирует на ваше появление.\n\nИз зала ведут три двери.",
 			"speech_text_en": "",
 			"speech_text_ru": "",
@@ -44,8 +44,8 @@
 			]
 		},
 		"hall": {
-			"narrator_text_en": "The main hall. Specimen-614 hangs motionless in its chains, and only a wet, hollow breathing reminds you that this is no mere pile of metal. You can search the remaining doors, attack the creature, or leave.",
-			"narrator_text_ru": "Главный зал. Образец-614 неподвижно висит на цепях, и только глухое, влажное дыхание напоминает, что это не просто груда металла. Вы можете осмотреть оставшиеся двери, напасть на существо или уйти.",
+			"narrator_text_en": "Specimen-614 hangs motionless in its chains, and only a wet, hollow breathing reminds you that this is no mere pile of metal. You can search the remaining doors, attack the creature, or leave.",
+			"narrator_text_ru": "Образец-614 неподвижно висит на цепях, и только глухое, влажное дыхание напоминает, что это не просто груда металла. Вы можете осмотреть оставшиеся двери, напасть на существо или уйти.",
 			"speech_text_en": "",
 			"speech_text_ru": "",
 			"options_inherit": "start",
@@ -97,7 +97,7 @@
 			]
 		},
 		"room1_str_ok": {
-			"narrator_text_en": "You brace a heel against the frame and throw your weight against the door. Rust squeals, the lock tears loose, and the door crashes inward.\n\nThe storeroom beyond holds the personal belongings of the laboratory staff. Most of it rotted away long ago, but you find something useful.",
+			"narrator_text_en": "You brace a heel against the frame and throw your weight against the door. Rust squeals, the lock tears loose, and the door crashes inward.\n\nYou enter a small storeroom with the laboratory staff's personal belongings. Most of it has long since rotted away, but you find something useful.",
 			"narrator_text_ru": "Вы упираетесь ногой в косяк и всем весом наваливаетесь на дверь. Ржавчина визжит, замок срывается, и дверь с грохотом распахивается.\n\nПеред вами небольшой склад с личными вещами персонала лаборатории. Большая часть вещей давно пришла в негодность, но вы находите кое-что полезное.",
 			"speech_text_en": "",
 			"speech_text_ru": "",
@@ -117,7 +117,7 @@
 			]
 		},
 		"room1_str_fail": {
-			"narrator_text_en": "The door finally jams shut, and now there is little chance of opening it. You nearly dislocate your shoulder in the attempt.",
+			"narrator_text_en": "The door has jammed for good, and there's little chance of opening it now. You nearly dislocated your shoulder joint.",
 			"narrator_text_ru": "Дверь окончательно заклинило, и теперь вряд ли получится её открыть. А вы едва не вывихнули плечевой сустав.",
 			"speech_text_en": "",
 			"speech_text_ru": "",
@@ -131,7 +131,7 @@
 			]
 		},
 		"room2": {
-			"narrator_text_en": "Among the grey tiled walls stand laboratory tables littered with broken equipment and shattered test tubes. By the look of it, compounds for the experiments were synthesized here.",
+			"narrator_text_en": "Laboratory tables line the gray tiled walls, cluttered with broken equipment and shattered test tubes. By the look of it, experimental compounds were synthesized here.",
 			"narrator_text_ru": "Среди серых кафельных стен стоят лабораторные столы, на них поломанное оборудование и осколки пробирок. Судя по всему, здесь синтезировали составы для экспериментов.",
 			"speech_text_en": "",
 			"speech_text_ru": "",
@@ -139,7 +139,7 @@
 			"choices": [
 				{
 					"id": "opt_room2_search",
-					"text_en": "[INT Check] Search for surviving consumables",
+					"text_en": "[INT Check] Search for usable consumables",
 					"text_ru": "[Проверка INT] Поискать уцелевшие расходники",
 					"stat_check": "INT",
 					"difficulty": "MEDIUM",
@@ -148,7 +148,7 @@
 				},
 				{
 					"id": "opt_room2_search",
-					"text_en": "[LCK Check] Search for surviving consumables",
+					"text_en": "[LCK Check] Search for usable consumables",
 					"text_ru": "[Проверка LCK] Поискать уцелевшие расходники",
 					"stat_check": "LCK",
 					"difficulty": "MEDIUM",
@@ -164,7 +164,7 @@
 			]
 		},
 		"room2_ok": {
-			"narrator_text_en": "Even among this refuse something useful may be lost. You decide to spend a little time searching.\n\nBeneath a collapsed shelf you find a small stash of ingredients the looters never noticed.",
+			"narrator_text_en": "Even in this garbage, something useful might have survived. You decide to spend a little time searching.\n\nYou find a small stash of ingredients that the scavengers missed.",
 			"narrator_text_ru": "Даже среди этого мусора может затеряться что-то полезное. Вы решаете потратить немного времени на поиски.\n\nПод обрушившимся стеллажом вы находите небольшой тайник с ингредиентами, который не нашли мародёры.",
 			"speech_text_en": "",
 			"speech_text_ru": "",
@@ -184,7 +184,7 @@
 			]
 		},
 		"room2_fail": {
-			"narrator_text_en": "It was a waste of time after all. Every ingredient in the laboratory is hopelessly spoiled.",
+			"narrator_text_en": "It was a waste of time after all. Every ingredient in this laboratory is ruined beyond use.",
 			"narrator_text_ru": "Всё-таки это была пустая трата времени. Все ингредиенты в лаборатории безнадёжно испорчены.",
 			"speech_text_en": "",
 			"speech_text_ru": "",
@@ -197,7 +197,7 @@
 			]
 		},
 		"room3": {
-			"narrator_text_en": "This room was a workshop. Dismantled metal limbs, augmentations, and rusted tools lie on the benches, and brown bloodstains smear the tiled walls. You feel uneasy. Someone was clearly killed here.\n\nOne of the metal arms on the bench looks promising. If you could take it apart, some of its parts might serve your frame.",
+			"narrator_text_en": "This room was once a workshop. Disassembled metal limbs, augmentations, and rusty tools are strewn across the workbenches. Brown bloodstains splatter the tiled walls. You feel uneasy. Someone was clearly killed here.\n\nOne of the metal arms on the workbench catches your eye. If you could disassemble it, some of its parts might serve your frame.",
 			"narrator_text_ru": "В этой комнате располагалась мастерская. На верстаках лежат разобранные металлические конечности, аугментации и ржавые инструменты, на кафельных стенах — бурые пятна крови. Вам не по себе. Здесь явно убили кого-то.\n\nОдна из металлических рук на верстаке выглядит многообещающе. Если бы вы смогли разобрать её, то часть деталей можно было бы использовать для вашего фрейма.",
 			"speech_text_en": "",
 			"speech_text_ru": "",
@@ -205,7 +205,7 @@
 			"choices": [
 				{
 					"id": "opt_room3_dismantle",
-					"text_en": "[STR Check] Try to take the part apart",
+					"text_en": "[STR Check] Try to disassemble the part",
 					"text_ru": "[Проверка STR] Попробовать разобрать деталь",
 					"stat_check": "STR",
 					"difficulty": "MEDIUM",
@@ -221,8 +221,8 @@
 			]
 		},
 		"room3_ok": {
-			"narrator_text_en": "Even if danger lurks nearby, that is no reason to abandon valuable loot, is it? You lift the metal arm and try to unbolt the plates holding its parts together. The bolts are tight and rusted; you must work carefully.\n\nYou manage to take the metal arm apart. Its parts will serve you well on the road.",
-			"narrator_text_ru": "Даже если вам угрожает опасность, это ведь не повод бросать ценную добычу, верно? Вы приподнимаете металлическую руку и пытаетесь раскрутить болты, которые скрепляют её части. Болты очень тугие и ржавые, нужно действовать осторожно.\n\nУ вас получается разобрать металлическую руку. Её детали очень пригодятся вам в путешествии.",
+			"narrator_text_en": "Even if there's danger, that's no reason to abandon valuable loot, right? You lift the metal arm and try to unscrew the bolts holding its parts together. The bolts are rusted tight — you'll need to be careful.\n\nYou manage to disassemble the metal arm. Its parts will serve you well.",
+			"narrator_text_ru": "Даже если вам угрожает опасность, это ведь не повод бросать ценную добычу, верно? Вы приподнимаете металлическую руку и пытаетесь раскрутить болты, которые скрепляют её части. Болты очень тугие и ржавые, нужно действовать осторожно.\n\nУ вас получается разобрать металлическую руку. Её детали очень пригодятся вам в будущем.",
 			"speech_text_en": "",
 			"speech_text_ru": "",
 			"choices": [
@@ -241,7 +241,7 @@
 			]
 		},
 		"room3_fail": {
-			"narrator_text_en": "You strip the threads, and the rusted bolts jam for good. You will have to leave it all behind. You could howl with frustration.",
+			"narrator_text_en": "You stripped the threads, and the rusty bolts are now completely jammed. You'll have to leave it here. You want to howl with frustration.",
 			"narrator_text_ru": "Вы сорвали резьбу, и ржавые болты окончательно заклинило. Придётся оставить всё здесь. Вам хочется выть от разочарования.",
 			"speech_text_en": "",
 			"speech_text_ru": "",
@@ -257,9 +257,9 @@
 			"narrator_text_en": "",
 			"narrator_text_ru": "",
 			"narrator_variants_en": [
-				"You return to the hall. Specimen-614 is still motionless, but something has clearly changed. The chains on its body rattle softly, and one of the organic grafts on its shoulder twitches almost imperceptibly. The creature seems to be trying to break free!",
-				"Specimen-614 stirs and squirms in the dark, making guttural sounds. Bloody slime oozes from beneath the taut chains on its body, and its metal parts screech loudly.\n\nIt turns its head toward you. It can sense you! One of the wires running into the back of its skull sparks and goes dark.",
-				"You hear Specimen-614's voice before you even reach the hall — a low, vibrating hum bouncing off the tiled walls.\n\nThe chains holding the creature are stretched to their limit; in places the mounts have already cracked. Specimen-614 is trying to break free, and you can literally hear its muscles creaking under the strain. If you do not intend to fight it, you need to get out of here right now!"
+				"You return to the hall. Specimen-614 is still motionless, but something has clearly changed. The chains on its body clink softly, and one of the organic grafts on its shoulder twitches almost imperceptibly. The creature seems to be trying to break free!",
+				"Specimen-614 stirs and shifts in the darkness, making deep, guttural sounds. Bloody slime oozes from beneath the chains stretched across its body, and its metal parts screech.\n\nThe creature turns its head toward you. It senses you! One of the wires at the back of its head sparks and goes dark.",
+				"You hear Specimen-614's voice before you even return to the hall — a low, vibrating hum echoing off the tiled walls.\n\nThe chains holding the creature are stretched to their limit, and in places the mounts have already begun to crack. Specimen-614 is trying to break free, and you can hear its muscles straining and tearing. If you're not planning to fight it, you need to get out of here right now!"
 			],
 			"narrator_variants_ru": [
 				"Вы возвращаетесь в зал. Образец-614 всё так же неподвижен, но что-то явно изменилось. Цепи на его теле тихонько позвякивают, а одна из органических вставок на плече едва заметно сокращается. Существо как будто пытается выбраться!",
@@ -271,9 +271,9 @@
 				"We never asked for this... No one asked...",
 				"Turn off the light. Please, turn off the light.",
 				"A-a-a! A-a-a-a!! A-a-a-a!!!",
-				"Don't come near me... Don't touch me. Don't touch me.",
-				"This isn't my hand.",
-				"How many of me are here? How many of us are here?",
+				"Don't come near me... Don't touch... Don't touch me.",
+				"This isn't my arm.",
+				"How many of me are in here? How many of us are in here?",
 				"Mommy?.. Mommy, is that you?",
 				"They promised it would be temporary.",
 				"Please, get me out of here. Somebody. Please.",
@@ -298,14 +298,14 @@
 			"branch_failure_node": "hall"
 		},
 		"escaped": {
-			"narrator_text_en": "The rusted chains that held Specimen-614 for years snap one after another, and the monster hurls itself at you. Its frenzied howls make your ears ring.",
+			"narrator_text_en": "The rusty chains that held Specimen-614 for years snap one after another, and the monster lunges at you. Its frenzied howls set your ears ringing.",
 			"narrator_text_ru": "Ржавые цепи, годами удерживавшие Образец-614, лопаются одна за другой, и чудовище бросается на вас. От его неистовых воплей закладывает уши.",
 			"speech_text_en": "",
 			"speech_text_ru": "",
 			"choices": [
 				{
 					"text_en": "Brace yourself",
-					"text_ru": "Изготовиться к бою",
+					"text_ru": "Приготовиться к бою",
 					"reward": {
 						"type": "combat",
 						"enemy_ids": ["specimen_614"],
@@ -323,7 +323,7 @@
 			"choices": [
 				{
 					"text_en": "Brace yourself",
-					"text_ru": "Изготовиться к бою",
+					"text_ru": "Приготовиться к бою",
 					"reward": {
 						"type": "combat",
 						"enemy_ids": ["specimen_614"],
