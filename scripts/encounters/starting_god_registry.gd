@@ -143,6 +143,19 @@ static func _parse_dialog_node(node_id: String, node_dict: Dictionary) -> Dialog
 	node.disable_used_choices = bool(
 		node_dict.get("disable_used_choices", node_dict.get("disable_used_options", false))
 	)
+	## Push-your-luck branch + random narration pools (Specimen-614 hub).
+	node.branch_chances = _parse_float_array(node_dict.get("branch_chances", []))
+	node.branch_success_node = str(
+		node_dict.get("branch_success_node", node_dict.get("branch_escape_node", ""))
+	).strip_edges()
+	node.branch_failure_node = str(
+		node_dict.get("branch_failure_node", node_dict.get("branch_safe_node", ""))
+	).strip_edges()
+	node.narrator_variants_en = _parse_string_array(node_dict.get("narrator_variants_en", []))
+	node.narrator_variants_ru = _parse_string_array(node_dict.get("narrator_variants_ru", []))
+	node.speech_pool_en = _parse_string_array(node_dict.get("speech_pool_en", []))
+	node.speech_pool_ru = _parse_string_array(node_dict.get("speech_pool_ru", []))
+	node.speech_pool_visits = _parse_int_array(node_dict.get("speech_pool_visits", []))
 	## Legacy combined text_ru/text_en without narrator/speech split.
 	if (
 		node.narrator_text_en.is_empty()
@@ -166,6 +179,30 @@ static func _parse_dialog_node(node_id: String, node_dict: Dictionary) -> Dialog
 	if not inherit.is_empty():
 		node.set_meta("options_inherit", inherit)
 	return node
+
+
+static func _parse_string_array(raw: Variant) -> Array[String]:
+	var out: Array[String] = []
+	if raw is Array:
+		for entry in raw:
+			out.append(str(entry))
+	return out
+
+
+static func _parse_int_array(raw: Variant) -> Array[int]:
+	var out: Array[int] = []
+	if raw is Array:
+		for entry in raw:
+			out.append(int(entry))
+	return out
+
+
+static func _parse_float_array(raw: Variant) -> Array[float]:
+	var out: Array[float] = []
+	if raw is Array:
+		for entry in raw:
+			out.append(float(entry))
+	return out
 
 
 static func _parse_choice(choice_dict: Dictionary) -> DialogChoiceData:
@@ -505,9 +542,14 @@ static func _apply_god_flags_from_reward(o: DialogOutcomeData, reward: Dictionar
 	var flags_raw: Variant = reward.get("flags", [])
 	if flags_raw is Array:
 		for f in flags_raw:
-			if str(f).strip_edges().to_lower() == "pale_maiden_pact":
+			var key := str(f).strip_edges().to_lower()
+			if key.is_empty():
+				continue
+			if key == "pale_maiden_pact":
 				o.buff_id = "pale_maiden_pact"
 				o.buff_amount = 1
+			elif not o.story_flags.has(key):
+				o.story_flags.append(key)
 
 
 static func _localized_text(entry: Dictionary) -> String:

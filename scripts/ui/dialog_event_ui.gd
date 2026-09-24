@@ -45,6 +45,11 @@ var _pending_stat_choice: DialogChoiceData
 var _staged_boost_ids: Array[String] = []
 ## Choice ids already attempted this dialog (Deep Pit retries, etc.).
 var _used_choice_ids: Array[String] = []
+## Push-your-luck state (Specimen-614 hub): per-node visit counters + rolled targets.
+var _branch_visits: Dictionary = {}
+var _branch_target: Dictionary = {}
+## Transient display overrides for the current node (random narration / speech).
+var _current_render: Dictionary = {}
 ## main.gd provides this to run the harmful forced-insertion flow (ForcedItemScreen).
 var forced_insertion_handler: Callable = Callable()
 
@@ -147,6 +152,9 @@ func open_dialog(dialog: DialogEventData) -> void:
 	_used_choice_ids.clear()
 	_staged_boost_ids.clear()
 	_pending_stat_choice = null
+	_branch_visits.clear()
+	_branch_target.clear()
+	_current_render.clear()
 	_apply_responsive_layout()
 	_apply_story_badge()
 	_apply_event_image(dialog)
@@ -169,6 +177,9 @@ func close_dialog() -> void:
 	_pending_stat_choice = null
 	_staged_boost_ids.clear()
 	_used_choice_ids.clear()
+	_branch_visits.clear()
+	_branch_target.clear()
+	_current_render.clear()
 	visible = false
 	modulate.a = 0.0
 	mouse_filter = Control.MOUSE_FILTER_IGNORE
@@ -185,6 +196,9 @@ func abort_on_run_end() -> void:
 	_pending_stat_choice = null
 	_staged_boost_ids.clear()
 	_used_choice_ids.clear()
+	_branch_visits.clear()
+	_branch_target.clear()
+	_current_render.clear()
 	if (
 		_encounter_manager != null
 		and _encounter_manager.item_selection_resolved.is_connected(_on_item_selection_resolved)
@@ -203,7 +217,7 @@ func _on_viewport_resized() -> void:
 		if _pending_stat_choice != null:
 			_begin_stat_check_prepare(_pending_stat_choice, true)
 		else:
-			_show_node(_current_node_id)
+			_show_node(_current_node_id, true)
 
 
 func _ui_scale() -> float:
@@ -293,7 +307,7 @@ func _apply_story_badge() -> void:
 		)
 
 
-func _show_node(node_id: String) -> void:
+func _show_node(node_id: String, is_rerender: bool = false) -> void:
 	if _dialog == null:
 		return
 	if node_id == END_ENCOUNTER_ID or node_id.is_empty():
@@ -304,15 +318,94 @@ func _show_node(node_id: String) -> void:
 		_finish_with_outcome(DialogOutcomeData.make_end())
 		return
 	_current_node_id = node.id
+	if not is_rerender:
+		_current_render = _build_node_render(node)
 	if _title_label:
 		_title_label.text = _dialog.get_display_title()
 	if _story_text:
-		_story_text.text = _format_story_bbcode(node)
+		_story_text.text = _format_render_bbcode(node, _current_render)
 		_story_text.scroll_to_line(0)
 	if _result_label:
 		_result_label.visible = false
 		_result_label.text = ""
-	_rebuild_choices(node)
+	if node.has_branch():
+		_rebuild_branch_choice(_current_render)
+	else:
+		_rebuild_choices(node)
+
+
+func _build_node_render(node: DialogNodeData) -> Dictionary:
+	## Resolve random narration, speech pool, and push-your-luck roll once per entry.
+	var render: Dictionary = {}
+	var visit := int(_branch_visits.get(node.id, 0))
+	if node.has_branch():
+		_branch_visits[node.id] = visit + 1
+		var escaped := randf() < node.get_branch_chance(visit)
+		var target := node.branch_success_node if escaped else node.branch_failure_node
+		_branch_target[node.id] = target
+	render["visit"] = visit
+	render["target"] = str(_branch_target.get(node.id, ""))
+	if not node.narrator_variants_en.is_empty():
+		var vi := mini(visit, node.narrator_variants_en.size() - 1)
+		render["narrator_en"] = node.narrator_variants_en[vi]
+		if vi < node.narrator_variants_ru.size():
+			render["narrator_ru"] = node.narrator_variants_ru[vi]
+	if _speech_pool_applies(node, visit):
+		var line := _pick_speech_line(node)
+		if not line.is_empty():
+			render["speech_en"] = str(line.get("en", ""))
+			render["speech_ru"] = str(line.get("ru", ""))
+	return render
+
+
+func _speech_pool_applies(node: DialogNodeData, visit: int) -> bool:
+	if node.speech_pool_en.is_empty() and node.speech_pool_ru.is_empty():
+		return false
+	if node.speech_pool_visits.is_empty():
+		return true
+	return node.speech_pool_visits.has(visit)
+
+
+func _pick_speech_line(node: DialogNodeData) -> Dictionary:
+	var count := maxi(node.speech_pool_en.size(), node.speech_pool_ru.size())
+	if count <= 0:
+		return {}
+	var idx := randi() % count
+	return {
+		"en": node.speech_pool_en[idx] if idx < node.speech_pool_en.size() else "",
+		"ru": node.speech_pool_ru[idx] if idx < node.speech_pool_ru.size() else "",
+	}
+
+
+func _format_render_bbcode(node: DialogNodeData, render: Dictionary) -> String:
+	## Apply transient narration/speech overrides, then reuse the shared formatter.
+	if render.is_empty():
+		return _format_story_bbcode(node)
+	var saved_narr_en := node.narrator_text_en
+	var saved_narr_ru := node.narrator_text_ru
+	var saved_speech_en := node.speech_text_en
+	var saved_speech_ru := node.speech_text_ru
+	if render.has("narrator_en"):
+		node.narrator_text_en = str(render["narrator_en"])
+	if render.has("narrator_ru"):
+		node.narrator_text_ru = str(render["narrator_ru"])
+	if render.has("speech_en"):
+		node.speech_text_en = str(render["speech_en"])
+		node.speech_text_ru = str(render.get("speech_ru", render["speech_en"]))
+	var text := _format_story_bbcode(node)
+	node.narrator_text_en = saved_narr_en
+	node.narrator_text_ru = saved_narr_ru
+	node.speech_text_en = saved_speech_en
+	node.speech_text_ru = saved_speech_ru
+	return text
+
+
+func _rebuild_branch_choice(render: Dictionary) -> void:
+	_clear_choices()
+	var target := str(render.get("target", "")).strip_edges()
+	var btn := _make_choice_button(tr("KEY_CONTINUE"))
+	btn.pressed.connect(func() -> void: _show_node(target))
+	_choices_box.add_child(btn)
 
 
 func _rebuild_choices(node: DialogNodeData) -> void:
@@ -751,7 +844,7 @@ func _on_language_changed(_locale: String = "") -> void:
 	if _pending_stat_choice != null:
 		_begin_stat_check_prepare(_pending_stat_choice, true)
 		return
-	_show_node(_current_node_id)
+	_show_node(_current_node_id, true)
 
 
 class _BbcodeTooltipButton extends Button:

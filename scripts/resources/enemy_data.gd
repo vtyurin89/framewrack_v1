@@ -33,6 +33,9 @@ const TRAIT_PSYCHOSIS := "psychosis"
 const TRAIT_STRONG_START := "strong_start"
 ## Specimen-614: +4 Block at the start of each of this enemy's turns.
 const TRAIT_LAB_CONTOUR := "lab_contour"
+## Specimen-614 (escaped): opens combat with a free Swift Strike +2 Poison
+## before the player's first turn. Gated by the story flag specimen_614_escaped.
+const TRAIT_PREEMPTIVE_STRIKE := "preemptive_strike"
 ## Trait ids that are combat mechanics, not StatusEffectData blueprints.
 const MECHANIC_TRAIT_IDS: Array[String] = [
 	TRAIT_PERMANENT_SHIELD,
@@ -41,6 +44,7 @@ const MECHANIC_TRAIT_IDS: Array[String] = [
 	TRAIT_PSYCHOSIS,
 	TRAIT_STRONG_START,
 	TRAIT_LAB_CONTOUR,
+	TRAIT_PREEMPTIVE_STRIKE,
 	"stasis_pod",
 ]
 

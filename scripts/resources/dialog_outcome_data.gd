@@ -57,6 +57,8 @@ enum OutcomeKind {
 @export var loot_pick_count: int = 1
 ## Optional compound reward list from story JSON (`reward.effects`).
 var payload_effects: Array = []
+## Generic story flags set when this outcome resolves (e.g. specimen_614_escaped).
+@export var story_flags: Array[String] = []
 ## GRANT_ITEM of a harmful item: defer placement to the forced-insertion flow
 ## (the player must place it on the Body Grid and confirm before continuing).
 @export var force_insert_item: bool = false

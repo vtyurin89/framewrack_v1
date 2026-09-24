@@ -514,6 +514,11 @@ func has_lab_contour() -> bool:
 	return has_enemy_trait(EnemyData.TRAIT_LAB_CONTOUR)
 
 
+func has_preemptive_strike() -> bool:
+	## Escaped Specimen-614: free opening Swift Strike + Poison before player turn.
+	return has_enemy_trait(EnemyData.TRAIT_PREEMPTIVE_STRIKE)
+
+
 func has_always_reroll_intent() -> bool:
 	## Mad/unstable enemies: HP damage always forces a fresh intention roll.
 	return (

@@ -914,3 +914,6 @@ KEY_LOG_BLOOD_CLOT_POP,%s bursts — 3 Poison!,Разрыв: %s — 3 Яда!
 KEY_LOG_BLOOD_CLOT_COLUMN,Blood clots react (+%d Poison).,Кровавые сгустки реагируют (+%d Яда).
 KEY_LOG_AUTO_INSERT_FAIL,No free cell for the parasite.,Нет свободной ячейки для паразита.
 KEY_LOG_AUTO_INSERT_PUNISH,%s finds no free cell — deals %d damage (%d through Block).,%s не находит свободную ячейку — наносит %d урона (%d через Блок).
+TRAIT_PREEMPTIVE_STRIKE_NAME,Preemptive Strike,Превентивный удар
+TRAIT_PREEMPTIVE_STRIKE_DESC,"At the start of combat, before the player's first turn, uses Swift Strike and applies 2 Poison.","В начале боя, перед первым ходом игрока, использует «Стремительный удар» и накладывает 2 стака яда."
+KEY_LOG_PREEMPTIVE_STRIKE,%s strikes before you can react!,%s наносит удар, пока вы не успели среагировать!

@@ -534,6 +534,7 @@ func _start_combat_from_ids(
 		if active_encounter != null:
 			act_index = maxi(1, int(active_encounter.payload.get("act", 1)))
 		datas = StoryEventManager.maybe_inject_faceless_lady(datas, act_index)
+	_apply_story_combat_traits(datas)
 	_awaiting_combat_resolution = true
 	if combat != null and combat.has_method("set_group_attack_cap"):
 		combat.call("set_group_attack_cap", max_attackers)
@@ -576,6 +577,19 @@ func _apply_cripple_buff_to_enemies(datas: Array[EnemyData]) -> Array[EnemyData]
 	return out
 
 
+func _apply_story_combat_traits(datas: Array[EnemyData]) -> void:
+	## Escaped Specimen-614 only: grant the preemptive_strike trait this fight.
+	if StoryEventManager == null or not StoryEventManager.has_specimen_614_escaped():
+		return
+	for data in datas:
+		if data == null:
+			continue
+		if data.id.strip_edges().to_lower() != "specimen_614":
+			continue
+		if not data.trait_ids.has(EnemyData.TRAIT_PREEMPTIVE_STRIKE):
+			data.trait_ids.append(EnemyData.TRAIT_PREEMPTIVE_STRIKE)
+
+
 func _try_open_dialog_loot(outcome: DialogOutcomeData) -> bool:
 	if outcome == null or RewardManager == null:
 		return false
@@ -604,6 +618,18 @@ func _try_open_dialog_loot(outcome: DialogOutcomeData) -> bool:
 			if m != null:
 				loot.append(m)
 			pick_count = maxi(2, loot.size())
+		"tiered_gear", "tiered_item":
+			## Specimen-614 rooms: one random uncommon/rare/very_rare gear piece.
+			var gear := RewardManager.generate_tiered_dialog_item(false)
+			if gear != null:
+				loot.append(gear)
+			pick_count = 1
+		"tiered_consumable", "tiered_supply":
+			## Specimen-614 lab: one random uncommon/rare/very_rare consumable.
+			var supply := RewardManager.generate_tiered_dialog_item(true)
+			if supply != null:
+				loot.append(supply)
+			pick_count = 1
 		_:
 			return false
 	if loot.is_empty():
@@ -620,6 +646,10 @@ func _try_open_dialog_loot(outcome: DialogOutcomeData) -> bool:
 func _apply_outcome_side_effects(outcome: DialogOutcomeData) -> void:
 	if outcome == null:
 		return
+	if not outcome.story_flags.is_empty() and StoryEventManager != null:
+		for flag_id in outcome.story_flags:
+			StoryEventManager.set_story_flag(flag_id, true)
+		_pending_rewards["story_flags"] = outcome.story_flags.duplicate()
 	if outcome.spend_chips > 0 and GameManager != null:
 		GameManager.spend_chips(outcome.spend_chips)
 		_pending_rewards["spent_chips"] = outcome.spend_chips

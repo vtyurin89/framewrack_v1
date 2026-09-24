@@ -363,6 +363,15 @@ func generate_rare_offer(count: int = 3) -> Array[ItemData]:
 	return out
 
 
+func generate_tiered_dialog_item(want_consumable: bool) -> ItemData:
+	## Story-event loot: one UNCOMMON / RARE / VERY_RARE item (gear or supply).
+	var tier := _roll_tier(0.0, 0.50, 0.35, 0.15)
+	var item := _pick_random_item_of_tier(tier, want_consumable, {})
+	if item == null:
+		item = _pick_any_matching(want_consumable, {})
+	return item
+
+
 func generate_rare_weapon() -> ItemData:
 	return _pick_typed_rare_or_better(["WEAPON"], {})
 

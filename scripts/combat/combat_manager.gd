@@ -38,6 +38,9 @@ const PARASITE_AP_CAP := 3
 const WAR_MODULE_TEMP_DMG := 2
 const TAINTED_DEFAULT_DAMAGE := 1
 const SENSOR_GLITCH_RETARGET_CHANCE := 0.5
+## Trait preemptive_strike: opening ability id + bonus Poison stacks.
+const PREEMPTIVE_STRIKE_ABILITY_ID := "ABILITY_SPECIMEN_SWIFT_STRIKE"
+const PREEMPTIVE_STRIKE_POISON := 2
 ## Laser → pause → blast pulse → resolve.
 const STICKY_DETONATION_LASER_HOLD := 0.5
 const STICKY_DETONATION_BLAST_HOLD := 0.42
@@ -186,6 +189,11 @@ func start_combat(enemy_datas: Array[EnemyData], max_attackers: int = -1) -> voi
 	_parasite_at_combat_start = _has_item_in_grid(SLIMY_PARASITE_ID)
 	_select_first_living_enemy()
 	EventBus.combat_started.emit(ids)
+	_apply_enemy_preemptive_strikes()
+	## Preemptive strike (escaped Specimen-614) may already have killed the player.
+	if inventory != null and inventory.is_dead():
+		_lose()
+		return
 	_begin_player_turn()
 
 
@@ -1732,6 +1740,30 @@ func _apply_enemy_battle_start_passives() -> void:
 			EventBus.combat_log_message.emit(
 				tr("KEY_LOG_STRONG_START") % [enemy.get_localized_name(), 10]
 			)
+
+
+func _apply_enemy_preemptive_strikes() -> void:
+	## Escaped Specimen-614 strikes before the player's first turn (after the
+	## combat UI is live so its damage/logging are visible).
+	for i in enemies.size():
+		var enemy: EnemyInstance = enemies[i]
+		if enemy == null or not enemy.is_alive():
+			continue
+		if enemy.has_preemptive_strike():
+			_apply_preemptive_strike(i, enemy)
+
+
+func _apply_preemptive_strike(index: int, enemy: EnemyInstance) -> void:
+	## Escaped Specimen-614: one free Swift Strike + 2 Poison before the player acts.
+	if enemy == null or not enemy.is_alive() or _ability_executor == null:
+		return
+	EventBus.combat_log_message.emit(
+		tr("KEY_LOG_PREEMPTIVE_STRIKE") % enemy.get_localized_name()
+	)
+	var ability := enemy.find_ability(PREEMPTIVE_STRIKE_ABILITY_ID)
+	if ability != null:
+		_ability_executor.execute(enemy, index, ability)
+	apply_player_status("poison", PREEMPTIVE_STRIKE_POISON)
 
 
 func apply_overload_to_item(placed: PlacedItem, turns: int = 1) -> void:

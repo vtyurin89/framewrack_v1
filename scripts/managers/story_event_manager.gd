@@ -8,12 +8,16 @@ const EVENTS_DIR := "res://data/encounters/events/"
 const WHITE_FOG_ID := "white_fog"
 const FACELESS_LADY_ID := "faceless_lady"
 const FACELESS_INJECT_CHANCE := 0.35
+## Escaped Specimen-614 unlocks its preemptive_strike combat trait.
+const FLAG_SPECIMEN_614_ESCAPED := "specimen_614_escaped"
 
 ## Narrative markers
 var pale_maiden_pact_made: bool = false
 var white_fog_event_triggered: bool = false
 var faceless_lady_spawned: bool = false
 var faceless_lady_defeated: bool = false
+## Generic runtime story flags (event-driven combat modifiers, etc.).
+var _story_flags: Dictionary = {}
 
 var act1_event_queue: Array[StoryEvent] = []
 var act2_event_queue: Array[StoryEvent] = []
@@ -33,8 +37,34 @@ func reset_run() -> void:
 	white_fog_event_triggered = false
 	faceless_lady_spawned = false
 	faceless_lady_defeated = false
+	_story_flags.clear()
 	rebuild_act_queues()
 	flags_changed.emit()
+
+
+func set_story_flag(flag_id: String, value: bool = true) -> void:
+	var key := flag_id.strip_edges().to_lower()
+	if key.is_empty():
+		return
+	_story_flags[key] = value
+	flags_changed.emit()
+
+
+func has_story_flag(flag_id: String) -> bool:
+	return bool(_story_flags.get(flag_id.strip_edges().to_lower(), false))
+
+
+func clear_story_flag(flag_id: String) -> void:
+	_story_flags.erase(flag_id.strip_edges().to_lower())
+	flags_changed.emit()
+
+
+func mark_specimen_614_escaped() -> void:
+	set_story_flag(FLAG_SPECIMEN_614_ESCAPED, true)
+
+
+func has_specimen_614_escaped() -> bool:
+	return has_story_flag(FLAG_SPECIMEN_614_ESCAPED)
 
 
 func mark_pale_maiden_pact() -> void:
@@ -112,6 +142,9 @@ func notify_event_started(event_id: String) -> void:
 	var key := event_id.strip_edges().to_lower()
 	if key == WHITE_FOG_ID:
 		mark_white_fog_triggered()
+	elif key == "enc_specimen_614":
+		## Clear the escape gate so each visit rolls its own preemptive_strike.
+		set_story_flag(FLAG_SPECIMEN_614_ESCAPED, false)
 
 
 func build_encounter_for_act(act_index: int) -> EncounterData:
@@ -169,6 +202,8 @@ func _rebuild_catalog() -> void:
 	_register_event("enc_deep_pit", StoryEvent.Faction.HUMAN, "enc_deep_pit", false, [1])
 	## Act 2 Kairit — machine megastructure beats.
 	_register_event("enc_wounded_composite", StoryEvent.Faction.ROBOT, "enc_wounded_composite", false, [2])
+	## Escaped experiment hub — push-your-luck dungeon in Kairit / chimera territory.
+	_register_event("enc_specimen_614", StoryEvent.Faction.ROBOT, "enc_specimen_614", false, [2, 3])
 	## Medical bots — available in the city ruins and early Kairit.
 	_register_event("enc_forgotten_terminal", StoryEvent.Faction.GENERIC, "enc_forgotten_terminal", false, [1, 2])
 	## Faction-neutral event that can surface in any act.
