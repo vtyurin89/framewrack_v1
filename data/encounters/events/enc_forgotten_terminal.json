@@ -47,8 +47,8 @@
 				},
 				{
 					"id": "opt_recruit",
-					"text_en": "Ask one of the bots to join you",
-					"text_ru": "Предложить одному из ботов присоединиться к вам",
+					"text_en": "Ask one of the bots to join you [INT]",
+					"text_ru": "Предложить одному из ботов присоединиться к вам [INT]",
 					"next_dialog_id": "node_recruit_attempt"
 				},
 				{

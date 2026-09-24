@@ -67,12 +67,9 @@
 				},
 				{
 					"id": "opt_room1_open",
-					"text_en": "[STR Check] Force the door open",
-					"text_ru": "[Проверка STR] Выломать дверь",
-					"stat_check": "STR",
-					"difficulty": "HARD",
-					"success_next_dialog_id": "room1_str_ok",
-					"failure_next_dialog_id": "room1_str_fail"
+					"text_en": "Try to break the door open [STR]",
+					"text_ru": "Попробовать выломать дверь [STR]",
+					"next_dialog_id": "room1_force"
 				},
 				{
 					"id": "opt_room1_leave",
@@ -96,9 +93,26 @@
 				}
 			]
 		},
+		"room1_force": {
+			"narrator_text_en": "The door looks very sturdy, but it's worth trying to break it open.",
+			"narrator_text_ru": "Дверь выглядит очень прочной, но стоит попробовать её выломать.",
+			"speech_text_en": "",
+			"speech_text_ru": "",
+			"choices": [
+				{
+					"id": "opt_room1_force",
+					"text_en": "[STR Check] Throw yourself against the door",
+					"text_ru": "[Проверка STR] Навалиться на дверь",
+					"stat_check": "STR",
+					"difficulty": "HARD",
+					"success_next_dialog_id": "room1_str_ok",
+					"failure_next_dialog_id": "room1_str_fail"
+				}
+			]
+		},
 		"room1_str_ok": {
-			"narrator_text_en": "You brace a heel against the frame and throw your weight against the door. Rust squeals, the lock tears loose, and the door crashes inward.\n\nYou enter a small storeroom with the laboratory staff's personal belongings. Most of it has long since rotted away, but you find something useful.",
-			"narrator_text_ru": "Вы упираетесь ногой в косяк и всем весом наваливаетесь на дверь. Ржавчина визжит, замок срывается, и дверь с грохотом распахивается.\n\nПеред вами небольшой склад с личными вещами персонала лаборатории. Большая часть вещей давно пришла в негодность, но вы находите кое-что полезное.",
+			"narrator_text_en": "Rust squeals, the lock tears loose, and the door crashes inward.\n\nYou enter a small storeroom with the laboratory staff's personal belongings. Most of it has long since rotted away, but you find something useful.",
+			"narrator_text_ru": "Ржавчина визжит, замок срывается, и дверь с грохотом распахивается.\n\nПеред вами небольшой склад с личными вещами персонала лаборатории. Большая часть вещей давно пришла в негодность, но вы находите кое-что полезное.",
 			"speech_text_en": "",
 			"speech_text_ru": "",
 			"choices": [
@@ -139,21 +153,9 @@
 			"choices": [
 				{
 					"id": "opt_room2_search",
-					"text_en": "[INT Check] Search for usable consumables",
-					"text_ru": "[Проверка INT] Поискать уцелевшие расходники",
-					"stat_check": "INT",
-					"difficulty": "MEDIUM",
-					"success_next_dialog_id": "room2_ok",
-					"failure_next_dialog_id": "room2_fail"
-				},
-				{
-					"id": "opt_room2_search",
-					"text_en": "[LCK Check] Search for usable consumables",
-					"text_ru": "[Проверка LCK] Поискать уцелевшие расходники",
-					"stat_check": "LCK",
-					"difficulty": "MEDIUM",
-					"success_next_dialog_id": "room2_ok",
-					"failure_next_dialog_id": "room2_fail"
+					"text_en": "Search for usable consumables [INT/LCK]",
+					"text_ru": "Поискать уцелевшие расходники [INT/LCK]",
+					"next_dialog_id": "room2_search"
 				},
 				{
 					"id": "opt_room2_leave",
@@ -163,9 +165,36 @@
 				}
 			]
 		},
+		"room2_search": {
+			"narrator_text_en": "Even in this garbage, something useful might have survived. You decide to spend a little time searching.",
+			"narrator_text_ru": "Даже среди этого мусора может затеряться что-то полезное. Вы решаете потратить немного времени на поиски.",
+			"speech_text_en": "",
+			"speech_text_ru": "",
+			"disable_used_choices": true,
+			"choices": [
+				{
+					"id": "opt_room2_search_check",
+					"text_en": "[INT Check] Search methodically",
+					"text_ru": "[Проверка INT] Обыскать методично",
+					"stat_check": "INT",
+					"difficulty": "MEDIUM",
+					"success_next_dialog_id": "room2_ok",
+					"failure_next_dialog_id": "room2_fail"
+				},
+				{
+					"id": "opt_room2_search_check",
+					"text_en": "[LCK Check] Rely on luck",
+					"text_ru": "[Проверка LCK] Понадеяться на удачу",
+					"stat_check": "LCK",
+					"difficulty": "MEDIUM",
+					"success_next_dialog_id": "room2_ok",
+					"failure_next_dialog_id": "room2_fail"
+				}
+			]
+		},
 		"room2_ok": {
-			"narrator_text_en": "Even in this garbage, something useful might have survived. You decide to spend a little time searching.\n\nYou find a small stash of ingredients that the scavengers missed.",
-			"narrator_text_ru": "Даже среди этого мусора может затеряться что-то полезное. Вы решаете потратить немного времени на поиски.\n\nПод обрушившимся стеллажом вы находите небольшой тайник с ингредиентами, который не нашли мародёры.",
+			"narrator_text_en": "You find a small stash of ingredients that the scavengers missed.",
+			"narrator_text_ru": "Под обрушившимся стеллажом вы находите небольшой тайник с ингредиентами, который не нашли мародёры.",
 			"speech_text_en": "",
 			"speech_text_ru": "",
 			"choices": [
@@ -205,12 +234,9 @@
 			"choices": [
 				{
 					"id": "opt_room3_dismantle",
-					"text_en": "[STR Check] Try to disassemble the part",
-					"text_ru": "[Проверка STR] Попробовать разобрать деталь",
-					"stat_check": "STR",
-					"difficulty": "MEDIUM",
-					"success_next_dialog_id": "room3_ok",
-					"failure_next_dialog_id": "room3_fail"
+					"text_en": "Try to disassemble the part [STR]",
+					"text_ru": "Попробовать разобрать деталь [STR]",
+					"next_dialog_id": "room3_dismantle"
 				},
 				{
 					"id": "opt_room3_leave",
@@ -220,9 +246,26 @@
 				}
 			]
 		},
+		"room3_dismantle": {
+			"narrator_text_en": "Even if danger looms, that's no reason to abandon valuable loot, right? You lift the metal arm and try to unscrew the bolts holding its parts together. The bolts are rusted tight — you'll need to work carefully.",
+			"narrator_text_ru": "Даже если вам угрожает опасность, это ведь не повод бросать ценную добычу, верно? Вы приподнимаете металлическую руку и пытаетесь раскрутить болты, которые скрепляют её части. Болты очень тугие и ржавые, нужно действовать осторожно.",
+			"speech_text_en": "",
+			"speech_text_ru": "",
+			"choices": [
+				{
+					"id": "opt_room3_dismantle_check",
+					"text_en": "[STR Check] Unscrew the rusted bolts",
+					"text_ru": "[Проверка STR] Раскрутить ржавые болты",
+					"stat_check": "STR",
+					"difficulty": "MEDIUM",
+					"success_next_dialog_id": "room3_ok",
+					"failure_next_dialog_id": "room3_fail"
+				}
+			]
+		},
 		"room3_ok": {
-			"narrator_text_en": "Even if there's danger, that's no reason to abandon valuable loot, right? You lift the metal arm and try to unscrew the bolts holding its parts together. The bolts are rusted tight — you'll need to be careful.\n\nYou manage to disassemble the metal arm. Its parts will serve you well.",
-			"narrator_text_ru": "Даже если вам угрожает опасность, это ведь не повод бросать ценную добычу, верно? Вы приподнимаете металлическую руку и пытаетесь раскрутить болты, которые скрепляют её части. Болты очень тугие и ржавые, нужно действовать осторожно.\n\nУ вас получается разобрать металлическую руку. Её детали очень пригодятся вам в будущем.",
+			"narrator_text_en": "You manage to disassemble the metal arm. Its parts will serve you well.",
+			"narrator_text_ru": "У вас получается разобрать металлическую руку. Её детали очень пригодятся вам в будущем.",
 			"speech_text_en": "",
 			"speech_text_ru": "",
 			"choices": [

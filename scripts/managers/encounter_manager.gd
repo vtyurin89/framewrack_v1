@@ -334,6 +334,10 @@ func resolve_stat_check(
 	return StatCheckManager.perform_check(stat_value, required_successes, consumed_ap)
 
 
+## Dialog stat-check resolution (backend).
+## See docs/dialog_encounters.md §7 for the authoring rules behind the check
+## prepare phase (item boosts) and why action flavor text must live on the
+## node that carries the check choice.
 func resolve_choice_stat_check(
 	choice: DialogChoiceData, consumed_ap: int = 0
 ) -> StatCheckManager.CheckResult:

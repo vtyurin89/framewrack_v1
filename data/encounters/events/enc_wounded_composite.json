@@ -39,8 +39,8 @@
 				},
 				{
 					"id": "opt_help_attempt",
-					"text_en": "Attempt to stabilize the composite's systems",
-					"text_ru": "Попытаться помочь композиту",
+					"text_en": "Attempt to stabilize the composite's systems [INT]",
+					"text_ru": "Попытаться помочь композиту [INT]",
 					"next_dialog_id": "node_attempt_help"
 				},
 				{

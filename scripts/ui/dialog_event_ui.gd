@@ -507,6 +507,8 @@ func _mark_choice_used(choice: DialogChoiceData) -> void:
 	_used_choice_ids.append(cid)
 
 
+## Stat-check prepare phase: the current node's text stays on screen while the
+## player stages item boosts for extra dice. See docs/dialog_encounters.md §7.
 func _begin_stat_check_prepare(choice: DialogChoiceData, preserve_boosts: bool = false) -> void:
 	## Dialog phase: optionally stage dice boosts, then start the roll modal.
 	_pending_stat_choice = choice
