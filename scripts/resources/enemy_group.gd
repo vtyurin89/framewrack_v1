@@ -14,6 +14,9 @@ extends Resource
 @export var max_layer: int = 99
 @export var is_starter_group: bool = false
 @export var is_elite: bool = false
+## Starter pack that intentionally fields heavy enemies (e.g. Act 3 chimera pair).
+## Silences the EnemyManager starter-power validation warning.
+@export var allow_heavy_starter: bool = false
 ## Caps how many units may use heavy offensive actions in one enemy turn.
 @export var max_attackers_per_turn: int = 2
 

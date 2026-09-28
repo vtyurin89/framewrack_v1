@@ -1,0 +1,16 @@
+[gd_resource type="Resource" script_class="EnemyGroup" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://scripts/resources/enemy_group.gd" id="1"]
+
+[resource]
+script = ExtResource("1")
+group_id = "chimera_scavenger_pair"
+group_name = "Scavenger Chimera Pair"
+enemy_ids = Array[String](["scavenger_chimera", "scavenger_chimera"])
+faction = "chimera"
+min_layer = 1
+max_layer = 2
+is_starter_group = true
+is_elite = false
+allow_heavy_starter = true
+max_attackers_per_turn = 2

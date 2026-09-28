@@ -11,6 +11,8 @@ const GROUP_FILES: PackedStringArray = [
 	"arbiter_disrupt_squad.tres",
 	"arbiter_focus_elite.tres",
 	"arbiter_warden_pair.tres",
+	"chimera_scavenger_pack.tres",
+	"chimera_scavenger_pair.tres",
 	"corp_enforcer_squad.tres",
 	"deserter_strike_team.tres",
 	"enc_act1_junkie_single.tres",
@@ -231,6 +233,8 @@ static func _ensure_groups_loaded() -> void:
 
 static func _validate_group(group: EnemyGroup) -> void:
 	if group == null or not group.is_starter_group or group.is_elite:
+		return
+	if group.allow_heavy_starter:
 		return
 	if EnemyDatabase == null:
 		return
