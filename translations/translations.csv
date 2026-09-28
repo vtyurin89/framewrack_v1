@@ -917,3 +917,29 @@ KEY_LOG_AUTO_INSERT_PUNISH,%s finds no free cell — deals %d damage (%d through
 TRAIT_PREEMPTIVE_STRIKE_NAME,Preemptive Strike,Превентивный удар
 TRAIT_PREEMPTIVE_STRIKE_DESC,"At the start of combat, before the player's first turn, uses Swift Strike and applies 2 Poison.","В начале боя, перед первым ходом игрока, использует «Стремительный удар» и накладывает 2 стака яда."
 KEY_LOG_PREEMPTIVE_STRIKE,%s strikes before you can react!,%s наносит удар, пока вы не успели среагировать!
+ENEMY_SCAVENGER_CHIMERA_NAME,Scavenger Chimera,Химера-падальщик
+ENEMY_SCAVENGER_CHIMERA_DESC,"Pack cannibal. Falls into a trembling corpse on death and revives stronger if left alone.","Стайный каннибал. При смерти падает трепещущим телом и возрождается сильнее, если его не добить."
+ENEMY_TREMBLING_CORPSE_NAME,Trembling Corpse,Трепещущее тело
+ENEMY_TREMBLING_CORPSE_DESC,"Convulsing biomass. Revives into a Scavenger Chimera after 2 rounds if not destroyed.","Конвульсирующая биомасса. Через 2 раунда возрождается в Химеру-падальщика, если её не уничтожить."
+ABILITY_CHIMERA_BONE_BITE_NAME,Bone Bite,Костяной укус
+ABILITY_CHIMERA_BONE_BITE_DESC,"Deals 6-7 physical damage (+STR).","Наносит 6–7 физ. урона (+СИЛ)."
+ABILITY_CHIMERA_BONE_BITE_TEXT,Bone Bite!,Костяной укус!
+ABILITY_CHIMERA_CARAPACE_LUNGE_NAME,Carapace Lunge,Панцирный выпад
+ABILITY_CHIMERA_CARAPACE_LUNGE_DESC,"Deals 3-4 physical damage (+STR) and gains an equal amount of Block.","Наносит 3–4 физ. урона (+СИЛ) и получает столько же Брони."
+ABILITY_CHIMERA_CARAPACE_LUNGE_TEXT,Carapace Lunge!,Панцирный выпад!
+ABILITY_CHIMERA_RENDING_POUNCE_NAME,Rending Pounce,Рвущий наскок
+ABILITY_CHIMERA_RENDING_POUNCE_DESC,"Deals 10-12 physical damage (+STR). 40% chance to spawn a Chimera Larva in the player's grid. Cooldown 3.","Наносит 10–12 физ. урона (+СИЛ). С шансом 40% вселяет Личинку химеры в инвентарь игрока. Откат 3."
+ABILITY_CHIMERA_RENDING_POUNCE_TEXT,Rending Pounce!,Рвущий наскок!
+ABILITY_CHIMERA_DEVOUR_KIN_NAME,Devour Kin,Пожирание сородича
+ABILITY_CHIMERA_DEVOUR_KIN_DESC,"Devours a downed sibling: 8 pure damage. A kill fully heals this chimera and grants +3 STR, +3 LCK (stacking).","Пожирает павшего сородича: 8 чистого урона. Добивание полностью лечит и даёт +3 СИЛ, +3 УДЧ (суммируется)."
+ABILITY_CHIMERA_DEVOUR_KIN_TEXT,Devour Kin!,Пожирание сородича!
+ITEM_CHIMERA_LARVA_NAME,Chimera Larva,Личинка химеры
+ITEM_CHIMERA_LARVA_DESC,"Harmful parasite. Activate (0 AP): 1 damage, spend a charge, 1-turn cooldown. Destroyed after the last charge.","Вредоносный паразит. Активация (0 ОД): 1 урон, тратит заряд, откат 1 ход. Уничтожается после последнего заряда."
+TRAIT_CHIMERA_LARVA_POP_NAME,Larval attck,Личиночная атака
+TRAIT_CHIMERA_LARVA_POP_DESC,On use: deal 1 damage to the player and spend a charge (1-turn cooldown).,При активации: наносит 1 урон игроку и тратит заряд (откат 1 ход).
+KEY_LOG_CHIMERA_CORPSE,%s collapses into trembling biomass!,%s обрушивается трепещущей биомассой!
+KEY_LOG_CHIMERA_REVIVE,%s bursts back to life, frenzied!,%s вновь вырывается к жизни, обезумев!
+KEY_LOG_DEVOUR_KIN,%s devours its kin (%s) for %d damage.,%s пожирает сородича (%s) — %d урона.
+KEY_LOG_DEVOUR_NONE,%s finds no kin to devour.,%s не находит сородича для пожирания.
+KEY_LOG_DEVOUR_BOOST,%s is blood-satiated: +%d STR, +%d LCK!,%s насыщается кровью: +%d СИЛ, +%d УДЧ!
+KEY_LOG_CHIMERA_LARVA,%s burrows into your frame!,%s вгрызается в ваш каркас!

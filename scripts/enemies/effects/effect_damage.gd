@@ -22,6 +22,7 @@ func apply(caster: EnemyInstance, target: Node, params: Array) -> void:
 	## Physical → Strength; spell → Intelligence (via scaling_stat / half-STR multi-hit).
 	var stat_bonus := EnemyAbilityExecutor.resolve_damage_stat_bonus(caster, ability)
 	var total_hp_dealt := 0
+	var last_amount := 0
 	for _i in hits:
 		var base_roll := ability.roll_base()
 		var amount := base_roll + stat_bonus
@@ -39,6 +40,7 @@ func apply(caster: EnemyInstance, target: Node, params: Array) -> void:
 		if GameSettings != null:
 			amount = roundi(float(amount) * GameSettings.get_enemy_damage_multiplier())
 		amount = maxi(0, amount)
+		last_amount = amount
 
 		var dealt: int = target.call("apply_enemy_damage_to_player", amount, caster, "physical")
 		total_hp_dealt += maxi(0, dealt)
@@ -55,10 +57,28 @@ func apply(caster: EnemyInstance, target: Node, params: Array) -> void:
 		if target.has_method("is_player_defeated") and bool(target.call("is_player_defeated")):
 			return
 
+	## self_block: the chimera armors itself for as much as it just hit.
+	if _has_self_block(ability) and last_amount > 0:
+		caster.gain_block(last_amount)
+		EventBus.combat_log_message.emit(
+			tr("KEY_LOG_ENEMY_BLOCK") % [caster.get_localized_name(), last_amount]
+		)
+		if target != null and target.has_method("emit_enemy_block_for"):
+			target.call("emit_enemy_block_for", caster)
+
 	_apply_status_riders(caster, target, ability, total_hp_dealt > 0)
 
 	if caster.statuses != null:
 		caster.statuses.consume_frenzy_after_attack()
+
+
+func _has_self_block(ability: EnemyAbility) -> bool:
+	if ability == null:
+		return false
+	for token in ability.get_effect_param_list():
+		if str(token).strip_edges().to_lower() == "self_block":
+			return true
+	return false
 
 
 func _apply_flat_block_from_params(
@@ -119,9 +139,10 @@ func _apply_status_riders(
 				target.call("apply_cell_damage", Vector2i(-1, -1), cd_status, cd_duration)
 			continue
 		if token == "auto_insert" or token == "force_spawn":
-			## auto_insert|ITEM_ID|fail_damage — spawn harmful module or deal fail damage.
+			## auto_insert|ITEM_ID|fail_damage|chance%% — spawn harmful module or deal fail damage.
 			var insert_id := "ITM_BLOOD_CLOT"
 			var fail_dmg := 5
+			var spawn_chance := 100
 			if i + 1 < csv.size() and not str(csv[i + 1]).is_valid_int():
 				insert_id = str(csv[i + 1]).strip_edges().to_upper()
 				i += 2
@@ -130,6 +151,11 @@ func _apply_status_riders(
 			if i < csv.size() and str(csv[i]).is_valid_int():
 				fail_dmg = maxi(0, int(csv[i]))
 				i += 1
+			if i < csv.size() and str(csv[i]).is_valid_int():
+				spawn_chance = clampi(int(csv[i]), 0, 100)
+				i += 1
+			if spawn_chance <= 0 or (spawn_chance < 100 and randi_range(1, 100) > spawn_chance):
+				continue
 			if target.has_method("try_auto_insert_or_punish"):
 				target.call("try_auto_insert_or_punish", insert_id, fail_dmg, caster)
 			elif target.has_method("try_auto_insert_item"):

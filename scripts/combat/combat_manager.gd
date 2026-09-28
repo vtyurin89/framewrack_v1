@@ -41,6 +41,13 @@ const SENSOR_GLITCH_RETARGET_CHANCE := 0.5
 ## Trait preemptive_strike: opening ability id + bonus Poison stacks.
 const PREEMPTIVE_STRIKE_ABILITY_ID := "ABILITY_SPECIMEN_SWIFT_STRIKE"
 const PREEMPTIVE_STRIKE_POISON := 2
+## Scavenger Chimera cannibalism / revival cycle.
+const SCAVENGER_CHIMERA_ID := "scavenger_chimera"
+const TREMBLING_CORPSE_ID := "entity_trembling_corpse"
+const CHIMERA_LARVA_ID := "ITM_CHIMERA_LARVA"
+const TREMBLING_CORPSE_TURNS := 2
+const DEVOUR_STR_BONUS := 3
+const DEVOUR_LCK_BONUS := 3
 ## Laser → pause → blast pulse → resolve.
 const STICKY_DETONATION_LASER_HOLD := 0.5
 const STICKY_DETONATION_BLAST_HOLD := 0.42
@@ -648,6 +655,10 @@ func activate_item(placed: PlacedItem) -> bool:
 				_apply_blood_clot_pop(placed)
 				_finish_player_activation()
 				return true
+			if _is_chimera_larva(placed):
+				_apply_chimera_larva_pop(placed)
+				_finish_player_activation()
+				return true
 			_resolve_self(placed)
 		ItemData.TargetType.ALL_ENEMIES:
 			_resolve_all_enemies(placed)
@@ -1030,6 +1041,34 @@ func _apply_blood_clot_column_poison(activated: PlacedItem) -> void:
 	EventBus.combat_log_message.emit(tr("KEY_LOG_BLOOD_CLOT_COLUMN") % triggered)
 
 
+func _is_chimera_larva(placed: PlacedItem) -> bool:
+	return (
+		placed != null
+		and placed.data != null
+		and (
+			TraitManager.has_trait(placed.data, "TRAIT_CHIMERA_LARVA_POP")
+			or placed.data.id.strip_edges().to_upper() == CHIMERA_LARVA_ID
+		)
+	)
+
+
+func _apply_chimera_larva_pop(placed: PlacedItem) -> void:
+	## Click the larva: 1 pure damage, spend a charge, 1-turn cooldown.
+	## Destroys itself only after the final charge is spent.
+	if placed == null or placed.data == null or inventory == null or inventory.grid == null:
+		return
+	var item_name := placed.data.get_localized_name()
+	var dealt := inventory.apply_damage(1, 0)
+	_request_player_popup(dealt if dealt > 0 else 1, "poison")
+	_trigger_player_hit_feedback(maxi(dealt, 1))
+	EventBus.combat_log_message.emit(tr("KEY_LOG_CHIMERA_LARVA") % item_name)
+	_consume_charge_if_needed(placed)
+	if inventory.grid.items.has(placed):
+		placed.data.start_cooldown(1)
+	EventBus.inventory_changed.emit()
+	EventBus.combat_item_availability_changed.emit()
+
+
 func count_worm_parasites() -> int:
 	## Let enemy AI query the number of Parasitic Worms in the player's grid.
 	if inventory == null or not inventory.has_method("count_worm_parasites"):
@@ -1241,6 +1280,11 @@ func _deal_damage_to(
 				enemy.current_intention = CombatIntention.from_ability(enemy, enemy.planned_ability)
 				EventBus.enemy_intention_changed.emit(index, enemy.current_intention)
 	if not enemy.is_alive():
+		if _try_chimera_corpse_transform(enemy):
+			enemy.clear_intention()
+			EventBus.enemy_intention_changed.emit(index, enemy.current_intention)
+			_ensure_valid_selection()
+			return false
 		enemy.clear_intention()
 		EventBus.enemy_intention_changed.emit(index, enemy.current_intention)
 		_on_enemy_defeated(enemy, index)
@@ -1900,6 +1944,10 @@ func _enemy_pre_turn_phase_async(index: int, enemy: EnemyInstance) -> bool:
 		)
 		EventBus.enemy_hp_changed.emit(index, enemy.current_hp, enemy.max_hp)
 		if not enemy.is_alive():
+			if _try_chimera_corpse_transform(enemy):
+				enemy.clear_intention()
+				EventBus.enemy_intention_changed.emit(index, enemy.current_intention)
+				return false
 			enemy.clear_intention()
 			EventBus.enemy_intention_changed.emit(index, enemy.current_intention)
 			_on_enemy_defeated(enemy, index)
@@ -1922,6 +1970,9 @@ func _enemy_pre_turn_phase_async(index: int, enemy: EnemyInstance) -> bool:
 
 
 func _enemy_main_action_phase_async(index: int, enemy: EnemyInstance) -> void:
+	## Downed biomass takes no action; it only waits to revive.
+	if enemy != null and enemy.is_trembling_corpse():
+		return
 	var action: Dictionary = EnemyAI.resolve_main_action(enemy, self)
 	var ability: EnemyAbility = action.get("ability") as EnemyAbility
 	enemy.consume_planned_ability()
@@ -2017,6 +2068,10 @@ func _enemy_pre_turn_phase(index: int, enemy: EnemyInstance) -> bool:
 		)
 		EventBus.enemy_hp_changed.emit(index, enemy.current_hp, enemy.max_hp)
 		if not enemy.is_alive():
+			if _try_chimera_corpse_transform(enemy):
+				enemy.clear_intention()
+				EventBus.enemy_intention_changed.emit(index, enemy.current_intention)
+				return false
 			enemy.clear_intention()
 			EventBus.enemy_intention_changed.emit(index, enemy.current_intention)
 			_on_enemy_defeated(enemy, index)
@@ -2038,6 +2093,8 @@ func _enemy_pre_turn_phase(index: int, enemy: EnemyInstance) -> bool:
 
 func _enemy_main_action_phase(index: int, enemy: EnemyInstance) -> void:
 	## Sync legacy path (no presentation waits).
+	if enemy != null and enemy.is_trembling_corpse():
+		return
 	var action: Dictionary = EnemyAI.resolve_main_action(enemy, self)
 	var ability: EnemyAbility = action.get("ability") as EnemyAbility
 	enemy.consume_planned_ability()
@@ -2131,6 +2188,71 @@ func find_enemy_by_id(enemy_id: String) -> EnemyInstance:
 	return null
 
 
+func has_trembling_corpse() -> bool:
+	for enemy: EnemyInstance in enemies:
+		if enemy != null and enemy.is_alive() and enemy.is_trembling_corpse():
+			return true
+	return false
+
+
+func _try_chimera_corpse_transform(enemy: EnemyInstance) -> bool:
+	## Scavenger Chimera never truly dies on its first fall — it drops as biomass.
+	if enemy == null or enemy.data == null:
+		return false
+	if enemy.is_trembling_corpse():
+		return false
+	if enemy.data.id.strip_edges().to_lower() != SCAVENGER_CHIMERA_ID:
+		return false
+	if EnemyDatabase == null or not EnemyDatabase.has_enemy(TREMBLING_CORPSE_ID):
+		return false
+	var corpse_bp := EnemyDatabase.create_blueprint(TREMBLING_CORPSE_ID)
+	if corpse_bp == null:
+		return false
+	var chimera_name := enemy.get_localized_name()
+	enemy.become_trembling_corpse(corpse_bp, TREMBLING_CORPSE_TURNS)
+	EventBus.combat_log_message.emit(
+		tr("KEY_LOG_CHIMERA_CORPSE") % chimera_name
+	)
+	emit_enemy_hp_for(enemy)
+	EventBus.enemy_roster_changed.emit()
+	return true
+
+
+func _tick_trembling_corpse(enemy: EnemyInstance) -> void:
+	## End of the corpse's turn: count down, then rebuild into the chimera.
+	if enemy == null or not enemy.is_trembling_corpse():
+		return
+	if enemy.trembling_corpse_turns > 0:
+		enemy.trembling_corpse_turns -= 1
+	if enemy.trembling_corpse_turns > 0:
+		return
+	enemy.revive_from_corpse()
+	var idx := enemies.find(enemy)
+	EventBus.combat_log_message.emit(
+		tr("KEY_LOG_CHIMERA_REVIVE") % enemy.get_localized_name()
+	)
+	if idx >= 0:
+		emit_enemy_hp_for(enemy)
+	EventBus.enemy_roster_changed.emit()
+
+
+func on_enemy_devoured(caster: EnemyInstance, corpse: EnemyInstance) -> void:
+	## A chimera finished off a sibling corpse: full heal + stacking frenzy.
+	if caster == null or corpse == null:
+		return
+	var healed := caster.heal(caster.max_hp)
+	caster.apply_stackable_stat_buff("strength", DEVOUR_STR_BONUS)
+	caster.apply_stackable_stat_buff("luck", DEVOUR_LCK_BONUS)
+	notify_enemy_healed(caster, healed)
+	EventBus.combat_log_message.emit(
+		tr("KEY_LOG_DEVOUR_BOOST") % [caster.get_localized_name(), DEVOUR_STR_BONUS, DEVOUR_LCK_BONUS]
+	)
+	var idx := enemies.find(corpse)
+	if idx >= 0:
+		_on_enemy_defeated(corpse, idx)
+		EventBus.enemy_died.emit(idx)
+
+
 func steal_item_from_player_grid(caster: EnemyInstance) -> ItemData:
 	## Prefer a consumable; otherwise any non-harmful module. Returns null if nothing.
 	if inventory == null or inventory.grid == null:
@@ -2202,6 +2324,8 @@ func _enemy_pre_action_phase(index: int, enemy: EnemyInstance) -> void:
 
 
 func _enemy_post_turn_phase(_index: int, enemy: EnemyInstance) -> void:
+	if enemy != null and enemy.is_trembling_corpse():
+		_tick_trembling_corpse(enemy)
 	if enemy.statuses != null:
 		enemy.statuses.tick_post_turn()
 	enemy.end_enemy_turn()

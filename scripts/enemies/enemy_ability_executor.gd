@@ -22,6 +22,7 @@ func _init(combat: Node = null) -> void:
 		"force_insert": EffectForceInsert.new(),
 		"steal_item": EffectStealItem.new(),
 		"cell_damage": EffectCellDamage.new(),
+		"devour_kin": EffectDevourKin.new(),
 	}
 
 

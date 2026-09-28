@@ -36,6 +36,8 @@ const TRAIT_LAB_CONTOUR := "lab_contour"
 ## Specimen-614 (escaped): opens combat with a free Swift Strike +2 Poison
 ## before the player's first turn. Gated by the story flag specimen_614_escaped.
 const TRAIT_PREEMPTIVE_STRIKE := "preemptive_strike"
+## Scavenger Chimera downed form: passive biomass that revives after 2 rounds.
+const TRAIT_TREMBLING_CORPSE := "trembling_corpse"
 ## Trait ids that are combat mechanics, not StatusEffectData blueprints.
 const MECHANIC_TRAIT_IDS: Array[String] = [
 	TRAIT_PERMANENT_SHIELD,
@@ -45,6 +47,7 @@ const MECHANIC_TRAIT_IDS: Array[String] = [
 	TRAIT_STRONG_START,
 	TRAIT_LAB_CONTOUR,
 	TRAIT_PREEMPTIVE_STRIKE,
+	TRAIT_TREMBLING_CORPSE,
 	"stasis_pod",
 ]
 

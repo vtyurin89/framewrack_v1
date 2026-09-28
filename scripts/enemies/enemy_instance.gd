@@ -42,6 +42,10 @@ var planned_ability: EnemyAbility = null
 var current_intention: CombatIntention = null
 ## The Unknown: decaying chance to survive a fatal blow this fight.
 var revive_chance: float = 0.30
+## Scavenger Chimera: rounds left before the downed corpse revives (0 = alive form).
+var trembling_corpse_turns: int = 0
+## Scavenger Chimera: original chimera blueprint kept for the reviving transformation.
+var _chimera_base_data: EnemyData = null
 
 
 func setup(blueprint: EnemyData) -> void:
@@ -517,6 +521,63 @@ func has_lab_contour() -> bool:
 func has_preemptive_strike() -> bool:
 	## Escaped Specimen-614: free opening Swift Strike + Poison before player turn.
 	return has_enemy_trait(EnemyData.TRAIT_PREEMPTIVE_STRIKE)
+
+
+func is_trembling_corpse() -> bool:
+	## Downed Scavenger Chimera: passive biomass that revives after a timer.
+	return has_enemy_trait(EnemyData.TRAIT_TREMBLING_CORPSE)
+
+
+func become_trembling_corpse(corpse_blueprint: EnemyData, turns: int = 2) -> void:
+	## Swap the living chimera into its downed corpse form (same roster slot).
+	if corpse_blueprint == null:
+		return
+	if _chimera_base_data == null:
+		_chimera_base_data = data
+	_adopt_blueprint(corpse_blueprint)
+	max_hp = maxi(1, corpse_blueprint.get_effective_base_hp())
+	current_hp = max_hp
+	current_block = 0
+	trembling_corpse_turns = maxi(1, turns)
+
+
+func revive_from_corpse() -> void:
+	## Rebuild into the chimera at 50% Max HP and stack its permanent frenzy buffs.
+	if _chimera_base_data == null:
+		return
+	var base_max := get_max_hp(_chimera_base_data.get_effective_base_hp())
+	var hp_mult := 1.0
+	if GameSettings != null:
+		hp_mult = GameSettings.get_enemy_hp_multiplier()
+	max_hp = maxi(1, int(round(float(base_max) * hp_mult)))
+	if DEV_FORCE_ENEMY_HP > 0 and _chimera_base_data.get_effective_base_hp() <= DEV_FORCE_ENEMY_HP:
+		max_hp = mini(max_hp, DEV_FORCE_ENEMY_HP)
+	current_hp = maxi(1, int(round(float(max_hp) * 0.5)))
+	current_block = 0
+	_adopt_blueprint(_chimera_base_data)
+	trembling_corpse_turns = 0
+	apply_stackable_stat_buff("strength", 3)
+	apply_stackable_stat_buff("luck", 3)
+
+
+func _adopt_blueprint(blueprint: EnemyData) -> void:
+	## Switch data/abilities without resetting stats or accumulated stat buffs.
+	if blueprint == null:
+		return
+	data = blueprint
+	abilities.clear()
+	for ability: EnemyAbility in blueprint.abilities:
+		if ability != null:
+			abilities.append(ability)
+	_ability_cooldowns.clear()
+	_prepared_ability_ids.clear()
+	forced_next_ability_id = ""
+	planned_ability = null
+	current_intention = null
+	if statuses == null:
+		statuses = StatusController.new()
+	else:
+		statuses.clear_combat_statuses()
 
 
 func has_always_reroll_intent() -> bool:

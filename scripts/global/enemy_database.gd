@@ -148,6 +148,9 @@ func generate_encounter(faction: String, budget: int) -> Array[EnemyData]:
 		## The Unknown is stalker-triggered, not random pack filler.
 		if enemy.id.strip_edges().to_lower() == "the_unknown":
 			continue
+		## Downed Scavenger Chimera form — only appears via its transform.
+		if enemy.id.strip_edges().to_lower() == "entity_trembling_corpse":
+			continue
 		working.append(enemy)
 	if working.is_empty():
 		working = pool.duplicate()

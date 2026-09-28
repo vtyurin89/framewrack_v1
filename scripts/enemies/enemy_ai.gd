@@ -41,6 +41,12 @@ const ID_SPECIMEN_SWIFT := "ABILITY_SPECIMEN_SWIFT_STRIKE"
 const ID_SPECIMEN_CHARGE := "ABILITY_SPECIMEN_CHARGE_SURGE"
 const ID_SPECIMEN_NECROTIC := "ABILITY_SPECIMEN_NECROTIC_DISCHARGE"
 const ID_SPECIMEN_FORTIFY := "ABILITY_SPECIMEN_FORTIFY"
+const ID_CHIMERA_BONE_BITE := "ABILITY_CHIMERA_BONE_BITE"
+const ID_CHIMERA_CARAPACE_LUNGE := "ABILITY_CHIMERA_CARAPACE_LUNGE"
+const ID_CHIMERA_RENDING_POUNCE := "ABILITY_CHIMERA_RENDING_POUNCE"
+const ID_CHIMERA_DEVOUR_KIN := "ABILITY_CHIMERA_DEVOUR_KIN"
+## Scavenger Chimera: chance to prioritize a downed sibling over the player.
+const CHIMERA_DEVOUR_PRIORITY := 0.75
 
 
 static func trigger_pre_action_phase(enemy: EnemyInstance) -> Dictionary:
@@ -140,6 +146,11 @@ static func commit_main_action(
 	if enemy == null or not enemy.is_alive():
 		if enemy != null:
 			enemy.planned_ability = null
+		return result
+
+	## Downed Scavenger Chimera biomass takes no actions — it only revives on a timer.
+	if enemy.is_trembling_corpse():
+		enemy.planned_ability = null
 		return result
 
 	## Broken summons / pocket thief scout: keep flee telegraph while fleeing.
@@ -391,6 +402,8 @@ static func _pick_scripted_main(enemy: EnemyInstance, combat: Node) -> EnemyAbil
 			return _ai_the_unknown(enemy, combat)
 		"specimen_614":
 			return _ai_specimen_614(enemy, combat)
+		"scavenger_chimera":
+			return _ai_scavenger_chimera(enemy, combat)
 		_:
 			return null
 
@@ -599,6 +612,22 @@ static func _ai_specimen_614(enemy: EnemyInstance, _combat: Node) -> EnemyAbilit
 
 	## Fall through to weighted deck (swift strike / fortify).
 	return null
+
+
+static func _ai_scavenger_chimera(enemy: EnemyInstance, combat: Node) -> EnemyAbility:
+	## Cannibalize a downed sibling when one is available (75% priority).
+	if _has_trembling_corpse(combat) and randf() < CHIMERA_DEVOUR_PRIORITY:
+		var devour := enemy.find_ability(ID_CHIMERA_DEVOUR_KIN)
+		if devour != null and enemy.can_use_ability(devour):
+			return devour
+	## Otherwise fall through to the weighted deck (bite / lunge / pounce).
+	return null
+
+
+static func _has_trembling_corpse(combat: Node) -> bool:
+	if combat == null or not combat.has_method("has_trembling_corpse"):
+		return false
+	return bool(combat.call("has_trembling_corpse"))
 
 
 static func _count_worm_parasites(combat: Node) -> int:
