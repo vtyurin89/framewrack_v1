@@ -1459,6 +1459,20 @@ func _clear_all_item_statuses() -> void:
 	EventBus.combat_item_availability_changed.emit()
 
 
+func _clear_end_of_combat_item_state() -> void:
+	## Combat-scoped item debuffs (STICKY, OVERLOAD, TAINTED, INACTIVE) and the
+	## sticky cooldown penalty must never outlive the fight. STICKY permanently
+	## inflates an instance's cooldown while the combat lasts, so drop it here too.
+	if inventory == null or inventory.grid == null:
+		return
+	for placed: PlacedItem in inventory.grid.items:
+		if placed == null or placed.data == null:
+			continue
+		placed.data.statuses.clear()
+		placed.data.combat_cooldown_bonus = 0
+	EventBus.combat_item_availability_changed.emit()
+
+
 func _clear_temporary_weapon_bonuses() -> void:
 	if inventory == null or inventory.grid == null:
 		return
@@ -2752,6 +2766,7 @@ func _win() -> void:
 		if enemy != null and enemy.statuses != null:
 			enemy.statuses.clear_combat_statuses()
 	_run_on_combat_end_triggers()
+	_clear_end_of_combat_item_state()
 	_set_state(CombatState.VICTORY)
 	EventBus.combat_log_message.emit(tr("KEY_LOG_VICTORY"))
 	EventBus.combat_ended.emit(true)
@@ -2779,6 +2794,7 @@ func _lose() -> void:
 	_player_action_busy = false
 	if player_stats != null:
 		player_stats.clear_combat_stat_buffs()
+	_clear_end_of_combat_item_state()
 	_set_state(CombatState.DEFEAT)
 	EventBus.combat_log_message.emit(tr("KEY_LOG_DEFEAT"))
 	EventBus.combat_ended.emit(false)
@@ -2800,4 +2816,5 @@ func abort_combat() -> void:
 		player_stats.clear_combat_stat_buffs()
 	if player_statuses != null:
 		player_statuses.clear_combat_statuses()
+	_clear_end_of_combat_item_state()
 	state_changed.emit(state)
