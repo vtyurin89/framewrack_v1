@@ -163,6 +163,27 @@ func _apply_status_riders(
 					if fail_dmg > 0 and target.has_method("apply_enemy_damage_to_player"):
 						target.call("apply_enemy_damage_to_player", fail_dmg, caster, "physical")
 			continue
+		if token == "force_insert" or token == "forced_insert":
+			## force_insert|ITEM_ID|chance%% — open ForcedItemScreen (player places it).
+			var fid := "ITM_CHIMERA_LARVA"
+			var fchance := 100
+			if i + 1 < csv.size() and not str(csv[i + 1]).is_valid_int():
+				fid = str(csv[i + 1]).strip_edges().to_upper()
+				i += 2
+			else:
+				i += 1
+			if i < csv.size() and str(csv[i]).is_valid_int():
+				fchance = clampi(int(csv[i]), 0, 100)
+				i += 1
+			if fchance <= 0 or (fchance < 100 and randi_range(1, 100) > fchance):
+				continue
+			if target.has_method("request_forced_item_insertion"):
+				if caster != null:
+					EventBus.combat_log_message.emit(
+						tr("KEY_LOG_PARASITE_INJECT") % caster.get_localized_name()
+					)
+				target.call("request_forced_item_insertion", fid)
+			continue
 		if token not in known:
 			i += 1
 			continue

@@ -928,7 +928,7 @@ ABILITY_CHIMERA_CARAPACE_LUNGE_NAME,Carapace Lunge,Панцирный выпад
 ABILITY_CHIMERA_CARAPACE_LUNGE_DESC,"Deals 3-4 physical damage (+STR) and gains an equal amount of Block.","Наносит 3–4 физ. урона (+СИЛ) и получает столько же Брони."
 ABILITY_CHIMERA_CARAPACE_LUNGE_TEXT,Carapace Lunge!,Панцирный выпад!
 ABILITY_CHIMERA_RENDING_POUNCE_NAME,Rending Pounce,Рвущий наскок
-ABILITY_CHIMERA_RENDING_POUNCE_DESC,"Deals 10-12 physical damage (+STR). 40% chance to spawn a Chimera Larva in the player's grid. Cooldown 3.","Наносит 10–12 физ. урона (+СИЛ). С шансом 40% вселяет Личинку химеры в инвентарь игрока. Откат 3."
+ABILITY_CHIMERA_RENDING_POUNCE_DESC,"Deals 10-12 physical damage (+STR). 40% chance to force a Chimera Larva into your Body Grid. Cooldown 3.","Наносит 10–12 физ. урона (+СИЛ). С шансом 40% заставляет поместить Личинку химеры в ваш инвентарь. Откат 3."
 ABILITY_CHIMERA_RENDING_POUNCE_TEXT,Rending Pounce!,Рвущий наскок!
 ABILITY_CHIMERA_DEVOUR_KIN_NAME,Devour Kin,Пожирание сородича
 ABILITY_CHIMERA_DEVOUR_KIN_DESC,"Devours a downed sibling: 8 pure damage. A kill fully heals this chimera and grants +3 STR, +3 LCK (stacking).","Пожирает павшего сородича: 8 чистого урона. Добивание полностью лечит и даёт +3 СИЛ, +3 УДЧ (суммируется)."
